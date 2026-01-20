@@ -2,13 +2,27 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
+import CopyToMonthDialog from './CopyToMonthDialog';
 
 export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [form, setForm] = useState({ source: '', amount: '', date: '' });
+  
+  const handleCopyToMonth = async (targetMonth) => {
+    for (const income of incomes) {
+      await base44.entities.Income.create({
+        source: income.source,
+        amount: income.amount,
+        date: '',
+        month: targetMonth
+      });
+    }
+    onRefresh();
+  };
   
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
   
@@ -53,14 +67,25 @@ export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
       <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span>INCOME</span>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 text-white hover:bg-slate-700"
-            onClick={() => setIsAdding(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-700"
+              onClick={() => setShowCopyDialog(true)}
+              disabled={incomes.length === 0}
+            >
+              <Copy className="h-4 w-4 mr-1" /> Copy
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-700"
+              onClick={() => setIsAdding(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -170,6 +195,13 @@ export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
           <div className="col-span-4 text-right font-bold">R {totalIncome.toLocaleString()}</div>
         </div>
       </CardContent>
+      
+      <CopyToMonthDialog 
+        open={showCopyDialog}
+        onClose={() => setShowCopyDialog(false)}
+        onCopy={handleCopyToMonth}
+        title="Income"
+      />
     </Card>
   );
 }
