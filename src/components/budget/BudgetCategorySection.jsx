@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
+import CopyToMonthDialog from './CopyToMonthDialog';
 
 export default function BudgetCategorySection({ categories, expenses, selectedMonth, onRefresh }) {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -12,8 +13,20 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [categoryForm, setCategoryForm] = useState({ name: '', budget_amount: '' });
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '' });
+  
+  const handleCopyToMonth = async (targetMonth) => {
+    for (const category of categories) {
+      await base44.entities.BudgetCategory.create({
+        name: category.name,
+        budget_amount: category.budget_amount,
+        month: targetMonth
+      });
+    }
+    onRefresh();
+  };
   
   const variableExpenses = expenses.filter(e => !e.is_fixed);
   
@@ -109,14 +122,25 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
       <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span>MONTHLY BUDGET</span>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 text-white hover:bg-slate-700"
-            onClick={() => setIsAddingCategory(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add Category
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-700"
+              onClick={() => setShowCopyDialog(true)}
+              disabled={categories.length === 0}
+            >
+              <Copy className="h-4 w-4 mr-1" /> Copy
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-700"
+              onClick={() => setIsAddingCategory(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
