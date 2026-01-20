@@ -2,13 +2,27 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
+import CopyToMonthDialog from './CopyToMonthDialog';
 
 export default function InvestmentsSection({ investments, selectedMonth, onRefresh }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [form, setForm] = useState({ name: '', savings_goal: '', amount_saved: '' });
+  
+  const handleCopyToMonth = async (targetMonth) => {
+    for (const investment of investments) {
+      await base44.entities.Investment.create({
+        name: investment.name,
+        savings_goal: investment.savings_goal,
+        amount_saved: 0,
+        month: targetMonth
+      });
+    }
+    onRefresh();
+  };
   
   const totalSaved = investments.reduce((sum, i) => sum + (i.amount_saved || 0), 0);
   
@@ -55,14 +69,25 @@ export default function InvestmentsSection({ investments, selectedMonth, onRefre
       <CardHeader className="bg-slate-600 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span>INVESTMENTS / SAVINGS</span>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 text-white hover:bg-slate-500"
-            onClick={() => setIsAdding(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-500"
+              onClick={() => setShowCopyDialog(true)}
+              disabled={investments.length === 0}
+            >
+              <Copy className="h-4 w-4 mr-1" /> Copy
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-white hover:bg-slate-500"
+              onClick={() => setIsAdding(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -173,6 +198,13 @@ export default function InvestmentsSection({ investments, selectedMonth, onRefre
           <div className="col-span-4 text-right font-bold">R {totalSaved.toLocaleString()}</div>
         </div>
       </CardContent>
+      
+      <CopyToMonthDialog 
+        open={showCopyDialog}
+        onClose={() => setShowCopyDialog(false)}
+        onCopy={handleCopyToMonth}
+        title="Investments"
+      />
     </Card>
   );
 }
