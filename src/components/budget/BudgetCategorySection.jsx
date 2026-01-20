@@ -344,6 +344,13 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
           })}
         </div>
       </CardContent>
+      
+      <CopyToMonthDialog 
+        open={showCopyDialog}
+        onClose={() => setShowCopyDialog(false)}
+        onCopy={handleCopyToMonth}
+        title="Budget Categories"
+      />
     </Card>
   );
 }
