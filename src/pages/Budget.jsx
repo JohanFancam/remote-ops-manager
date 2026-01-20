@@ -10,6 +10,7 @@ import ExpensesSection from '../components/budget/ExpensesSection';
 import InvestmentsSection from '../components/budget/InvestmentsSection';
 import BudgetCategorySection from '../components/budget/BudgetCategorySection';
 import MonthlyTotals from '../components/budget/MonthlyTotals';
+import BankBalanceCard from '../components/budget/BankBalanceCard';
 
 export default function Budget() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -35,14 +36,32 @@ export default function Budget() {
     queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth }),
   });
   
-  const isLoading = loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories;
+  const { data: balances = [], isLoading: loadingBalances } = useQuery({
+    queryKey: ['balances', selectedMonth],
+    queryFn: () => base44.entities.BankBalance.filter({ month: selectedMonth }),
+  });
+  
+  const { data: purchases = [], isLoading: loadingPurchases } = useQuery({
+    queryKey: ['purchases', selectedMonth],
+    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth }),
+  });
+  
+  const isLoading = loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases;
   
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['incomes', selectedMonth] });
     queryClient.invalidateQueries({ queryKey: ['expenses', selectedMonth] });
     queryClient.invalidateQueries({ queryKey: ['investments', selectedMonth] });
     queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth] });
+    queryClient.invalidateQueries({ queryKey: ['balances', selectedMonth] });
+    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth] });
   };
+  
+  // Combine expenses and purchases for totals
+  const allExpenses = [
+    ...expenses,
+    ...purchases.map(p => ({ ...p, is_fixed: false }))
+  ];
   
   if (isLoading) {
     return (
@@ -63,6 +82,12 @@ export default function Budget() {
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Left Column - Income, Fixed Expenses, Investments, Totals */}
           <div className="space-y-6">
+            <BankBalanceCard
+              balance={balances[0]}
+              selectedMonth={selectedMonth}
+              onRefresh={refreshData}
+            />
+            
             <IncomeSection 
               incomes={incomes} 
               selectedMonth={selectedMonth} 
@@ -83,7 +108,7 @@ export default function Budget() {
             
             <MonthlyTotals 
               incomes={incomes} 
-              expenses={expenses} 
+              expenses={allExpenses} 
               investments={investments} 
             />
           </div>
