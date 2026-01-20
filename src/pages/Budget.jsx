@@ -11,6 +11,7 @@ import InvestmentsSection from '../components/budget/InvestmentsSection';
 import BudgetCategorySection from '../components/budget/BudgetCategorySection';
 import MonthlyTotals from '../components/budget/MonthlyTotals';
 import BankBalanceCard from '../components/budget/BankBalanceCard';
+import HouseholdGoalsSection from '../components/budget/HouseholdGoalsSection';
 
 export default function Budget() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -46,7 +47,12 @@ export default function Budget() {
     queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth }),
   });
   
-  const isLoading = loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases;
+  const { data: goals = [], isLoading: loadingGoals } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => base44.entities.HouseholdGoal.list(),
+  });
+  
+  const isLoading = loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases || loadingGoals;
   
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['incomes', selectedMonth] });
@@ -55,6 +61,11 @@ export default function Budget() {
     queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth] });
     queryClient.invalidateQueries({ queryKey: ['balances', selectedMonth] });
     queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth] });
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
+  };
+  
+  const refreshGoals = () => {
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
   };
   
   // Combine expenses and purchases for totals
@@ -113,13 +124,18 @@ export default function Budget() {
             />
           </div>
           
-          {/* Right Column - Budget Categories */}
+          {/* Right Column - Budget Categories & Goals */}
           <div className="space-y-6">
             <BudgetCategorySection 
               categories={categories}
               expenses={expenses}
               selectedMonth={selectedMonth}
               onRefresh={refreshData}
+            />
+            
+            <HouseholdGoalsSection 
+              goals={goals}
+              onRefresh={refreshGoals}
             />
           </div>
         </div>
