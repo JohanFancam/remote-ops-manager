@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import CopyToMonthDialog from './CopyToMonthDialog';
+import TutorialHint from './TutorialHint';
 
-export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
+export default function IncomeSection({ incomes, selectedMonth, householdId, defaultDate, onRefresh, showTutorial }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [form, setForm] = useState({ source: '', amount: '', date: '' });
+  const [form, setForm] = useState({ source: '', amount: '', date: defaultDate || '' });
   
   const handleCopyToMonth = async (targetMonth) => {
     for (const income of incomes) {
@@ -18,7 +19,8 @@ export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
         source: income.source,
         amount: income.amount,
         date: '',
-        month: targetMonth
+        month: targetMonth,
+        household_id: householdId
       });
     }
     onRefresh();
@@ -31,9 +33,10 @@ export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
     await base44.entities.Income.create({
       ...form,
       amount: parseFloat(form.amount),
-      month: selectedMonth
+      month: selectedMonth,
+      household_id: householdId
     });
-    setForm({ source: '', amount: '', date: '' });
+    setForm({ source: '', amount: '', date: defaultDate || '' });
     setIsAdding(false);
     onRefresh();
   };
@@ -66,7 +69,13 @@ export default function IncomeSection({ incomes, selectedMonth, onRefresh }) {
     <Card className="border-0 shadow-md">
       <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
-          <span>INCOME</span>
+          <span className="flex items-center">
+            INCOME
+            <TutorialHint 
+              text="Track all your income sources here. By default, income is set to the 25th of each month but you can change this in Settings."
+              showTutorial={showTutorial}
+            />
+          </span>
           <div className="flex gap-1">
             <Button 
               size="sm" 

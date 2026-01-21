@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
+import { useHousehold } from '../components/HouseholdContext';
 import MonthSelector from '../components/budget/MonthSelector';
 import IncomeSection from '../components/budget/IncomeSection';
 import ExpensesSection from '../components/budget/ExpensesSection';
@@ -12,60 +13,84 @@ import BudgetCategorySection from '../components/budget/BudgetCategorySection';
 import MonthlyTotals from '../components/budget/MonthlyTotals';
 import BankBalanceCard from '../components/budget/BankBalanceCard';
 import HouseholdGoalsSection from '../components/budget/HouseholdGoalsSection';
+import CalendarWidget from '../components/budget/CalendarWidget';
 
 export default function Budget() {
+  const { householdId, isLoading: loadingHousehold, showTutorial, getDefaultIncomeDate, getDefaultExpenseDate } = useHousehold();
+  
+  // Auto-set to current month on load
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const queryClient = useQueryClient();
   
+  // Auto-advance month when real calendar changes
+  useEffect(() => {
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    if (selectedMonth !== currentMonth) {
+      // Only auto-advance if viewing previous month
+      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+      const [curYear, curMonth] = currentMonth.split('-').map(Number);
+      if (selYear < curYear || (selYear === curYear && selMonth < curMonth)) {
+        setSelectedMonth(currentMonth);
+      }
+    }
+  }, []);
+  
   const { data: incomes = [], isLoading: loadingIncomes } = useQuery({
-    queryKey: ['incomes', selectedMonth],
-    queryFn: () => base44.entities.Income.filter({ month: selectedMonth }),
+    queryKey: ['incomes', selectedMonth, householdId],
+    queryFn: () => base44.entities.Income.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: expenses = [], isLoading: loadingExpenses } = useQuery({
-    queryKey: ['expenses', selectedMonth],
-    queryFn: () => base44.entities.Expense.filter({ month: selectedMonth }),
+    queryKey: ['expenses', selectedMonth, householdId],
+    queryFn: () => base44.entities.Expense.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: investments = [], isLoading: loadingInvestments } = useQuery({
-    queryKey: ['investments', selectedMonth],
-    queryFn: () => base44.entities.Investment.filter({ month: selectedMonth }),
+    queryKey: ['investments', selectedMonth, householdId],
+    queryFn: () => base44.entities.Investment.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
-    queryKey: ['categories', selectedMonth],
-    queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth }),
+    queryKey: ['categories', selectedMonth, householdId],
+    queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: balances = [], isLoading: loadingBalances } = useQuery({
-    queryKey: ['balances', selectedMonth],
-    queryFn: () => base44.entities.BankBalance.filter({ month: selectedMonth }),
+    queryKey: ['balances', selectedMonth, householdId],
+    queryFn: () => base44.entities.BankBalance.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: purchases = [], isLoading: loadingPurchases } = useQuery({
-    queryKey: ['purchases', selectedMonth],
-    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth }),
+    queryKey: ['purchases', selectedMonth, householdId],
+    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: goals = [], isLoading: loadingGoals } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => base44.entities.HouseholdGoal.list(),
+    queryKey: ['goals', householdId],
+    queryFn: () => base44.entities.HouseholdGoal.filter({ household_id: householdId }),
+    enabled: !!householdId,
   });
   
-  const isLoading = loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases || loadingGoals;
+  const isLoading = loadingHousehold || loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases || loadingGoals;
   
   const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['incomes', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['expenses', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['investments', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['balances', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['goals'] });
+    queryClient.invalidateQueries({ queryKey: ['incomes', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['expenses', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['investments', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['balances', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['goals', householdId] });
   };
   
   const refreshGoals = () => {
-    queryClient.invalidateQueries({ queryKey: ['goals'] });
+    queryClient.invalidateQueries({ queryKey: ['goals', householdId] });
   };
   
   // Combine expenses and purchases for totals
@@ -85,9 +110,14 @@ export default function Budget() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Household Budget</h1>
           <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+        </div>
+        
+        {/* Calendar Widget */}
+        <div className="mb-6">
+          <CalendarWidget />
         </div>
         
         <div className="grid lg:grid-cols-2 gap-6">
@@ -96,31 +126,42 @@ export default function Budget() {
             <BankBalanceCard
               balance={balances[0]}
               selectedMonth={selectedMonth}
+              householdId={householdId}
               onRefresh={refreshData}
+              showTutorial={showTutorial}
             />
             
             <IncomeSection 
               incomes={incomes} 
-              selectedMonth={selectedMonth} 
-              onRefresh={refreshData} 
+              selectedMonth={selectedMonth}
+              householdId={householdId}
+              defaultDate={getDefaultIncomeDate(selectedMonth)}
+              onRefresh={refreshData}
+              showTutorial={showTutorial}
             />
             
             <ExpensesSection 
               expenses={expenses} 
-              selectedMonth={selectedMonth} 
-              onRefresh={refreshData} 
+              selectedMonth={selectedMonth}
+              householdId={householdId}
+              defaultDate={getDefaultExpenseDate(selectedMonth)}
+              onRefresh={refreshData}
+              showTutorial={showTutorial}
             />
             
             <InvestmentsSection 
               investments={investments} 
-              selectedMonth={selectedMonth} 
-              onRefresh={refreshData} 
+              selectedMonth={selectedMonth}
+              householdId={householdId}
+              onRefresh={refreshData}
+              showTutorial={showTutorial}
             />
             
             <MonthlyTotals 
               incomes={incomes} 
               expenses={allExpenses} 
-              investments={investments} 
+              investments={investments}
+              showTutorial={showTutorial}
             />
           </div>
           
@@ -130,12 +171,16 @@ export default function Budget() {
               categories={categories}
               expenses={expenses}
               selectedMonth={selectedMonth}
+              householdId={householdId}
               onRefresh={refreshData}
+              showTutorial={showTutorial}
             />
             
             <HouseholdGoalsSection 
               goals={goals}
+              householdId={householdId}
               onRefresh={refreshGoals}
+              showTutorial={showTutorial}
             />
           </div>
         </div>
