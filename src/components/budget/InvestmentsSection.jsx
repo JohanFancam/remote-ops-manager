@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import CopyToMonthDialog from './CopyToMonthDialog';
+import TutorialHint from './TutorialHint';
 
-export default function InvestmentsSection({ investments, selectedMonth, onRefresh }) {
+export default function InvestmentsSection({ investments, selectedMonth, householdId, onRefresh, showTutorial }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -18,7 +19,8 @@ export default function InvestmentsSection({ investments, selectedMonth, onRefre
         name: investment.name,
         savings_goal: investment.savings_goal,
         amount_saved: 0,
-        month: targetMonth
+        month: targetMonth,
+        household_id: householdId
       });
     }
     onRefresh();
@@ -32,7 +34,8 @@ export default function InvestmentsSection({ investments, selectedMonth, onRefre
       ...form,
       savings_goal: parseFloat(form.savings_goal),
       amount_saved: parseFloat(form.amount_saved) || 0,
-      month: selectedMonth
+      month: selectedMonth,
+      household_id: householdId
     });
     setForm({ name: '', savings_goal: '', amount_saved: '' });
     setIsAdding(false);
@@ -68,7 +71,13 @@ export default function InvestmentsSection({ investments, selectedMonth, onRefre
     <Card className="border-0 shadow-md">
       <CardHeader className="bg-slate-600 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
-          <span>INVESTMENTS / SAVINGS</span>
+          <span className="flex items-center">
+            INVESTMENTS / SAVINGS
+            <TutorialHint 
+              text="Track your monthly savings and investments here. Set goals and record how much you've saved each month."
+              showTutorial={showTutorial}
+            />
+          </span>
           <div className="flex gap-1">
             <Button 
               size="sm" 

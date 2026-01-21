@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Wallet, Edit2, Check, X, Plus } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
+import TutorialHint from './TutorialHint';
 
-export default function BankBalanceCard({ balance, selectedMonth, onRefresh }) {
+export default function BankBalanceCard({ balance, selectedMonth, householdId, onRefresh, showTutorial }) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     amount: balance?.amount?.toString() || '',
@@ -28,7 +29,8 @@ export default function BankBalanceCard({ balance, selectedMonth, onRefresh }) {
         amount: parseFloat(form.amount),
         date: form.date,
         note: form.note,
-        month: selectedMonth
+        month: selectedMonth,
+        household_id: householdId
       });
     }
     setIsEditing(false);
@@ -42,6 +44,10 @@ export default function BankBalanceCard({ balance, selectedMonth, onRefresh }) {
           <div className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
             <span>Bank Balance</span>
+            <TutorialHint 
+              text="Enter your starting bank balance for the month. This helps you track how much money you actually have available."
+              showTutorial={showTutorial}
+            />
           </div>
           {!isEditing && (
             <Button 

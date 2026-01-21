@@ -8,8 +8,9 @@ import { Plus, Trash2, Edit2, Check, X, Target } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import TutorialHint from './TutorialHint';
 
-export default function HouseholdGoalsSection({ goals, onRefresh }) {
+export default function HouseholdGoalsSection({ goals, householdId, onRefresh, showTutorial }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ 
@@ -28,7 +29,8 @@ export default function HouseholdGoalsSection({ goals, onRefresh }) {
       amount_saved: parseFloat(form.amount_saved) || 0,
       notes: form.notes,
       priority: form.priority,
-      is_completed: false
+      is_completed: false,
+      household_id: householdId
     });
     setForm({ name: '', target_amount: '', amount_saved: '', notes: '', priority: 'medium' });
     setIsAdding(false);
@@ -87,6 +89,10 @@ export default function HouseholdGoalsSection({ goals, onRefresh }) {
           <span className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             HOUSEHOLD GOALS
+            <TutorialHint 
+              text="Track things you want to buy or achieve. Set a target amount, record savings, and tick off when completed. Unlike investments, these are one-time goals."
+              showTutorial={showTutorial}
+            />
           </span>
           <Button 
             size="sm" 

@@ -6,8 +6,9 @@ import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Copy } from "
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import CopyToMonthDialog from './CopyToMonthDialog';
+import TutorialHint from './TutorialHint';
 
-export default function BudgetCategorySection({ categories, expenses, selectedMonth, onRefresh }) {
+export default function BudgetCategorySection({ categories, expenses, selectedMonth, householdId, onRefresh, showTutorial }) {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -22,7 +23,8 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
       await base44.entities.BudgetCategory.create({
         name: category.name,
         budget_amount: category.budget_amount,
-        month: targetMonth
+        month: targetMonth,
+        household_id: householdId
       });
     }
     onRefresh();
@@ -50,7 +52,8 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
     await base44.entities.BudgetCategory.create({
       ...categoryForm,
       budget_amount: parseFloat(categoryForm.budget_amount),
-      month: selectedMonth
+      month: selectedMonth,
+      household_id: householdId
     });
     setCategoryForm({ name: '', budget_amount: '' });
     setIsAddingCategory(false);
@@ -79,7 +82,8 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
       description: expenseForm.description,
       amount: parseFloat(expenseForm.amount),
       is_fixed: false,
-      month: selectedMonth
+      month: selectedMonth,
+      household_id: householdId
     });
     setExpenseForm({ description: '', amount: '' });
     setIsAddingExpense(null);
@@ -121,7 +125,13 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
     <Card className="border-0 shadow-md">
       <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
-          <span>MONTHLY BUDGET</span>
+          <span className="flex items-center">
+            MONTHLY BUDGET
+            <TutorialHint 
+              text="Set spending limits for categories like Groceries, Transport, etc. Track individual purchases against each budget to stay on track."
+              showTutorial={showTutorial}
+            />
+          </span>
           <div className="flex gap-1">
             <Button 
               size="sm" 
