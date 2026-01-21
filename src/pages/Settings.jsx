@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Palette, Users, Home, Check, X, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Save, Palette, Users, Home, Check, X, Trash2, UserPlus, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { useHousehold } from '../components/HouseholdContext';
 
 const THEMES = [
   { id: 'slate', name: 'Classic', primary: 'bg-slate-800', accent: 'bg-slate-600' },
@@ -18,29 +19,20 @@ const THEMES = [
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const { user, household, isLoading } = useHousehold();
   const [householdName, setHouseholdName] = useState('');
   const [selectedTheme, setSelectedTheme] = useState('slate');
+  const [defaultIncomeDay, setDefaultIncomeDay] = useState(25);
+  const [defaultExpenseDay, setDefaultExpenseDay] = useState(1);
   const [newShareEmail, setNewShareEmail] = useState('');
   const [isAddingShare, setIsAddingShare] = useState(false);
-  
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-  
-  const { data: households = [], isLoading } = useQuery({
-    queryKey: ['households'],
-    queryFn: () => base44.entities.Household.list(),
-  });
-  
-  const household = households.find(h => 
-    h.owner_email === user?.email || h.shared_with?.includes(user?.email)
-  );
   
   useEffect(() => {
     if (household) {
       setHouseholdName(household.name || '');
       setSelectedTheme(household.theme || 'slate');
+      setDefaultIncomeDay(household.default_income_day || 25);
+      setDefaultExpenseDay(household.default_expense_day || 1);
     }
   }, [household]);
   
@@ -65,7 +57,9 @@ export default function Settings() {
   const handleSave = () => {
     saveMutation.mutate({
       name: householdName,
-      theme: selectedTheme
+      theme: selectedTheme,
+      default_income_day: defaultIncomeDay,
+      default_expense_day: defaultExpenseDay
     });
   };
   
@@ -151,7 +145,7 @@ export default function Settings() {
                     key={theme.id}
                     onClick={() => {
                       setSelectedTheme(theme.id);
-                      saveMutation.mutate({ name: householdName, theme: theme.id });
+                      saveMutation.mutate({ name: householdName, theme: theme.id, default_income_day: defaultIncomeDay, default_expense_day: defaultExpenseDay });
                     }}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       selectedTheme === theme.id 
@@ -167,6 +161,53 @@ export default function Settings() {
                   </button>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+          
+          {/* Default Dates */}
+          <Card className="border-0 shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-5 w-5" />
+                Default Dates
+              </CardTitle>
+              <CardDescription>Set default days for income and expense due dates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-slate-600">Income Day (default: 25th)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={defaultIncomeDay}
+                    onChange={(e) => setDefaultIncomeDay(parseInt(e.target.value) || 25)}
+                    className="mt-1"
+                    disabled={!isOwner}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">When you typically receive your salary</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-slate-600">Expense Due Day (default: 1st)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={defaultExpenseDay}
+                    onChange={(e) => setDefaultExpenseDay(parseInt(e.target.value) || 1)}
+                    className="mt-1"
+                    disabled={!isOwner}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">When bills are typically due</p>
+                </div>
+              </div>
+              {isOwner && (
+                <Button onClick={handleSave} className="mt-4" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Dates
+                </Button>
+              )}
             </CardContent>
           </Card>
           
