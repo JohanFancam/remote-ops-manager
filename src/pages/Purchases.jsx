@@ -4,30 +4,34 @@ import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
+import { useHousehold } from '../components/HouseholdContext';
 import MonthSelector from '../components/budget/MonthSelector';
 import PurchasesSection from '../components/budget/PurchasesSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export default function Purchases() {
+  const { householdId, isLoading: loadingHousehold } = useHousehold();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const queryClient = useQueryClient();
   
   const { data: purchases = [], isLoading: loadingPurchases } = useQuery({
-    queryKey: ['purchases', selectedMonth],
-    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth }),
+    queryKey: ['purchases', selectedMonth, householdId],
+    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
-    queryKey: ['categories', selectedMonth],
-    queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth }),
+    queryKey: ['categories', selectedMonth, householdId],
+    queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth, household_id: householdId }),
+    enabled: !!householdId,
   });
   
-  const isLoading = loadingPurchases || loadingCategories;
+  const isLoading = loadingHousehold || loadingPurchases || loadingCategories;
   
   const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth] });
-    queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth] });
+    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth, householdId] });
+    queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth, householdId] });
   };
   
   // Calculate spending by category
@@ -80,6 +84,7 @@ export default function Purchases() {
           purchases={purchases}
           categories={categories}
           selectedMonth={selectedMonth}
+          householdId={householdId}
           onRefresh={refreshData}
         />
       </div>
