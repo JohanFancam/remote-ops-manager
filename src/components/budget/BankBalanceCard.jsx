@@ -6,8 +6,10 @@ import { Wallet, Edit2, Check, X, Plus } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
 
 export default function BankBalanceCard({ balance, selectedMonth, householdId, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     amount: balance?.amount?.toString() || '',
@@ -38,7 +40,7 @@ export default function BankBalanceCard({ balance, selectedMonth, householdId, o
   };
   
   return (
-    <Card className="border-0 shadow-md bg-gradient-to-r from-emerald-500 to-teal-600">
+    <Card className={`border-0 shadow-md bg-gradient-to-r ${theme.gradient}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-white text-base font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">

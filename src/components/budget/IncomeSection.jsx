@@ -6,8 +6,10 @@ import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
 
 export default function IncomeSection({ incomes, selectedMonth, householdId, defaultDate, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -67,7 +69,7 @@ export default function IncomeSection({ incomes, selectedMonth, householdId, def
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span className="flex items-center">
             INCOME
@@ -80,7 +82,7 @@ export default function IncomeSection({ incomes, selectedMonth, householdId, def
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setShowCopyDialog(true)}
               disabled={incomes.length === 0}
             >
@@ -89,7 +91,7 @@ export default function IncomeSection({ incomes, selectedMonth, householdId, def
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setIsAdding(true)}
             >
               <Plus className="h-4 w-4 mr-1" /> Add
@@ -199,7 +201,7 @@ export default function IncomeSection({ incomes, selectedMonth, householdId, def
           )}
         </div>
         
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-800 text-white rounded-b-lg">
+        <div className={`grid grid-cols-12 gap-2 px-4 py-3 ${theme.cardFooter} text-white rounded-b-lg`}>
           <div className="col-span-8 font-semibold text-sm">TOTAL INCOME</div>
           <div className="col-span-4 text-right font-bold">R {totalIncome.toLocaleString()}</div>
         </div>
