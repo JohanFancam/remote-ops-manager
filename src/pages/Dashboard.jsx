@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { useHousehold } from '../components/HouseholdContext';
 import MonthSelector from '../components/budget/MonthSelector';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import ExpenseChart from '../components/dashboard/ExpenseChart';
@@ -12,6 +13,7 @@ import MonthlyTrend from '../components/dashboard/MonthlyTrend';
 import BudgetProgress from '../components/dashboard/BudgetProgress';
 
 export default function Dashboard() {
+  const { householdId, isLoading: loadingHousehold } = useHousehold();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'year'
   
@@ -19,26 +21,30 @@ export default function Dashboard() {
   
   // Fetch all data for trends
   const { data: allIncomes = [], isLoading: loadingAllIncomes } = useQuery({
-    queryKey: ['all-incomes'],
-    queryFn: () => base44.entities.Income.list(),
+    queryKey: ['all-incomes', householdId],
+    queryFn: () => base44.entities.Income.filter({ household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: allExpenses = [], isLoading: loadingAllExpenses } = useQuery({
-    queryKey: ['all-expenses'],
-    queryFn: () => base44.entities.Expense.list(),
+    queryKey: ['all-expenses', householdId],
+    queryFn: () => base44.entities.Expense.filter({ household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: allInvestments = [], isLoading: loadingAllInvestments } = useQuery({
-    queryKey: ['all-investments'],
-    queryFn: () => base44.entities.Investment.list(),
+    queryKey: ['all-investments', householdId],
+    queryFn: () => base44.entities.Investment.filter({ household_id: householdId }),
+    enabled: !!householdId,
   });
   
   const { data: allCategories = [], isLoading: loadingAllCategories } = useQuery({
-    queryKey: ['all-categories'],
-    queryFn: () => base44.entities.BudgetCategory.list(),
+    queryKey: ['all-categories', householdId],
+    queryFn: () => base44.entities.BudgetCategory.filter({ household_id: householdId }),
+    enabled: !!householdId,
   });
   
-  const isLoading = loadingAllIncomes || loadingAllExpenses || loadingAllInvestments || loadingAllCategories;
+  const isLoading = loadingHousehold || loadingAllIncomes || loadingAllExpenses || loadingAllInvestments || loadingAllCategories;
   
   // Filter data based on view mode
   const filteredIncomes = viewMode === 'month' 

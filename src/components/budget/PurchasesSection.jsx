@@ -7,7 +7,7 @@ import { Plus, Trash2, Edit2, Check, X, ShoppingCart } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 
-export default function PurchasesSection({ purchases, categories, selectedMonth, onRefresh }) {
+export default function PurchasesSection({ purchases, categories, selectedMonth, householdId, onRefresh }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ 
@@ -25,7 +25,8 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
     await base44.entities.Purchase.create({
       ...form,
       amount: parseFloat(form.amount),
-      month: selectedMonth
+      month: selectedMonth,
+      household_id: householdId
     });
     setForm({ description: '', category: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), store: '' });
     setIsAdding(false);
