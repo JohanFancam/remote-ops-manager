@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
+import { THEME_COLORS } from './ThemeProvider';
 
 const HouseholdContext = createContext(null);
 
@@ -34,17 +35,18 @@ export function HouseholdProvider({ children }) {
   }, [isLoading, user, household, households]);
   
   const createHousehold = async () => {
-    await base44.entities.Household.create({
-      name: `${user.full_name || 'My'} Budget`,
-      owner_email: user.email,
-      shared_with: [],
-      theme: 'slate',
-      default_income_day: 25,
-      default_expense_day: 1,
-      show_tutorial: true
-    });
-    queryClient.invalidateQueries({ queryKey: ['households'] });
-  };
+        await base44.entities.Household.create({
+          name: `${user.full_name || 'My'} Budget`,
+          owner_email: user.email,
+          shared_with: [],
+          theme: 'slate',
+          default_income_day: 25,
+          default_expense_day: 1,
+          show_tutorial: true,
+          logo_icon: 'home'
+        });
+        queryClient.invalidateQueries({ queryKey: ['households'] });
+      };
   
   const updateHousehold = async (data) => {
     if (household) {
@@ -76,20 +78,26 @@ export function HouseholdProvider({ children }) {
     return `${year}-${monthNum}-${String(day).padStart(2, '0')}`;
   };
   
-  const value = {
-    user,
-    household,
-    householdId: household?.id,
-    isOwner: household?.owner_email === user?.email,
-    isLoading,
-    showTutorial: household?.show_tutorial ?? true,
-    toggleTutorial,
-    updateHousehold,
-    getCurrentMonth,
-    getDefaultIncomeDate,
-    getDefaultExpenseDate,
-    theme: household?.theme || 'slate',
-  };
+  const themeName = household?.theme || 'slate';
+      const themeColors = THEME_COLORS[themeName] || THEME_COLORS.slate;
+
+      const value = {
+        user,
+        household,
+        householdId: household?.id,
+        isOwner: household?.owner_email === user?.email,
+        isLoading,
+        showTutorial: household?.show_tutorial ?? true,
+        toggleTutorial,
+        updateHousehold,
+        getCurrentMonth,
+        getDefaultIncomeDate,
+        getDefaultExpenseDate,
+        theme: themeName,
+        themeColors,
+        logoUrl: household?.logo_url,
+        logoIcon: household?.logo_icon || 'home',
+      };
   
   return (
     <HouseholdContext.Provider value={value}>
