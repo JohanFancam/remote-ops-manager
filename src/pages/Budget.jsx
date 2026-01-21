@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
 import { useHousehold } from '../components/HouseholdContext';
+import { useTheme } from '../components/ThemeProvider';
 import MonthSelector from '../components/budget/MonthSelector';
 import IncomeSection from '../components/budget/IncomeSection';
 import ExpensesSection from '../components/budget/ExpensesSection';
@@ -16,7 +17,7 @@ import HouseholdGoalsSection from '../components/budget/HouseholdGoalsSection';
 import CalendarWidget from '../components/budget/CalendarWidget';
 
 export default function Budget() {
-  const { householdId, isLoading: loadingHousehold, showTutorial, getDefaultIncomeDate, getDefaultExpenseDate } = useHousehold();
+  const { householdId, isLoading: loadingHousehold, showTutorial, getDefaultIncomeDate, getDefaultExpenseDate, themeColors } = useHousehold();
   
   // Auto-set to current month on load
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -111,7 +112,7 @@ export default function Budget() {
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">Household Budget</h1>
+          <h1 className={`text-2xl font-bold ${themeColors?.text || 'text-slate-800'}`}>Household Budget</h1>
           <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
         </div>
         

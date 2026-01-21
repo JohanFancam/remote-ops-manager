@@ -3,17 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Edit2, Check, X, Copy, Calendar } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Copy, Calendar, MessageSquare } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format, parseISO, isAfter, isBefore, addMonths } from 'date-fns';
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ExpensesSection({ expenses, selectedMonth, householdId, defaultDate, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [form, setForm] = useState({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '' });
+  const [form, setForm] = useState({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '', notes: '' });
   
   const handleCopyToMonth = async (targetMonth) => {
     for (const expense of fixedExpenses) {
@@ -26,6 +29,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
         amount: expense.amount,
         due_date: expense.due_date,
         expiry_date: expense.expiry_date,
+        notes: expense.notes,
         is_paid: false,
         is_fixed: true,
         month: targetMonth,
@@ -47,7 +51,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
       month: selectedMonth,
       household_id: householdId
     });
-    setForm({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '' });
+    setForm({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '', notes: '' });
     setIsAdding(false);
     onRefresh();
   };
@@ -58,7 +62,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
       amount: parseFloat(form.amount)
     });
     setEditingId(null);
-    setForm({ category: '', amount: '', due_date: '', is_paid: false });
+    setForm({ category: '', amount: '', due_date: '', is_paid: false, expiry_date: '', notes: '' });
     onRefresh();
   };
   
@@ -79,13 +83,14 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
       amount: expense.amount?.toString() || '',
       due_date: expense.due_date || '',
       is_paid: expense.is_paid || false,
-      expiry_date: expense.expiry_date || ''
+      expiry_date: expense.expiry_date || '',
+      notes: expense.notes || ''
     });
   };
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span className="flex items-center">
             FIXED EXPENSES / BILLS
@@ -98,7 +103,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setShowCopyDialog(true)}
               disabled={fixedExpenses.length === 0}
             >
@@ -107,7 +112,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setIsAdding(true)}
             >
               <Plus className="h-4 w-4 mr-1" /> Add
@@ -184,7 +189,21 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
                 </>
               ) : (
                 <>
-                  <div className="col-span-3 text-sm">{expense.category}</div>
+                  <div className="col-span-3 text-sm flex items-center gap-1">
+                    {expense.category}
+                    {expense.notes && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <MessageSquare className="h-3 w-3 text-slate-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">{expense.notes}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                   <div className="col-span-2 text-sm font-medium">R {expense.amount?.toLocaleString()}</div>
                   <div className="col-span-2 text-xs text-slate-500">{expense.due_date ? format(parseISO(expense.due_date), 'dd MMM') : '-'}</div>
                   <div className="col-span-2 text-xs">
@@ -267,7 +286,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
           )}
         </div>
         
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-800 text-white rounded-b-lg">
+        <div className={`grid grid-cols-12 gap-2 px-4 py-3 ${theme.cardFooter} text-white rounded-b-lg`}>
           <div className="col-span-8 font-semibold text-sm">TOTAL COST</div>
           <div className="col-span-4 text-right font-bold">R {totalCost.toLocaleString()}</div>
         </div>
