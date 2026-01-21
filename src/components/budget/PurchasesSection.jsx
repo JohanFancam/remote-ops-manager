@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2, Check, X, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, ShoppingCart, MessageSquare } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
+import { useTheme } from '../ThemeProvider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function PurchasesSection({ purchases, categories, selectedMonth, householdId, onRefresh }) {
+  const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ 
@@ -15,7 +18,8 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
     category: '', 
     amount: '', 
     date: format(new Date(), 'yyyy-MM-dd'),
-    store: '' 
+    store: '',
+    notes: ''
   });
   
   const totalSpent = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -28,7 +32,7 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
       month: selectedMonth,
       household_id: householdId
     });
-    setForm({ description: '', category: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), store: '' });
+    setForm({ description: '', category: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), store: '', notes: '' });
     setIsAdding(false);
     onRefresh();
   };
@@ -39,7 +43,7 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
       amount: parseFloat(form.amount)
     });
     setEditingId(null);
-    setForm({ description: '', category: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), store: '' });
+    setForm({ description: '', category: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), store: '', notes: '' });
     onRefresh();
   };
   
@@ -55,7 +59,8 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
       category: purchase.category || '',
       amount: purchase.amount?.toString() || '',
       date: purchase.date || format(new Date(), 'yyyy-MM-dd'),
-      store: purchase.store || ''
+      store: purchase.store || '',
+      notes: purchase.notes || ''
     });
   };
   
@@ -63,7 +68,7 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-purple-700 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" />
@@ -72,7 +77,7 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
           <Button 
             size="sm" 
             variant="ghost" 
-            className="h-7 text-white hover:bg-purple-600"
+            className={`h-7 text-white ${theme.primaryHover}`}
             onClick={() => setIsAdding(true)}
           >
             <Plus className="h-4 w-4 mr-1" /> Add
@@ -147,7 +152,21 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
                 </>
               ) : (
                 <>
-                  <div className="col-span-3 text-sm truncate">{purchase.description}</div>
+                  <div className="col-span-3 text-sm truncate flex items-center gap-1">
+                    {purchase.description}
+                    {purchase.notes && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <MessageSquare className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">{purchase.notes}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                   <div className="col-span-2 text-sm text-slate-500 truncate">{purchase.category}</div>
                   <div className="col-span-2 text-sm text-slate-500 truncate">{purchase.store || '-'}</div>
                   <div className="col-span-2 text-sm text-slate-500">{purchase.date || '-'}</div>
@@ -230,7 +249,7 @@ export default function PurchasesSection({ purchases, categories, selectedMonth,
           )}
         </div>
         
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-purple-700 text-white rounded-b-lg">
+        <div className={`grid grid-cols-12 gap-2 px-4 py-3 ${theme.cardFooter} text-white rounded-b-lg`}>
           <div className="col-span-8 font-semibold text-sm">TOTAL SPENT</div>
           <div className="col-span-4 text-right font-bold">R {totalSpent.toLocaleString()}</div>
         </div>

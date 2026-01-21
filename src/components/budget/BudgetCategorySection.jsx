@@ -7,8 +7,10 @@ import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
 
 export default function BudgetCategorySection({ categories, expenses, selectedMonth, householdId, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -123,7 +125,7 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span className="flex items-center">
             MONTHLY BUDGET
@@ -136,7 +138,7 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setShowCopyDialog(true)}
               disabled={categories.length === 0}
             >
@@ -145,7 +147,7 @@ export default function BudgetCategorySection({ categories, expenses, selectedMo
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-700"
+              className={`h-7 text-white ${theme.primaryHover}`}
               onClick={() => setIsAddingCategory(true)}
             >
               <Plus className="h-4 w-4 mr-1" /> Add

@@ -6,8 +6,10 @@ import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
 
 export default function InvestmentsSection({ investments, selectedMonth, householdId, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -69,7 +71,7 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-600 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.accent} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span className="flex items-center">
             INVESTMENTS / SAVINGS
@@ -82,7 +84,7 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-500"
+              className={`h-7 text-white ${theme.accentHover}`}
               onClick={() => setShowCopyDialog(true)}
               disabled={investments.length === 0}
             >
@@ -91,7 +93,7 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
             <Button 
               size="sm" 
               variant="ghost" 
-              className="h-7 text-white hover:bg-slate-500"
+              className={`h-7 text-white ${theme.accentHover}`}
               onClick={() => setIsAdding(true)}
             >
               <Plus className="h-4 w-4 mr-1" /> Add
@@ -202,7 +204,7 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
           )}
         </div>
         
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-600 text-white rounded-b-lg">
+        <div className={`grid grid-cols-12 gap-2 px-4 py-3 ${theme.accent} text-white rounded-b-lg`}>
           <div className="col-span-8 font-semibold text-sm">TOTAL SAVED</div>
           <div className="col-span-4 text-right font-bold">R {totalSaved.toLocaleString()}</div>
         </div>

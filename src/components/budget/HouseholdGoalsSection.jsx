@@ -9,8 +9,10 @@ import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TutorialHint from './TutorialHint';
+import { useTheme } from '../ThemeProvider';
 
 export default function HouseholdGoalsSection({ goals, householdId, onRefresh, showTutorial }) {
+  const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ 
@@ -84,7 +86,7 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
   
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Target className="h-4 w-4" />
@@ -97,7 +99,7 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
           <Button 
             size="sm" 
             variant="ghost" 
-            className="h-7 text-white hover:bg-slate-700"
+            className={`h-7 text-white ${theme.primaryHover}`}
             onClick={() => setIsAdding(true)}
           >
             <Plus className="h-4 w-4 mr-1" /> Add
@@ -305,7 +307,7 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
           )}
         </div>
         
-        <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-800 text-white rounded-b-lg">
+        <div className={`grid grid-cols-12 gap-2 px-4 py-3 ${theme.cardFooter} text-white rounded-b-lg`}>
           <div className="col-span-4 font-semibold text-sm">TOTAL GOALS</div>
           <div className="col-span-2 text-sm">R {totalTarget.toLocaleString()}</div>
           <div className="col-span-2 text-sm text-green-400">R {totalSaved.toLocaleString()}</div>
