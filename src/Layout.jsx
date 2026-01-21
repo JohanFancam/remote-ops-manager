@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart, TrendingUp, HelpCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { HouseholdProvider, useHousehold } from './components/HouseholdContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,30 +58,18 @@ const THEME_COLORS = {
   },
 };
 
-export default function Layout({ children, currentPageName }) {
+function LayoutContent({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const { user, household, showTutorial, toggleTutorial, theme: themeName } = useHousehold();
   
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-  
-  const { data: households = [] } = useQuery({
-    queryKey: ['households'],
-    queryFn: () => base44.entities.Household.list(),
-  });
-  
-  const household = households.find(h => 
-    h.owner_email === user?.email || h.shared_with?.includes(user?.email)
-  );
-  
-  const theme = THEME_COLORS[household?.theme] || THEME_COLORS.slate;
-  const householdName = household?.name || 'Brits Household Budget';
+  const theme = THEME_COLORS[themeName] || THEME_COLORS.slate;
+  const householdName = household?.name || 'Household Budget';
   
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Budget', icon: Calculator, page: 'Budget' },
     { name: 'Purchases', icon: ShoppingCart, page: 'Purchases' },
+    { name: 'Projections', icon: TrendingUp, page: 'Projections' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
   
@@ -138,16 +127,21 @@ export default function Layout({ children, currentPageName }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{user?.full_name || 'User'}</p>
-                    <p className="text-xs text-slate-500">{user?.email}</p>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
+                                        <div className="px-2 py-1.5">
+                                          <p className="text-sm font-medium">{user?.full_name || 'User'}</p>
+                                          <p className="text-xs text-slate-500">{user?.email}</p>
+                                        </div>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={toggleTutorial}>
+                                          <HelpCircle className="h-4 w-4 mr-2" />
+                                          {showTutorial ? 'Hide Tutorial' : 'Show Tutorial'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                                          <LogOut className="h-4 w-4 mr-2" />
+                                          Sign Out
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
               </DropdownMenu>
             </nav>
             
@@ -184,21 +178,38 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               ))}
               <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-red-300 hover:bg-white/10 w-full"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </button>
-            </nav>
-          </div>
-        )}
-      </header>
+                                    onClick={toggleTutorial}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 w-full"
+                                  >
+                                    <HelpCircle className="h-4 w-4" />
+                                    {showTutorial ? 'Hide Tutorial' : 'Show Tutorial'}
+                                  </button>
+                                  <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-red-300 hover:bg-white/10 w-full"
+                                  >
+                                    <LogOut className="h-4 w-4" />
+                                    Sign Out
+                                  </button>
+                                </nav>
+                              </div>
+                            )}
+                          </header>
       
       {/* Main Content */}
-      <main>
-        {children}
-      </main>
-    </div>
-  );
-}
+              <main>
+                {children}
+              </main>
+            </div>
+          );
+        }
+
+      export default function Layout({ children, currentPageName }) {
+        return (
+          <HouseholdProvider>
+            <LayoutContent currentPageName={currentPageName}>
+              {children}
+            </LayoutContent>
+          </HouseholdProvider>
+        );
+      }
