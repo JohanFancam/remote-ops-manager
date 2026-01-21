@@ -5,9 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Palette, Users, Home, Check, X, Trash2, UserPlus, Calendar } from "lucide-react";
+import { Loader2, Save, Palette, Users, Home, Check, X, Trash2, UserPlus, Calendar, Image, Heart, Star, PiggyBank, Wallet, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useHousehold } from '../components/HouseholdContext';
+
+const LOGO_ICONS = [
+  { id: 'home', name: 'Home', icon: Home },
+  { id: 'heart', name: 'Heart', icon: Heart },
+  { id: 'star', name: 'Star', icon: Star },
+  { id: 'piggy', name: 'Piggy Bank', icon: PiggyBank },
+  { id: 'wallet', name: 'Wallet', icon: Wallet },
+];
 
 const THEMES = [
   { id: 'slate', name: 'Classic', primary: 'bg-slate-800', accent: 'bg-slate-600' },
@@ -26,6 +34,8 @@ export default function Settings() {
   const [defaultExpenseDay, setDefaultExpenseDay] = useState(1);
   const [newShareEmail, setNewShareEmail] = useState('');
   const [isAddingShare, setIsAddingShare] = useState(false);
+  const [logoIcon, setLogoIcon] = useState('home');
+  const [uploading, setUploading] = useState(false);
   
   useEffect(() => {
     if (household) {
@@ -33,6 +43,7 @@ export default function Settings() {
       setSelectedTheme(household.theme || 'slate');
       setDefaultIncomeDay(household.default_income_day || 25);
       setDefaultExpenseDay(household.default_expense_day || 1);
+      setLogoIcon(household.logo_icon || 'home');
     }
   }, [household]);
   
@@ -59,8 +70,39 @@ export default function Settings() {
       name: householdName,
       theme: selectedTheme,
       default_income_day: defaultIncomeDay,
-      default_expense_day: defaultExpenseDay
+      default_expense_day: defaultExpenseDay,
+      logo_icon: logoIcon
     });
+  };
+  
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Household.update(household.id, { logo_url: file_url, logo_icon: 'custom' });
+      queryClient.invalidateQueries({ queryKey: ['households'] });
+      toast.success('Logo uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const handleRemoveLogo = async () => {
+    await base44.entities.Household.update(household.id, { logo_url: null, logo_icon: 'home' });
+    queryClient.invalidateQueries({ queryKey: ['households'] });
+    toast.success('Logo removed');
+  };
+  
+  const handleIconSelect = async (iconId) => {
+    setLogoIcon(iconId);
+    await base44.entities.Household.update(household.id, { logo_icon: iconId, logo_url: null });
+    queryClient.invalidateQueries({ queryKey: ['households'] });
+    toast.success('Icon updated!');
   };
   
   const handleAddShare = async () => {
@@ -97,6 +139,85 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-slate-800 mb-8">Settings</h1>
         
         <div className="space-y-6">
+          {/* Household Logo */}
+          <Card className="border-0 shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Image className="h-5 w-5" />
+                Household Logo
+              </CardTitle>
+              <CardDescription>Choose an icon or upload your own logo</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Current Logo Preview */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-slate-200">
+                  {household?.logo_url ? (
+                    <img src={household.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    (() => {
+                      const IconComponent = LOGO_ICONS.find(i => i.id === logoIcon)?.icon || Home;
+                      return <IconComponent className="w-8 h-8 text-slate-600" />;
+                    })()
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Current Logo</p>
+                  <p className="text-xs text-slate-500">{household?.logo_url ? 'Custom uploaded' : `${logoIcon} icon`}</p>
+                </div>
+              </div>
+              
+              {/* Icon Selection */}
+              <div className="mb-4">
+                <Label className="text-sm text-slate-600 mb-2 block">Choose an Icon</Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {LOGO_ICONS.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleIconSelect(item.id)}
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
+                        logoIcon === item.id && !household?.logo_url
+                          ? 'border-slate-800 bg-slate-50' 
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <item.icon className="h-6 w-6 text-slate-700" />
+                      <span className="text-xs text-slate-600">{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Upload Custom */}
+              <div className="border-t pt-4">
+                <Label className="text-sm text-slate-600 mb-2 block">Or Upload Custom Logo</Label>
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      disabled={uploading || !isOwner}
+                    />
+                    <Button variant="outline" className="w-full" asChild disabled={uploading}>
+                      <span>
+                        {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                        Upload Image
+                      </span>
+                    </Button>
+                  </label>
+                  {household?.logo_url && (
+                    <Button variant="outline" onClick={handleRemoveLogo} className="text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">Recommended: Square image, at least 200x200px</p>
+              </div>
+            </CardContent>
+          </Card>
+          
           {/* Household Name */}
           <Card className="border-0 shadow-md">
             <CardHeader>
