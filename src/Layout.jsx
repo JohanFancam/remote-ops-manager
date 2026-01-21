@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart, TrendingUp, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart, TrendingUp, HelpCircle, Home, Heart, Star, PiggyBank, Wallet } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HouseholdProvider, useHousehold } from './components/HouseholdContext';
+import { THEME_COLORS, ThemeProvider } from './components/ThemeProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,55 +16,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const THEME_COLORS = {
-  slate: {
-    primary: 'bg-slate-800',
-    primaryHover: 'hover:bg-slate-700',
-    accent: 'bg-slate-600',
-    text: 'text-slate-800',
-    border: 'border-slate-200',
-    activeBg: 'bg-slate-100',
-  },
-  blue: {
-    primary: 'bg-blue-700',
-    primaryHover: 'hover:bg-blue-600',
-    accent: 'bg-blue-500',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
-    activeBg: 'bg-blue-50',
-  },
-  green: {
-    primary: 'bg-emerald-700',
-    primaryHover: 'hover:bg-emerald-600',
-    accent: 'bg-emerald-500',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
-    activeBg: 'bg-emerald-50',
-  },
-  purple: {
-    primary: 'bg-purple-700',
-    primaryHover: 'hover:bg-purple-600',
-    accent: 'bg-purple-500',
-    text: 'text-purple-700',
-    border: 'border-purple-200',
-    activeBg: 'bg-purple-50',
-  },
-  rose: {
-    primary: 'bg-rose-700',
-    primaryHover: 'hover:bg-rose-600',
-    accent: 'bg-rose-500',
-    text: 'text-rose-700',
-    border: 'border-rose-200',
-    activeBg: 'bg-rose-50',
-  },
+const LOGO_ICONS = {
+  home: Home,
+  heart: Heart,
+  star: Star,
+  piggy: PiggyBank,
+  wallet: Wallet,
 };
 
 function LayoutContent({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const { user, household, showTutorial, toggleTutorial, theme: themeName } = useHousehold();
+  const { user, household, showTutorial, toggleTutorial, theme: themeName, themeColors, logoUrl, logoIcon } = useHousehold();
   
-  const theme = THEME_COLORS[themeName] || THEME_COLORS.slate;
+  const theme = themeColors || THEME_COLORS.slate;
   const householdName = household?.name || 'Household Budget';
+  const LogoIcon = LOGO_ICONS[logoIcon] || Home;
   
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -84,14 +51,14 @@ function LayoutContent({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              {/* Logo */}
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg viewBox="0 0 40 40" className="w-7 h-7">
-                  <circle cx="20" cy="20" r="16" fill="white" fillOpacity="0.9"/>
-                  <path d="M12 20 L20 12 L28 20 L20 28 Z" fill="currentColor" className={theme.text}/>
-                  <circle cx="20" cy="20" r="4" fill="white"/>
-                </svg>
-              </div>
+                                {/* Logo */}
+                                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} alt="Household logo" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <LogoIcon className="w-6 h-6 text-white" />
+                                  )}
+                                </div>
               <div className="hidden sm:block">
                 <h1 className="font-bold text-lg leading-tight">{householdName}</h1>
                 <p className="text-xs text-white/70">Family Budget Tracker</p>
@@ -207,9 +174,20 @@ function LayoutContent({ children, currentPageName }) {
       export default function Layout({ children, currentPageName }) {
         return (
           <HouseholdProvider>
+            <LayoutContentWrapper currentPageName={currentPageName}>
+              {children}
+            </LayoutContentWrapper>
+          </HouseholdProvider>
+        );
+      }
+
+      function LayoutContentWrapper({ children, currentPageName }) {
+        const { theme } = useHousehold();
+        return (
+          <ThemeProvider themeName={theme}>
             <LayoutContent currentPageName={currentPageName}>
               {children}
             </LayoutContent>
-          </HouseholdProvider>
+          </ThemeProvider>
         );
       }
