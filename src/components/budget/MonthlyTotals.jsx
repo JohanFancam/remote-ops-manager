@@ -1,8 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useTheme } from '../ThemeProvider';
 
-export default function MonthlyTotals({ incomes, expenses, investments }) {
+export default function MonthlyTotals({ incomes, expenses, investments, unforeseenExpenses = [] }) {
+  const theme = useTheme();
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const totalSaved = investments.reduce((sum, i) => sum + (i.amount_saved || 0), 0);
@@ -10,8 +12,8 @@ export default function MonthlyTotals({ incomes, expenses, investments }) {
   const netBalance = totalIncome - totalExpenses - totalSaved - totalUnforeseen;
   
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+    <Card className={`border-0 shadow-md ${theme.cardBg}`}>
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}
         <CardTitle className="text-base font-semibold">
           END OF MONTH TOTALS
         </CardTitle>
@@ -30,6 +32,12 @@ export default function MonthlyTotals({ incomes, expenses, investments }) {
             <span className="text-sm font-medium">Total Saved</span>
             <span className="text-sm font-bold text-blue-600">R {totalSaved.toLocaleString()}</span>
           </div>
+          {totalUnforeseen > 0 && (
+            <div className="flex justify-between px-4 py-3 hover:bg-slate-50">
+              <span className="text-sm font-medium">Unforeseen Expenses</span>
+              <span className="text-sm font-bold text-amber-600">R {totalUnforeseen.toLocaleString()}</span>
+            </div>
+          )}
         </div>
         <div className={cn(
           "flex justify-between px-4 py-3 rounded-b-lg",
