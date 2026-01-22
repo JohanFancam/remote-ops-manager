@@ -5,9 +5,11 @@ import { format, addMonths, parseISO, isAfter } from 'date-fns';
 import { Loader2, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useHousehold } from '../components/HouseholdContext';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function Projections() {
   const { householdId, isLoading: loadingHousehold } = useHousehold();
+  const theme = useTheme();
   
   const { data: expenses = [], isLoading: loadingExpenses } = useQuery({
     queryKey: ['all-expenses', householdId],
@@ -25,8 +27,8 @@ export default function Projections() {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+      <div className={`min-h-screen ${theme.bg} flex items-center justify-center`}>
+        <Loader2 className={`h-8 w-8 animate-spin ${theme.textMuted}`} />
       </div>
     );
   }
@@ -86,18 +88,18 @@ export default function Projections() {
   );
   
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className={`min-h-screen ${theme.bg}`}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <h1 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}
             <TrendingUp className="h-6 w-6" />
             Budget Projections
           </h1>
-          <p className="text-slate-500 mt-1">See how your budget will look as contracts expire</p>
+          <p className={`${theme.textMuted} mt-1`}>See how your budget will look as contracts expire</p>
         </div>
         
         {/* Expiring Contracts Overview */}
-        <Card className="mb-6 border-0 shadow-md">
+        <Card className={`mb-6 border-0 shadow-md ${theme.cardBg}`}
           <CardHeader className="bg-amber-600 text-white rounded-t-lg py-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
@@ -143,8 +145,8 @@ export default function Projections() {
         </Card>
         
         {/* Monthly Projections */}
-        <Card className="border-0 shadow-md">
-          <CardHeader className="bg-slate-800 text-white rounded-t-lg py-3">
+        <Card className={`border-0 shadow-md ${theme.cardBg}`}>
+          <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}
             <CardTitle className="text-base font-semibold">12-MONTH PROJECTION</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -186,7 +188,7 @@ export default function Projections() {
               ))}
             </div>
             
-            <div className="px-4 py-4 bg-slate-800 text-white rounded-b-lg">
+            <div className={`px-4 py-4 ${theme.cardFooter} text-white rounded-b-lg`}
               <div className="flex justify-between items-center">
                 <span className="text-sm">Potential annual savings from expiring contracts:</span>
                 <span className="text-xl font-bold text-green-400">
