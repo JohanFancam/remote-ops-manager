@@ -106,22 +106,24 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
               showTutorial={showTutorial}
             />
           </span>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className={`h-7 text-white ${theme.primaryHover}`}
-            onClick={() => setShowImport(true)}
-          >
-            <Upload className="h-4 w-4 mr-1" /> Import
-          </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className={`h-7 text-white ${theme.primaryHover}`}
-            onClick={() => setIsAdding(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className={`h-7 text-white ${theme.primaryHover}`}
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="h-4 w-4 mr-1" /> Import
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className={`h-7 text-white ${theme.primaryHover}`}
+              onClick={() => setIsAdding(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -334,6 +336,15 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
           </div>
         </div>
       </CardContent>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        entityType="HouseholdGoal"
+        householdId={householdId}
+        onSuccess={onRefresh}
+        fieldMappings={CSV_FIELD_MAPPINGS}
+      />
     </Card>
   );
 }

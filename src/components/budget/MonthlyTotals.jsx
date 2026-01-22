@@ -6,7 +6,8 @@ export default function MonthlyTotals({ incomes, expenses, investments }) {
   const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const totalSaved = investments.reduce((sum, i) => sum + (i.amount_saved || 0), 0);
-  const netBalance = totalIncome - totalExpenses - totalSaved;
+  const totalUnforeseen = unforeseenExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netBalance = totalIncome - totalExpenses - totalSaved - totalUnforeseen;
   
   return (
     <Card className="border-0 shadow-md">
