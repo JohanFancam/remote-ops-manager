@@ -319,6 +319,16 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
         onCopy={handleCopyToMonth}
         title="Fixed Expenses"
       />
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        entityType="Expense"
+        householdId={householdId}
+        selectedMonth={selectedMonth}
+        onSuccess={onRefresh}
+        fieldMappings={CSV_FIELD_MAPPINGS}
+      />
     </Card>
   );
 }
