@@ -99,7 +99,7 @@ export default function Projections() {
         </div>
         
         {/* Expiring Contracts Overview */}
-        <Card className={`mb-6 border-0 shadow-md ${theme.cardBg}`}
+        <Card className={`mb-6 border-0 shadow-md ${theme.cardBg}`}>
           <CardHeader className="bg-amber-600 text-white rounded-t-lg py-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
