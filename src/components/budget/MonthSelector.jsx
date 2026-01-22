@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addMonths, subMonths } from "date-fns";
 
 export default function MonthSelector({ selectedMonth, onMonthChange }) {
+  const theme = useTheme();
   const currentDate = new Date(selectedMonth + "-01");
   
   const goToPrevMonth = () => {

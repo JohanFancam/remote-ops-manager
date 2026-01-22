@@ -2,8 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { useTheme } from '../ThemeProvider';
 
 export default function BudgetProgress({ categories, expenses }) {
+  const theme = useTheme();
   const variableExpenses = expenses.filter(e => !e.is_fixed);
   
   const getCategorySpent = (categoryName) => {
