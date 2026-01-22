@@ -73,6 +73,8 @@ export default function CSVImportDialog({
             if (mapping) {
               let value = values[idx]?.trim() || '';
               if (mapping.type === 'number') {
+                // Remove currency symbols (R, $, etc.), spaces, and handle comma as thousand separator
+                value = value.replace(/^[R$€£]\s*/i, '').replace(/\s/g, '').replace(/,/g, '');
                 value = parseFloat(value) || 0;
               } else if (mapping.type === 'boolean') {
                 value = value.toLowerCase() === 'true' || value === '1';
