@@ -232,6 +232,16 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
         onCopy={handleCopyToMonth}
         title="Investments"
       />
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        entityType="Investment"
+        householdId={householdId}
+        selectedMonth={selectedMonth}
+        onSuccess={onRefresh}
+        fieldMappings={CSV_FIELD_MAPPINGS}
+      />
     </Card>
   );
 }
