@@ -3,20 +3,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Edit2, Check, X, Copy, Calendar, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Copy, Calendar, MessageSquare, Upload } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { format, parseISO, isAfter, isBefore, addMonths } from 'date-fns';
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
 import { useTheme } from '../ThemeProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import CSVImportDialog from '../common/CSVImportDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function ExpensesSection({ expenses, selectedMonth, householdId, defaultDate, onRefresh, showTutorial }) {
+const CSV_FIELD_MAPPINGS = {
+  'category': { field: 'category', type: 'string' },
+  'description': { field: 'description', type: 'string' },
+  'amount': { field: 'amount', type: 'number' },
+  'due_date': { field: 'due_date', type: 'string' },
+  'is_paid': { field: 'is_paid', type: 'boolean' },
+  'expiry_date': { field: 'expiry_date', type: 'string' },
+  'notes': { field: 'notes', type: 'string' },
+};
+
+export default function ExpensesSection({ expenses, selectedMonth, householdId, defaultDate, onRefresh, showTutorial, debts = [] }) {
   const theme = useTheme();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [form, setForm] = useState({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '', notes: '' });
+  const [form, setForm] = useState({ category: '', amount: '', due_date: defaultDate || '', is_paid: false, expiry_date: '', notes: '', debt_id: '' });
+  const [showImport, setShowImport] = useState(false);
   
   const handleCopyToMonth = async (targetMonth) => {
     for (const expense of fixedExpenses) {
@@ -100,6 +113,14 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
             />
           </span>
           <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className={`h-7 text-white ${theme.primaryHover}`}
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="h-4 w-4 mr-1" /> Import
+            </Button>
             <Button 
               size="sm" 
               variant="ghost" 

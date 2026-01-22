@@ -2,14 +2,22 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit2, Check, X, Copy } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Copy, Upload } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import CopyToMonthDialog from './CopyToMonthDialog';
 import TutorialHint from './TutorialHint';
 import { useTheme } from '../ThemeProvider';
+import CSVImportDialog from '../common/CSVImportDialog';
+
+const CSV_FIELD_MAPPINGS = {
+  'name': { field: 'name', type: 'string' },
+  'savings_goal': { field: 'savings_goal', type: 'number' },
+  'amount_saved': { field: 'amount_saved', type: 'number' },
+};
 
 export default function InvestmentsSection({ investments, selectedMonth, householdId, onRefresh, showTutorial }) {
   const theme = useTheme();
+  const [showImport, setShowImport] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -81,6 +89,14 @@ export default function InvestmentsSection({ investments, selectedMonth, househo
             />
           </span>
           <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className={`h-7 text-white ${theme.accentHover}`}
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="h-4 w-4 mr-1" /> Import
+            </Button>
             <Button 
               size="sm" 
               variant="ghost" 

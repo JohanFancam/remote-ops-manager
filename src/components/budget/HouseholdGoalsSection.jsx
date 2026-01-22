@@ -4,15 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Trash2, Edit2, Check, X, Target } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Target, Upload } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TutorialHint from './TutorialHint';
 import { useTheme } from '../ThemeProvider';
+import CSVImportDialog from '../common/CSVImportDialog';
+
+const CSV_FIELD_MAPPINGS = {
+  'name': { field: 'name', type: 'string' },
+  'target_amount': { field: 'target_amount', type: 'number' },
+  'amount_saved': { field: 'amount_saved', type: 'number' },
+  'priority': { field: 'priority', type: 'string' },
+  'notes': { field: 'notes', type: 'string' },
+};
 
 export default function HouseholdGoalsSection({ goals, householdId, onRefresh, showTutorial }) {
   const theme = useTheme();
+  const [showImport, setShowImport] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ 
@@ -96,6 +106,14 @@ export default function HouseholdGoalsSection({ goals, householdId, onRefresh, s
               showTutorial={showTutorial}
             />
           </span>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            className={`h-7 text-white ${theme.primaryHover}`}
+            onClick={() => setShowImport(true)}
+          >
+            <Upload className="h-4 w-4 mr-1" /> Import
+          </Button>
           <Button 
             size="sm" 
             variant="ghost" 
