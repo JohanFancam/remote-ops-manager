@@ -18,8 +18,10 @@ const CSV_FIELD_MAPPINGS = {
   'description': { field: 'description', type: 'string' },
   'amount': { field: 'amount', type: 'number' },
   'due_date': { field: 'due_date', type: 'string' },
+  'due': { field: 'due_date', type: 'string' },
   'is_paid': { field: 'is_paid', type: 'boolean' },
   'expiry_date': { field: 'expiry_date', type: 'string' },
+  'expires': { field: 'expiry_date', type: 'string' },
   'notes': { field: 'notes', type: 'string' },
 };
 
