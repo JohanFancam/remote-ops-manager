@@ -14,8 +14,8 @@ export default function MonthlyTrend({ allIncomes, allExpenses, selectedMonth })
   }
   
   const data = months.map(month => {
-    const monthIncomes = allIncomes.filter(i => i.month === month);
-    const monthExpenses = allExpenses.filter(e => e.month === month);
+    const monthIncomes = (allIncomes || []).filter(i => i.month === month);
+    const monthExpenses = (allExpenses || []).filter(e => e.month === month);
     
     return {
       month: format(parseISO(month + '-01'), 'MMM'),
