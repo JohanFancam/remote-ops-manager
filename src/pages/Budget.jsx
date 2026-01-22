@@ -7,125 +7,147 @@ import { Loader2 } from 'lucide-react';
 import { useHousehold } from '../components/HouseholdContext';
 import { useTheme } from '../components/ThemeProvider';
 import MonthSelector from '../components/budget/MonthSelector';
+import BankBalanceCard from '../components/budget/BankBalanceCard';
 import IncomeSection from '../components/budget/IncomeSection';
 import ExpensesSection from '../components/budget/ExpensesSection';
 import InvestmentsSection from '../components/budget/InvestmentsSection';
 import BudgetCategorySection from '../components/budget/BudgetCategorySection';
-import MonthlyTotals from '../components/budget/MonthlyTotals';
-import BankBalanceCard from '../components/budget/BankBalanceCard';
 import HouseholdGoalsSection from '../components/budget/HouseholdGoalsSection';
+import PurchasesSection from '../components/budget/PurchasesSection';
 import CalendarWidget from '../components/budget/CalendarWidget';
+import MonthlyTotals from '../components/budget/MonthlyTotals';
+import DebtSection from '../components/budget/DebtSection';
+import UnforeseenExpensesSection from '../components/budget/UnforeseenExpensesSection';
+import BudgetCalculations from '../components/budget/BudgetCalculations';
 
 export default function Budget() {
-  const { householdId, isLoading: loadingHousehold, showTutorial, getDefaultIncomeDate, getDefaultExpenseDate, themeColors } = useHousehold();
-  
-  // Auto-set to current month on load
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const { 
+    householdId, isLoading: loadingHousehold, showTutorial, 
+    getDefaultIncomeDate, getDefaultExpenseDate, features, getCurrentMonth 
+  } = useHousehold();
+  const theme = useTheme();
   const queryClient = useQueryClient();
   
-  // Auto-advance month when real calendar changes
-  useEffect(() => {
-    const currentMonth = format(new Date(), 'yyyy-MM');
-    if (selectedMonth !== currentMonth) {
-      // Only auto-advance if viewing previous month
-      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
-      const [curYear, curMonth] = currentMonth.split('-').map(Number);
-      if (selYear < curYear || (selYear === curYear && selMonth < curMonth)) {
-        setSelectedMonth(currentMonth);
-      }
-    }
-  }, []);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   
   const { data: incomes = [], isLoading: loadingIncomes } = useQuery({
-    queryKey: ['incomes', selectedMonth, householdId],
-    queryFn: () => base44.entities.Income.filter({ month: selectedMonth, household_id: householdId }),
+    queryKey: ['incomes', householdId, selectedMonth],
+    queryFn: () => base44.entities.Income.filter({ household_id: householdId, month: selectedMonth }),
     enabled: !!householdId,
   });
   
   const { data: expenses = [], isLoading: loadingExpenses } = useQuery({
-    queryKey: ['expenses', selectedMonth, householdId],
-    queryFn: () => base44.entities.Expense.filter({ month: selectedMonth, household_id: householdId }),
+    queryKey: ['expenses', householdId, selectedMonth],
+    queryFn: () => base44.entities.Expense.filter({ household_id: householdId, month: selectedMonth }),
     enabled: !!householdId,
   });
   
   const { data: investments = [], isLoading: loadingInvestments } = useQuery({
-    queryKey: ['investments', selectedMonth, householdId],
-    queryFn: () => base44.entities.Investment.filter({ month: selectedMonth, household_id: householdId }),
-    enabled: !!householdId,
+    queryKey: ['investments', householdId, selectedMonth],
+    queryFn: () => base44.entities.Investment.filter({ household_id: householdId, month: selectedMonth }),
+    enabled: !!householdId && features.investments,
   });
   
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
-    queryKey: ['categories', selectedMonth, householdId],
-    queryFn: () => base44.entities.BudgetCategory.filter({ month: selectedMonth, household_id: householdId }),
+    queryKey: ['categories', householdId, selectedMonth],
+    queryFn: () => base44.entities.BudgetCategory.filter({ household_id: householdId, month: selectedMonth }),
     enabled: !!householdId,
   });
   
   const { data: balances = [], isLoading: loadingBalances } = useQuery({
-    queryKey: ['balances', selectedMonth, householdId],
-    queryFn: () => base44.entities.BankBalance.filter({ month: selectedMonth, household_id: householdId }),
+    queryKey: ['balances', householdId, selectedMonth],
+    queryFn: () => base44.entities.BankBalance.filter({ household_id: householdId, month: selectedMonth }),
     enabled: !!householdId,
   });
   
   const { data: purchases = [], isLoading: loadingPurchases } = useQuery({
-    queryKey: ['purchases', selectedMonth, householdId],
-    queryFn: () => base44.entities.Purchase.filter({ month: selectedMonth, household_id: householdId }),
+    queryKey: ['purchases', householdId, selectedMonth],
+    queryFn: () => base44.entities.Purchase.filter({ household_id: householdId, month: selectedMonth }),
     enabled: !!householdId,
   });
   
   const { data: goals = [], isLoading: loadingGoals } = useQuery({
-    queryKey: ['goals', householdId],
+    queryKey: ['householdGoals', householdId],
     queryFn: () => base44.entities.HouseholdGoal.filter({ household_id: householdId }),
-    enabled: !!householdId,
+    enabled: !!householdId && features.household_goals,
+  });
+
+  const { data: unforeseenExpenses = [] } = useQuery({
+    queryKey: ['unforeseenExpenses', householdId, selectedMonth],
+    queryFn: () => base44.entities.UnforeseenExpense.filter({ household_id: householdId, month: selectedMonth }),
+    enabled: !!householdId && features.unforeseen_expenses,
+  });
+
+  const { data: debts = [] } = useQuery({
+    queryKey: ['debts', householdId],
+    queryFn: () => base44.entities.Debt.filter({ household_id: householdId }),
+    enabled: !!householdId && features.debt,
   });
   
-  const isLoading = loadingHousehold || loadingIncomes || loadingExpenses || loadingInvestments || loadingCategories || loadingBalances || loadingPurchases || loadingGoals;
-  
   const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['incomes', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['expenses', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['investments', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['categories', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['balances', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['purchases', selectedMonth, householdId] });
-    queryClient.invalidateQueries({ queryKey: ['goals', householdId] });
+    queryClient.invalidateQueries({ queryKey: ['incomes'] });
+    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    queryClient.invalidateQueries({ queryKey: ['investments'] });
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+    queryClient.invalidateQueries({ queryKey: ['balances'] });
+    queryClient.invalidateQueries({ queryKey: ['purchases'] });
+    queryClient.invalidateQueries({ queryKey: ['unforeseenExpenses'] });
   };
   
   const refreshGoals = () => {
-    queryClient.invalidateQueries({ queryKey: ['goals', householdId] });
+    queryClient.invalidateQueries({ queryKey: ['householdGoals'] });
   };
   
-  // Combine expenses and purchases for totals
-  const allExpenses = [
-    ...expenses,
-    ...purchases.map(p => ({ ...p, is_fixed: false }))
-  ];
+  const currentBalance = balances[0];
+  const fixedExpenses = expenses.filter(e => e.is_fixed);
+  
+  // Calculate totals
+  const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+  const totalExpenses = fixedExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalPurchases = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalInvestments = investments.reduce((sum, i) => sum + (i.amount_saved || 0), 0);
+  const totalUnforeseen = unforeseenExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  const isLoading = loadingHousehold || loadingIncomes || loadingExpenses || loadingCategories;
   
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+      <div className={`min-h-screen ${theme.bg} flex items-center justify-center`}>
+        <Loader2 className={`h-8 w-8 animate-spin ${theme.textMuted}`} />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className={`min-h-screen ${theme.bg}`}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <h1 className={`text-2xl font-bold ${themeColors?.text || 'text-slate-800'}`}>Household Budget</h1>
-          <MonthSelector selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+          <h1 className={`text-2xl font-bold ${theme.text}`}>Household Budget</h1>
+          <MonthSelector 
+            selectedMonth={selectedMonth} 
+            onMonthChange={setSelectedMonth}
+          />
         </div>
+
+        {/* Budget Calculations Summary */}
+        <BudgetCalculations
+          bankBalance={currentBalance?.amount || 0}
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          totalPurchases={totalPurchases}
+          totalUnforeseen={totalUnforeseen}
+          totalInvestments={totalInvestments}
+        />
         
-        {/* Calendar Widget */}
         <div className="mb-6">
           <CalendarWidget />
         </div>
         
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left Column - Income, Fixed Expenses, Investments, Totals */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
           <div className="space-y-6">
-            <BankBalanceCard
-              balance={balances[0]}
+            <BankBalanceCard 
+              balance={currentBalance}
               selectedMonth={selectedMonth}
               householdId={householdId}
               onRefresh={refreshData}
@@ -133,7 +155,7 @@ export default function Budget() {
             />
             
             <IncomeSection 
-              incomes={incomes} 
+              incomes={incomes}
               selectedMonth={selectedMonth}
               householdId={householdId}
               defaultDate={getDefaultIncomeDate(selectedMonth)}
@@ -142,47 +164,67 @@ export default function Budget() {
             />
             
             <ExpensesSection 
-              expenses={expenses} 
+              expenses={fixedExpenses}
               selectedMonth={selectedMonth}
               householdId={householdId}
               defaultDate={getDefaultExpenseDate(selectedMonth)}
               onRefresh={refreshData}
               showTutorial={showTutorial}
+              debts={debts}
             />
             
-            <InvestmentsSection 
-              investments={investments} 
-              selectedMonth={selectedMonth}
-              householdId={householdId}
-              onRefresh={refreshData}
-              showTutorial={showTutorial}
-            />
+            {features.investments && (
+              <InvestmentsSection 
+                investments={investments}
+                selectedMonth={selectedMonth}
+                householdId={householdId}
+                onRefresh={refreshData}
+                showTutorial={showTutorial}
+              />
+            )}
+
+            {features.unforeseen_expenses && (
+              <UnforeseenExpensesSection
+                selectedMonth={selectedMonth}
+                householdId={householdId}
+                showTutorial={showTutorial}
+              />
+            )}
             
             <MonthlyTotals 
-              incomes={incomes} 
-              expenses={allExpenses} 
+              incomes={incomes}
+              expenses={fixedExpenses}
               investments={investments}
-              showTutorial={showTutorial}
+              unforeseenExpenses={unforeseenExpenses}
             />
           </div>
           
-          {/* Right Column - Budget Categories & Goals */}
+          {/* Right Column */}
           <div className="space-y-6">
             <BudgetCategorySection 
               categories={categories}
-              expenses={expenses}
+              expenses={purchases}
               selectedMonth={selectedMonth}
               householdId={householdId}
               onRefresh={refreshData}
               showTutorial={showTutorial}
             />
             
-            <HouseholdGoalsSection 
-              goals={goals}
-              householdId={householdId}
-              onRefresh={refreshGoals}
-              showTutorial={showTutorial}
-            />
+            {features.household_goals && (
+              <HouseholdGoalsSection 
+                goals={goals.filter(g => !g.is_completed)}
+                householdId={householdId}
+                onRefresh={refreshGoals}
+                showTutorial={showTutorial}
+              />
+            )}
+
+            {features.debt && (
+              <DebtSection
+                householdId={householdId}
+                showTutorial={showTutorial}
+              />
+            )}
           </div>
         </div>
       </div>
