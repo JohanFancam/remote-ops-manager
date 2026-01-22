@@ -1,13 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from '../ThemeProvider';
 
-export default function SummaryCards({ incomes, expenses, investments }) {
-  const totalIncome = incomes.reduce((sum, i) => sum + (i.amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const totalSaved = investments.reduce((sum, i) => sum + (i.amount_saved || 0), 0);
-  const netBalance = totalIncome - totalExpenses - totalSaved;
+export default function SummaryCards({ totalIncome, totalExpenses, totalInvestments, totalDebt = 0 }) {
+  const theme = useTheme();
+  const netBalance = totalIncome - totalExpenses - totalInvestments;
   
   const cards = [
     {
@@ -15,7 +14,7 @@ export default function SummaryCards({ incomes, expenses, investments }) {
       value: totalIncome,
       icon: TrendingUp,
       color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      bgColor: theme.name === 'dark' ? 'bg-green-900/30' : 'bg-green-50',
       borderColor: 'border-green-200'
     },
     {
@@ -23,15 +22,15 @@ export default function SummaryCards({ incomes, expenses, investments }) {
       value: totalExpenses,
       icon: TrendingDown,
       color: 'text-red-600',
-      bgColor: 'bg-red-50',
+      bgColor: theme.name === 'dark' ? 'bg-red-900/30' : 'bg-red-50',
       borderColor: 'border-red-200'
     },
     {
       title: 'Total Saved',
-      value: totalSaved,
+      value: totalInvestments,
       icon: PiggyBank,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      bgColor: theme.name === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50',
       borderColor: 'border-blue-200'
     },
     {
@@ -39,10 +38,23 @@ export default function SummaryCards({ incomes, expenses, investments }) {
       value: netBalance,
       icon: Wallet,
       color: netBalance >= 0 ? 'text-emerald-600' : 'text-red-600',
-      bgColor: netBalance >= 0 ? 'bg-emerald-50' : 'bg-red-50',
+      bgColor: netBalance >= 0 
+        ? (theme.name === 'dark' ? 'bg-emerald-900/30' : 'bg-emerald-50')
+        : (theme.name === 'dark' ? 'bg-red-900/30' : 'bg-red-50'),
       borderColor: netBalance >= 0 ? 'border-emerald-200' : 'border-red-200'
     }
   ];
+  
+  if (totalDebt > 0) {
+    cards.push({
+      title: 'Total Debt',
+      value: totalDebt,
+      icon: CreditCard,
+      color: 'text-purple-600',
+      bgColor: theme.name === 'dark' ? 'bg-purple-900/30' : 'bg-purple-50',
+      borderColor: 'border-purple-200'
+    });
+  }
   
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
