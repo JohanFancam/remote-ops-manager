@@ -188,7 +188,7 @@ export default function Projections() {
               ))}
             </div>
             
-            <div className={`px-4 py-4 ${theme.cardFooter} text-white rounded-b-lg`}
+            <div className={`px-4 py-4 ${theme.cardFooter} text-white rounded-b-lg`}>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Potential annual savings from expiring contracts:</span>
                 <span className="text-xl font-bold text-green-400">
