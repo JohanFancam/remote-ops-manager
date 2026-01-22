@@ -57,7 +57,7 @@ export default function SummaryCards({ totalIncome, totalExpenses, totalInvestme
   }
   
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={`grid grid-cols-2 ${totalDebt > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}
       {cards.map((card) => (
         <Card key={card.title} className={cn("border-0 shadow-md", card.bgColor, card.borderColor, "border")}>
           <CardContent className="p-4">
