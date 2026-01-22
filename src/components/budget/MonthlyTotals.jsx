@@ -13,7 +13,7 @@ export default function MonthlyTotals({ incomes, expenses, investments, unforese
   
   return (
     <Card className={`border-0 shadow-md ${theme.cardBg}`}>
-      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}
+      <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
         <CardTitle className="text-base font-semibold">
           END OF MONTH TOTALS
         </CardTitle>

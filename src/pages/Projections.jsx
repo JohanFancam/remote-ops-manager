@@ -91,7 +91,7 @@ export default function Projections() {
     <div className={`min-h-screen ${theme.bg}`}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}
+          <h1 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}>
             <TrendingUp className="h-6 w-6" />
             Budget Projections
           </h1>
