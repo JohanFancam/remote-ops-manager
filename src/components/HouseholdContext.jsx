@@ -37,6 +37,18 @@ export function HouseholdProvider({ children }) {
   const isLoading = loadingUser || loadingHouseholds;
   const isOwner = household?.owner_email === user?.email;
   
+  // Ensure user has accessible_household_ids set
+  useEffect(() => {
+    if (user && household && !isLoading) {
+      const accessibleIds = user.accessible_household_ids || [];
+      if (!accessibleIds.includes(household.id)) {
+        base44.auth.updateMe({
+          accessible_household_ids: [...accessibleIds, household.id]
+        });
+      }
+    }
+  }, [user, household, isLoading]);
+  
   // Auto-create household for new users
   useEffect(() => {
     if (!isLoading && user && !household && households.length === 0) {
