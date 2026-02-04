@@ -22,7 +22,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
   const [expandedCategories, setExpandedCategories] = useState({});
   const [form, setForm] = useState({ 
     description: '',
-    category: 'Rent', 
+    category: '', 
     expense_type: 'fixed',
     amount: '', 
     due_date: defaultDate || '', 
@@ -31,6 +31,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
     notes: '', 
     debt_id: '' 
   });
+  const [newCategory, setNewCategory] = useState('');
   
   const handleCopyToMonth = async (targetMonth) => {
     for (const expense of expenses) {
@@ -81,16 +82,19 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
   const grandTotal = fixedTotal + variableTotal;
   
   const handleAdd = async () => {
-    if (!form.category || !form.amount) return;
+    const categoryToUse = newCategory || form.category;
+    if (!categoryToUse || !form.amount) return;
+    
     await base44.entities.Expense.create({
       ...form,
+      category: categoryToUse,
       amount: parseFloat(form.amount),
       month: selectedMonth,
       household_id: householdId
     });
     setForm({ 
       description: '',
-      category: 'Rent', 
+      category: '', 
       expense_type: 'fixed',
       amount: '', 
       due_date: defaultDate || '', 
@@ -99,6 +103,7 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
       notes: '',
       debt_id: ''
     });
+    setNewCategory('');
     setIsAdding(false);
     onRefresh();
   };

@@ -3,13 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Trash2, Edit2, Check, X, CreditCard, TrendingDown, Upload, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, CreditCard, TrendingDown, ChevronDown, ChevronRight } from "lucide-react";
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useTheme } from '../ThemeProvider';
 import TutorialHint from './TutorialHint';
-import CSVImportDialog from '../common/CSVImportDialog';
 
 const CSV_FIELD_MAPPINGS = {
   'name': { field: 'name', type: 'string' },
@@ -27,7 +26,7 @@ export default function DebtSection({ householdId, showTutorial }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [showImport, setShowImport] = useState(false);
+
   const [showAddTransaction, setShowAddTransaction] = useState(null);
   const [form, setForm] = useState({ 
     name: '', 
@@ -164,33 +163,22 @@ export default function DebtSection({ householdId, showTutorial }) {
               showTutorial={showTutorial}
             />
           </span>
-          <div className="flex gap-1">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className={`h-7 text-white ${theme.primaryHover}`}
-              onClick={() => setShowImport(true)}
-            >
-              <Upload className="h-4 w-4 mr-1" /> Import
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className={`h-7 text-white ${theme.primaryHover}`}
-              onClick={() => setIsAdding(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add
-            </Button>
-          </div>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            className={`h-7 text-white ${theme.primaryHover}`}
+            onClick={() => setIsAdding(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className={`grid grid-cols-12 gap-2 px-4 py-2 ${theme.headerBg} text-xs font-medium ${theme.textMuted} uppercase`}>
-          <div className="col-span-4">Name</div>
-          <div className="col-span-2">Original</div>
-          <div className="col-span-2">Current</div>
-          <div className="col-span-2">Progress</div>
-          <div className="col-span-2"></div>
+          <div className="col-span-3">Debt Account</div>
+          <div className="col-span-2">Balance</div>
+          <div className="col-span-4">Progress</div>
+          <div className="col-span-3"></div>
         </div>
 
         <div className={`${theme.divider} divide-y`}>
@@ -204,16 +192,21 @@ export default function DebtSection({ householdId, showTutorial }) {
                 <div className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center ${theme.hoverBg}`}>
                   {editingId === debt.id ? (
                     <>
-                      <div className="col-span-4">
-                        <Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-8 text-sm" />
+                      <div className="col-span-3">
+                        <Input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-8 text-sm" placeholder="Name" />
                       </div>
                       <div className="col-span-2">
-                        <Input type="number" value={form.original_amount} onChange={(e) => setForm({...form, original_amount: e.target.value})} className="h-8 text-sm" />
+                        <Input type="number" value={form.current_amount} onChange={(e) => setForm({...form, current_amount: e.target.value})} className="h-8 text-sm" placeholder="Balance" />
                       </div>
                       <div className="col-span-2">
-                        <Input type="number" value={form.current_amount} onChange={(e) => setForm({...form, current_amount: e.target.value})} className="h-8 text-sm" />
+                        <Input type="number" value={form.interest_rate} onChange={(e) => setForm({...form, interest_rate: e.target.value})} className="h-8 text-sm" placeholder="Rate %" />
                       </div>
-                      <div className="col-span-2"></div>
+                      <div className="col-span-2">
+                        <Input type="number" value={form.minimum_payment} onChange={(e) => setForm({...form, minimum_payment: e.target.value})} className="h-8 text-sm" placeholder="Min Pay" />
+                      </div>
+                      <div className="col-span-1">
+                        <Input type="number" value={form.due_date} onChange={(e) => setForm({...form, due_date: e.target.value})} className="h-8 text-sm" placeholder="Due" />
+                      </div>
                       <div className="col-span-2 flex gap-1 justify-end">
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUpdate(debt.id)}>
                           <Check className="h-3 w-3 text-green-600" />
@@ -225,19 +218,23 @@ export default function DebtSection({ householdId, showTutorial }) {
                     </>
                   ) : (
                     <>
-                      <div className={`col-span-4 text-sm ${theme.text} flex items-center gap-1`}>
+                      <div className={`col-span-3 text-sm ${theme.text} flex items-center gap-1`}>
                         <button onClick={() => setExpandedId(isExpanded ? null : debt.id)}>
                           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </button>
-                        {debt.name}
+                        <div>
+                          <div className="font-medium">{debt.name}</div>
+                          <div className="text-xs text-slate-500">
+                            {debt.interest_rate}% • R{debt.minimum_payment?.toLocaleString()}/mo • Due {debt.due_date}th
+                          </div>
+                        </div>
                       </div>
-                      <div className={`col-span-2 text-sm ${theme.textMuted}`}>R {debt.original_amount?.toLocaleString()}</div>
                       <div className={`col-span-2 text-sm font-medium ${theme.text}`}>R {debt.current_amount?.toLocaleString()}</div>
-                      <div className="col-span-2">
+                      <div className="col-span-4">
                         <Progress value={progress} className="h-2" />
-                        <span className="text-xs text-slate-500">{progress.toFixed(0)}%</span>
+                        <span className="text-xs text-slate-500">{progress.toFixed(0)}% paid • {calculatePayoffTime(debt) || '-'} remaining</span>
                       </div>
-                      <div className="col-span-2 flex gap-1 justify-end">
+                      <div className="col-span-3 flex gap-1 justify-end">
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowAddTransaction(debt.id)}>
                           <TrendingDown className="h-3 w-3 text-green-600" />
                         </Button>
@@ -252,50 +249,27 @@ export default function DebtSection({ householdId, showTutorial }) {
                   )}
                 </div>
 
-                {/* Expanded Details */}
-                {isExpanded && (
-                  <div className={`px-4 py-3 ${theme.headerBg} border-t ${theme.border}`}>
-                    <div className="grid grid-cols-4 gap-4 text-xs mb-3">
-                      <div>
-                        <span className={theme.textMuted}>Interest Rate</span>
-                        <p className={`font-medium ${theme.text}`}>{debt.interest_rate || 0}%</p>
-                      </div>
-                      <div>
-                        <span className={theme.textMuted}>Min Payment</span>
-                        <p className={`font-medium ${theme.text}`}>R {debt.minimum_payment?.toLocaleString() || 0}</p>
-                      </div>
-                      <div>
-                        <span className={theme.textMuted}>Due Day</span>
-                        <p className={`font-medium ${theme.text}`}>{debt.due_date || '-'}th</p>
-                      </div>
-                      <div>
-                        <span className={theme.textMuted}>Est. Payoff</span>
-                        <p className={`font-medium ${theme.text}`}>{calculatePayoffTime(debt) || '-'}</p>
-                      </div>
-                    </div>
-                    
-                    {debtTxns.length > 0 && (
-                      <div>
-                        <p className={`text-xs ${theme.textMuted} mb-2`}>Recent Transactions</p>
-                        <div className="space-y-1">
-                          {debtTxns.slice(0, 5).map(txn => (
-                            <div key={txn.id} className={`flex justify-between text-xs ${theme.text}`}>
-                              <span>{txn.date} - {txn.type === 'payment' ? 'Payment' : 'Charge'}</span>
-                              <span className={txn.type === 'payment' ? 'text-green-600' : 'text-red-600'}>
-                                {txn.type === 'payment' ? '-' : '+'}R {txn.amount?.toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
+                {/* Expanded Payments */}
+                {isExpanded && debtTxns.length > 0 && (
+                  <div className={`px-4 py-2 ${theme.headerBg} border-t ${theme.border}`}>
+                    <p className={`text-xs ${theme.textMuted} mb-2 font-medium`}>Payment History</p>
+                    <div className="space-y-1">
+                      {debtTxns.map(txn => (
+                        <div key={txn.id} className={`flex justify-between text-xs ${theme.text} py-1`}>
+                          <span>{format(parseISO(txn.date), 'dd MMM yyyy')} - {txn.type === 'payment' ? 'Payment' : 'Charge'}</span>
+                          <span className={txn.type === 'payment' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                            {txn.type === 'payment' ? '-' : '+'}R {txn.amount?.toLocaleString()}
+                          </span>
                         </div>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* Add Transaction Modal */}
                 {showAddTransaction === debt.id && (
                   <div className={`px-4 py-3 ${theme.headerBg} border-t ${theme.border}`}>
-                    <p className={`text-sm font-medium ${theme.text} mb-2`}>Record Transaction</p>
+                    <p className={`text-sm font-medium ${theme.text} mb-2`}>Record Payment</p>
                     <div className="grid grid-cols-4 gap-2">
                       <select 
                         value={transactionForm.type}
@@ -330,24 +304,31 @@ export default function DebtSection({ householdId, showTutorial }) {
           })}
 
           {isAdding && (
-            <div className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center bg-green-50`}>
-              <div className="col-span-4">
-                <Input placeholder="Debt name" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-8 text-sm" />
-              </div>
-              <div className="col-span-2">
-                <Input type="number" placeholder="Original" value={form.original_amount} onChange={(e) => setForm({...form, original_amount: e.target.value})} className="h-8 text-sm" />
-              </div>
-              <div className="col-span-2">
-                <Input type="number" placeholder="Current" value={form.current_amount} onChange={(e) => setForm({...form, current_amount: e.target.value})} className="h-8 text-sm" />
-              </div>
-              <div className="col-span-2"></div>
-              <div className="col-span-2 flex gap-1 justify-end">
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleAdd}>
-                  <Check className="h-3 w-3 text-green-600" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsAdding(false)}>
-                  <X className="h-3 w-3 text-red-600" />
-                </Button>
+            <div className={`px-4 py-3 bg-green-50`}>
+              <div className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-3">
+                  <Input placeholder="Debt name" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <Input type="number" placeholder="Balance" value={form.current_amount} onChange={(e) => setForm({...form, current_amount: e.target.value, original_amount: e.target.value})} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <Input type="number" placeholder="Interest %" value={form.interest_rate} onChange={(e) => setForm({...form, interest_rate: e.target.value})} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <Input type="number" placeholder="Min Payment" value={form.minimum_payment} onChange={(e) => setForm({...form, minimum_payment: e.target.value})} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-1">
+                  <Input type="number" placeholder="Due" value={form.due_date} onChange={(e) => setForm({...form, due_date: e.target.value})} className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2 flex gap-1 justify-end">
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleAdd}>
+                    <Check className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsAdding(false)}>
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -360,14 +341,7 @@ export default function DebtSection({ householdId, showTutorial }) {
         </div>
       </CardContent>
 
-      <CSVImportDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        entityType="Debt"
-        householdId={householdId}
-        onSuccess={refresh}
-        fieldMappings={CSV_FIELD_MAPPINGS}
-      />
+
     </Card>
   );
 }

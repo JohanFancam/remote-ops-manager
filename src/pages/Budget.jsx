@@ -164,7 +164,7 @@ export default function Budget() {
             />
             
             <ExpensesSection 
-              expenses={fixedExpenses}
+              expenses={expenses}
               selectedMonth={selectedMonth}
               householdId={householdId}
               defaultDate={getDefaultExpenseDate(selectedMonth)}
@@ -193,7 +193,7 @@ export default function Budget() {
             
             <MonthlyTotals 
               incomes={incomes}
-              expenses={fixedExpenses}
+              expenses={expenses}
               investments={investments}
               unforeseenExpenses={unforeseenExpenses}
             />
