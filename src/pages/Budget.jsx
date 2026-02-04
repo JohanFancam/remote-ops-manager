@@ -196,6 +196,7 @@ export default function Budget() {
               expenses={expenses}
               investments={investments}
               unforeseenExpenses={unforeseenExpenses}
+              purchases={purchases}
             />
           </div>
           

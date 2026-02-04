@@ -12,7 +12,7 @@ import { useTheme } from '../ThemeProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Insurance', 'Subscriptions', 'Loans', 'Other'];
+// User-created categories stored in expenses
 
 export default function ExpensesSection({ expenses, selectedMonth, householdId, defaultDate, onRefresh, showTutorial, debts = [] }) {
   const theme = useTheme();
@@ -62,24 +62,20 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
     }));
   };
   
-  // Group expenses by category and type
+  // Get unique categories from existing expenses
+  const allCategories = [...new Set(expenses.map(e => e.category).filter(Boolean))];
+  
+  // Group expenses by category only
   const groupedExpenses = {};
   expenses.forEach(exp => {
-    const key = `${exp.expense_type || 'fixed'}-${exp.category}`;
-    if (!groupedExpenses[key]) {
-      groupedExpenses[key] = [];
+    const category = exp.category || 'Uncategorized';
+    if (!groupedExpenses[category]) {
+      groupedExpenses[category] = [];
     }
-    groupedExpenses[key].push(exp);
+    groupedExpenses[category].push(exp);
   });
   
-  // Calculate totals
-  const fixedTotal = expenses
-    .filter(e => e.expense_type === 'fixed')
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
-  const variableTotal = expenses
-    .filter(e => e.expense_type === 'variable')
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
-  const grandTotal = fixedTotal + variableTotal;
+  const grandTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   
   const handleAdd = async () => {
     const categoryToUse = newCategory || form.category;
@@ -326,89 +322,69 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
         </div>
         
         <div className="divide-y divide-slate-200">
-          {/* Fixed Expenses */}
-          <div>
-            <div 
-              className="bg-slate-50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-100"
-              onClick={() => toggleCategory('fixed')}
-            >
-              <div className="flex items-center gap-2">
-                {expandedCategories['fixed'] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <span className="font-semibold text-sm">Fixed Expenses</span>
+          {allCategories.sort().map(category => {
+            const categoryExpenses = groupedExpenses[category] || [];
+            const catTotal = categoryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+            const isExpanded = expandedCategories[category];
+            
+            return (
+              <div key={category}>
+                <div 
+                  className="bg-slate-50 px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-100"
+                  onClick={() => toggleCategory(category)}
+                >
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    <span className="font-semibold text-sm">{category}</span>
+                  </div>
+                  <span className="font-bold text-sm">R {catTotal.toLocaleString()}</span>
+                </div>
+                {isExpanded && (
+                  <div className="divide-y divide-slate-100">
+                    {categoryExpenses.map(renderExpenseRow)}
+                  </div>
+                )}
               </div>
-              <span className="font-bold text-sm">R {fixedTotal.toLocaleString()}</span>
-            </div>
-            {expandedCategories['fixed'] && (
-              <div className="divide-y divide-slate-100">
-                {EXPENSE_CATEGORIES.map(cat => {
-                  const key = `fixed-${cat}`;
-                  const categoryExpenses = groupedExpenses[key] || [];
-                  if (categoryExpenses.length === 0) return null;
-                  
-                  const catTotal = categoryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-                  
-                  return (
-                    <div key={cat}>
-                      <div className="bg-slate-50 px-6 py-1.5 flex items-center justify-between text-xs">
-                        <span className="text-slate-600">{cat}</span>
-                        <span className="font-medium">R {catTotal.toLocaleString()}</span>
-                      </div>
-                      {categoryExpenses.map(renderExpenseRow)}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          
-          {/* Variable Expenses */}
-          <div>
-            <div 
-              className="bg-slate-50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-100"
-              onClick={() => toggleCategory('variable')}
-            >
-              <div className="flex items-center gap-2">
-                {expandedCategories['variable'] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <span className="font-semibold text-sm">Variable Expenses</span>
-              </div>
-              <span className="font-bold text-sm">R {variableTotal.toLocaleString()}</span>
-            </div>
-            {expandedCategories['variable'] && (
-              <div className="divide-y divide-slate-100">
-                {EXPENSE_CATEGORIES.map(cat => {
-                  const key = `variable-${cat}`;
-                  const categoryExpenses = groupedExpenses[key] || [];
-                  if (categoryExpenses.length === 0) return null;
-                  
-                  const catTotal = categoryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-                  
-                  return (
-                    <div key={cat}>
-                      <div className="bg-slate-50 px-6 py-1.5 flex items-center justify-between text-xs">
-                        <span className="text-slate-600">{cat}</span>
-                        <span className="font-medium">R {catTotal.toLocaleString()}</span>
-                      </div>
-                      {categoryExpenses.map(renderExpenseRow)}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            );
+          })}
           
           {/* Add Form */}
           {isAdding && (
-            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 items-center bg-blue-50">
-              <div className="col-span-3">
+            <div className="px-4 py-3 bg-blue-50 border-t-2 border-blue-200">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-700">Category:</span>
+                {allCategories.length > 0 && (
+                  <>
+                    <Select value={form.category} onValueChange={(val) => { setForm({...form, category: val}); setNewCategory(''); }}>
+                      <SelectTrigger className="h-8 text-sm w-40">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-slate-500">or</span>
+                  </>
+                )}
                 <Input 
-                  placeholder="Description"
-                  value={form.description} 
-                  onChange={(e) => setForm({...form, description: e.target.value})}
-                  className="h-8 text-sm"
+                  placeholder="New category name"
+                  value={newCategory}
+                  onChange={(e) => { setNewCategory(e.target.value); setForm({...form, category: ''}); }}
+                  className="h-8 text-sm w-48"
                 />
               </div>
-              <div className="col-span-2">
-                <div className="space-y-1">
+              <div className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-3">
+                  <Input 
+                    placeholder="Description"
+                    value={form.description} 
+                    onChange={(e) => setForm({...form, description: e.target.value})}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="col-span-2">
                   <Input 
                     type="number"
                     placeholder="Amount"
@@ -416,63 +392,42 @@ export default function ExpensesSection({ expenses, selectedMonth, householdId, 
                     onChange={(e) => setForm({...form, amount: e.target.value})}
                     className="h-8 text-sm"
                   />
-                  <Select value={form.expense_type} onValueChange={(val) => setForm({...form, expense_type: val})}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">Fixed</SelectItem>
-                      <SelectItem value="variable">Variable</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
-              </div>
-              <div className="col-span-2">
-                <div className="space-y-1">
+                <div className="col-span-2">
                   <Input 
                     type="date"
                     value={form.due_date} 
                     onChange={(e) => setForm({...form, due_date: e.target.value})}
                     className="h-8 text-sm"
                   />
-                  <Select value={form.category} onValueChange={(val) => setForm({...form, category: val})}>
+                </div>
+                <div className="col-span-2">
+                  <Select value={form.debt_id} onValueChange={(val) => setForm({...form, debt_id: val})}>
                     <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
+                      <SelectValue placeholder="Link Debt" />
                     </SelectTrigger>
                     <SelectContent>
-                      {EXPENSE_CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      <SelectItem value={null}>None</SelectItem>
+                      {debts.map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="col-span-2">
-                <Select value={form.debt_id} onValueChange={(val) => setForm({...form, debt_id: val})}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Link Debt" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={null}>None</SelectItem>
-                    {debts.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-1 flex justify-center">
-                <Checkbox 
-                  checked={form.is_paid}
-                  onCheckedChange={(checked) => setForm({...form, is_paid: checked})}
-                />
-              </div>
-              <div className="col-span-2 flex gap-1">
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleAdd}>
-                  <Check className="h-3 w-3 text-green-600" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsAdding(false)}>
-                  <X className="h-3 w-3 text-red-600" />
-                </Button>
+                <div className="col-span-1 flex justify-center">
+                  <Checkbox 
+                    checked={form.is_paid}
+                    onCheckedChange={(checked) => setForm({...form, is_paid: checked})}
+                  />
+                </div>
+                <div className="col-span-2 flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleAdd}>
+                    <Check className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setIsAdding(false); setNewCategory(''); setForm({...form, category: ''}); }}>
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
