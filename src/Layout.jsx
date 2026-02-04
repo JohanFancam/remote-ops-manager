@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { 
   LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart, 
   TrendingUp, HelpCircle, Home, Heart, Star, PiggyBank, Wallet, Moon, Sun,
-  CreditCard, AlertTriangle, Activity
+  CreditCard, AlertTriangle, Activity, RefreshCw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,10 @@ function LayoutContent({ children, currentPageName }) {
     base44.auth.logout();
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   const profilePhotoUrl = user?.profile_photo_url;
 
   return (
@@ -107,7 +111,17 @@ function LayoutContent({ children, currentPageName }) {
               
               {/* Bill Notifications */}
               <BillNotifications expenses={expenses} />
-              
+
+              {/* Refresh Button */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/80 hover:text-white hover:bg-white/10"
+                onClick={handleRefresh}
+              >
+                <RefreshCw className="h-5 w-5" />
+              </Button>
+
               {/* Dark Mode Toggle */}
               <Button 
                 variant="ghost" 
@@ -154,6 +168,14 @@ function LayoutContent({ children, currentPageName }) {
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center gap-2">
               <BillNotifications expenses={expenses} />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/80 hover:text-white hover:bg-white/10"
+                onClick={handleRefresh}
+              >
+                <RefreshCw className="h-5 w-5" />
+              </Button>
               <Button 
                 variant="ghost" 
                 size="icon" 

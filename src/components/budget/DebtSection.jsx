@@ -26,7 +26,7 @@ export default function DebtSection({ householdId, showTutorial }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-
+  const [editingExpandedId, setEditingExpandedId] = useState(null);
   const [showAddTransaction, setShowAddTransaction] = useState(null);
   const [form, setForm] = useState({ 
     name: '', 
@@ -249,20 +249,87 @@ export default function DebtSection({ householdId, showTutorial }) {
                   )}
                 </div>
 
-                {/* Expanded Payments */}
-                {isExpanded && debtTxns.length > 0 && (
-                  <div className={`px-4 py-2 ${theme.headerBg} border-t ${theme.border}`}>
-                    <p className={`text-xs ${theme.textMuted} mb-2 font-medium`}>Payment History</p>
-                    <div className="space-y-1">
-                      {debtTxns.map(txn => (
-                        <div key={txn.id} className={`flex justify-between text-xs ${theme.text} py-1`}>
-                          <span>{format(parseISO(txn.date), 'dd MMM yyyy')} - {txn.type === 'payment' ? 'Payment' : 'Charge'}</span>
-                          <span className={txn.type === 'payment' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            {txn.type === 'payment' ? '-' : '+'}R {txn.amount?.toLocaleString()}
-                          </span>
+                {/* Expanded Details & Payments */}
+                {isExpanded && (
+                  <div className={`px-4 py-3 ${theme.headerBg} border-t ${theme.border}`}>
+                    {editingExpandedId === debt.id ? (
+                      <div className="mb-3 space-y-2">
+                        <p className={`text-xs ${theme.textMuted} font-medium mb-2`}>Edit Details</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-xs text-slate-500">Interest Rate %</label>
+                            <Input 
+                              type="number" 
+                              value={form.interest_rate} 
+                              onChange={(e) => setForm({...form, interest_rate: e.target.value})} 
+                              className="h-8 text-sm" 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500">Min Payment</label>
+                            <Input 
+                              type="number" 
+                              value={form.minimum_payment} 
+                              onChange={(e) => setForm({...form, minimum_payment: e.target.value})} 
+                              className="h-8 text-sm" 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500">Due Day</label>
+                            <Input 
+                              type="number" 
+                              value={form.due_date} 
+                              onChange={(e) => setForm({...form, due_date: e.target.value})} 
+                              className="h-8 text-sm" 
+                            />
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => { handleUpdate(debt.id); setEditingExpandedId(null); }}>Save</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingExpandedId(null)}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-4 text-xs mb-3">
+                        <div>
+                          <span className={theme.textMuted}>Interest Rate</span>
+                          <p className={`font-medium ${theme.text}`}>{debt.interest_rate || 0}%</p>
+                        </div>
+                        <div>
+                          <span className={theme.textMuted}>Min Payment</span>
+                          <p className={`font-medium ${theme.text}`}>R {debt.minimum_payment?.toLocaleString() || 0}</p>
+                        </div>
+                        <div>
+                          <span className={theme.textMuted}>Due Day</span>
+                          <p className={`font-medium ${theme.text}`}>{debt.due_date || '-'}th</p>
+                        </div>
+                        <div>
+                          <span className={theme.textMuted}>Est. Payoff</span>
+                          <p className={`font-medium ${theme.text}`}>{calculatePayoffTime(debt) || '-'}</p>
+                        </div>
+                        <div className="col-span-4">
+                          <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => { startEdit(debt); setEditingExpandedId(debt.id); }}>
+                            <Edit2 className="h-3 w-3 mr-1" />Edit Details
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {debtTxns.length > 0 && (
+                      <div>
+                        <p className={`text-xs ${theme.textMuted} mb-2 font-medium`}>Payment History</p>
+                        <div className="space-y-1">
+                          {debtTxns.map(txn => (
+                            <div key={txn.id} className={`flex justify-between text-xs ${theme.text} py-1`}>
+                              <span>{format(parseISO(txn.date), 'dd MMM yyyy')} - {txn.type === 'payment' ? 'Payment' : 'Charge'}</span>
+                              <span className={txn.type === 'payment' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                {txn.type === 'payment' ? '-' : '+'}R {txn.amount?.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
