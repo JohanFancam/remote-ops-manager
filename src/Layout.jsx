@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { 
   LayoutDashboard, Calculator, Menu, X, Settings, LogOut, ShoppingCart, 
   TrendingUp, HelpCircle, Home, Heart, Star, PiggyBank, Wallet, Moon, Sun,
-  CreditCard, AlertTriangle, Activity, RefreshCw
+  CreditCard, AlertTriangle, Activity, RefreshCw, ListChecks, Calendar as CalendarIcon
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,8 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard', always: true },
     { name: 'Budget', icon: Calculator, page: 'Budget', always: true },
     { name: 'Purchases', icon: ShoppingCart, page: 'Purchases', always: true },
+    { name: 'Shopping', icon: ListChecks, page: 'ShoppingList', always: true },
+    { name: 'Calendar', icon: CalendarIcon, page: 'Calendar', always: true },
     { name: 'Debt', icon: CreditCard, page: 'Debt', feature: 'debt' },
     { name: 'Projections', icon: TrendingUp, page: 'Projections', feature: 'projections' },
     { name: 'Activity', icon: Activity, page: 'UserActivity', feature: 'user_activity' },
