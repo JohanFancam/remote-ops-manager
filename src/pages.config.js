@@ -54,6 +54,8 @@ import Projections from './pages/Projections';
 import Purchases from './pages/Purchases';
 import Settings from './pages/Settings';
 import UserActivity from './pages/UserActivity';
+import ShoppingList from './pages/ShoppingList';
+import Calendar from './pages/Calendar';
 import __Layout from './Layout.jsx';
 
 
@@ -65,6 +67,8 @@ export const PAGES = {
     "Purchases": Purchases,
     "Settings": Settings,
     "UserActivity": UserActivity,
+    "ShoppingList": ShoppingList,
+    "Calendar": Calendar,
 }
 
 export const pagesConfig = {
