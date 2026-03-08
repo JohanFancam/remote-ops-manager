@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,6 +214,3 @@ function AssignButton({ shoot, user }) {
     </Button>
   );
 }
-
-// Need to import useQueryClient in AssignButton
-import { useQueryClient } from '@tanstack/react-query';
