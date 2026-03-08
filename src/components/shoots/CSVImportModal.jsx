@@ -59,16 +59,16 @@ export default function CSVImportModal({ open, onClose, onImported }) {
       const rows = parseCSV(text);
       let success = 0, failed = 0;
       for (const row of rows) {
-        if (!row.title || !row.date) { failed++; continue; }
+        if (!row.team || !row.date) { failed++; continue; }
         try {
+          const title = row.opponent ? `${row.team} vs ${row.opponent}` : row.team;
           await base44.entities.Shoot.create({
-            title: row.title,
-            client: row.client || '',
-            location: row.location || '',
+            title,
+            client: row.team || '',
+            location: row.venue || '',
             date: row.date,
-            game_time: row.game_time || row.gametime || row['game time'] || '',
-            status: row.status || 'upcoming',
-            description: row.description || row.notes || '',
+            game_time: row.time || '',
+            status: 'upcoming',
           });
           success++;
         } catch { failed++; }
