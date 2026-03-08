@@ -33,8 +33,10 @@ export function calculateOperatorEarnings(shoots, operatorEmail) {
 }
 
 export function getAllOperatorsEarnings(shoots, users) {
+  // Only include non-admin users
+  const adminEmails = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
   const operatorEmails = [...new Set(
-    shoots.flatMap(s => s.assigned_operators || []).filter(Boolean)
+    shoots.flatMap(s => s.assigned_operators || []).filter(e => e && !adminEmails.has(e))
   )];
 
   return operatorEmails.map(email => {
