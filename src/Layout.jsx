@@ -14,6 +14,33 @@ import { cn } from "@/lib/utils";
 function LayoutContent({ children, currentPageName }) {
   const { user, isAdmin, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const seenRef = useRef(new Set());
+
+  // Real-time: admins get notified when remote users request assignment
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsub = base44.entities.Shoot.subscribe((event) => {
+      if (event.type === 'update' && event.data?.pending_operators?.length > 0) {
+        const shoot = event.data;
+        shoot.pending_operators.forEach(email => {
+          const key = `${shoot.id}_${email}`;
+          if (!seenRef.current.has(key)) {
+            seenRef.current.add(key);
+            setNotifications(prev => [{
+              id: key,
+              message: `${email} requested assignment to "${shoot.title}"`,
+              time: new Date(),
+            }, ...prev].slice(0, 20));
+          }
+        });
+      }
+    });
+    return unsub;
+  }, [isAdmin]);
+
+  const unreadCount = notifications.length;
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
