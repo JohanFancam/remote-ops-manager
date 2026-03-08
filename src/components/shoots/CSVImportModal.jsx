@@ -93,7 +93,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
 
         <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4">
           <p className="font-semibold text-gray-300 mb-1">Expected CSV columns:</p>
-          <code className="text-xs text-blue-300">title, client, location, date (YYYY-MM-DD), game_time (HH:MM), status, description</code>
+          <code className="text-xs text-blue-300">team, opponent, date (YYYY-MM-DD), time (HH:MM), venue</code>
         </div>
 
         {!result ? (
