@@ -1,187 +1,124 @@
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Calendar as CalendarIcon, ShoppingCart, CreditCard, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useHousehold } from '../components/HouseholdContext';
-import { useTheme } from '../components/ThemeProvider';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
+import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, isAfter } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
-export default function CalendarPage() {
-  const { householdId, isLoading: loadingHousehold } = useHousehold();
-  const theme = useTheme();
-  const queryClient = useQueryClient();
-  
+const typeColors = {
+  upcoming: 'bg-blue-600',
+  confirmed: 'bg-green-600',
+  in_progress: 'bg-yellow-600',
+  completed: 'bg-gray-600',
+  cancelled: 'bg-red-700',
+};
+
+export default function Calendar() {
+  const { user, isAdmin } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isAdding, setIsAdding] = useState(false);
-  const [form, setForm] = useState({ title: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'general', notes: '' });
-  
-  const { data: reminders = [] } = useQuery({
-    queryKey: ['calendarReminders', householdId],
-    queryFn: () => base44.entities.CalendarReminder.filter({ household_id: householdId }),
-    enabled: !!householdId,
+
+  const { data: shoots = [] } = useQuery({
+    queryKey: ['shoots'],
+    queryFn: () => base44.entities.Shoot.list('-date', 200),
   });
-  
-  const { data: expenses = [] } = useQuery({
-    queryKey: ['expensesAll', householdId],
-    queryFn: () => base44.entities.Expense.filter({ household_id: householdId }),
-    enabled: !!householdId,
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => base44.entities.Event.list('-date', 200),
   });
-  
-  const { data: shoppingLists = [] } = useQuery({
-    queryKey: ['shoppingLists', householdId],
-    queryFn: () => base44.entities.ShoppingList.filter({ household_id: householdId }),
-    enabled: !!householdId,
-  });
-  
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['calendarReminders'] });
-  };
-  
-  const handleAddReminder = async () => {
-    if (!form.title || !form.date) return;
-    await base44.entities.CalendarReminder.create({
-      ...form,
-      household_id: householdId
-    });
-    setForm({ title: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'general', notes: '' });
-    setIsAdding(false);
-    refresh();
-  };
-  
-  const toggleReminder = async (reminder) => {
-    await base44.entities.CalendarReminder.update(reminder.id, { is_completed: !reminder.is_completed });
-    refresh();
-  };
-  
-  const deleteReminder = async (id) => {
-    await base44.entities.CalendarReminder.delete(id);
-    refresh();
-  };
-  
-  // Build calendar events
-  const getEventsForDate = (date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const events = [];
-    
-    // Reminders
-    reminders.filter(r => r.date === dateStr).forEach(r => {
-      events.push({ ...r, eventType: 'reminder' });
-    });
-    
-    // Bills/Expenses due
-    expenses.filter(e => e.due_date === dateStr && !e.is_paid).forEach(e => {
-      events.push({ id: `exp-${e.id}`, title: e.description || e.category, type: 'bill', eventType: 'expense', amount: e.amount });
-    });
-    
-    // Shopping lists
-    shoppingLists.filter(l => l.scheduled_date === dateStr && !l.is_completed).forEach(l => {
-      events.push({ id: `shop-${l.id}`, title: l.name, type: 'shopping', eventType: 'shopping', listId: l.id });
-    });
-    
-    return events;
-  };
-  
-  // Calendar grid
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
-  // Pad with empty days at start
   const startPadding = monthStart.getDay();
-  
-  const selectedDateEvents = getEventsForDate(selectedDate);
-  
-  const getTypeIcon = (type) => {
-    switch(type) {
-      case 'shopping': return <ShoppingCart className="h-3 w-3" />;
-      case 'bill': return <CreditCard className="h-3 w-3" />;
-      default: return <Bell className="h-3 w-3" />;
+
+  const getShootsForDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    let dayShots = shoots.filter(s => s.date === dateStr);
+    if (!isAdmin) {
+      dayShots = dayShots.filter(s => s.assigned_operators?.includes(user?.email));
     }
+    return dayShots;
   };
-  
-  const getTypeColor = (type) => {
-    switch(type) {
-      case 'shopping': return 'bg-purple-100 text-purple-700';
-      case 'bill': return 'bg-red-100 text-red-700';
-      default: return 'bg-blue-100 text-blue-700';
-    }
+
+  const getEventsForDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return events.filter(e => e.date === dateStr);
   };
-  
-  if (loadingHousehold) {
-    return <div className={`min-h-screen ${theme.bg} flex items-center justify-center`}>Loading...</div>;
-  }
-  
+
+  const selectedShoots = getShootsForDay(selectedDate);
+  const selectedEvents = getEventsForDay(selectedDate);
+
   return (
-    <div className={`min-h-screen ${theme.bg}`}>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className={`text-2xl font-bold ${theme.text}`}>Calendar</h1>
-          <Button onClick={() => setIsAdding(true)} className={theme.cardHeader}>
-            <Plus className="h-4 w-4 mr-2" /> Add Reminder
-          </Button>
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Calendar</h1>
+          {isAdmin && (
+            <Link to={createPageUrl('Shoots')}>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Camera className="h-4 w-4 mr-2" /> Manage Shoots
+              </Button>
+            </Link>
+          )}
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Calendar */}
           <div className="lg:col-span-2">
-            <Card className={`border-0 shadow-md ${theme.cardBg}`}>
-              <CardHeader className="flex flex-row items-center justify-between py-4">
-                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-800">
+                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <CardTitle className={`text-lg ${theme.text}`}>
-                  {format(currentMonth, 'MMMM yyyy')}
-                </CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                <CardTitle className="text-white text-xl">{format(currentMonth, 'MMMM yyyy')}</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className={`text-center text-xs font-medium ${theme.textMuted} py-2`}>{day}</div>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-7 mb-2">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                    <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
                   ))}
                 </div>
-                
                 <div className="grid grid-cols-7 gap-1">
-                  {Array(startPadding).fill(null).map((_, i) => (
-                    <div key={`pad-${i}`} className="h-16" />
-                  ))}
-                  
+                  {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
                   {calendarDays.map(day => {
-                    const dayEvents = getEventsForDate(day);
+                    const dayShoots = getShootsForDay(day);
+                    const dayEvents = getEventsForDay(day);
+                    const total = dayShoots.length + dayEvents.length;
                     const isSelected = isSameDay(day, selectedDate);
                     const today = isToday(day);
-                    
                     return (
                       <div
                         key={day.toISOString()}
                         onClick={() => setSelectedDate(day)}
-                        className={`h-16 p-1 border rounded cursor-pointer transition-colors
-                          ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}
-                          ${today ? 'ring-2 ring-blue-400' : ''}
+                        className={`min-h-[64px] p-1.5 rounded-lg cursor-pointer border transition-all
+                          ${isSelected ? 'border-blue-500 bg-blue-950/60' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/50'}
+                          ${today ? 'ring-2 ring-blue-500' : ''}
                         `}
                       >
-                        <div className={`text-xs font-medium mb-1 ${today ? 'text-blue-600' : theme.text}`}>
+                        <div className={`text-xs font-semibold mb-1 ${today ? 'text-blue-400' : 'text-gray-300'}`}>
                           {format(day, 'd')}
                         </div>
                         <div className="space-y-0.5">
-                          {dayEvents.slice(0, 2).map(event => (
-                            <div key={event.id} className={`text-xs truncate px-1 rounded ${getTypeColor(event.type)}`}>
-                              {event.title}
+                          {dayShoots.slice(0, 2).map(s => (
+                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${typeColors[s.status] || 'bg-blue-600'}`}>
+                              {s.title}
                             </div>
                           ))}
-                          {dayEvents.length > 2 && (
-                            <div className="text-xs text-slate-500">+{dayEvents.length - 2} more</div>
-                          )}
+                          {dayEvents.slice(0, 1).map(e => (
+                            <div key={e.id} className="text-xs truncate px-1 py-0.5 rounded bg-purple-700 text-white">
+                              {e.title}
+                            </div>
+                          ))}
+                          {total > 3 && <div className="text-xs text-gray-500">+{total - 3}</div>}
                         </div>
                       </div>
                     );
@@ -190,106 +127,93 @@ export default function CalendarPage() {
               </CardContent>
             </Card>
           </div>
-          
-          {/* Selected Day Events */}
+
+          {/* Day Detail */}
           <div>
-            <Card className={`border-0 shadow-md ${theme.cardBg}`}>
-              <CardHeader className={`${theme.cardHeader} text-white rounded-t-lg py-3`}>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  {format(selectedDate, 'EEEE, MMM d')}
-                </CardTitle>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="border-b border-gray-800 pb-3">
+                <CardTitle className="text-white text-base">{format(selectedDate, 'EEEE, MMMM d')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {selectedDateEvents.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <p className={theme.textMuted}>No events for this day</p>
-                  </div>
+                {selectedShoots.length === 0 && selectedEvents.length === 0 ? (
+                  <p className="text-gray-500 text-sm p-6">Nothing scheduled for this day.</p>
                 ) : (
-                  <div className="divide-y divide-slate-100">
-                    {selectedDateEvents.map(event => (
-                      <div key={event.id} className={`px-4 py-3 flex items-start justify-between ${event.is_completed ? 'opacity-50' : ''}`}>
-                        <div className="flex items-start gap-3">
-                          {event.eventType === 'reminder' && (
-                            <Checkbox
-                              checked={event.is_completed}
-                              onCheckedChange={() => toggleReminder(event)}
-                            />
-                          )}
+                  <div className="divide-y divide-gray-800">
+                    {selectedShoots.map(shoot => (
+                      <div key={shoot.id} className="p-4">
+                        <div className="flex items-start justify-between">
                           <div>
-                            <div className={`flex items-center gap-2 ${event.is_completed ? 'line-through' : ''}`}>
-                              <span className={`p-1 rounded ${getTypeColor(event.type)}`}>
-                                {getTypeIcon(event.type)}
-                              </span>
-                              <span className={`text-sm font-medium ${theme.text}`}>{event.title}</span>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Camera className="h-4 w-4 text-blue-400" />
+                              <p className="font-medium text-white text-sm">{shoot.title}</p>
                             </div>
-                            {event.amount && (
-                              <p className="text-sm text-red-600 mt-1">R {event.amount.toLocaleString()} due</p>
-                            )}
-                            {event.notes && (
-                              <p className="text-xs text-slate-500 mt-1">{event.notes}</p>
-                            )}
-                            {event.eventType === 'shopping' && (
-                              <Link to={createPageUrl('ShoppingList')} className="text-xs text-blue-600 hover:underline mt-1 block">
-                                View List →
-                              </Link>
+                            {shoot.client && <p className="text-xs text-gray-400">{shoot.client}</p>}
+                            {shoot.location && <p className="text-xs text-gray-500">{shoot.location}</p>}
+                            {shoot.start_time && <p className="text-xs text-gray-500 mt-1">{shoot.start_time} {shoot.end_time && `– ${shoot.end_time}`}</p>}
+                            {shoot.assigned_operators?.length > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">{shoot.assigned_operators.length} operator(s)</p>
                             )}
                           </div>
+                          <Badge className={`text-xs ${typeColors[shoot.status]} text-white border-0`}>{shoot.status}</Badge>
                         </div>
-                        {event.eventType === 'reminder' && (
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => deleteReminder(event.id)}>
-                            <Trash2 className="h-3 w-3 text-red-400" />
-                          </Button>
+                        {!isAdmin && (
+                          <AssignButton shoot={shoot} user={user} />
                         )}
+                      </div>
+                    ))}
+                    {selectedEvents.map(ev => (
+                      <div key={ev.id} className="p-4">
+                        <p className="font-medium text-white text-sm">{ev.title}</p>
+                        <p className="text-xs text-purple-400 mt-0.5">{ev.type}</p>
+                        {ev.description && <p className="text-xs text-gray-500 mt-1">{ev.description}</p>}
                       </div>
                     ))}
                   </div>
                 )}
               </CardContent>
             </Card>
-            
-            {/* Add Reminder Form */}
-            {isAdding && (
-              <Card className="mt-4 border-2 border-blue-200">
-                <CardHeader className="py-3">
-                  <CardTitle className="text-sm">New Reminder</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Input
-                    placeholder="Reminder title"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  />
-                  <Input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  />
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="shopping">Shopping</SelectItem>
-                      <SelectItem value="bill">Bill</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Notes (optional)"
-                    value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={handleAddReminder}>Add</Button>
-                    <Button variant="outline" onClick={() => setIsAdding(false)}>Cancel</Button>
+
+            <div className="mt-4">
+              <div className="flex flex-col gap-2">
+                {[{label:'Shoot', color:'bg-blue-600'},{label:'Confirmed', color:'bg-green-600'},{label:'Completed', color:'bg-gray-600'},{label:'Event', color:'bg-purple-700'}].map(l => (
+                  <div key={l.label} className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded ${l.color}`} />
+                    <span className="text-xs text-gray-400">{l.label}</span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+function AssignButton({ shoot, user }) {
+  const isAssigned = shoot.assigned_operators?.includes(user?.email);
+  const queryClient = useQueryClient();
+  
+  const handleToggle = async () => {
+    const current = shoot.assigned_operators || [];
+    const updated = isAssigned
+      ? current.filter(e => e !== user?.email)
+      : [...current, user?.email];
+    await base44.entities.Shoot.update(shoot.id, { assigned_operators: updated });
+    queryClient.invalidateQueries({ queryKey: ['shoots'] });
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant={isAssigned ? "outline" : "default"}
+      className={`mt-2 text-xs h-7 ${isAssigned ? 'border-red-700 text-red-400 hover:bg-red-900/30' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+      onClick={handleToggle}
+    >
+      {isAssigned ? 'Unassign Myself' : 'Assign Myself'}
+    </Button>
+  );
+}
+
+// Need to import useQueryClient in AssignButton
+import { useQueryClient } from '@tanstack/react-query';
