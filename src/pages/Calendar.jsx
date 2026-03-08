@@ -3,17 +3,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Camera, Upload, Plus, X, Edit2, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday
 } from 'date-fns';
-import { getSchedule, getGameDateTime } from '../components/utils/scheduleUtils';
 import CSVImportModal from '../components/shoots/CSVImportModal';
+import ShootDetailPanel from '../components/calendar/ShootDetailPanel';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -23,21 +22,8 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
-const statusBadge = {
-  upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
-  in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-};
-
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
-
-const emptyForm = {
-  title: '', client: '', location: '', date: '', game_time: '',
-  status: 'upcoming', description: '',
-  ...DEFAULT_OFFSETS
-};
+const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
 export default function Calendar() {
   const { user, isAdmin } = useApp();
@@ -48,22 +34,21 @@ export default function Calendar() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingShoot, setEditingShoot] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [expandedShoot, setExpandedShoot] = useState(null);
+  const [selectedShoot, setSelectedShoot] = useState(null);
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 500),
   });
 
-  const { data: events = [] } = useQuery({
-    queryKey: ['events'],
-    queryFn: () => base44.entities.Event.list('-date', 200),
+  const { data: rigSettings = [] } = useQuery({
+    queryKey: ['rigSettings'],
+    queryFn: () => base44.entities.RigSetting.list(),
   });
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['shoots'] });
-    queryClient.invalidateQueries({ queryKey: ['events'] });
-  };
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -72,39 +57,29 @@ export default function Calendar() {
 
   const getShootsForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    let dayShots = shoots.filter(s => s.date === dateStr);
-    if (!isAdmin) dayShots = dayShots.filter(s => s.assigned_operators?.includes(user?.email));
-    return dayShots.sort((a, b) => (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || ''));
+    const dayShots = shoots.filter(s => s.date === dateStr);
+    return dayShots.sort((a, b) =>
+      (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || '')
+    );
   };
 
-  const getEventsForDay = (day) => {
-    const dateStr = format(day, 'yyyy-MM-dd');
-    return events.filter(e => e.date === dateStr);
-  };
-
-  const selectedShoots = getShootsForDay(selectedDate).sort((a, b) =>
-    (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || '')
-  );
-  const selectedEvents = getEventsForDay(selectedDate);
+  const selectedShoots = getShootsForDay(selectedDate);
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const isSelectedPast = selectedDateStr < todayStr;
 
   const handleAddShoot = async () => {
     if (!form.title || !form.date) return;
+    const payload = {
+      ...form,
+      setup_offset: Number(form.setup_offset),
+      pre_shoot_offset: Number(form.pre_shoot_offset),
+      attention_offset: Number(form.attention_offset),
+      sound_offset: Number(form.sound_offset),
+    };
     if (editingShoot) {
-      await base44.entities.Shoot.update(editingShoot.id, {
-        ...form,
-        setup_offset: Number(form.setup_offset),
-        pre_shoot_offset: Number(form.pre_shoot_offset),
-        attention_offset: Number(form.attention_offset),
-        sound_offset: Number(form.sound_offset),
-      });
+      await base44.entities.Shoot.update(editingShoot.id, payload);
     } else {
-      await base44.entities.Shoot.create({
-        ...form,
-        setup_offset: Number(form.setup_offset),
-        pre_shoot_offset: Number(form.pre_shoot_offset),
-        attention_offset: Number(form.attention_offset),
-        sound_offset: Number(form.sound_offset),
-      });
+      await base44.entities.Shoot.create(payload);
     }
     setForm(emptyForm);
     setShowAddForm(false);
@@ -112,28 +87,33 @@ export default function Calendar() {
     refresh();
   };
 
-  const handleDelete = async (id) => {
-    await base44.entities.Shoot.delete(id);
+  const handleShootUpdate = async (id, data) => {
+    await base44.entities.Shoot.update(id, data);
     refresh();
-  };
-
-  const toggleAssign = async (shoot) => {
-    const current = shoot.assigned_operators || [];
-    const updated = current.includes(user?.email)
-      ? current.filter(e => e !== user?.email)
-      : [...current, user?.email];
-    await base44.entities.Shoot.update(shoot.id, { assigned_operators: updated });
-    refresh();
+    // Update selected shoot locally for immediate UI update
+    setSelectedShoot(prev => prev && prev.id === id ? { ...prev, ...data } : prev);
   };
 
   const startEdit = (shoot) => {
     setEditingShoot(shoot);
     setForm({ ...emptyForm, ...shoot });
     setShowAddForm(true);
+    setSelectedShoot(null);
   };
 
+  const handleDeleteShoot = async (id) => {
+    await base44.entities.Shoot.delete(id);
+    setSelectedShoot(null);
+    refresh();
+  };
+
+  // When re-fetching, keep selected shoot in sync
+  const liveSelectedShoot = selectedShoot
+    ? (shoots.find(s => s.id === selectedShoot.id) || selectedShoot)
+    : null;
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6">
+    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Calendar</h1>
@@ -163,8 +143,8 @@ export default function Calendar() {
             <CardContent className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                 <Input placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                <Input placeholder="Client" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                <Input placeholder="Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                <Input placeholder="Client / Team" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                <Input placeholder="Venue / Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                 <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
                 <Input placeholder="Game Time (HH:MM)" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                 <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
@@ -175,9 +155,9 @@ export default function Calendar() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Input placeholder="Notes / Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 md:col-span-3" />
               </div>
 
-              {/* Custom time offsets */}
               <div className="bg-gray-800/60 rounded-lg p-3 mb-3">
                 <p className="text-xs text-gray-400 mb-2 font-medium">⏱ Schedule Offsets (minutes before game time)</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -189,22 +169,14 @@ export default function Calendar() {
                   ].map(({ key, label }) => (
                     <div key={key}>
                       <label className="text-xs text-gray-500 block mb-1">{label}</label>
-                      <Input
-                        type="number"
-                        value={form[key]}
-                        onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}
-                        className="bg-gray-700 border-gray-600 text-white h-8 text-sm"
-                      />
+                      <Input type="number" value={form[key]} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-2">Negative = before game time. E.g. -150 = 2h30m before.</p>
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleAddShoot} className="bg-blue-600 hover:bg-blue-700">
-                  {editingShoot ? 'Save Changes' : 'Create Shoot'}
-                </Button>
+                <Button onClick={handleAddShoot} className="bg-blue-600 hover:bg-blue-700">{editingShoot ? 'Save Changes' : 'Create Shoot'}</Button>
                 <Button variant="outline" onClick={() => { setShowAddForm(false); setEditingShoot(null); setForm(emptyForm); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancel</Button>
               </div>
             </CardContent>
@@ -233,33 +205,31 @@ export default function Calendar() {
                 <div className="grid grid-cols-7 gap-1">
                   {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
                   {calendarDays.map(day => {
+                    const dateStr = format(day, 'yyyy-MM-dd');
+                    const isPast = dateStr < todayStr;
                     const dayShoots = getShootsForDay(day);
-                    const dayEvents = getEventsForDay(day);
-                    const total = dayShoots.length + dayEvents.length;
                     const isSelected = isSameDay(day, selectedDate);
                     const today = isToday(day);
                     return (
                       <div
                         key={day.toISOString()}
-                        onClick={() => setSelectedDate(day)}
+                        onClick={() => { setSelectedDate(day); setSelectedShoot(null); }}
                         className={`min-h-[64px] p-1.5 rounded-lg cursor-pointer border transition-all
                           ${isSelected ? 'border-blue-500 bg-blue-950/60' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/50'}
-                          ${today ? 'ring-2 ring-blue-500' : ''}`}
+                          ${today ? 'ring-2 ring-blue-500' : ''}
+                          ${isPast ? 'opacity-50' : ''}
+                        `}
                       >
-                        <div className={`text-xs font-semibold mb-1 ${today ? 'text-blue-400' : 'text-gray-300'}`}>
+                        <div className={`text-xs font-semibold mb-1 ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
                           {format(day, 'd')}
                         </div>
                         <div className="space-y-0.5">
-                          {/* Sort shoots by time on calendar dots */}
                           {dayShoots.slice(0, 3).map(s => (
-                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${statusColors[s.status] || 'bg-blue-600'}`}>
-                              {s.game_time || s.start_time ? `${s.game_time || s.start_time} ` : ''}{s.title}
+                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${isPast ? 'bg-gray-700' : (statusColors[s.status] || 'bg-blue-600')}`}>
+                              {s.game_time ? `${s.game_time} ` : ''}{s.title}
                             </div>
                           ))}
-                          {dayEvents.slice(0, 1).map(e => (
-                            <div key={e.id} className="text-xs truncate px-1 py-0.5 rounded bg-purple-700 text-white">{e.title}</div>
-                          ))}
-                          {total > 4 && <div className="text-xs text-gray-500">+{total - 4} more</div>}
+                          {dayShoots.length > 3 && <div className="text-xs text-gray-500">+{dayShoots.length - 3}</div>}
                         </div>
                       </div>
                     );
@@ -269,117 +239,87 @@ export default function Calendar() {
             </Card>
           </div>
 
-          {/* Day Detail */}
+          {/* Right Panel: day shoots list or shoot detail */}
           <div>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-3">
-                <CardTitle className="text-white text-base">{format(selectedDate, 'EEEE, MMMM d')}</CardTitle>
-                {isAdmin && (
-                  <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s) scheduled</p>
-                )}
-              </CardHeader>
-              <CardContent className="p-0">
-                {selectedShoots.length === 0 && selectedEvents.length === 0 ? (
-                  <p className="text-gray-500 text-sm p-6">Nothing scheduled for this day.</p>
-                ) : (
-                  <div className="divide-y divide-gray-800">
-                    {selectedShoots.map(shoot => {
-                      const schedule = getSchedule(shoot);
-                      const isExpanded = expandedShoot === shoot.id;
-                      return (
-                        <div key={shoot.id} className="p-4">
-                          <div
-                            className="flex items-start justify-between cursor-pointer"
-                            onClick={() => setExpandedShoot(isExpanded ? null : shoot.id)}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <Camera className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
-                                <p className="font-semibold text-white text-sm truncate">{shoot.title}</p>
-                              </div>
-                              {(shoot.game_time || shoot.start_time) && (
-                                <p className="text-xs font-mono text-blue-300 ml-5">🏟️ {shoot.game_time || shoot.start_time}</p>
-                              )}
-                              {shoot.client && <p className="text-xs text-gray-400 ml-5">{shoot.client}</p>}
-                            </div>
-                            <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                              <Badge className={`text-xs border ${statusBadge[shoot.status]}`}>{shoot.status}</Badge>
-                              <ChevronDown className={`h-3.5 w-3.5 text-gray-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div className="mt-3">
-                              {schedule && (
-                                <div className="bg-gray-800/60 rounded-lg p-3 mb-3 space-y-1.5">
-                                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Schedule</p>
-                                  {[
-                                    { icon: '🔧', label: 'Setup', time: schedule.setup },
-                                    { icon: '📸', label: 'Pre-Shoot', time: schedule.pre_shoot },
-                                    { icon: '⚠️', label: 'Attention', time: schedule.attention },
-                                    { icon: '🔊', label: 'Sound', time: schedule.sound },
-                                    { icon: '🏟️', label: 'Game Time', time: schedule.game, highlight: true },
-                                  ].map(row => (
-                                    <div key={row.label} className={`flex justify-between text-xs ${row.highlight ? 'text-blue-300 font-bold' : 'text-gray-400'}`}>
-                                      <span>{row.icon} {row.label}</span>
-                                      <span className="font-mono">{row.time}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {shoot.assigned_operators?.length > 0 && (
-                                <div className="mb-3">
-                                  <p className="text-xs text-gray-500 mb-1">Assigned Operators</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {shoot.assigned_operators.map(email => (
-                                      <span key={email} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">{email}</span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="flex gap-2">
-                                {!isAdmin && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => toggleAssign(shoot)}
-                                    className={shoot.assigned_operators?.includes(user?.email)
-                                      ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 h-7 text-xs'
-                                      : 'bg-blue-600 hover:bg-blue-700 text-white h-7 text-xs'
-                                    }
-                                  >
-                                    {shoot.assigned_operators?.includes(user?.email) ? 'Unassign' : 'Assign Me'}
-                                  </Button>
-                                )}
-                                {isAdmin && (
-                                  <>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(shoot)}>
-                                      <Edit2 className="h-3 w-3 mr-1" /> Edit
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDelete(shoot.id)}>
-                                      Delete
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {selectedEvents.map(ev => (
-                      <div key={ev.id} className="p-4">
-                        <p className="font-medium text-white text-sm">{ev.title}</p>
-                        <p className="text-xs text-purple-400 mt-0.5 capitalize">{ev.type}</p>
-                        {ev.description && <p className="text-xs text-gray-500 mt-1">{ev.description}</p>}
-                      </div>
-                    ))}
+            {liveSelectedShoot ? (
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="border-b border-gray-800 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-white text-base truncate">{liveSelectedShoot.title}</CardTitle>
+                      <p className="text-xs text-gray-400 mt-0.5">{format(selectedDate, 'EEE, MMM d yyyy')}</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white ml-2" onClick={() => setSelectedShoot(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  {isAdmin && (
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(liveSelectedShoot)}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDeleteShoot(liveSelectedShoot.id)}>Delete</Button>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="p-4 overflow-y-auto max-h-[70vh]">
+                  <ShootDetailPanel
+                    shoot={liveSelectedShoot}
+                    user={user}
+                    isAdmin={isAdmin}
+                    rigSettings={rigSettings}
+                    onUpdate={handleShootUpdate}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="border-b border-gray-800 pb-3">
+                  <CardTitle className="text-white text-base">
+                    {format(selectedDate, 'EEEE, MMMM d')}
+                    {isSelectedPast && <span className="text-xs text-gray-500 ml-2 font-normal">(past)</span>}
+                  </CardTitle>
+                  <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s)</p>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {selectedShoots.length === 0 ? (
+                    <p className="text-gray-500 text-sm p-6">Nothing scheduled for this day.</p>
+                  ) : (
+                    <div className="divide-y divide-gray-800">
+                      {selectedShoots.map(shoot => {
+                        const isPast = shoot.date < todayStr;
+                        const isAssigned = shoot.assigned_operators?.includes(user?.email);
+                        const isPending = shoot.pending_operators?.includes(user?.email);
+                        return (
+                          <button
+                            key={shoot.id}
+                            onClick={() => setSelectedShoot(shoot)}
+                            className={`w-full text-left p-4 hover:bg-gray-800/60 transition-colors ${isPast ? 'opacity-60' : ''}`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-white text-sm truncate">{shoot.title}</p>
+                                {shoot.game_time && (
+                                  <p className="text-xs font-mono text-blue-300 mt-0.5">🏟️ {shoot.game_time}</p>
+                                )}
+                                {shoot.location && <p className="text-xs text-gray-500 mt-0.5">📍 {shoot.location}</p>}
+                              </div>
+                              <div className="flex flex-col items-end gap-1 ml-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                                  isPast ? 'bg-gray-700/50 text-gray-500 border-gray-700' :
+                                  shoot.status === 'confirmed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                  'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                }`}>{shoot.status}</span>
+                                {isAssigned && <span className="text-xs text-green-400">✓ Assigned</span>}
+                                {isPending && <span className="text-xs text-yellow-400">⏳ Pending</span>}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Legend */}
             <div className="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-3">
@@ -390,8 +330,7 @@ export default function Calendar() {
                   { label: 'Confirmed', color: 'bg-green-600' },
                   { label: 'In Progress', color: 'bg-yellow-600' },
                   { label: 'Completed', color: 'bg-gray-600' },
-                  { label: 'Cancelled', color: 'bg-red-700' },
-                  { label: 'Event', color: 'bg-purple-700' },
+                  { label: 'Past', color: 'bg-gray-700 opacity-50' },
                 ].map(l => (
                   <div key={l.label} className="flex items-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded ${l.color}`} />

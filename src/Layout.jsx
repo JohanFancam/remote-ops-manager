@@ -17,7 +17,6 @@ function LayoutContent({ children, currentPageName }) {
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
-    { name: 'Shoots', icon: Camera, page: 'Shoots' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Timesheets', icon: Clock, page: 'Timesheets' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
@@ -27,7 +26,6 @@ function LayoutContent({ children, currentPageName }) {
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
-    { name: 'Shoots', icon: Camera, page: 'Shoots' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Timesheets', icon: Clock, page: 'Timesheets' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
