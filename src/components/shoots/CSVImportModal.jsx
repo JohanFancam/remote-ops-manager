@@ -121,19 +121,21 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-gray-500 border-b border-gray-700">
-                      <th className="text-left pb-1 pr-3">Title</th>
+                      <th className="text-left pb-1 pr-3">Team</th>
+                      <th className="text-left pb-1 pr-3">Opponent</th>
                       <th className="text-left pb-1 pr-3">Date</th>
-                      <th className="text-left pb-1 pr-3">Game Time</th>
-                      <th className="text-left pb-1">Location</th>
+                      <th className="text-left pb-1 pr-3">Time</th>
+                      <th className="text-left pb-1">Venue</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {preview.map((row, i) => (
                       <tr key={i} className="text-gray-300">
-                        <td className="py-1.5 pr-3">{row.title}</td>
+                        <td className="py-1.5 pr-3">{row.team}</td>
+                        <td className="py-1.5 pr-3">{row.opponent}</td>
                         <td className="py-1.5 pr-3">{row.date}</td>
-                        <td className="py-1.5 pr-3">{row.game_time || row.gametime || '—'}</td>
-                        <td className="py-1.5">{row.location}</td>
+                        <td className="py-1.5 pr-3">{row.time || '—'}</td>
+                        <td className="py-1.5">{row.venue}</td>
                       </tr>
                     ))}
                   </tbody>
