@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { getGameDateTime, getSchedule } from '../../lib/scheduleUtils';
+import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',

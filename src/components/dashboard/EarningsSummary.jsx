@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Download, ChevronRight } from 'lucide-react';
-import { getAllOperatorsEarnings, exportSummaryPDF } from '../../lib/earningsUtils';
+import { getAllOperatorsEarnings, exportSummaryPDF } from '../utils/earningsUtils';
 import OperatorDetailModal from './OperatorDetailModal';
 
 export default function EarningsSummary({ shoots, users }) {

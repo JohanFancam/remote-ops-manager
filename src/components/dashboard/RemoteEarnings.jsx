@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Download, Camera } from 'lucide-react';
-import { calculateOperatorEarnings, exportOperatorPDF } from '../../lib/earningsUtils';
+import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
 export default function RemoteEarnings({ shoots, user }) {
   const { total, breakdown } = calculateOperatorEarnings(shoots, user?.email);

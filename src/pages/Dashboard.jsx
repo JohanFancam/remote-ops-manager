@@ -1,28 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Camera, CalendarDays, Clock, TrendingUp, Users, Wrench, CheckCircle2, AlertCircle } from 'lucide-react';
-import { format, isAfter, isBefore, addDays } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Camera, CalendarDays, Wrench, Users } from 'lucide-react';
+import { format, isAfter } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-
-const statusColors = {
-  upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
-  in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  completed: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-};
+import CountdownCard from '../components/dashboard/CountdownCard';
+import EarningsSummary from '../components/dashboard/EarningsSummary';
+import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 
 export default function Dashboard() {
   const { user, isAdmin } = useApp();
+  const [displayCount, setDisplayCount] = useState(5);
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
-    queryFn: () => base44.entities.Shoot.list('-date', 100),
+    queryFn: () => base44.entities.Shoot.list('-date', 500),
   });
 
   const { data: rigs = [] } = useQuery({
@@ -31,30 +28,34 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
-  const { data: timeEntries = [] } = useQuery({
-    queryKey: ['timeEntries'],
-    queryFn: () => base44.entities.TimeEntry.list('-date', 50),
+  const { data: users = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
     enabled: isAdmin,
   });
 
   const today = new Date();
-  const upcoming = shoots
-    .filter(s => isAfter(new Date(s.date), today) || format(new Date(s.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
-    .filter(s => s.status !== 'cancelled')
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5);
+  const todayStr = format(today, 'yyyy-MM-dd');
 
-  const myShootsUpcoming = shoots
-    .filter(s => s.assigned_operators?.includes(user?.email))
-    .filter(s => isAfter(new Date(s.date), today) || format(new Date(s.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcomingShoots = shoots
+    .filter(s =>
+      s.status !== 'cancelled' &&
+      s.status !== 'completed' &&
+      (s.date > todayStr || s.date === todayStr)
+    )
+    .sort((a, b) => {
+      const dateComp = a.date.localeCompare(b.date);
+      if (dateComp !== 0) return dateComp;
+      return (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || '');
+    })
+    .slice(0, isAdmin ? displayCount : 999);
+
+  const myUpcoming = upcomingShoots.filter(s => s.assigned_operators?.includes(user?.email));
+
+  const displayShoots = isAdmin ? upcomingShoots : myUpcoming;
 
   const availableRigs = rigs.filter(r => r.status === 'available').length;
-  const pendingEarnings = timeEntries.filter(t => t.status === 'pending').reduce((s, t) => s + (t.total || 0), 0);
-  const thisMonthShoots = shoots.filter(s => {
-    const d = new Date(s.date);
-    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-  });
+  const thisMonthShoots = shoots.filter(s => s.date?.startsWith(format(today, 'yyyy-MM')));
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
@@ -72,8 +73,10 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Upcoming Shoots</p>
-                  <p className="text-3xl font-bold text-white mt-1">{upcoming.length}</p>
+                  <p className="text-gray-400 text-sm">Upcoming</p>
+                  <p className="text-3xl font-bold text-white mt-1">
+                    {isAdmin ? upcomingShoots.length : myUpcoming.length}
+                  </p>
                 </div>
                 <Camera className="h-10 w-10 text-blue-500 opacity-80" />
               </div>
@@ -109,10 +112,10 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">Pending Payouts</p>
-                      <p className="text-3xl font-bold text-white mt-1">R {pendingEarnings.toLocaleString()}</p>
+                      <p className="text-gray-400 text-sm">Operators</p>
+                      <p className="text-3xl font-bold text-white mt-1">{users.filter(u => u.role !== 'admin').length}</p>
                     </div>
-                    <TrendingUp className="h-10 w-10 text-yellow-500 opacity-80" />
+                    <Users className="h-10 w-10 text-yellow-500 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
@@ -123,10 +126,12 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">My Shoots</p>
-                      <p className="text-3xl font-bold text-white mt-1">{myShootsUpcoming.length}</p>
+                      <p className="text-gray-400 text-sm">Total Assigned</p>
+                      <p className="text-3xl font-bold text-white mt-1">
+                        {shoots.filter(s => s.assigned_operators?.includes(user?.email)).length}
+                      </p>
                     </div>
-                    <CheckCircle2 className="h-10 w-10 text-green-500 opacity-80" />
+                    <Camera className="h-10 w-10 text-blue-500 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
@@ -134,10 +139,12 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">Total Shoots</p>
-                      <p className="text-3xl font-bold text-white mt-1">{shoots.filter(s => s.assigned_operators?.includes(user?.email)).length}</p>
+                      <p className="text-gray-400 text-sm">Today's Shoots</p>
+                      <p className="text-3xl font-bold text-white mt-1">
+                        {shoots.filter(s => s.date === todayStr && s.assigned_operators?.includes(user?.email)).length}
+                      </p>
                     </div>
-                    <Camera className="h-10 w-10 text-blue-500 opacity-80" />
+                    <CalendarDays className="h-10 w-10 text-green-500 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
@@ -145,103 +152,64 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upcoming Shoots */}
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="border-b border-gray-800 pb-4">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Camera className="h-5 w-5 text-blue-400" />
-                {isAdmin ? 'Upcoming Shoots' : 'My Upcoming Shoots'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {(isAdmin ? upcoming : myShootsUpcoming.slice(0, 5)).length === 0 ? (
-                <p className="text-gray-500 text-sm p-6">No upcoming shoots scheduled.</p>
-              ) : (
-                <div className="divide-y divide-gray-800">
-                  {(isAdmin ? upcoming : myShootsUpcoming.slice(0, 5)).map(shoot => (
-                    <div key={shoot.id} className="p-4 hover:bg-gray-800/50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-white">{shoot.title}</p>
-                          <p className="text-sm text-gray-400 mt-0.5">{shoot.client} · {shoot.location}</p>
-                          <p className="text-xs text-gray-500 mt-1">{format(new Date(shoot.date), 'EEE, MMM d')} {shoot.start_time && `· ${shoot.start_time}`}</p>
-                        </div>
-                        <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
-                          {shoot.status}
-                        </Badge>
-                      </div>
-                    </div>
+        {/* Admin: display count selector */}
+        {isAdmin && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">
+              Upcoming Games — Live Countdown
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Show:</span>
+              <Select value={String(displayCount)} onValueChange={v => setDisplayCount(Number(v))}>
+                <SelectTrigger className="w-20 bg-gray-900 border-gray-700 text-white h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700">
+                  {[5, 6, 7, 8, 9, 10].map(n => (
+                    <SelectItem key={n} value={String(n)} className="text-white">{n}</SelectItem>
                   ))}
-                </div>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {!isAdmin && (
+          <h2 className="text-lg font-semibold text-white mb-4">My Upcoming Games — Live Countdown</h2>
+        )}
+
+        {/* Countdown Grid */}
+        {displayShoots.length === 0 ? (
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-12 text-center">
+              <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500">
+                {isAdmin ? 'No upcoming shoots scheduled.' : 'You have no upcoming shoots assigned.'}
+              </p>
+              {!isAdmin && (
+                <Link to={createPageUrl('Shoots')} className="text-blue-400 text-sm hover:underline mt-2 block">
+                  Browse available shoots →
+                </Link>
               )}
-              <div className="p-4 border-t border-gray-800">
-                <Link to={createPageUrl('Calendar')} className="text-blue-400 text-sm hover:underline">View Calendar →</Link>
-              </div>
             </CardContent>
           </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {displayShoots.map(shoot => (
+              <CountdownCard key={shoot.id} shoot={shoot} />
+            ))}
+          </div>
+        )}
 
-          {/* Admin: Recent time entries / Operator: Available shoots */}
+        {/* Earnings section */}
+        <div className="mt-8">
           {isAdmin ? (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-4">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-purple-400" />
-                  Recent Time Entries
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {timeEntries.length === 0 ? (
-                  <p className="text-gray-500 text-sm p-6">No time entries yet.</p>
-                ) : (
-                  <div className="divide-y divide-gray-800">
-                    {timeEntries.slice(0, 5).map(entry => (
-                      <div key={entry.id} className="p-4 flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-white text-sm">{entry.operator_name || entry.operator_email}</p>
-                          <p className="text-xs text-gray-400">{format(new Date(entry.date), 'MMM d')} · {entry.hours}h</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-white font-medium">R {(entry.total || 0).toLocaleString()}</p>
-                          <Badge className={entry.status === 'paid' ? 'bg-green-500/20 text-green-400 text-xs' : entry.status === 'approved' ? 'bg-blue-500/20 text-blue-400 text-xs' : 'bg-yellow-500/20 text-yellow-400 text-xs'}>
-                            {entry.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="p-4 border-t border-gray-800">
-                  <Link to={createPageUrl('Timesheets')} className="text-blue-400 text-sm hover:underline">View All →</Link>
-                </div>
-              </CardContent>
-            </Card>
+            <EarningsSummary shoots={shoots} users={users} />
           ) : (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-4">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-400" />
-                  Open Shoots — Assign Yourself
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {shoots.filter(s => s.status === 'upcoming' && isAfter(new Date(s.date), today)).length === 0 ? (
-                  <p className="text-gray-500 text-sm p-6">No open shoots available.</p>
-                ) : (
-                  <div className="divide-y divide-gray-800">
-                    {shoots.filter(s => s.status === 'upcoming' && isAfter(new Date(s.date), today) && !s.assigned_operators?.includes(user?.email)).slice(0, 5).map(shoot => (
-                      <div key={shoot.id} className="p-4">
-                        <p className="font-medium text-white">{shoot.title}</p>
-                        <p className="text-sm text-gray-400">{shoot.location} · {format(new Date(shoot.date), 'EEE, MMM d')}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="p-4 border-t border-gray-800">
-                  <Link to={createPageUrl('Shoots')} className="text-blue-400 text-sm hover:underline">View All Shoots →</Link>
-                </div>
-              </CardContent>
-            </Card>
+            <RemoteEarnings
+              shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
+              user={user}
+            />
           )}
         </div>
       </div>

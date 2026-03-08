@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, Camera } from 'lucide-react';
 import { format } from 'date-fns';
-import { exportOperatorPDF } from '../../lib/earningsUtils';
+import { exportOperatorPDF } from '../utils/earningsUtils';
 
 export default function OperatorDetailModal({ operator, onClose }) {
   if (!operator) return null;

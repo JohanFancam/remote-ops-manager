@@ -49,22 +49,22 @@
  */
 import Calendar from './pages/Calendar';
 import Dashboard from './pages/Dashboard';
+import Reports from './pages/Reports';
+import Rigs from './pages/Rigs';
 import Settings from './pages/Settings';
 import Shoots from './pages/Shoots';
-import Rigs from './pages/Rigs';
 import Timesheets from './pages/Timesheets';
-import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Calendar": Calendar,
     "Dashboard": Dashboard,
+    "Reports": Reports,
+    "Rigs": Rigs,
     "Settings": Settings,
     "Shoots": Shoots,
-    "Rigs": Rigs,
     "Timesheets": Timesheets,
-    "Reports": Reports,
 }
 
 export const pagesConfig = {
