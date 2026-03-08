@@ -46,6 +46,11 @@ export default function Calendar() {
     queryFn: () => base44.entities.RigSetting.list(),
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -266,6 +271,8 @@ export default function Calendar() {
                     user={user}
                     isAdmin={isAdmin}
                     rigSettings={rigSettings}
+                    allShoots={shoots}
+                    allUsers={allUsers}
                     onUpdate={handleShootUpdate}
                   />
                 </CardContent>
