@@ -109,6 +109,43 @@ function LayoutContent({ children, currentPageName }) {
           ))}
         </nav>
 
+        {/* Notification bell — admin only */}
+        {isAdmin && (
+          <div className="px-3 pb-2 relative">
+            <button
+              onClick={() => { setShowNotifs(!showNotifs); if (!showNotifs) setNotifications([]); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <Bell className="h-4 w-4" /> Notifications
+              </span>
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifs && (
+              <div className="absolute bottom-12 left-3 right-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto">
+                <div className="p-3 border-b border-gray-700 flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-300">Notifications</span>
+                  <button onClick={() => setNotifications([])} className="text-xs text-gray-500 hover:text-white">Clear all</button>
+                </div>
+                {notifications.length === 0 ? (
+                  <p className="text-xs text-gray-500 p-4 text-center">No new notifications</p>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className="px-3 py-2.5 border-b border-gray-700/50 last:border-0">
+                      <p className="text-xs text-gray-200 leading-relaxed">{n.message}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{n.time.toLocaleTimeString()}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* User footer */}
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center gap-3 mb-3">
