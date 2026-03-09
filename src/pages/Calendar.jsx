@@ -35,6 +35,17 @@ export default function Calendar() {
   const [editingShoot, setEditingShoot] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selectedShoot, setSelectedShoot] = useState(null);
+  const [mobileView, setMobileView] = useState('calendar'); // 'calendar' | 'list'
+
+  // Support opening a specific shoot from dashboard via ?shootId=xxx
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shootId = params.get('shootId');
+    if (shootId) {
+      // will be resolved once shoots load
+      setSelectedShoot({ id: shootId, _pending: true });
+    }
+  }, []);
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -51,7 +62,31 @@ export default function Calendar() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const slackMessages = React.useMemo(() => {
+    const msgs = {};
+    appSettings.forEach(s => {
+      if (s.key?.startsWith('slack_')) msgs[s.key.replace('slack_', '')] = s.value;
+    });
+    return msgs;
+  }, [appSettings]);
+
   const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
+
+  // Resolve pending shoot from URL param
+  useEffect(() => {
+    if (selectedShoot?._pending && shoots.length > 0) {
+      const found = shoots.find(s => s.id === selectedShoot.id);
+      if (found) {
+        setSelectedShoot(found);
+        setSelectedDate(new Date(found.date + 'T12:00:00'));
+      }
+    }
+  }, [shoots]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
 
@@ -122,18 +157,25 @@ export default function Calendar() {
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="text-3xl font-bold">Calendar</h1>
-          {isLevel1Admin && (
-            <div className="flex gap-2">
-              <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
-                <Plus className="h-4 w-4 mr-1" /> Add Shoot
-              </Button>
-              <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
-                <Upload className="h-4 w-4 mr-1" /> Import CSV
-              </Button>
+          <div className="flex gap-2 flex-wrap">
+            {/* Mobile view toggle */}
+            <div className="flex md:hidden gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+              <button onClick={() => setMobileView('calendar')} className={`p-1.5 rounded ${mobileView === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><Grid3x3 className="h-4 w-4" /></button>
+              <button onClick={() => setMobileView('list')} className={`p-1.5 rounded ${mobileView === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><List className="h-4 w-4" /></button>
             </div>
-          )}
+            {isLevel1Admin && (
+              <>
+                <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
+                  <Plus className="h-4 w-4 mr-1" /> Add Shoot
+                </Button>
+                <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
+                  <Upload className="h-4 w-4 mr-1" /> Import CSV
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Add/Edit Form */}
@@ -190,7 +232,47 @@ export default function Calendar() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Mobile List View */}
+        {mobileView === 'list' && (
+          <div className="md:hidden mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <span className="text-white font-semibold">{format(currentMonth, 'MMMM yyyy')}</span>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {calendarDays.map(day => {
+                const dayShoots = getShootsForDay(day);
+                if (dayShoots.length === 0) return null;
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const isPast = dateStr < todayStr;
+                return (
+                  <div key={day.toISOString()}>
+                    <p className={`text-xs font-semibold uppercase tracking-wider mb-1 px-1 ${isToday(day) ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {format(day, 'EEE, MMM d')}
+                    </p>
+                    {dayShoots.map(s => (
+                      <button key={s.id} onClick={() => { setSelectedShoot(s); setSelectedDate(day); setMobileView('calendar'); }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 flex items-center justify-between ${isPast ? 'bg-gray-800/40 opacity-60' : (statusColors[s.status] ? `${statusColors[s.status]}/20 border border-${statusColors[s.status].replace('bg-', '')}/30` : 'bg-gray-800')} hover:opacity-90 transition-opacity`}>
+                        <div>
+                          <p className="text-white text-sm font-medium">{s.title}</p>
+                          {s.client && <p className="text-xs text-gray-400">{s.client}</p>}
+                        </div>
+                        {s.game_time && <span className="text-xs font-mono text-blue-300 flex-shrink-0 ml-2">{s.game_time}</span>}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${mobileView === 'list' ? 'hidden md:grid' : ''}`}>
           {/* Calendar Grid */}
           <div className="lg:col-span-2">
             <Card className="bg-gray-900 border-gray-800">
@@ -276,6 +358,7 @@ export default function Calendar() {
                     allShoots={shoots}
                     allUsers={allUsers}
                     standbyAdmins={standbyAdmins}
+                    slackMessages={slackMessages}
                     onUpdate={handleShootUpdate}
                   />
                 </CardContent>
