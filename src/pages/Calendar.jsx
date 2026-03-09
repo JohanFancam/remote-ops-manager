@@ -319,7 +319,8 @@ export default function Calendar() {
                         <div className="space-y-0.5">
                           {dayShoots.slice(0, 3).map(s => {
                             const isMyAssigned = s.assigned_operators?.includes(user?.email);
-                            const cellColor = isPast ? 'bg-gray-700' : isMyAssigned ? 'bg-purple-600' : (statusColors[s.status] || 'bg-blue-600');
+                            // Past always gray; assigned=purple; else status colour
+                            const cellColor = isPast ? 'bg-gray-700 opacity-60' : isMyAssigned ? 'bg-purple-600' : (statusColors[s.status] || 'bg-blue-600');
                             return (
                             <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${cellColor}`}>
                               {s.game_time ? `${s.game_time} ` : ''}{shortenTitle(s.title)}
@@ -397,11 +398,11 @@ export default function Calendar() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-white text-sm truncate">{shoot.title}</p>
+                                <p className="font-semibold text-white text-sm truncate">{shortenTitle(shoot.title)}</p>
                                 {shoot.game_time && (
-                                  <p className="text-xs font-mono text-blue-300 mt-0.5">🏟️ {shoot.game_time}</p>
+                                  <p className="text-xs font-mono text-blue-300 mt-0.5">{shoot.game_time}</p>
                                 )}
-                                {shoot.location && <p className="text-xs text-gray-500 mt-0.5">📍 {shoot.location}</p>}
+                                {shoot.location && <p className="text-xs text-gray-500 mt-0.5">{shoot.location}</p>}
                               </div>
                               <div className="flex flex-col items-end gap-1 ml-2">
                                 <span className={`text-xs px-2 py-0.5 rounded-full border ${
