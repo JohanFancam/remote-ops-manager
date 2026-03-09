@@ -26,7 +26,7 @@ const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_
 const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
 export default function Calendar() {
-  const { user, isAdmin } = useApp();
+  const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -50,6 +50,8 @@ export default function Calendar() {
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
   });
+
+  const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
 
@@ -122,7 +124,7 @@ export default function Calendar() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Calendar</h1>
-          {isAdmin && (
+          {isLevel1Admin && (
             <div className="flex gap-2">
               <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
                 <Plus className="h-4 w-4 mr-1" /> Add Shoot
@@ -135,7 +137,7 @@ export default function Calendar() {
         </div>
 
         {/* Add/Edit Form */}
-        {isAdmin && showAddForm && (
+        {isLevel1Admin && showAddForm && (
           <Card className="bg-gray-900 border-blue-700 mb-6">
             <CardHeader className="border-b border-gray-800 py-3">
               <div className="flex items-center justify-between">
@@ -258,7 +260,7 @@ export default function Calendar() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  {isAdmin && (
+                  {isLevel1Admin && (
                     <div className="flex gap-2 mt-2">
                       <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(liveSelectedShoot)}>Edit</Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDeleteShoot(liveSelectedShoot.id)}>Delete</Button>
@@ -273,6 +275,7 @@ export default function Calendar() {
                     rigSettings={rigSettings}
                     allShoots={shoots}
                     allUsers={allUsers}
+                    standbyAdmins={standbyAdmins}
                     onUpdate={handleShootUpdate}
                   />
                 </CardContent>
