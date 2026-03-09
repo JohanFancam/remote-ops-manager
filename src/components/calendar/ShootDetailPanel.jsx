@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
-  Zap, Camera, AlertTriangle, Volume2, Clock, Flag
+  Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone, PhoneOff
 } from 'lucide-react';
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
@@ -309,10 +309,39 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} />
       )}
 
+      {/* Admin: assign self as standby for this shoot */}
+      {isAdmin && !isPast && (
+        <div className="bg-gray-800/40 rounded-lg border border-gray-700 p-3">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Phone className="h-3 w-3" /> Standby Assignment
+          </p>
+          {shoot.standby_admin ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-yellow-300">
+                {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin}
+              </span>
+              {shoot.standby_admin === user?.email && (
+                <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:text-red-400"
+                  onClick={() => onUpdate(shoot.id, { standby_admin: null })}>
+                  <PhoneOff className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-yellow-400 hover:bg-yellow-950/40 border border-yellow-800/50 w-full"
+              onClick={() => onUpdate(shoot.id, { standby_admin: user?.email })}>
+              <Phone className="h-3 w-3 mr-1.5" /> Set Myself as Standby
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Standby contact — remote users */}
       {!isAdmin && standbyAdmins.length > 0 && (
         <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
-          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1">📞 Standby Contact</p>
+          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <Phone className="h-3 w-3" /> Standby Contact
+          </p>
           {standbyAdmins.map(a => (
             <p key={a.email} className="text-sm text-yellow-200">{a.full_name || a.email}</p>
           ))}
