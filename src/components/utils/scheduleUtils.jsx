@@ -24,6 +24,9 @@ export function getSchedule(shoot) {
   };
 }
 
+// Teams that must never have their city stripped — keep full name as-is
+const KEEP_FULL_TEAMS = ['Charlotte FC', 'KC Current', 'Kansas City Current'];
+
 // Known 2-word team nicknames
 const TWO_WORD_NICKNAMES = [
   'Blue Jackets', 'Red Wings', 'Maple Leafs', 'Golden Knights',
@@ -31,8 +34,13 @@ const TWO_WORD_NICKNAMES = [
   'Black Hawks', 'Blue Devils', 'Space Force',
 ];
 
+function isExempt(team) {
+  return KEEP_FULL_TEAMS.some(e => e.toLowerCase() === team.trim().toLowerCase());
+}
+
 function stripCityFromTeam(team) {
   const trimmed = team.trim();
+  if (isExempt(trimmed)) return trimmed;
   const words = trimmed.split(/\s+/);
   if (words.length <= 2) return trimmed;
   const lastTwo = words.slice(-2).join(' ');
@@ -42,6 +50,7 @@ function stripCityFromTeam(team) {
 
 export function shortenTitle(title) {
   if (!title) return title;
+  if (isExempt(title)) return title;
   // Handle "Team A vs Team B" patterns
   const match = title.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
   if (match) {

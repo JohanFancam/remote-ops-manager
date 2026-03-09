@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Check, Wrench, Camera, AlertTriangle, Volume2, Flag } from 'lucide-react';
 import ShootCompleteModal from './ShootCompleteModal';
 
 const PHASES = [
-  { key: 'setup_complete', label: 'Setup Complete', icon: '🔧', requiresRig: null },
-  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', icon: '📸', requiresRig: null },
-  { key: 'attention_started', label: 'Attention Started', icon: '⚠️', requiresRig: 'attention_camera' },
-  { key: 'sound_started', label: 'Sound Started', icon: '🔊', requiresRig: 'sound' },
-  { key: 'shoot_complete', label: 'Shoot Complete', icon: '🏁', requiresRig: null, isComplete: true },
+  { key: 'setup_complete', label: 'Setup Complete', Icon: Wrench, requiresRig: null },
+  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', Icon: Camera, requiresRig: null },
+  { key: 'attention_started', label: 'Attention Started', Icon: AlertTriangle, requiresRig: 'attention_camera' },
+  { key: 'sound_started', label: 'Sound Started', Icon: Volume2, requiresRig: 'sound' },
+  { key: 'shoot_complete', label: 'Shoot Complete', Icon: Flag, requiresRig: null, isComplete: true },
 ];
 
 function CopyableMessage({ message, onClose }) {
@@ -83,7 +83,7 @@ export default function ShootPhaseButtons({ shoot, user, rigSetting, slackMessag
                     : 'bg-gray-800 border border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-blue-700'
                 }`}
             >
-              <span>{phase.icon} {phase.label}</span>
+              <span className="flex items-center gap-2"><phase.Icon className="h-3.5 w-3.5 flex-shrink-0" />{phase.label}</span>
               {done && !isLast && <span className="text-xs text-green-400">✓ Done</span>}
             </button>
             {activeMessage?.key === phase.key && (
