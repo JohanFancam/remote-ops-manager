@@ -11,9 +11,13 @@ export function AppProvider({ children }) {
   });
 
   const isAdmin = user?.role === 'admin';
+  // Level 1 = full access, Level 2 = restricted
+  const adminLevel = isAdmin ? (user?.admin_level ?? 1) : null;
+  const isLevel1Admin = isAdmin && adminLevel === 1;
+  const isLevel2Admin = isAdmin && adminLevel === 2;
 
   return (
-    <AppContext.Provider value={{ user, isAdmin, isLoading }}>
+    <AppContext.Provider value={{ user, isAdmin, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
       {children}
     </AppContext.Provider>
   );
