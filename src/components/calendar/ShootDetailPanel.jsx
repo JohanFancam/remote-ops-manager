@@ -72,7 +72,7 @@ function SlackMessage({ shoot, schedule }) {
   );
 }
 
-export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], onUpdate }) {
+export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
   const schedule = getSchedule(shoot);
@@ -331,6 +331,16 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                 : 'Requires admin approval'}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Standby contact — for remote users */}
+      {!isAdmin && standbyAdmins.length > 0 && (
+        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
+          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1">📞 Standby Contact</p>
+          {standbyAdmins.map(a => (
+            <p key={a.email} className="text-sm text-yellow-200">{a.full_name || a.email}</p>
+          ))}
         </div>
       )}
 
