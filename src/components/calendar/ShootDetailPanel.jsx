@@ -8,6 +8,36 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 
+function ReadySlackMessage({ shoot, schedule, showAttention, showSound }) {
+  const [copied, setCopied] = useState(false);
+  const team = shoot.client || shoot.title;
+  const lines = [
+    `I am ready for Today's "${team}" shoot`,
+    '',
+    schedule ? [
+      `🔧 Setup: ${schedule.setup}`,
+      `📸 Pre-Shoot: ${schedule.pre_shoot}`,
+      showAttention ? `⚠️ Attention: ${schedule.attention}` : null,
+      showSound ? `🔊 Sound Check: ${schedule.sound}` : null,
+      `🏟️ Game Time: ${schedule.game}`,
+    ].filter(Boolean).join('\n') : '',
+    shoot.location ? `📍 Venue: ${shoot.location}` : '',
+  ].filter(Boolean).join('\n');
+
+  return (
+    <div className="bg-gray-800/60 rounded-lg border border-gray-700 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">📢 Ready Message — Copy to Slack</p>
+        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(lines); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+          className="h-6 text-xs text-gray-400 hover:text-white hover:bg-gray-700">
+          {copied ? <><Check className="h-3 w-3 mr-1 text-green-400" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+        </Button>
+      </div>
+      <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{lines}</pre>
+    </div>
+  );
+}
+
 const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400'];
 const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
 const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
@@ -272,6 +302,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             </p>
           )}
         </div>
+      )}
+
+      {/* Ready Slack message — shown as soon as assigned */}
+      {isApproved && schedule && (
+        <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} />
       )}
 
       {/* Standby contact — remote users */}
