@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,21 +18,45 @@ function LayoutContent({ children, currentPageName }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const seenRef = useRef(new Set());
 
-  // Real-time: admins get notified when remote users request assignment
+  // Real-time: admins get notified for all shoot updates from remote users
   useEffect(() => {
     if (!isAdmin) return;
     const unsub = base44.entities.Shoot.subscribe((event) => {
-      if (event.type === 'update' && event.data?.pending_operators?.length > 0) {
+      if (event.type === 'update') {
         const shoot = event.data;
-        shoot.pending_operators.forEach(email => {
-          const key = `${shoot.id}_${email}`;
-          if (!seenRef.current.has(key)) {
-            seenRef.current.add(key);
+        // Pending assignment requests
+        if (shoot.pending_operators?.length > 0) {
+          shoot.pending_operators.forEach(email => {
+            const key = `req_${shoot.id}_${email}`;
+            if (!seenRef.current.has(key)) {
+              seenRef.current.add(key);
+              setNotifications(prev => [{
+                id: key,
+                message: `${email} requested assignment to "${shoot.title}"`,
+                time: new Date(),
+              }, ...prev].slice(0, 50));
+            }
+          });
+        }
+        // Phase updates
+        const phases = shoot.phase_status || {};
+        const phaseLabels = {
+          setup_complete: 'Setup Complete',
+          pre_shoot_started: 'Pre-Shoot Started',
+          attention_started: 'Attention Started',
+          sound_started: 'Sound Started',
+          shoot_complete: 'Shoot Complete',
+        };
+        Object.entries(phases).forEach(([key, ts]) => {
+          if (!ts) return;
+          const notifKey = `phase_${shoot.id}_${key}`;
+          if (!seenRef.current.has(notifKey)) {
+            seenRef.current.add(notifKey);
             setNotifications(prev => [{
-              id: key,
-              message: `${email} requested assignment to "${shoot.title}"`,
-              time: new Date(),
-            }, ...prev].slice(0, 20));
+              id: notifKey,
+              message: `"${shoot.title}" — ${phaseLabels[key] || key}`,
+              time: new Date(ts),
+            }, ...prev].slice(0, 50));
           }
         });
       }
@@ -156,9 +180,14 @@ function LayoutContent({ children, currentPageName }) {
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full text-gray-500 hover:text-white hover:bg-gray-800 justify-start" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" /> Sign Out
-          </Button>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="flex-1 text-gray-500 hover:text-white hover:bg-gray-800 justify-start" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" /> Sign Out
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-white hover:bg-gray-800" onClick={() => window.location.reload()} title="Refresh App">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </aside>
 
