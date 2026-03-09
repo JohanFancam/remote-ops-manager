@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -67,7 +67,7 @@ export default function Calendar() {
     queryFn: () => base44.entities.AppSettings.list(),
   });
 
-  const slackMessages = React.useMemo(() => {
+  const slackMessages = useMemo(() => {
     const msgs = {};
     appSettings.forEach(s => {
       if (s.key?.startsWith('slack_')) msgs[s.key.replace('slack_', '')] = s.value;
