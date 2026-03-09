@@ -431,6 +431,7 @@ export default function Calendar() {
                   { label: 'Confirmed', color: 'bg-green-600' },
                   { label: 'In Progress', color: 'bg-yellow-600' },
                   { label: 'Completed', color: 'bg-gray-600' },
+                  { label: 'My Assigned', color: 'bg-purple-600' },
                   { label: 'Past', color: 'bg-gray-700 opacity-50' },
                 ].map(l => (
                   <div key={l.label} className="flex items-center gap-2">
