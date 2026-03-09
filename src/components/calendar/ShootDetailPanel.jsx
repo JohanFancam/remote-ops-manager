@@ -1,14 +1,29 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
-import { getSchedule } from '../utils/scheduleUtils';
+import {
+  Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
+  Zap, Camera, AlertTriangle, Volume2, Clock, Flag
+} from 'lucide-react';
+import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
+import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 
 const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400'];
 const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
 const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
-
 const AUTO_APPROVE_LIMIT = 5;
+
+function ScheduleRow({ Icon, label, time, highlight }) {
+  return (
+    <div className={`flex justify-between items-center py-1.5 text-sm ${highlight ? 'text-blue-300 font-bold' : 'text-gray-300'}`}>
+      <span className="flex items-center gap-2">
+        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-blue-400' : 'text-gray-500'}`} />
+        {label}
+      </span>
+      <span className="font-mono">{time}</span>
+    </div>
+  );
+}
 
 function CameraToggle({ label, enabled, shutter, aperture, iso }) {
   return (
@@ -21,11 +36,7 @@ function CameraToggle({ label, enabled, shutter, aperture, iso }) {
       </div>
       {enabled && (
         <div className="grid grid-cols-3 gap-2 mt-2">
-          {[
-            { label: 'Shutter', value: shutter },
-            { label: 'Aperture', value: aperture },
-            { label: 'ISO', value: iso },
-          ].map(field => (
+          {[{ label: 'Shutter', value: shutter }, { label: 'Aperture', value: aperture }, { label: 'ISO', value: iso }].map(field => (
             <div key={field.label}>
               <p className="text-xs text-gray-500 mb-1">{field.label}</p>
               <p className="text-xs font-mono text-blue-300 bg-gray-700/60 px-2 py-1 rounded">{field.value}</p>
@@ -37,42 +48,7 @@ function CameraToggle({ label, enabled, shutter, aperture, iso }) {
   );
 }
 
-function SlackMessage({ shoot, schedule }) {
-  const [copied, setCopied] = useState(false);
-  const team = shoot.client || shoot.title;
-  const message = [
-    `I am ready for the '${team}' shoot Today:`,
-    ``,
-    schedule ? [
-      `🔧 Setup: ${schedule.setup}`,
-      `📸 Pre-Shoot: ${schedule.pre_shoot}`,
-      `⚠️ Attention: ${schedule.attention}`,
-      `🔊 Sound Check: ${schedule.sound}`,
-      `🏟️ Game Time: ${schedule.game}`,
-    ].join('\n') : '',
-    shoot.location ? `📍 Venue: ${shoot.location}` : '',
-  ].filter(Boolean).join('\n');
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="bg-gray-800/60 rounded-lg border border-gray-700 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">📢 Slack Ready Message</p>
-        <Button size="sm" variant="ghost" onClick={handleCopy} className="h-6 text-xs text-gray-400 hover:text-white hover:bg-gray-700">
-          {copied ? <><Check className="h-3 w-3 mr-1 text-green-400" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
-        </Button>
-      </div>
-      <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{message}</pre>
-    </div>
-  );
-}
-
-export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], onUpdate }) {
+export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
   const schedule = getSchedule(shoot);
@@ -82,42 +58,35 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   const isApproved = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
 
-  // Count how many upcoming/future shoots this user is already approved for
-  const getApprovedCount = (email) => {
-    return allShoots.filter(s =>
-      s.id !== shoot.id &&
-      s.date >= todayStr &&
-      s.assigned_operators?.includes(email)
-    ).length;
-  };
+  const getApprovedCount = (email) =>
+    allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(email)).length;
 
   const matchedRig = rigSettings?.find(r =>
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
   );
 
+  // Which optional phases are enabled for this shoot
+  const showAttention = matchedRig?.attention_camera === true;
+  const showSound = matchedRig?.sound === true;
+
+  // End time = game time + 5 hours
+  const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
+
   const handleSelfAssign = async () => {
     if (isPending) {
-      const updated = (shoot.pending_operators || []).filter(e => e !== user?.email);
-      await onUpdate(shoot.id, { pending_operators: updated });
+      await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user?.email) });
     } else if (isApproved) {
-      const updated = (shoot.assigned_operators || []).filter(e => e !== user?.email);
-      await onUpdate(shoot.id, { assigned_operators: updated });
+      await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user?.email) });
     } else if (isAdmin) {
-      // Admin: direct assign, no earnings
-      const current = shoot.assigned_operators || [];
-      await onUpdate(shoot.id, { assigned_operators: [...current, user?.email] });
+      await onUpdate(shoot.id, { assigned_operators: [...(shoot.assigned_operators || []), user?.email] });
     } else {
-      // Remote user: check pre-approved count
       const approvedCount = getApprovedCount(user?.email);
       const current = shoot.pending_operators || [];
       if (!current.includes(user?.email)) {
         if (approvedCount < AUTO_APPROVE_LIMIT) {
-          // Auto-approve
-          const approved = [...new Set([...(shoot.assigned_operators || []), user?.email])];
-          await onUpdate(shoot.id, { assigned_operators: approved });
+          await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user?.email])] });
         } else {
-          // Goes to pending for admin approval
           await onUpdate(shoot.id, { pending_operators: [...current, user?.email] });
         }
       }
@@ -125,36 +94,28 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   };
 
   const handleApprove = async (email) => {
-    const pending = (shoot.pending_operators || []).filter(e => e !== email);
-    const approved = [...new Set([...(shoot.assigned_operators || []), email])];
-    await onUpdate(shoot.id, { pending_operators: pending, assigned_operators: approved });
+    await onUpdate(shoot.id, {
+      pending_operators: (shoot.pending_operators || []).filter(e => e !== email),
+      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
+    });
   };
 
   const handleReject = async (email) => {
-    const pending = (shoot.pending_operators || []).filter(e => e !== email);
-    await onUpdate(shoot.id, { pending_operators: pending });
+    await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== email) });
   };
 
   const handleRemoveOperator = async (email) => {
-    const updated = (shoot.assigned_operators || []).filter(e => e !== email);
-    await onUpdate(shoot.id, { assigned_operators: updated });
+    await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== email) });
   };
 
   const handleAdminAssignUser = async (email) => {
     if (!email) return;
     const current = shoot.assigned_operators || [];
-    if (!current.includes(email)) {
-      await onUpdate(shoot.id, { assigned_operators: [...current, email] });
-    }
+    if (!current.includes(email)) await onUpdate(shoot.id, { assigned_operators: [...current, email] });
     setShowAssignUser(false);
   };
 
-  // Users available for admin to assign (not already assigned)
-  const assignableUsers = allUsers.filter(u =>
-    !shoot.assigned_operators?.includes(u.email) &&
-    !shoot.pending_operators?.includes(u.email)
-  );
-
+  const assignableUsers = allUsers.filter(u => !shoot.assigned_operators?.includes(u.email) && !shoot.pending_operators?.includes(u.email));
   const approvedCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
   const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - approvedCount);
 
@@ -164,18 +125,12 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       {schedule && (
         <div className="bg-gray-800/60 rounded-lg p-3">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Schedule</p>
-          {[
-            { icon: '🔧', label: 'Setup', time: schedule.setup },
-            { icon: '📸', label: 'Pre-Shoot', time: schedule.pre_shoot },
-            { icon: '⚠️', label: 'Attention', time: schedule.attention },
-            { icon: '🔊', label: 'Sound Check', time: schedule.sound },
-            { icon: '🏟️', label: 'Game Time', time: schedule.game, highlight: true },
-          ].map(row => (
-            <div key={row.label} className={`flex justify-between py-1 text-sm ${row.highlight ? 'text-blue-300 font-bold' : 'text-gray-300'}`}>
-              <span>{row.icon} {row.label}</span>
-              <span className="font-mono">{row.time}</span>
-            </div>
-          ))}
+          <ScheduleRow Icon={Zap} label="Setup" time={schedule.setup} />
+          <ScheduleRow Icon={Camera} label="Pre-Shoot" time={schedule.pre_shoot} />
+          {showAttention && <ScheduleRow Icon={AlertTriangle} label="Attention" time={schedule.attention} />}
+          {showSound && <ScheduleRow Icon={Volume2} label="Sound Check" time={schedule.sound} />}
+          <ScheduleRow Icon={Clock} label="Game Time" time={schedule.game} highlight />
+          {endTime && <ScheduleRow Icon={Flag} label="Est. End (~5h)" time={endTime} />}
         </div>
       )}
 
@@ -217,12 +172,12 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                 )}
               </div>
               <div className="space-y-2">
-                <CameraToggle label="📷 HD Camera" enabled={matchedRig.hd_camera} shutter={matchedRig.hd_shutter} aperture={matchedRig.hd_aperture} iso={matchedRig.hd_iso} />
-                <CameraToggle label="🔭 Wide Camera" enabled={matchedRig.wide_camera} shutter={matchedRig.wide_shutter} aperture={matchedRig.wide_aperture} iso={matchedRig.wide_iso} />
-                <CameraToggle label="⚠️ Attention Camera" enabled={matchedRig.attention_camera} shutter={matchedRig.attention_shutter} aperture={matchedRig.attention_aperture} iso={matchedRig.attention_iso} />
+                <CameraToggle label="HD Camera" enabled={matchedRig.hd_camera} shutter={matchedRig.hd_shutter} aperture={matchedRig.hd_aperture} iso={matchedRig.hd_iso} />
+                <CameraToggle label="Wide Camera" enabled={matchedRig.wide_camera} shutter={matchedRig.wide_shutter} aperture={matchedRig.wide_aperture} iso={matchedRig.wide_iso} />
+                <CameraToggle label="Attention Camera" enabled={matchedRig.attention_camera} shutter={matchedRig.attention_shutter} aperture={matchedRig.attention_aperture} iso={matchedRig.attention_iso} />
                 <div className={`rounded-lg border p-3 ${matchedRig.sound ? 'border-green-700 bg-green-950/30' : 'border-gray-700 bg-gray-800/40'}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">🔊 Sound</span>
+                    <span className="text-sm font-medium text-white">Sound</span>
                     <Badge className={matchedRig.sound ? 'bg-green-500/20 text-green-400 border-green-500/30 text-xs' : 'bg-gray-700 text-gray-500 border-gray-600 text-xs'}>
                       {matchedRig.sound ? 'YES' : 'NO'}
                     </Badge>
@@ -280,12 +235,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         <div>
           {showAssignUser ? (
             <div className="bg-gray-800/60 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-2">Assign a user to this shoot:</p>
-              <select
-                onChange={e => handleAdminAssignUser(e.target.value)}
-                defaultValue=""
-                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 mb-2"
-              >
+              <p className="text-xs text-gray-400 mb-2">Assign a user:</p>
+              <select onChange={e => handleAdminAssignUser(e.target.value)} defaultValue="" className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 mb-2">
                 <option value="" disabled>Select user…</option>
                 {assignableUsers.map(u => (
                   <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
@@ -308,33 +259,22 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             size="sm"
             onClick={handleSelfAssign}
             className={
-              isApproved
-                ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 w-full'
-                : isPending
-                ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20 w-full'
-                : 'bg-blue-600 hover:bg-blue-700 text-white w-full'
+              isApproved ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 w-full'
+              : isPending ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20 w-full'
+              : 'bg-blue-600 hover:bg-blue-700 text-white w-full'
             }
           >
-            {isApproved
-              ? 'Unassign Myself'
-              : isPending
-              ? '⏳ Pending Approval — Cancel'
-              : isAdmin
-              ? '+ Assign Myself (no earnings)'
-              : `+ Assign Myself`
-            }
+            {isApproved ? 'Unassign Myself' : isPending ? '⏳ Pending — Cancel' : isAdmin ? '+ Assign Myself (no earnings)' : '+ Assign Myself'}
           </Button>
           {!isAdmin && !isApproved && !isPending && (
             <p className="text-xs text-center mt-1 text-gray-500">
-              {remainingAutoApprove > 0
-                ? `${remainingAutoApprove} auto-approvals remaining`
-                : 'Requires admin approval'}
+              {remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
             </p>
           )}
         </div>
       )}
 
-      {/* Standby contact — for remote users */}
+      {/* Standby contact — remote users */}
       {!isAdmin && standbyAdmins.length > 0 && (
         <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
           <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1">📞 Standby Contact</p>
@@ -344,9 +284,15 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
-      {/* Slack message — only if approved */}
-      {isApproved && schedule && (
-        <SlackMessage shoot={shoot} schedule={schedule} />
+      {/* Phase buttons — only when assigned */}
+      {isApproved && !isPast && (
+        <ShootPhaseButtons
+          shoot={shoot}
+          user={user}
+          rigSetting={matchedRig}
+          slackMessages={slackMessages}
+          onUpdate={onUpdate}
+        />
       )}
     </div>
   );
