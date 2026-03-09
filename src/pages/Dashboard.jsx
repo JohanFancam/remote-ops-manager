@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, CalendarDays, Wrench, Users } from 'lucide-react';
-import { format, isAfter } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '../utils';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Camera, CalendarDays, Wrench, Users, Save } from 'lucide-react';
+import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 
+const DISPLAY_COUNT_KEY = 'dashboard_display_count';
+
 export default function Dashboard() {
-  const { user, isAdmin } = useApp();
-  const [displayCount, setDisplayCount] = useState(5);
+  const { user, isAdmin, isLevel1Admin } = useApp();
+  const queryClient = useQueryClient();
+
+  // Persist display count in localStorage
+  const [displayCount, setDisplayCount] = useState(() => {
+    const saved = localStorage.getItem(DISPLAY_COUNT_KEY);
+    return saved ? Number(saved) : 6;
+  });
+  const [pendingCount, setPendingCount] = useState(displayCount);
+
+  const saveDisplayCount = () => {
+    setDisplayCount(pendingCount);
+    localStorage.setItem(DISPLAY_COUNT_KEY, String(pendingCount));
+  };
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -34,31 +45,35 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
+  // Standby admin for remote users
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allUsersPublic'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: !isAdmin,
+  });
+
+  const standbyAdmins = (isAdmin ? users : allUsers).filter(u => u.standby === true && u.role === 'admin');
+
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
   const upcomingShoots = shoots
-    .filter(s =>
-      s.status !== 'cancelled' &&
-      s.status !== 'completed' &&
-      (s.date > todayStr || s.date === todayStr)
-    )
+    .filter(s => s.status !== 'cancelled' && s.status !== 'completed' && s.date >= todayStr)
     .sort((a, b) => {
-      const dateComp = a.date.localeCompare(b.date);
-      if (dateComp !== 0) return dateComp;
-      return (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || '');
-    })
-    .slice(0, isAdmin ? displayCount : 999);
+      const d = a.date.localeCompare(b.date);
+      return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
+    });
 
   const myUpcoming = upcomingShoots.filter(s => s.assigned_operators?.includes(user?.email));
-
-  const displayShoots = isAdmin ? upcomingShoots : myUpcoming;
+  const displayShoots = isAdmin
+    ? upcomingShoots.slice(0, displayCount)
+    : myUpcoming;
 
   const availableRigs = rigs.filter(r => r.status === 'available').length;
   const thisMonthShoots = shoots.filter(s => s.date?.startsWith(format(today, 'yyyy-MM')));
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6">
+    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">
@@ -66,6 +81,17 @@ export default function Dashboard() {
           </h1>
           <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d yyyy')}</p>
         </div>
+
+        {/* Standby contact banner — remote users */}
+        {!isAdmin && standbyAdmins.length > 0 && (
+          <div className="mb-6 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3 flex items-center gap-3">
+            <span className="text-yellow-400 text-lg">📞</span>
+            <div>
+              <p className="text-yellow-300 text-sm font-medium">Standby Contact{standbyAdmins.length > 1 ? 's' : ''}:</p>
+              <p className="text-yellow-200 text-sm">{standbyAdmins.map(a => a.full_name || a.email).join(', ')}</p>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -154,22 +180,21 @@ export default function Dashboard() {
 
         {/* Admin: display count selector */}
         {isAdmin && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">
-              Upcoming Games — Live Countdown
-            </h2>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h2 className="text-lg font-semibold text-white">Upcoming Games — Live Countdown</h2>
             <div className="flex items-center gap-2">
               <span className="text-gray-400 text-sm">Show:</span>
-              <Select value={String(displayCount)} onValueChange={v => setDisplayCount(Number(v))}>
-                <SelectTrigger className="w-20 bg-gray-900 border-gray-700 text-white h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  {[5, 6, 7, 8, 9, 10].map(n => (
-                    <SelectItem key={n} value={String(n)} className="text-white">{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <input
+                type="number"
+                min={2}
+                max={10}
+                value={pendingCount}
+                onChange={e => setPendingCount(Math.min(10, Math.max(2, Number(e.target.value))))}
+                className="w-16 bg-gray-900 border border-gray-700 text-white text-sm rounded px-2 py-1 text-center"
+              />
+              <Button size="sm" onClick={saveDisplayCount} className="bg-blue-600 hover:bg-blue-700 h-8 gap-1.5">
+                <Save className="h-3.5 w-3.5" /> Save
+              </Button>
             </div>
           </div>
         )}
@@ -186,31 +211,26 @@ export default function Dashboard() {
               <p className="text-gray-500">
                 {isAdmin ? 'No upcoming shoots scheduled.' : 'You have no upcoming shoots assigned.'}
               </p>
-              {!isAdmin && (
-                <Link to={createPageUrl('Shoots')} className="text-blue-400 text-sm hover:underline mt-2 block">
-                  Browse available shoots →
-                </Link>
-              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {displayShoots.map(shoot => (
-              <CountdownCard key={shoot.id} shoot={shoot} />
+              <CountdownCard key={shoot.id} shoot={shoot} standbyAdmins={standbyAdmins} />
             ))}
           </div>
         )}
 
-        {/* Earnings section */}
+        {/* Earnings — Level 1 Admin only sees all, Level 2 Admin sees nothing, remote sees own */}
         <div className="mt-8">
-          {isAdmin ? (
+          {isLevel1Admin ? (
             <EarningsSummary shoots={shoots} users={users} />
-          ) : (
+          ) : !isAdmin ? (
             <RemoteEarnings
               shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
               user={user}
             />
-          )}
+          ) : null}
         </div>
       </div>
     </div>
