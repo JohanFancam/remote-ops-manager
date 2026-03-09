@@ -24,6 +24,35 @@ export function getSchedule(shoot) {
   };
 }
 
+// Known 2-word team nicknames
+const TWO_WORD_NICKNAMES = [
+  'Blue Jackets', 'Red Wings', 'Maple Leafs', 'Golden Knights',
+  'Trail Blazers', 'Red Sox', 'Blue Jays', 'White Sox',
+  'Black Hawks', 'Blue Devils', 'Space Force',
+];
+
+function stripCityFromTeam(team) {
+  const trimmed = team.trim();
+  const words = trimmed.split(/\s+/);
+  if (words.length <= 2) return trimmed;
+  const lastTwo = words.slice(-2).join(' ');
+  if (TWO_WORD_NICKNAMES.some(n => n.toLowerCase() === lastTwo.toLowerCase())) return lastTwo;
+  return words[words.length - 1];
+}
+
+export function shortenTitle(title) {
+  if (!title) return title;
+  // Handle "Team A vs Team B" patterns
+  const match = title.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
+  if (match) {
+    return `${stripCityFromTeam(match[1])} vs ${stripCityFromTeam(match[2])}`;
+  }
+  // Single team name: strip city
+  const words = title.trim().split(/\s+/);
+  if (words.length <= 2) return title;
+  return stripCityFromTeam(title);
+}
+
 export function getGameDateTime(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!shoot?.date || !gameTime) return null;

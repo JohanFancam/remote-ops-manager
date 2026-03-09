@@ -13,6 +13,7 @@ import {
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
 import ShootDetailPanel from '../components/calendar/ShootDetailPanel';
+import { shortenTitle } from '../components/utils/scheduleUtils';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
