@@ -256,16 +256,19 @@ export default function Calendar() {
                     <p className={`text-xs font-semibold uppercase tracking-wider mb-1 px-1 ${isToday(day) ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
                       {format(day, 'EEE, MMM d')}
                     </p>
-                    {dayShoots.map(s => (
+                    {dayShoots.map(s => {
+                      const isMyAssigned = s.assigned_operators?.includes(user?.email);
+                      return (
                       <button key={s.id} onClick={() => { setSelectedShoot(s); setSelectedDate(day); setMobileView('calendar'); }}
-                        className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 flex items-center justify-between ${isPast ? 'bg-gray-800/40 opacity-60' : (statusColors[s.status] ? `${statusColors[s.status]}/20 border border-${statusColors[s.status].replace('bg-', '')}/30` : 'bg-gray-800')} hover:opacity-90 transition-opacity`}>
+                        className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 flex items-center justify-between ${isPast ? 'bg-gray-800/40 opacity-60' : isMyAssigned ? 'bg-purple-900/40 border border-purple-700/50' : 'bg-gray-800'} hover:opacity-90 transition-opacity`}>
                         <div>
-                          <p className="text-white text-sm font-medium">{s.title}</p>
+                          <p className="text-white text-sm font-medium">{shortenTitle(s.title)}</p>
                           {s.client && <p className="text-xs text-gray-400">{s.client}</p>}
                         </div>
                         {s.game_time && <span className="text-xs font-mono text-blue-300 flex-shrink-0 ml-2">{s.game_time}</span>}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -314,11 +317,15 @@ export default function Calendar() {
                           {format(day, 'd')}
                         </div>
                         <div className="space-y-0.5">
-                          {dayShoots.slice(0, 3).map(s => (
-                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${isPast ? 'bg-gray-700' : (statusColors[s.status] || 'bg-blue-600')}`}>
-                              {s.game_time ? `${s.game_time} ` : ''}{s.title}
+                          {dayShoots.slice(0, 3).map(s => {
+                            const isMyAssigned = s.assigned_operators?.includes(user?.email);
+                            const cellColor = isPast ? 'bg-gray-700' : isMyAssigned ? 'bg-purple-600' : (statusColors[s.status] || 'bg-blue-600');
+                            return (
+                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${cellColor}`}>
+                              {s.game_time ? `${s.game_time} ` : ''}{shortenTitle(s.title)}
                             </div>
-                          ))}
+                            );
+                          })}
                           {dayShoots.length > 3 && <div className="text-xs text-gray-500">+{dayShoots.length - 3}</div>}
                         </div>
                       </div>
