@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Camera, Zap, Volume2, AlertTriangle } from 'lucide-react';
+import { MapPin, Calendar, Clock, Camera, Zap, Volume2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
+import { createPageUrl } from '@/utils';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -49,11 +50,18 @@ export default function CountdownCard({ shoot, standbyAdmins = [] }) {
   const schedule = getSchedule(shoot);
 
   return (
-    <Card className="bg-gray-900 border-gray-800 h-full">
+    <Card className="bg-gray-900 border-gray-800 h-full hover:border-gray-600 transition-colors">
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-white truncate">{shoot.title}</p>
+            <a
+            href={createPageUrl(`Calendar?shootId=${shoot.id}`)}
+            className="font-bold text-white truncate hover:text-blue-400 transition-colors flex items-center gap-1 group"
+            title="Open in Calendar"
+          >
+            {shoot.title}
+            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 flex-shrink-0" />
+          </a>
             {shoot.client && <p className="text-sm text-gray-400 truncate">{shoot.client}</p>}
           </div>
           <Badge className={`text-xs border ml-2 flex-shrink-0 ${statusColors[shoot.status] || statusColors.upcoming}`}>
