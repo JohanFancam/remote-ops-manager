@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isLoading } = useApp();
+  const { user, isAdmin, isLevel1Admin, adminLevel, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -54,7 +54,6 @@ function LayoutContent({ children, currentPageName }) {
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Timesheets', icon: Clock, page: 'Timesheets' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -85,7 +84,7 @@ function LayoutContent({ children, currentPageName }) {
             "text-xs px-2.5 py-1 rounded-full font-medium",
             isAdmin ? "bg-blue-600/20 text-blue-400" : "bg-gray-700 text-gray-400"
           )}>
-            {isAdmin ? '⚡ Admin' : '📡 Remote Operator'}
+            {isAdmin ? `⚡ Admin ${adminLevel === 2 ? 'L2' : 'L1'}` : '📡 Remote Operator'}
           </span>
         </div>
 
