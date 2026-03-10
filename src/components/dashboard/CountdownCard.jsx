@@ -19,14 +19,22 @@ const statusColors = {
 
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 
-function ScheduleRow({ label, time, Icon, highlight }) {
+function PhaseRow({ label, time, Icon, done, active, countdown }) {
   return (
-    <div className={`flex items-center justify-between py-1 ${highlight ? 'text-blue-400 font-semibold' : 'text-gray-400'}`}>
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
+      done ? 'bg-green-950/40 border border-green-800/50' :
+      active ? 'bg-blue-950/40 border border-blue-800/50' :
+      'bg-transparent'
+    }`}>
       <span className="flex items-center gap-2">
-        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-blue-400' : 'text-gray-500'}`} />
-        <span className="text-xs">{label}</span>
+        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${done ? 'text-green-400' : active ? 'text-blue-400' : 'text-gray-600'}`} />
+        <span className={`text-xs ${done ? 'text-green-300 line-through' : active ? 'text-blue-200 font-semibold' : 'text-gray-500'}`}>{label}</span>
+        {done && <span className="text-xs text-green-500">✓</span>}
       </span>
-      <span className={`font-mono text-xs ${highlight ? 'text-blue-300 text-sm font-bold' : ''}`}>{time}</span>
+      <div className="text-right">
+        <span className={`font-mono text-xs ${done ? 'text-green-400' : active ? 'text-blue-300 font-bold' : 'text-gray-600'}`}>{time}</span>
+        {!done && countdown && <p className="text-xs text-gray-600 font-mono">{countdown}</p>}
+      </div>
     </div>
   );
 }

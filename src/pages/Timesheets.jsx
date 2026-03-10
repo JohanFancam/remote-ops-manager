@@ -131,6 +131,81 @@ function ManualAddForm({ onAdd, onClose, shoots = [] }) {
   );
 }
 
+function DayBlock({ date, entries, isAdmin, userEmail, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const totalHours = entries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
+  const hasHours = totalHours > 0;
+  const isToday = date === format(new Date(), 'yyyy-MM-dd');
+  const dayLabel = format(new Date(date + 'T12:00:00'), 'EEE');
+  const dayNum = format(new Date(date + 'T12:00:00'), 'd');
+  const monthLabel = format(new Date(date + 'T12:00:00'), 'MMM');
+
+  return (
+    <div className={`rounded-xl border transition-colors ${isToday ? 'border-blue-700 bg-blue-950/20' : 'border-gray-800 bg-gray-900'}`}>
+      <button
+        className="w-full flex items-center gap-4 p-4 text-left"
+        onClick={() => setOpen(!open)}
+      >
+        {/* Date block */}
+        <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-blue-600' : 'bg-gray-800'}`}>
+          <span className="text-xs text-gray-300 leading-none">{dayLabel}</span>
+          <span className="text-xl font-bold text-white leading-tight">{dayNum}</span>
+          <span className="text-xs text-gray-400 leading-none">{monthLabel}</span>
+        </div>
+        {/* Summary */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap gap-1.5 mb-1">
+            {entries.map((e, i) => (
+              <span key={i} className={`text-xs px-2 py-0.5 rounded-full border ${
+                e.entry_type === 'standby' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50' :
+                e.entry_type === 'shoot' ? 'bg-blue-900/30 text-blue-400 border-blue-700/50' :
+                'bg-gray-800 text-gray-400 border-gray-700'
+              }`}>
+                {e._shootTitle || e.notes || entryTypeLabel[e.entry_type]}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</p>
+        </div>
+        {/* Hours + expand */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className={`font-mono font-bold text-lg ${hasHours ? 'text-white' : 'text-gray-600'}`}>
+            {hasHours ? `${totalHours.toFixed(1)}h` : '—'}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-2">
+          {entries.map(entry => {
+            const canDelete = isAdmin || entry.operator_email === userEmail;
+            return (
+              <div key={entry.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-800/50 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-white">{entry._shootTitle || entry.notes || entry.operator_email}</span>
+                    <Badge className="text-xs border border-gray-600 bg-gray-700/50 text-gray-400">{entryTypeLabel[entry.entry_type] || 'Manual'}</Badge>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
+                    {entry.notes && entry._shootTitle && <span className="ml-2">{entry.notes}</span>}
+                  </p>
+                </div>
+                {canDelete && !entry._synthetic && (
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => onDelete(entry.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Timesheets() {
   const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
