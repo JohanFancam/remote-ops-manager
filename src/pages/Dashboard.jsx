@@ -192,7 +192,13 @@ export default function Dashboard() {
           )}
         </div>
 
-        <h2 className="text-lg font-semibold text-white mb-4">My Upcoming Games — Live Countdown</h2>
+        {/* Rigs Check — admin only, today's shoots */}
+        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
+
+        {/* Live Activity — admin only */}
+        {isAdmin && <LiveActivityPanel shoots={shoots} allUsers={users} />}
+
+        <h2 className="text-lg font-semibold text-white mb-4 mt-8">My Upcoming Games — Live Countdown</h2>
 
         {/* Countdown Grid */}
         {displayShoots.length === 0 ? (
@@ -200,7 +206,7 @@ export default function Dashboard() {
             <CardContent className="p-12 text-center">
               <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
               <p className="text-gray-500">
-                {isAdmin ? 'No upcoming shoots scheduled.' : 'You have no upcoming shoots assigned.'}
+                {isAdmin ? 'No upcoming shoots you are assigned to.' : 'You have no upcoming shoots assigned.'}
               </p>
             </CardContent>
           </Card>
@@ -226,9 +232,6 @@ export default function Dashboard() {
 
         {/* Admin monthly summary */}
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
-
-        {/* Rigs Check — admin only, today's shoots */}
-        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
       </div>
     </div>
   );
