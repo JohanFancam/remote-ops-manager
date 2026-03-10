@@ -49,7 +49,7 @@ function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClic
   );
 }
 
-export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate }) {
+export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate, userEmail }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
