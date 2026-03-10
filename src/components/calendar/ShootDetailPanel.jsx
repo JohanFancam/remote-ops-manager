@@ -78,6 +78,28 @@ function CameraToggle({ label, enabled, shutter, aperture, iso }) {
   );
 }
 
+async function createShootTimeEntry(shoot, email, name, entryType, notes) {
+  const { setup_offset = -150 } = shoot;
+  const gameTime = shoot.game_time || '19:00';
+  const [h, m] = gameTime.split(':').map(Number);
+  const gameMinutes = h * 60 + m;
+  const setupMinutes = gameMinutes + setup_offset - 60; // 1hr before setup
+  const endMinutes = gameMinutes + 300 + 60; // game + ~5h + 1hr after
+  const totalHours = (endMinutes - setupMinutes) / 60;
+  await base44.entities.TimeEntry.create({
+    operator_email: email,
+    operator_name: name,
+    shoot_id: shoot.id,
+    date: shoot.date,
+    hours: Math.max(1, parseFloat(totalHours.toFixed(2))),
+    rate: 0,
+    total: 0,
+    notes: notes || shoot.title,
+    entry_type: 'manual',
+    status: 'pending',
+  });
+}
+
 export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
@@ -103,6 +125,13 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   // End time = game time + 5 hours
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
 
+  // Check if shoot already has a non-admin operator assigned (one user per shoot rule)
+  const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
+    const u = allUsers.find(u2 => u2.email === e);
+    return !u || u.role !== 'admin';
+  });
+  const shootFull = !isAdmin && nonAdminAssigned.length > 0 && !isApproved;
+
   const handleSelfAssign = async () => {
     if (isPending) {
       await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user?.email) });
@@ -110,7 +139,10 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user?.email) });
     } else if (isAdmin) {
       await onUpdate(shoot.id, { assigned_operators: [...(shoot.assigned_operators || []), user?.email] });
+      // Auto-create timesheet entry for admin
+      await createShootTimeEntry(shoot, user.email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
     } else {
+      if (shootFull) return; // blocked — slot taken
       const approvedCount = getApprovedCount(user?.email);
       const current = shoot.pending_operators || [];
       if (!current.includes(user?.email)) {
