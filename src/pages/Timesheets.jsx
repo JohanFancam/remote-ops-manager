@@ -182,7 +182,6 @@ function DayBlock({ date, entries, isAdmin, userEmail, onDelete }) {
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
-                    {entry.notes && entry._shootTitle && <span className="ml-2">{entry.notes}</span>}
                   </p>
                 </div>
                 {canDelete && !entry._synthetic && (
