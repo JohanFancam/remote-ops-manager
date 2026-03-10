@@ -362,7 +362,10 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             </div>
           ) : (
             <Button size="sm" variant="ghost" className="h-7 text-xs text-yellow-400 hover:bg-yellow-950/40 border border-yellow-800/50 w-full"
-              onClick={() => onUpdate(shoot.id, { standby_admin: user?.email })}>
+              onClick={async () => {
+                await onUpdate(shoot.id, { standby_admin: user?.email });
+                await createShootTimeEntry(shoot, user.email, user.full_name, 'manual', `Standby: ${shoot.title}`);
+              }}>
               <Phone className="h-3 w-3 mr-1.5" /> Set Myself as Standby
             </Button>
           )}
