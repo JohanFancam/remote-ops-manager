@@ -304,10 +304,8 @@ export default function Timesheets() {
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Shoots / Standbys</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                {filtered.filter(e => e.entry_type === 'shoot').length} / {filtered.filter(e => e.entry_type === 'standby').length}
-              </p>
+              <p className="text-gray-400 text-sm">Entries</p>
+              <p className="text-2xl font-bold text-white mt-1">{filtered.length}</p>
             </CardContent>
           </Card>
         </div>
