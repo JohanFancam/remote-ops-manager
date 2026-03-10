@@ -212,7 +212,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                         const active = !done && p.date && now >= (phases[i - 1]?.date || new Date(0)) && now < p.date;
                         const msTo = p.date ? p.date - now : null;
                         const cdLabel = msTo !== null && msTo > 0 ? `in ${formatCountdown(msTo)}` : null;
-                        return <PhaseRow key={p.label} {...p} done={done} active={active} countdown={cdLabel} />;
+                        return <PhaseRow key={p.label} {...p} done={done} active={active} countdown={cdLabel} canClick={canMarkPhases && !!p.doneKey} onClick={() => handlePhaseToggle(p.doneKey)} />;
                       })}
                     </div>
                   );
