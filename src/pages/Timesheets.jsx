@@ -220,9 +220,26 @@ export default function Timesheets() {
     return format(d, 'yyyy-MM');
   });
 
+  // Group entries by date
+  const byDate = {};
+  filtered.forEach(e => {
+    const d = e.date || 'unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(e);
+  });
+  const sortedDates = Object.keys(byDate).sort();
+
+  // Navigate months
+  const goMonth = (delta) => {
+    const [y, m] = filterMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setFilterMonth(format(d, 'yyyy-MM'));
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Timesheets</h1>
           <div className="flex gap-2">
@@ -235,6 +252,19 @@ export default function Timesheets() {
           </div>
         </div>
 
+        {/* Month navigation */}
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-xl font-semibold text-white">
+            {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}
+          </h2>
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(1)}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <Card className="bg-gray-900 border-gray-800">
@@ -245,15 +275,15 @@ export default function Timesheets() {
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Entries</p>
-              <p className="text-2xl font-bold text-white mt-1">{filtered.length}</p>
+              <p className="text-gray-400 text-sm">Days with Activity</p>
+              <p className="text-2xl font-bold text-white mt-1">{sortedDates.length}</p>
             </CardContent>
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Avg per Entry</p>
+              <p className="text-gray-400 text-sm">Shoots / Standbys</p>
               <p className="text-2xl font-bold text-white mt-1">
-                {filtered.length > 0 ? (totalHours / filtered.length).toFixed(1) : '0'}h
+                {filtered.filter(e => e.entry_type === 'shoot').length} / {filtered.filter(e => e.entry_type === 'standby').length}
               </p>
             </CardContent>
           </Card>
@@ -263,54 +293,23 @@ export default function Timesheets() {
           <ManualAddForm onAdd={handleAddManual} onClose={() => setShowAddForm(false)} shoots={shoots} />
         )}
 
-        {/* Filters */}
-        <div className="flex gap-3 mb-4 flex-wrap">
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="w-40 bg-gray-900 border-gray-700 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-900 border-gray-700">
-              {monthOptions.map(m => (
-                <SelectItem key={m} value={m} className="text-white">{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Entries */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-800">
-              {filtered.length === 0 ? (
-                <p className="text-gray-500 text-sm p-8 text-center">No time entries for this period.</p>
-              ) : filtered.map(entry => {
-                const canDelete = isAdmin || entry.operator_email === user?.email;
-                return (
-                  <div key={entry.id} className="p-4 flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Clock className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
-                        <span className="font-medium text-white text-sm truncate">{entry._shootTitle || entry.notes || entry.operator_name || entry.operator_email}</span>
-                        <Badge className="text-xs border border-gray-600 bg-gray-700/50 text-gray-400">{entryTypeLabel[entry.entry_type] || 'Manual'}</Badge>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        {entry.date} · <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
-                      </p>
-                      {entry.notes && !entry._shootTitle && <p className="text-xs text-gray-500 mt-0.5">{entry.notes}</p>}
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {canDelete && !entry._synthetic && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(entry.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Day blocks */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">No shoots or entries for this month.</div>
+        ) : (
+          <div className="space-y-3">
+            {sortedDates.map(date => (
+              <DayBlock
+                key={date}
+                date={date}
+                entries={byDate[date]}
+                isAdmin={isAdmin}
+                userEmail={user?.email}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
