@@ -99,7 +99,7 @@ async function createShootTimeEntry(shoot, email, name, entryType, notes) {
     total: 0,
     notes: notes || shoot.title,
     entry_type: 'manual',
-    status: 'pending',
+    status: 'approved',
   });
 }
 

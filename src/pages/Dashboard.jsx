@@ -11,6 +11,7 @@ import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
+import LiveActivityPanel from '../components/dashboard/LiveActivityPanel';
 
 const DISPLAY_COUNT_KEY = 'dashboard_display_count';
 
