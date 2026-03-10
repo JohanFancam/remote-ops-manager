@@ -343,7 +343,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
       {/* Ready Slack message — shown as soon as assigned */}
       {isApproved && schedule && (
-        <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} />
+        <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} rigType={rigTypeLabel} />
       )}
 
       {/* Admin: assign self as standby for this shoot */}
