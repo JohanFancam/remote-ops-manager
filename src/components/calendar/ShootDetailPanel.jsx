@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
-  Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone, PhoneOff
+  Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone, PhoneOff,
+  MapPin, Tv2
 } from 'lucide-react';
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
