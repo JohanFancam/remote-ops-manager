@@ -144,7 +144,7 @@ export default function Timesheets() {
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
-    queryFn: () => base44.entities.Shoot.list('-date', 200),
+    queryFn: () => base44.entities.Shoot.list('-date', 1000),
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
