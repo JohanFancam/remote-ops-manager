@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, Calendar, Clock, Camera, Zap, Volume2, AlertTriangle,
-  ChevronDown, ChevronUp, Phone, Tv2
+  ChevronDown, ChevronUp, Phone, Tv2, Flag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';

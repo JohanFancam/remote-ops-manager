@@ -26,7 +26,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [checked, setChecked] = useState({});
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [archived, setArchived] = useState(() => getArchived());
   const [showArchived, setShowArchived] = useState(false);
 
