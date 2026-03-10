@@ -87,6 +87,19 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
+  const isAssigned = shoot.assigned_operators?.includes(userEmail);
+  const canMarkPhases = isAdmin || isAssigned;
+
+  const handlePhaseToggle = async (doneKey) => {
+    if (!onUpdate || !doneKey) return;
+    const current = shoot.phase_status || {};
+    const newPhaseStatus = {
+      ...current,
+      [doneKey]: current[doneKey] ? null : new Date().toISOString(),
+    };
+    await onUpdate(shoot.id, { phase_status: newPhaseStatus });
+  };
+
   const handleRigTypeChange = async (type) => {
     if (!onUpdate) return;
     setUpdatingRig(true);
