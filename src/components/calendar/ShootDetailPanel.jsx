@@ -200,6 +200,27 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
+      {/* Rig type badge */}
+      {matchedRig && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {matchedRig.rig_type && (
+            <span className="flex items-center gap-1.5 text-xs bg-blue-950/40 border border-blue-800/50 text-blue-300 px-2.5 py-1 rounded-full">
+              <Tv2 className="h-3 w-3" /> {matchedRig.rig_type}
+            </span>
+          )}
+          {matchedRig.sound && (
+            <span className="flex items-center gap-1.5 text-xs bg-green-950/40 border border-green-800/50 text-green-300 px-2.5 py-1 rounded-full">
+              <Volume2 className="h-3 w-3" /> Sound
+            </span>
+          )}
+          {shoot.location && (
+            <span className="flex items-center gap-1.5 text-xs bg-gray-800/60 border border-gray-700 text-gray-400 px-2.5 py-1 rounded-full">
+              <MapPin className="h-3 w-3" /> {shoot.location}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Notes */}
       {(shoot.description || shoot.notes) && (
         <div className="bg-gray-800/40 rounded-lg p-3">
