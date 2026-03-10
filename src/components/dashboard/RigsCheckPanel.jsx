@@ -18,9 +18,13 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
   const [checked, setChecked] = useState({});
   const [copied, setCopied] = useState(false);
 
-  const todayShoots = shoots.filter(s => s.date === todayStr && s.status !== 'cancelled');
-
-  // always render
+  // Show today + upcoming shoots (next 7 days) that need rig checks
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 7);
+  const endStr = format(endDate, 'yyyy-MM-dd');
+  const todayShoots = shoots.filter(s =>
+    s.date >= todayStr && s.date <= endStr && s.status !== 'cancelled'
+  ).sort((a, b) => a.date.localeCompare(b.date));
 
   const toggle = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
 

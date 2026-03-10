@@ -284,7 +284,6 @@ export default function Timesheets() {
               {filtered.length === 0 ? (
                 <p className="text-gray-500 text-sm p-8 text-center">No time entries for this period.</p>
               ) : filtered.map(entry => {
-                const linkedShoot = shoots.find(s => s.id === entry.shoot_id);
                 const canDelete = isAdmin || entry.operator_email === user?.email;
                 return (
                   <div key={entry.id} className="p-4 flex items-center justify-between gap-3">
