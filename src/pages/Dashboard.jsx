@@ -1,35 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Camera, CalendarDays, Wrench, Users, Save, Phone } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
-import LiveActivityPanel from '../components/dashboard/LiveActivityPanel';
-
-const DISPLAY_COUNT_KEY = 'dashboard_display_count';
+import TeamActivityList from '../components/dashboard/TeamActivityList';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-
-  // Persist display count in localStorage
-  const [displayCount, setDisplayCount] = useState(() => {
-    const saved = localStorage.getItem(DISPLAY_COUNT_KEY);
-    return saved ? Number(saved) : 6;
-  });
-  const [pendingCount, setPendingCount] = useState(displayCount);
-
-  const saveDisplayCount = () => {
-    setDisplayCount(pendingCount);
-    localStorage.setItem(DISPLAY_COUNT_KEY, String(pendingCount));
-  };
+  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -54,7 +40,6 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
-  // Standby admin for remote users
   const { data: allUsers = [] } = useQuery({
     queryKey: ['allUsersPublic'],
     queryFn: () => base44.entities.User.list(),
@@ -73,25 +58,32 @@ export default function Dashboard() {
       return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
     });
 
+  // Only show shoots the current user is personally assigned/standby on
   const myUpcoming = upcomingShoots.filter(s =>
     s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email
   );
 
-  // Filter: today's shoots first, then upcoming. Limit to max 6.
-  const todayStr2 = format(today, 'yyyy-MM-dd');
-  const todayShoots = myUpcoming.filter(s => s.date === todayStr2);
-  const futureShoots = myUpcoming.filter(s => s.date !== todayStr2);
+  const todayShoots = myUpcoming.filter(s => s.date === todayStr);
+  const futureShoots = myUpcoming.filter(s => s.date > todayStr);
   const displayShoots = [...todayShoots, ...futureShoots].slice(0, 6);
 
   const availableRigs = rigs.filter(r => r.status === 'available').length;
-  const thisMonthShoots = shoots.filter(s => s.date?.startsWith(format(today, 'yyyy-MM')));
-
+  const thisMonthMyShoots = shoots.filter(s =>
+    s.date?.startsWith(format(today, 'yyyy-MM')) &&
+    (s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email)
+  );
   const myStandbyCount = upcomingShoots.filter(s => s.standby_admin === user?.email).length;
+
+  const handleShootUpdate = async (id, data) => {
+    await base44.entities.Shoot.update(id, data);
+    queryClient.invalidateQueries({ queryKey: ['shoots'] });
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
+        {/* Header */}
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-white">
             {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
           </h1>
@@ -101,7 +93,7 @@ export default function Dashboard() {
         {/* Standby contact banner — remote users */}
         {!isAdmin && standbyAdmins.length > 0 && (
           <div className="mb-6 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3 flex items-center gap-3">
-            <span className="text-yellow-400 text-lg">📞</span>
+            <Phone className="h-5 w-5 text-yellow-400 flex-shrink-0" />
             <div>
               <p className="text-yellow-300 text-sm font-medium">Standby Contact{standbyAdmins.length > 1 ? 's' : ''}:</p>
               <p className="text-yellow-200 text-sm">{standbyAdmins.map(a => a.full_name || a.email).join(', ')}</p>
@@ -110,7 +102,7 @@ export default function Dashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -127,8 +119,8 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">This Month</p>
-                  <p className="text-3xl font-bold text-white mt-1">{thisMonthShoots.length}</p>
+                  <p className="text-gray-400 text-sm">This Month (Mine)</p>
+                  <p className="text-3xl font-bold text-white mt-1">{thisMonthMyShoots.length}</p>
                 </div>
                 <CalendarDays className="h-10 w-10 text-purple-500 opacity-80" />
               </div>
@@ -192,46 +184,80 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Rigs Check — admin only, today's shoots */}
-        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
-
-        {/* Live Activity — admin only */}
-        {isAdmin && <LiveActivityPanel shoots={shoots} allUsers={users} />}
-
-        <h2 className="text-lg font-semibold text-white mb-4 mt-8">My Upcoming Games — Live Countdown</h2>
-
-        {/* Countdown Grid */}
-        {displayShoots.length === 0 ? (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-12 text-center">
-              <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">
-                {isAdmin ? 'No upcoming shoots you are assigned to.' : 'You have no upcoming shoots assigned.'}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayShoots.map(shoot => (
-              <CountdownCard key={shoot.id} shoot={shoot} standbyAdmins={standbyAdmins} />
-            ))}
+        {/* Admin: tabs */}
+        {isAdmin && (
+          <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
+            <button
+              onClick={() => setAdminTab('my')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                adminTab === 'my' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4" /> My Schedule
+            </button>
+            <button
+              onClick={() => setAdminTab('team')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                adminTab === 'team' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Activity className="h-4 w-4" /> Team Activity
+            </button>
           </div>
         )}
 
-        {/* Earnings */}
-        <div className="mt-8">
-          {isLevel1Admin ? (
-            <EarningsSummary shoots={shoots} users={users} />
-          ) : !isAdmin ? (
-            <RemoteEarnings
-              shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
-              user={user}
-            />
-          ) : null}
-        </div>
+        {/* MY SCHEDULE tab (default for both admin and remote) */}
+        {(!isAdmin || adminTab === 'my') && (
+          <>
+            {/* Rigs Check — admin only, always shown if there are today's shoots */}
+            {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
 
-        {/* Admin monthly summary */}
-        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
+            <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
+
+            {displayShoots.length === 0 ? (
+              <Card className="bg-gray-900 border-gray-800">
+                <CardContent className="p-12 text-center">
+                  <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    {isAdmin ? 'No upcoming shoots you are assigned to.' : 'You have no upcoming shoots assigned.'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {displayShoots.map(shoot => (
+                  <CountdownCard
+                    key={shoot.id}
+                    shoot={shoot}
+                    standbyAdmins={standbyAdmins}
+                    isAdmin={isAdmin}
+                    rigSettings={rigSettings}
+                    onUpdate={isAdmin ? handleShootUpdate : undefined}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Earnings / Summary */}
+            <div className="mt-8">
+              {isLevel1Admin ? (
+                <EarningsSummary shoots={shoots} users={users} />
+              ) : !isAdmin ? (
+                <RemoteEarnings
+                  shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
+                  user={user}
+                />
+              ) : null}
+            </div>
+
+            {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
+          </>
+        )}
+
+        {/* TEAM ACTIVITY tab — admin only */}
+        {isAdmin && adminTab === 'team' && (
+          <TeamActivityList shoots={shoots} allUsers={users} />
+        )}
       </div>
     </div>
   );
