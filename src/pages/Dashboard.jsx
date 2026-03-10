@@ -41,6 +41,12 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
+  const { data: rigSettings = [] } = useQuery({
+    queryKey: ['rigSettings'],
+    queryFn: () => base44.entities.RigSetting.list(),
+    enabled: isAdmin,
+  });
+
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
@@ -69,8 +75,12 @@ export default function Dashboard() {
   const myUpcoming = upcomingShoots.filter(s =>
     s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email
   );
-  // Admins see only their own assigned/standby shoots (like remote users)
-  const displayShoots = myUpcoming.slice(0, isAdmin ? displayCount : undefined);
+
+  // Filter: today's shoots first, then upcoming. Limit to max 6.
+  const todayStr2 = format(today, 'yyyy-MM-dd');
+  const todayShoots = myUpcoming.filter(s => s.date === todayStr2);
+  const futureShoots = myUpcoming.filter(s => s.date !== todayStr2);
+  const displayShoots = [...todayShoots, ...futureShoots].slice(0, 6);
 
   const availableRigs = rigs.filter(r => r.status === 'available').length;
   const thisMonthShoots = shoots.filter(s => s.date?.startsWith(format(today, 'yyyy-MM')));
