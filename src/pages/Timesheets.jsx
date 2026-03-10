@@ -211,24 +211,15 @@ export default function Timesheets() {
     queryFn: () => base44.entities.TimeEntry.list('-date', 500),
   });
 
-  const { data: shoots = [] } = useQuery({
-    queryKey: ['shoots'],
-    queryFn: () => base44.entities.Shoot.list('-date', 1000),
-  });
-
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
 
   const handleAddManual = async (form) => {
-    const linkedShoot = shoots.find(s => s.id === form.shoot_id);
     await base44.entities.TimeEntry.create({
       operator_email: user.email,
       operator_name: user.full_name,
-      shoot_id: form.shoot_id || undefined,
       date: form.date,
       hours: parseFloat(Number(form.hours).toFixed(4)),
-      rate: 0,
-      total: 0,
-      notes: form.notes || (linkedShoot ? linkedShoot.title : 'Manual entry'),
+      notes: form.notes || 'Manual entry',
       entry_type: 'manual',
       status: 'approved',
     });
@@ -240,47 +231,10 @@ export default function Timesheets() {
     refresh();
   };
 
-  const updateStatus = async (id, status) => {
-    await base44.entities.TimeEntry.update(id, { status });
-    refresh();
-  };
-
-  // Show only the current user's shoots (assigned or standby) for the selected month
   const myEmail = user?.email;
-  const monthShoots = shoots.filter(s =>
-    s.date?.startsWith(filterMonth) &&
-    s.status !== 'cancelled' &&
-    (s.assigned_operators?.includes(myEmail) || s.standby_admin === myEmail)
-  );
-
-  // Build rows: one per shoot, merged with any existing TimeEntry
-  const shootRows = monthShoots.map(shoot => {
-    const isStandby = shoot.standby_admin === myEmail && !shoot.assigned_operators?.includes(myEmail);
-    const existingEntry = entries.find(e => e.shoot_id === shoot.id && e.operator_email === myEmail);
-    if (existingEntry) return { ...existingEntry, _synthetic: false, _shootTitle: shoot.title };
-    return {
-      _synthetic: true,
-      id: `syn_${shoot.id}`,
-      shoot_id: shoot.id,
-      date: shoot.date,
-      operator_email: myEmail,
-      operator_name: user?.full_name || myEmail,
-      hours: null,
-      entry_type: isStandby ? 'standby' : 'shoot',
-      notes: shoot.title,
-      status: 'pending',
-      _shootTitle: shoot.title,
-    };
-  });
-
-  // Also include manual entries not linked to any shoot
-  const manualEntries = entries.filter(e =>
-    e.operator_email === myEmail &&
-    e.date?.startsWith(filterMonth) &&
-    (!e.shoot_id || !monthShoots.find(s => s.id === e.shoot_id))
-  ).map(e => ({ ...e, _synthetic: false }));
-
-  const filtered = [...shootRows, ...manualEntries].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const filtered = entries
+    .filter(e => e.operator_email === myEmail && e.date?.startsWith(filterMonth))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const totalHours = filtered.reduce((s, e) => s + (Number(e.hours) || 0), 0);
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
