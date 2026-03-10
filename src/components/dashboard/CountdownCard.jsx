@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Camera, Zap, Volume2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  MapPin, Calendar, Clock, Camera, Zap, Volume2, AlertTriangle,
+  ChevronDown, ChevronUp, Phone, Tv2
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
-import { createPageUrl } from '@/utils';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -13,6 +16,8 @@ const statusColors = {
   completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
+
+const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 
 function ScheduleRow({ label, time, Icon, highlight }) {
   return (
@@ -26,9 +31,11 @@ function ScheduleRow({ label, time, Icon, highlight }) {
   );
 }
 
-export default function CountdownCard({ shoot, standbyAdmins = [] }) {
+export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate }) {
   const [countdown, setCountdown] = useState('');
   const [isPast, setIsPast] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [updatingRig, setUpdatingRig] = useState(false);
 
   useEffect(() => {
     const gameDate = getGameDateTime(shoot);
@@ -49,79 +56,164 @@ export default function CountdownCard({ shoot, standbyAdmins = [] }) {
 
   const schedule = getSchedule(shoot);
 
+  const matchedRig = rigSettings.find(r =>
+    r.team && shoot.client &&
+    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
+  );
+  const showAttention = matchedRig?.attention_camera === true;
+  const showSound = matchedRig?.sound === true;
+
+  // Effective rig type: shoot override first, then rig setting
+  const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
+  const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
+
+  const handleRigTypeChange = async (type) => {
+    if (!onUpdate) return;
+    setUpdatingRig(true);
+    await onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type });
+    setUpdatingRig(false);
+  };
+
+  const isStandby = !shoot.assigned_operators?.includes('__self__'); // will be determined by parent
+
   return (
-    <Card className="bg-gray-900 border-gray-800 h-full hover:border-gray-600 transition-colors">
+    <Card className="bg-gray-900 border-gray-800 hover:border-gray-600 transition-colors">
       <CardContent className="p-5">
+        {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <a
-            href={createPageUrl(`Calendar?shootId=${shoot.id}`)}
-            className="font-bold text-white truncate hover:text-blue-400 transition-colors flex items-center gap-1 group"
-            title="Open in Calendar"
-          >
-            {shoot.title}
-            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 flex-shrink-0" />
-          </a>
+            <p className="font-bold text-white truncate">{shoot.title}</p>
             {shoot.client && <p className="text-sm text-gray-400 truncate">{shoot.client}</p>}
           </div>
-          <Badge className={`text-xs border ml-2 flex-shrink-0 ${statusColors[shoot.status] || statusColors.upcoming}`}>
-            {shoot.status}
-          </Badge>
+          <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+            <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
+              {shoot.status}
+            </Badge>
+          </div>
         </div>
 
+        {/* Meta */}
         <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-4">
-          {shoot.location && (
-            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{shoot.location}</span>
-          )}
+          {shoot.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{shoot.location}</span>}
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {format(new Date(shoot.date), 'EEE, MMM d yyyy')}
           </span>
+          {rigLabel && (
+            <span className="flex items-center gap-1 text-blue-400">
+              <Tv2 className="h-3 w-3" />{rigLabel}
+              {shoot.rig_type_override && <span className="text-orange-400 text-xs">(override)</span>}
+            </span>
+          )}
         </div>
 
         {/* Countdown */}
         <div className={`text-center py-3 px-2 rounded-xl mb-4 ${isPast ? 'bg-red-950/40 border border-red-800' : 'bg-blue-950/40 border border-blue-800'}`}>
           <div className={`font-mono font-bold text-2xl tracking-wider ${isPast ? 'text-red-400' : 'text-blue-300'}`}>
-            {isPast ? '🔴 ' : ''}{countdown}
+            {countdown}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">until game time</div>
         </div>
 
-        {/* Schedule — always show Setup, Pre-Shoot, Game. Conditionally show Attention/Sound */}
-        {schedule && (
-          <div className="border-t border-gray-800 pt-3 mb-3">
-            <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Schedule</p>
-            <ScheduleRow label="Setup" time={schedule.setup} Icon={Zap} />
-            <ScheduleRow label="Pre-Shoot" time={schedule.pre_shoot} Icon={Camera} />
-            {shoot.attention_offset !== undefined && (
-              <ScheduleRow label="Attention" time={schedule.attention} Icon={AlertTriangle} />
-            )}
-            {shoot.sound_offset !== undefined && (
-              <ScheduleRow label="Sound Check" time={schedule.sound} Icon={Volume2} />
-            )}
-            <ScheduleRow label="Game Time" time={schedule.game} Icon={Clock} highlight />
-          </div>
-        )}
-
-        {/* Assigned operators */}
-        {shoot.assigned_operators?.length > 0 && (
-          <div className="border-t border-gray-800 pt-3 mb-3">
-            <p className="text-xs text-gray-600 mb-1.5">Operators ({shoot.assigned_operators.length})</p>
-            <div className="flex flex-wrap gap-1">
-              {shoot.assigned_operators.map(e => (
-                <span key={e} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full truncate max-w-[140px]">{e}</span>
+        {/* Admin rig type quick toggle */}
+        {isAdmin && onUpdate && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Rig Type Override</p>
+            <div className="flex gap-1">
+              {RIG_TYPES.map(type => (
+                <button
+                  key={type}
+                  disabled={updatingRig}
+                  onClick={() => handleRigTypeChange(type)}
+                  className={`flex-1 text-xs py-1.5 px-2 rounded border transition-colors ${
+                    shoot.rig_type_override === type
+                      ? 'bg-orange-600 border-orange-500 text-white font-medium'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                  }`}
+                >
+                  {type}
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Standby contact */}
-        {standbyAdmins.length > 0 && (
-          <div className="border-t border-gray-800 pt-3">
-            <p className="text-xs text-yellow-500/80 mb-1">📞 Standby Contact</p>
-            {standbyAdmins.map(a => (
-              <p key={a.email} className="text-xs text-yellow-300">{a.full_name || a.email}</p>
-            ))}
+        {/* Expand toggle */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-300 transition-colors py-1"
+        >
+          <span>{expanded ? 'Hide details' : 'Show details'}</span>
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {/* Expanded details */}
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-gray-800 space-y-3">
+            {/* Schedule */}
+            {schedule && (
+              <div>
+                <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Schedule</p>
+                <ScheduleRow label="Setup" time={schedule.setup} Icon={Zap} />
+                <ScheduleRow label="Pre-Shoot" time={schedule.pre_shoot} Icon={Camera} />
+                {showAttention && <ScheduleRow label="Attention" time={schedule.attention} Icon={AlertTriangle} />}
+                {showSound && <ScheduleRow label="Sound Check" time={schedule.sound} Icon={Volume2} />}
+                <ScheduleRow label="Game Time" time={schedule.game} Icon={Clock} highlight />
+              </div>
+            )}
+
+            {/* Rig settings summary */}
+            {matchedRig && (
+              <div>
+                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Rig Config</p>
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  {matchedRig.sport && <span className="text-gray-400">Sport: <span className="text-gray-200">{matchedRig.sport}</span></span>}
+                  {matchedRig.venue_type && <span className="text-gray-400">Venue: <span className="text-gray-200">{matchedRig.venue_type}</span></span>}
+                  {matchedRig.shoot_plan && (
+                    <span className="col-span-2 text-gray-400">Plan: <span className="text-gray-200">{matchedRig.shoot_plan}</span></span>
+                  )}
+                  {matchedRig.remote_rigs?.length > 0 && (
+                    <span className="col-span-2 text-gray-400">Remotes: <span className="text-gray-200">{matchedRig.remote_rigs.join(', ')}</span></span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            {(shoot.description || shoot.notes) && (
+              <div>
+                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Notes</p>
+                <p className="text-xs text-gray-300">{shoot.description || shoot.notes}</p>
+              </div>
+            )}
+
+            {/* Assigned operators */}
+            {shoot.assigned_operators?.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Operators</p>
+                <div className="flex flex-wrap gap-1">
+                  {shoot.assigned_operators.map(e => (
+                    <span key={e} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">{e.split('@')[0]}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Standby contact */}
+            {shoot.standby_admin && (
+              <div className="flex items-center gap-1.5 text-xs text-yellow-400">
+                <Phone className="h-3 w-3" />
+                Standby: {shoot.standby_admin.split('@')[0]}
+              </div>
+            )}
+
+            {/* External link to calendar */}
+            <a
+              href={`/Calendar?shootId=${shoot.id}`}
+              className="block text-center text-xs text-blue-500 hover:text-blue-400 pt-1"
+            >
+              Open full detail in Calendar →
+            </a>
           </div>
         )}
       </CardContent>
