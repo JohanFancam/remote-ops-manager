@@ -207,14 +207,14 @@ export default function Rigs() {
               {/* Camera toggles */}
               <div className="space-y-3">
                 <label className="text-xs text-gray-400 uppercase tracking-wider block">Camera Settings</label>
-                <CameraSection label="📷 HD Camera" enabled={form.hd_camera} onToggle={() => setForm({ ...form, hd_camera: !form.hd_camera })} form={form} setForm={setForm} prefix="hd" />
-                <CameraSection label="🔭 Wide Camera" enabled={form.wide_camera} onToggle={() => setForm({ ...form, wide_camera: !form.wide_camera })} form={form} setForm={setForm} prefix="wide" />
-                <CameraSection label="⚠️ Attention Camera" enabled={form.attention_camera} onToggle={() => setForm({ ...form, attention_camera: !form.attention_camera })} form={form} setForm={setForm} prefix="attention" />
+                <CameraSection label="HD Camera" enabled={form.hd_camera} onToggle={() => setForm({ ...form, hd_camera: !form.hd_camera })} form={form} setForm={setForm} prefix="hd" />
+                <CameraSection label="Wide Camera" enabled={form.wide_camera} onToggle={() => setForm({ ...form, wide_camera: !form.wide_camera })} form={form} setForm={setForm} prefix="wide" />
+                <CameraSection label="Attention Camera" enabled={form.attention_camera} onToggle={() => setForm({ ...form, attention_camera: !form.attention_camera })} form={form} setForm={setForm} prefix="attention" />
 
                 {/* Sound toggle */}
                 <div className={`rounded-lg border p-3 ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-700 bg-gray-800/20'}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">🔊 Sound</span>
+                    <span className="text-sm font-semibold text-white">Sound</span>
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, sound: !form.sound })}
@@ -308,9 +308,9 @@ export default function Rigs() {
                   )}
                   <div className="space-y-2">
                     {[
-                      { label: '📷 HD Camera', on: rig.hd_camera, s: rig.hd_shutter, a: rig.hd_aperture, iso: rig.hd_iso },
-                      { label: '🔭 Wide Camera', on: rig.wide_camera, s: rig.wide_shutter, a: rig.wide_aperture, iso: rig.wide_iso },
-                      { label: '⚠️ Attention Camera', on: rig.attention_camera, s: rig.attention_shutter, a: rig.attention_aperture, iso: rig.attention_iso },
+                      { label: 'HD Camera', on: rig.hd_camera, s: rig.hd_shutter, a: rig.hd_aperture, iso: rig.hd_iso },
+                      { label: 'Wide Camera', on: rig.wide_camera, s: rig.wide_shutter, a: rig.wide_aperture, iso: rig.wide_iso },
+                      { label: 'Attention Camera', on: rig.attention_camera, s: rig.attention_shutter, a: rig.attention_aperture, iso: rig.attention_iso },
                     ].map(cam => (
                       <div key={cam.label} className={`flex items-center gap-3 rounded p-2 ${cam.on ? 'bg-blue-950/20' : 'bg-gray-800/30'}`}>
                         <span className="text-xs font-medium text-gray-300 w-36">{cam.label}</span>
