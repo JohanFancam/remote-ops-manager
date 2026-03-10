@@ -19,21 +19,31 @@ const statusColors = {
 
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 
-function PhaseRow({ label, time, Icon, done, active, countdown }) {
+function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClick }) {
   return (
-    <div className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
-      done ? 'bg-green-950/40 border border-green-800/50' :
-      active ? 'bg-blue-950/40 border border-blue-800/50' :
-      'bg-transparent'
-    }`}>
+    <div
+      onClick={canClick ? onClick : undefined}
+      className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
+        done ? 'bg-green-950/40 border border-green-800/50' :
+        active ? 'bg-blue-950/40 border border-blue-800/50' :
+        'bg-transparent border border-transparent'
+      } ${canClick ? 'cursor-pointer hover:border-gray-600 hover:bg-gray-800/50' : ''}`}
+    >
       <span className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${done ? 'text-green-400' : active ? 'text-blue-400' : 'text-gray-600'}`} />
         <span className={`text-xs ${done ? 'text-green-300 line-through' : active ? 'text-blue-200 font-semibold' : 'text-gray-500'}`}>{label}</span>
         {done && <span className="text-xs text-green-500">✓</span>}
       </span>
-      <div className="text-right">
-        <span className={`font-mono text-xs ${done ? 'text-green-400' : active ? 'text-blue-300 font-bold' : 'text-gray-600'}`}>{time}</span>
-        {!done && countdown && <p className="text-xs text-gray-600 font-mono">{countdown}</p>}
+      <div className="text-right flex items-center gap-2">
+        <div>
+          <span className={`font-mono text-xs ${done ? 'text-green-400' : active ? 'text-blue-300 font-bold' : 'text-gray-600'}`}>{time}</span>
+          {!done && countdown && <p className="text-xs text-gray-600 font-mono">{countdown}</p>}
+        </div>
+        {canClick && (
+          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-green-950/50' : 'border-gray-700 text-gray-500 bg-gray-800/50'}`}>
+            {done ? 'undo' : 'mark done'}
+          </span>
+        )}
       </div>
     </div>
   );
