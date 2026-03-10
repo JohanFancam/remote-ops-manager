@@ -135,7 +135,6 @@ export default function Timesheets() {
   const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [filterOperator, setFilterOperator] = useState('all');
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
 
   const { data: entries = [] } = useQuery({
@@ -177,69 +176,42 @@ export default function Timesheets() {
     refresh();
   };
 
-  // For admins: build rows from ALL shoots in the selected month, merged with any time entries
-  // For remote: show only their own time entries
-  let filtered = [];
+  // Show only the current user's shoots (assigned or standby) for the selected month
+  const myEmail = user?.email;
+  const monthShoots = shoots.filter(s =>
+    s.date?.startsWith(filterMonth) &&
+    s.status !== 'cancelled' &&
+    (s.assigned_operators?.includes(myEmail) || s.standby_admin === myEmail)
+  );
 
-  if (isAdmin) {
-    // All shoots in the month
-    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+  // Build rows: one per shoot, merged with any existing TimeEntry
+  const shootRows = monthShoots.map(shoot => {
+    const isStandby = shoot.standby_admin === myEmail && !shoot.assigned_operators?.includes(myEmail);
+    const existingEntry = entries.find(e => e.shoot_id === shoot.id && e.operator_email === myEmail);
+    if (existingEntry) return { ...existingEntry, _synthetic: false, _shootTitle: shoot.title };
+    return {
+      _synthetic: true,
+      id: `syn_${shoot.id}`,
+      shoot_id: shoot.id,
+      date: shoot.date,
+      operator_email: myEmail,
+      operator_name: user?.full_name || myEmail,
+      hours: null,
+      entry_type: isStandby ? 'standby' : 'shoot',
+      notes: shoot.title,
+      status: 'pending',
+      _shootTitle: shoot.title,
+    };
+  });
 
-    // Build a synthetic row per shoot per operator/standby
-    const shootRows = [];
-    monthShoots.forEach(shoot => {
-      const operators = [
-        ...(shoot.assigned_operators || []).map(email => ({ email, role: 'operator' })),
-        ...(shoot.standby_admin ? [{ email: shoot.standby_admin, role: 'standby' }] : []),
-      ];
-      if (operators.length === 0) {
-        // Show shoot with no operators
-        shootRows.push({
-          _synthetic: true,
-          id: `syn_${shoot.id}_none`,
-          shoot_id: shoot.id,
-          date: shoot.date,
-          operator_email: '—',
-          operator_name: 'No operators',
-          hours: null,
-          entry_type: shoot.standby_admin ? 'standby' : 'shoot',
-          notes: shoot.title,
-          status: 'approved',
-        });
-      } else {
-        operators.forEach(({ email, role }) => {
-          const existingEntry = entries.find(e => e.shoot_id === shoot.id && e.operator_email === email);
-          shootRows.push(existingEntry ? { ...existingEntry, _synthetic: false } : {
-            _synthetic: true,
-            id: `syn_${shoot.id}_${email}`,
-            shoot_id: shoot.id,
-            date: shoot.date,
-            operator_email: email,
-            operator_name: email,
-            hours: null,
-            entry_type: role === 'standby' ? 'standby' : 'shoot',
-            notes: shoot.title,
-            status: 'approved',
-          });
-        });
-      }
-    });
+  // Also include manual entries not linked to any shoot
+  const manualEntries = entries.filter(e =>
+    e.operator_email === myEmail &&
+    e.date?.startsWith(filterMonth) &&
+    (!e.shoot_id || !monthShoots.find(s => s.id === e.shoot_id))
+  ).map(e => ({ ...e, _synthetic: false }));
 
-    // Also include manual entries not linked to a shoot
-    const manualEntries = entries.filter(e =>
-      e.date?.startsWith(filterMonth) &&
-      (!e.shoot_id || !monthShoots.find(s => s.id === e.shoot_id))
-    );
-
-    filtered = [...shootRows, ...manualEntries];
-    if (filterOperator !== 'all') filtered = filtered.filter(e => e.operator_email === filterOperator);
-    filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  } else {
-    filtered = entries.filter(e => e.operator_email === user?.email);
-    if (filterMonth) filtered = filtered.filter(e => e.date?.startsWith(filterMonth));
-  }
-
-  const operators = [...new Set(entries.map(e => e.operator_email).filter(Boolean))];
+  const filtered = [...shootRows, ...manualEntries].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const totalHours = filtered.reduce((s, e) => s + (Number(e.hours) || 0), 0);
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
@@ -303,20 +275,6 @@ export default function Timesheets() {
               ))}
             </SelectContent>
           </Select>
-
-          {isAdmin && (
-            <Select value={filterOperator} onValueChange={setFilterOperator}>
-              <SelectTrigger className="w-52 bg-gray-900 border-gray-700 text-white">
-                <SelectValue placeholder="All Operators" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
-                <SelectItem value="all" className="text-white">All Operators</SelectItem>
-                {operators.map(o => (
-                  <SelectItem key={o} value={o} className="text-white">{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
         </div>
 
         {/* Entries */}
@@ -333,15 +291,13 @@ export default function Timesheets() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Clock className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
-                        <span className="font-medium text-white text-sm truncate">{entry.operator_name || entry.operator_email}</span>
+                        <span className="font-medium text-white text-sm truncate">{entry._shootTitle || entry.notes || entry.operator_name || entry.operator_email}</span>
                         <Badge className="text-xs border border-gray-600 bg-gray-700/50 text-gray-400">{entryTypeLabel[entry.entry_type] || 'Manual'}</Badge>
-                        <Badge className={`text-xs border ${statusColors[entry.status]}`}>{entry.status}</Badge>
                       </div>
                       <p className="text-xs text-gray-400">
                         {entry.date} · <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
                       </p>
-                      {linkedShoot && <p className="text-xs text-blue-400 mt-0.5">{linkedShoot.title}</p>}
-                      {entry.notes && <p className="text-xs text-gray-500 mt-0.5">{entry.notes}</p>}
+                      {entry.notes && !entry._shootTitle && <p className="text-xs text-gray-500 mt-0.5">{entry.notes}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {canDelete && !entry._synthetic && (
