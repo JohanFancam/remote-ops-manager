@@ -51,16 +51,26 @@ function exportTimesheetPDF(entries, title = 'Timesheet Report') {
   doc.save(`${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 }
 
-function ManualAddForm({ onAdd, onClose, shoots = [] }) {
+function ManualAddForm({ onAdd, onClose }) {
   const today = format(new Date(), 'yyyy-MM-dd');
-  const [form, setForm] = useState({ date: today, hours: '', notes: '', shoot_id: '' });
+  const [form, setForm] = useState({ date: today, start_time: '', end_time: '', notes: '' });
   const [saving, setSaving] = useState(false);
+
+  const calcHours = () => {
+    if (!form.start_time || !form.end_time) return null;
+    const [sh, sm] = form.start_time.split(':').map(Number);
+    const [eh, em] = form.end_time.split(':').map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    return mins > 0 ? mins / 60 : null;
+  };
+
+  const hours = calcHours();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.hours || isNaN(Number(form.hours))) return;
+    if (!hours) return;
     setSaving(true);
-    await onAdd(form);
+    await onAdd({ date: form.date, hours, notes: form.notes, start_time: form.start_time, end_time: form.end_time });
     setSaving(false);
     onClose();
   };
@@ -70,7 +80,7 @@ function ManualAddForm({ onAdd, onClose, shoots = [] }) {
       <CardHeader className="pb-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-sm flex items-center gap-2">
-            <Plus className="h-4 w-4 text-blue-400" /> Add Manual Time Entry
+            <Plus className="h-4 w-4 text-blue-400" /> Add Time Entry
           </CardTitle>
           <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
@@ -79,49 +89,33 @@ function ManualAddForm({ onAdd, onClose, shoots = [] }) {
         <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
           <div>
             <label className="text-xs text-gray-400 mb-1 block">Date</label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={e => setForm({ ...form, date: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
-            />
+            <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Hours</label>
-            <Input
-              type="number"
-              step="0.25"
-              min="0"
-              placeholder="e.g. 4.5"
-              value={form.hours}
-              onChange={e => setForm({ ...form, hours: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
-            />
+            <label className="text-xs text-gray-400 mb-1 block">Start Time</label>
+            <Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Linked Shoot (optional)</label>
-            <select
-              value={form.shoot_id}
-              onChange={e => setForm({ ...form, shoot_id: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-md px-2 h-9"
-            >
-              <option value="">— none —</option>
-              {shoots.slice(0, 50).map(s => (
-                <option key={s.id} value={s.id}>{s.title} ({s.date})</option>
-              ))}
-            </select>
+            <label className="text-xs text-gray-400 mb-1 block">End Time</label>
+            <Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
           </div>
           <div>
+            <label className="text-xs text-gray-400 mb-1 block">Duration</label>
+            <div className="h-9 flex items-center px-3 bg-gray-900 border border-gray-700 rounded-md font-mono text-sm text-white">
+              {hours ? `${hours.toFixed(2)}h` : '—'}
+            </div>
+          </div>
+          <div className="col-span-2 md:col-span-3">
             <label className="text-xs text-gray-400 mb-1 block">Notes</label>
-            <Input
-              placeholder="Optional note"
-              value={form.notes}
+            <Input placeholder="e.g. NBA Lakers shoot, travel, etc." value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
-            />
+              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
           </div>
-          <div className="col-span-2 md:col-span-4 flex justify-end">
-            <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 h-9 text-sm">
+          <div className="flex items-end">
+            <Button type="submit" disabled={saving || !hours} className="bg-blue-600 hover:bg-blue-700 h-9 text-sm w-full">
               {saving ? 'Saving...' : 'Add Entry'}
             </Button>
           </div>
