@@ -225,6 +225,9 @@ export default function Dashboard() {
 
         {/* Admin monthly summary */}
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
+
+        {/* Rigs Check — admin only, today's shoots */}
+        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
       </div>
     </div>
   );

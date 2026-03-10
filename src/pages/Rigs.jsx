@@ -142,7 +142,7 @@ export default function Rigs() {
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               {/* Basic info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                 <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Sport" /></SelectTrigger>
@@ -155,6 +155,12 @@ export default function Rigs() {
                   <SelectContent className="bg-gray-900 border-gray-700">
                     <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
                     <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Rig Type" /></SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700">
+                    {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
