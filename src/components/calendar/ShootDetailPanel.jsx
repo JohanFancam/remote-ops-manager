@@ -10,20 +10,21 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 
-function ReadySlackMessage({ shoot, schedule, showAttention, showSound }) {
+function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
   const team = shoot.client || shoot.title;
   const lines = [
-    `I am ready for Today's "${team}" shoot`,
+    `Ready for today's ${team} shoot`,
     '',
     schedule ? [
-      `🔧 Setup: ${schedule.setup}`,
-      `📸 Pre-Shoot: ${schedule.pre_shoot}`,
-      showAttention ? `⚠️ Attention: ${schedule.attention}` : null,
-      showSound ? `🔊 Sound Check: ${schedule.sound}` : null,
-      `🏟️ Game Time: ${schedule.game}`,
+      `Setup: ${schedule.setup}`,
+      `Pre-Shoot: ${schedule.pre_shoot}`,
+      showAttention ? `Attention: ${schedule.attention}` : null,
+      showSound ? `Sound Check: ${schedule.sound}` : null,
+      `Game Time: ${schedule.game}`,
     ].filter(Boolean).join('\n') : '',
-    shoot.location ? `📍 Venue: ${shoot.location}` : '',
+    shoot.location ? `Venue: ${shoot.location}` : '',
+    rigType ? `Rig: ${rigType}` : '',
   ].filter(Boolean).join('\n');
 
   return (
