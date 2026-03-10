@@ -48,7 +48,6 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Calendar from './pages/Calendar';
-import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
 import Rigs from './pages/Rigs';
 import Settings from './pages/Settings';
@@ -59,7 +58,6 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Calendar": Calendar,
-    "Dashboard": Dashboard,
     "Reports": Reports,
     "Rigs": Rigs,
     "Settings": Settings,
@@ -68,7 +66,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Dashboard",
+    mainPage: "Calendar",
     Pages: PAGES,
     Layout: __Layout,
 };
