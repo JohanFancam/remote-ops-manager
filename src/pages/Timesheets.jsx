@@ -239,7 +239,7 @@ export default function Timesheets() {
   }
 
   const operators = [...new Set(entries.map(e => e.operator_email).filter(Boolean))];
-  const totalHours = filtered.reduce((s, e) => s + (e.hours || 0), 0);
+  const totalHours = filtered.reduce((s, e) => s + (Number(e.hours) || 0), 0);
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
@@ -337,19 +337,13 @@ export default function Timesheets() {
                         <Badge className={`text-xs border ${statusColors[entry.status]}`}>{entry.status}</Badge>
                       </div>
                       <p className="text-xs text-gray-400">
-                        {entry.date} · <span className="font-mono text-white font-bold">{Number(entry.hours || 0).toFixed(2)}h</span>
+                        {entry.date} · <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
                       </p>
                       {linkedShoot && <p className="text-xs text-blue-400 mt-0.5">{linkedShoot.title}</p>}
                       {entry.notes && <p className="text-xs text-gray-500 mt-0.5">{entry.notes}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {isAdmin && entry.status === 'pending' && (
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-green-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'approved')}>Approve</Button>
-                      )}
-                      {isAdmin && entry.status === 'approved' && (
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'paid')}>Mark Paid</Button>
-                      )}
-                      {canDelete && (
+                      {canDelete && !entry._synthetic && (
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(entry.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
