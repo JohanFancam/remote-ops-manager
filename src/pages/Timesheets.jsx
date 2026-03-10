@@ -269,19 +269,19 @@ export default function Timesheets() {
                         {entry.total > 0 && <p className="font-bold text-white text-sm">R {(entry.total || 0).toLocaleString()}</p>}
                         <Badge className={`text-xs border ${statusColors[entry.status]}`}>{entry.status}</Badge>
                       </div>
-                      {isAdmin && (
-                        <div className="flex flex-col gap-1">
-                          {entry.status === 'pending' && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-green-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'approved')}>Approve</Button>
-                          )}
-                          {entry.status === 'approved' && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'paid')}>Mark Paid</Button>
-                          )}
+                      <div className="flex flex-col gap-1">
+                        {isAdmin && entry.status === 'pending' && (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-green-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'approved')}>Approve</Button>
+                        )}
+                        {isAdmin && entry.status === 'approved' && (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-800" onClick={() => updateStatus(entry.id, 'paid')}>Mark Paid</Button>
+                        )}
+                        {(isAdmin || entry.operator_email === user?.email) && (
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(entry.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
