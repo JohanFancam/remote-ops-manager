@@ -40,27 +40,29 @@ function PhaseRow({ label, time, Icon, done, active, countdown }) {
 }
 
 export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate }) {
-  const [countdown, setCountdown] = useState('');
-  const [isPast, setIsPast] = useState(false);
+  const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
 
   useEffect(() => {
-    const gameDate = getGameDateTime(shoot);
-    if (!gameDate) { setCountdown('—'); return; }
-    const update = () => {
-      const diff = gameDate - new Date();
-      if (diff <= 0) { setCountdown('LIVE / PAST'); setIsPast(true); return; }
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const mins = Math.floor((diff % 3600000) / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      setCountdown(`${days > 0 ? `${days}d ` : ''}${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
-    };
-    update();
-    const iv = setInterval(update, 1000);
+    const iv = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(iv);
-  }, [shoot]);
+  }, []);
+
+  const gameDate = getGameDateTime(shoot);
+  const diff = gameDate ? gameDate - now : null;
+  const isPast = diff !== null && diff <= 0;
+
+  const formatCountdown = (ms) => {
+    if (ms <= 0) return 'NOW';
+    const days = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const countdown = diff === null ? '—' : isPast ? 'LIVE / PAST' : formatCountdown(diff);
 
   const schedule = getSchedule(shoot);
 
