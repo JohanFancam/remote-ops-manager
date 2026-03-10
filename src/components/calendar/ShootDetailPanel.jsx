@@ -124,7 +124,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   // Which optional phases are enabled for this shoot
   const showAttention = matchedRig?.attention_camera === true;
   const showSound = matchedRig?.sound === true;
-  const rigTypeLabel = matchedRig?.rig_type ? (matchedRig.sound ? `${matchedRig.rig_type}/Sound` : matchedRig.rig_type) : null;
+  const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
+  const rigTypeLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
   // End time = game time + 5 hours
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;

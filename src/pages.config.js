@@ -52,7 +52,6 @@ import Reports from './pages/Reports';
 import Rigs from './pages/Rigs';
 import Settings from './pages/Settings';
 import Shoots from './pages/Shoots';
-import Timesheets from './pages/Timesheets';
 import __Layout from './Layout.jsx';
 
 
@@ -62,7 +61,6 @@ export const PAGES = {
     "Rigs": Rigs,
     "Settings": Settings,
     "Shoots": Shoots,
-    "Timesheets": Timesheets,
 }
 
 export const pagesConfig = {
