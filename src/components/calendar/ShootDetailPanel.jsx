@@ -222,6 +222,31 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
+      {/* Rig Type Quick Override — admin only */}
+      {isAdmin && (
+        <div className="bg-gray-800/40 rounded-lg p-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Rig Type Override</p>
+          <div className="flex gap-1.5">
+            {['Data', 'Fancam', 'Data/Fancam'].map(type => (
+              <button
+                key={type}
+                onClick={() => onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type })}
+                className={`flex-1 text-xs py-1.5 px-2 rounded border transition-colors ${
+                  shoot.rig_type_override === type
+                    ? 'bg-orange-600 border-orange-500 text-white font-medium'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          {shoot.rig_type_override && (
+            <p className="text-xs text-orange-400 mt-1.5">Override active — overrides rig setting default</p>
+          )}
+        </div>
+      )}
+
       {/* Notes */}
       {(shoot.description || shoot.notes) && (
         <div className="bg-gray-800/40 rounded-lg p-3">
