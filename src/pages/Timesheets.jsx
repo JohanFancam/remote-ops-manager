@@ -311,7 +311,7 @@ export default function Timesheets() {
         </div>
 
         {showAddForm && (
-          <ManualAddForm onAdd={handleAddManual} onClose={() => setShowAddForm(false)} shoots={shoots} />
+          <ManualAddForm onAdd={handleAddManual} onClose={() => setShowAddForm(false)} />
         )}
 
         {/* Day blocks */}
