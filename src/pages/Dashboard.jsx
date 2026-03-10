@@ -200,7 +200,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Earnings — Level 1 Admin only sees all, Level 2 Admin sees nothing, remote sees own */}
+        {/* Earnings */}
         <div className="mt-8">
           {isLevel1Admin ? (
             <EarningsSummary shoots={shoots} users={users} />
@@ -211,6 +211,9 @@ export default function Dashboard() {
             />
           ) : null}
         </div>
+
+        {/* Admin monthly summary */}
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
       </div>
     </div>
   );
