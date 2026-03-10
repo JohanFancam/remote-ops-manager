@@ -103,10 +103,8 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Upcoming</p>
-                  <p className="text-3xl font-bold text-white mt-1">
-                    {isAdmin ? upcomingShoots.length : myUpcoming.length}
-                  </p>
+                  <p className="text-gray-400 text-sm">My Upcoming</p>
+                  <p className="text-3xl font-bold text-white mt-1">{myUpcoming.length}</p>
                 </div>
                 <Camera className="h-10 w-10 text-blue-500 opacity-80" />
               </div>
@@ -131,10 +129,10 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">Rigs Available</p>
-                      <p className="text-3xl font-bold text-white mt-1">{availableRigs}</p>
+                      <p className="text-gray-400 text-sm">My Standby</p>
+                      <p className="text-3xl font-bold text-white mt-1">{myStandbyCount}</p>
                     </div>
-                    <Wrench className="h-10 w-10 text-green-500 opacity-80" />
+                    <Phone className="h-10 w-10 text-yellow-500 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
@@ -142,10 +140,10 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">Operators</p>
-                      <p className="text-3xl font-bold text-white mt-1">{users.filter(u => u.role !== 'admin').length}</p>
+                      <p className="text-gray-400 text-sm">Rigs Available</p>
+                      <p className="text-3xl font-bold text-white mt-1">{availableRigs}</p>
                     </div>
-                    <Users className="h-10 w-10 text-yellow-500 opacity-80" />
+                    <Wrench className="h-10 w-10 text-green-500 opacity-80" />
                   </div>
                 </CardContent>
               </Card>
