@@ -18,6 +18,12 @@ function LayoutContent({ children, currentPageName }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const seenRef = useRef(new Set());
 
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+  const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
+
   // Real-time: admins get notified for all shoot updates from remote users
   useEffect(() => {
     if (!isAdmin) return;
@@ -92,8 +98,11 @@ function LayoutContent({ children, currentPageName }) {
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Wifi className="h-5 w-5 text-white" />
+            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+              {logoUrl
+                ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                : <Wifi className="h-5 w-5 text-white" />
+              }
             </div>
             <div>
               <p className="text-white font-bold text-sm leading-tight">Remote Ops</p>
