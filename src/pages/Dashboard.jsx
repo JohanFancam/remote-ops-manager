@@ -180,30 +180,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Admin: display count selector */}
-        {isAdmin && (
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <h2 className="text-lg font-semibold text-white">Upcoming Games — Live Countdown</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">Show:</span>
-              <input
-                type="number"
-                min={2}
-                max={10}
-                value={pendingCount}
-                onChange={e => setPendingCount(Math.min(10, Math.max(2, Number(e.target.value))))}
-                className="w-16 bg-gray-900 border border-gray-700 text-white text-sm rounded px-2 py-1 text-center"
-              />
-              <Button size="sm" onClick={saveDisplayCount} className="bg-blue-600 hover:bg-blue-700 h-8 gap-1.5">
-                <Save className="h-3.5 w-3.5" /> Save
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {!isAdmin && (
-          <h2 className="text-lg font-semibold text-white mb-4">My Upcoming Games — Live Countdown</h2>
-        )}
+        <h2 className="text-lg font-semibold text-white mb-4">My Upcoming Games — Live Countdown</h2>
 
         {/* Countdown Grid */}
         {displayShoots.length === 0 ? (
