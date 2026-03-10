@@ -229,7 +229,8 @@ export default function Dashboard() {
                     standbyAdmins={standbyAdmins}
                     isAdmin={isAdmin}
                     rigSettings={rigSettings}
-                    onUpdate={isAdmin ? handleShootUpdate : undefined}
+                    onUpdate={handleShootUpdate}
+                    userEmail={user?.email}
                   />
                 ))}
               </div>
