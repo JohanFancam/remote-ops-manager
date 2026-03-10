@@ -66,6 +66,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
+        {todayShoots.length === 0 && (
+          <p className="text-gray-500 text-sm text-center py-4">No shoots scheduled for today.</p>
+        )}
         <div className="space-y-2.5">
           {todayShoots.map(s => {
             const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
