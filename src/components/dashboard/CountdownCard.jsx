@@ -160,15 +160,40 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
         {/* Expanded details */}
         {expanded && (
           <div className="mt-3 pt-3 border-t border-gray-800 space-y-3">
-            {/* Schedule */}
+            {/* Schedule phases */}
             {schedule && (
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Schedule</p>
-                <ScheduleRow label="Setup" time={schedule.setup} Icon={Zap} />
-                <ScheduleRow label="Pre-Shoot" time={schedule.pre_shoot} Icon={Camera} />
-                {showAttention && <ScheduleRow label="Attention" time={schedule.attention} Icon={AlertTriangle} />}
-                {showSound && <ScheduleRow label="Sound Check" time={schedule.sound} Icon={Volume2} />}
-                <ScheduleRow label="Game Time" time={schedule.game} Icon={Clock} highlight />
+                {(() => {
+                  const phase = shoot.phase_status || {};
+                  // Parse a schedule time string "HH:MM" into a Date on shoot day
+                  const toDate = (timeStr) => {
+                    if (!timeStr || !shoot.date) return null;
+                    const [h, m] = timeStr.split(':').map(Number);
+                    const d = new Date(shoot.date + 'T00:00:00');
+                    d.setHours(h, m, 0, 0);
+                    return d;
+                  };
+                  const phases = [
+                    { label: 'Setup', time: schedule.setup, Icon: Zap, doneKey: 'setup_complete', date: toDate(schedule.setup) },
+                    { label: 'Pre-Shoot', time: schedule.pre_shoot, Icon: Camera, doneKey: 'pre_shoot_started', date: toDate(schedule.pre_shoot) },
+                    showAttention && { label: 'Attention', time: schedule.attention, Icon: AlertTriangle, doneKey: 'attention_started', date: toDate(schedule.attention) },
+                    showSound && { label: 'Sound Check', time: schedule.sound, Icon: Volume2, doneKey: 'sound_started', date: toDate(schedule.sound) },
+                    { label: 'Game Time', time: schedule.game, Icon: Flag, doneKey: null, date: gameDate },
+                  ].filter(Boolean);
+
+                  return (
+                    <div className="space-y-1">
+                      {phases.map((p, i) => {
+                        const done = p.doneKey ? !!phase[p.doneKey] : (gameDate && now > gameDate && shoot.status === 'completed');
+                        const active = !done && p.date && now >= (phases[i - 1]?.date || new Date(0)) && now < p.date;
+                        const msTo = p.date ? p.date - now : null;
+                        const cdLabel = msTo !== null && msTo > 0 ? `in ${formatCountdown(msTo)}` : null;
+                        return <PhaseRow key={p.label} {...p} done={done} active={active} countdown={cdLabel} />;
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
