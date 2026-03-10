@@ -37,7 +37,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
       const label = getRigTypeLabel(rig);
       return `${shortenTitle(s.title)}${label ? ` (${label})` : ''}`;
     });
-    return `Rigs ready for Today's shoots:\n\n${lines.join('\n')}`;
+    return `Rigs ready:\n\n${lines.join('\n')}`;
   };
 
   const handleCopy = () => {
@@ -54,7 +54,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-base flex items-center gap-2">
             <Wrench className="h-4 w-4 text-blue-400" />
-            Rigs Check — Today
+            Rigs Check — Next 7 Days
           </CardTitle>
           <Button
             size="sm"
@@ -87,7 +87,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
                 />
                 <span className="text-sm text-gray-200 group-hover:text-white transition-colors flex-1">
                   {shortenTitle(s.title)}
-                  {s.game_time && <span className="text-xs text-gray-500 ml-2 font-mono">{s.game_time}</span>}
+                  <span className="text-xs text-gray-500 ml-2 font-mono">{s.date === todayStr ? 'Today' : s.date}{s.game_time ? ` · ${s.game_time}` : ''}</span>
                 </span>
                 {label
                   ? <span className="text-xs text-blue-400 font-mono bg-blue-950/40 border border-blue-800/50 px-2 py-0.5 rounded">({label})</span>
