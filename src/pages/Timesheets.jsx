@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, Trash2, Download, Plus, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -316,7 +315,7 @@ export default function Timesheets() {
 
         {/* Day blocks */}
         {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">No shoots or entries for this month.</div>
+          <div className="text-center py-16 text-gray-500">No entries for this month. Use "Add Entry" to log time.</div>
         ) : (
           <div className="space-y-3">
             {sortedDates.map(date => (
