@@ -240,7 +240,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             <div className="px-3 pb-3 space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-xs text-gray-500">Sport</p><p className="text-gray-200">{matchedRig.sport || '—'}</p></div>
-                <div><p className="text-xs text-gray-500">Venue Type</p><p className="text-gray-200">{matchedRig.venue_type || '—'}</p></div>
+                <div><p className="text-xs text-gray-500">Venue</p><p className="text-gray-200">{matchedRig.venue_type || '—'}</p></div>
+                {matchedRig.rig_type && <div className="col-span-2"><p className="text-xs text-gray-500">Rig Type</p><p className="text-blue-300 font-medium">{matchedRig.rig_type}{matchedRig.sound ? '/Sound' : ''}</p></div>}
                 {matchedRig.remote_rigs?.length > 0 && (
                   <div className="col-span-2">
                     <p className="text-xs text-gray-500 mb-1">Remote Rigs (Google)</p>
