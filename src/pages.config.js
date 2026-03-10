@@ -53,6 +53,7 @@ import Rigs from './pages/Rigs';
 import Settings from './pages/Settings';
 import Shoots from './pages/Shoots';
 import Dashboard from './pages/Dashboard';
+import Timesheets from './pages/Timesheets';
 import __Layout from './Layout.jsx';
 
 
@@ -63,6 +64,7 @@ export const PAGES = {
     "Settings": Settings,
     "Shoots": Shoots,
     "Dashboard": Dashboard,
+    "Timesheets": Timesheets,
 }
 
 export const pagesConfig = {
