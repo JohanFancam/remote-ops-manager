@@ -326,7 +326,7 @@ export default function Rigs() {
                       </div>
                     ))}
                     <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
-                      <span className="text-xs font-medium text-gray-300 w-36">🔊 Sound</span>
+                      <span className="text-xs font-medium text-gray-300 w-36">Sound</span>
                       <span className={`text-xs font-bold ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
                     </div>
                   </div>
