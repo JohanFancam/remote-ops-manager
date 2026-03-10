@@ -268,11 +268,12 @@ export default function Rigs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    {rig.hd_camera && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">HD</Badge>}
-                    {rig.wide_camera && <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">Wide</Badge>}
-                    {rig.attention_camera && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">Attention</Badge>}
-                    {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">🔊</Badge>}
+                  <div className="flex gap-1 flex-wrap">
+                    {rig.rig_type && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">{rig.rig_type}</Badge>}
+                    {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
+                    {rig.hd_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">HD</Badge>}
+                    {rig.wide_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
+                    {rig.attention_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">Attention</Badge>}
                   </div>
                   {isAdmin && (
                     <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
