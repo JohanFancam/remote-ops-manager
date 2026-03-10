@@ -14,8 +14,10 @@ const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '
 const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
 const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
 
+const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
+
 const emptyForm = {
-  team: '', venue_type: 'Indoor', sport: 'NBA', shoot_plan: '',
+  team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
   remote_rigs: [],
   sound: false,
   hd_camera: true, hd_shutter: '1/250', hd_aperture: 'F8', hd_iso: 'Auto',

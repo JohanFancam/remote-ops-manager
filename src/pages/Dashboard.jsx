@@ -10,6 +10,7 @@ import CountdownCard from '../components/dashboard/CountdownCard';
 import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
+import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 
 const DISPLAY_COUNT_KEY = 'dashboard_display_count';
 
