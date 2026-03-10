@@ -176,9 +176,67 @@ export default function Timesheets() {
     refresh();
   };
 
-  let filtered = isAdmin ? entries : entries.filter(e => e.operator_email === user?.email);
-  if (filterMonth) filtered = filtered.filter(e => e.date?.startsWith(filterMonth));
-  if (isAdmin && filterOperator !== 'all') filtered = filtered.filter(e => e.operator_email === filterOperator);
+  // For admins: build rows from ALL shoots in the selected month, merged with any time entries
+  // For remote: show only their own time entries
+  let filtered = [];
+
+  if (isAdmin) {
+    // All shoots in the month
+    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+
+    // Build a synthetic row per shoot per operator/standby
+    const shootRows = [];
+    monthShoots.forEach(shoot => {
+      const operators = [
+        ...(shoot.assigned_operators || []).map(email => ({ email, role: 'operator' })),
+        ...(shoot.standby_admin ? [{ email: shoot.standby_admin, role: 'standby' }] : []),
+      ];
+      if (operators.length === 0) {
+        // Show shoot with no operators
+        shootRows.push({
+          _synthetic: true,
+          id: `syn_${shoot.id}_none`,
+          shoot_id: shoot.id,
+          date: shoot.date,
+          operator_email: '—',
+          operator_name: 'No operators',
+          hours: null,
+          entry_type: shoot.standby_admin ? 'standby' : 'shoot',
+          notes: shoot.title,
+          status: 'approved',
+        });
+      } else {
+        operators.forEach(({ email, role }) => {
+          const existingEntry = entries.find(e => e.shoot_id === shoot.id && e.operator_email === email);
+          shootRows.push(existingEntry ? { ...existingEntry, _synthetic: false } : {
+            _synthetic: true,
+            id: `syn_${shoot.id}_${email}`,
+            shoot_id: shoot.id,
+            date: shoot.date,
+            operator_email: email,
+            operator_name: email,
+            hours: null,
+            entry_type: role === 'standby' ? 'standby' : 'shoot',
+            notes: shoot.title,
+            status: 'approved',
+          });
+        });
+      }
+    });
+
+    // Also include manual entries not linked to a shoot
+    const manualEntries = entries.filter(e =>
+      e.date?.startsWith(filterMonth) &&
+      (!e.shoot_id || !monthShoots.find(s => s.id === e.shoot_id))
+    );
+
+    filtered = [...shootRows, ...manualEntries];
+    if (filterOperator !== 'all') filtered = filtered.filter(e => e.operator_email === filterOperator);
+    filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  } else {
+    filtered = entries.filter(e => e.operator_email === user?.email);
+    if (filterMonth) filtered = filtered.filter(e => e.date?.startsWith(filterMonth));
+  }
 
   const operators = [...new Set(entries.map(e => e.operator_email).filter(Boolean))];
   const totalHours = filtered.reduce((s, e) => s + (e.hours || 0), 0);

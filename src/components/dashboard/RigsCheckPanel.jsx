@@ -20,7 +20,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
 
   const todayShoots = shoots.filter(s => s.date === todayStr && s.status !== 'cancelled');
 
-  if (todayShoots.length === 0) return null;
+  // always render
 
   const toggle = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
 
