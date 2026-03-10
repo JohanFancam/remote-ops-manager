@@ -292,8 +292,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
-      {/* Admin: assign any user */}
-      {isAdmin && !isPast && (
+      {/* Admin: assign any user — allowed even on past shoots for backfilling */}
+      {isAdmin && (
         <div>
           {showAssignUser ? (
             <div className="bg-gray-800/60 rounded-lg p-3">
@@ -314,8 +314,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
-      {/* Self assign/unassign */}
-      {!isPast && (
+      {/* Self assign/unassign — admin can do on past shoots too */}
+      {(!isPast || isAdmin) && (
         <div>
           <Button
             size="sm"
@@ -326,11 +326,12 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               : 'bg-blue-600 hover:bg-blue-700 text-white w-full'
             }
           >
-            {isApproved ? 'Unassign Myself' : isPending ? '⏳ Pending — Cancel' : isAdmin ? '+ Assign Myself (no earnings)' : '+ Assign Myself'}
+            {isApproved ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Slot Taken' : '+ Assign Myself'}
           </Button>
           {!isAdmin && !isApproved && !isPending && (
             <p className="text-xs text-center mt-1 text-gray-500">
-              {remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
+              {shootFull ? 'This shoot is already assigned to another operator' :
+               remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
             </p>
           )}
         </div>
