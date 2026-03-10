@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CalendarDays, Wrench, Users, Save } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Users, Save, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
+import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 
 const DISPLAY_COUNT_KEY = 'dashboard_display_count';
 

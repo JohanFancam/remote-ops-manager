@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -6,26 +6,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus, Shield, User, Trash2, RefreshCw, Phone, PhoneOff, MessageSquare, Save } from 'lucide-react';
+import {
+  Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
+  MessageSquare, Save, Image, Send, Clock, X
+} from 'lucide-react';
 
 const SLACK_PHASES = [
-  { key: 'setup_complete', label: 'Setup Complete', placeholder: '🔧 Setup complete — {team} shoot ready to go!' },
-  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', placeholder: '📸 Pre-shoot started — {team}' },
-  { key: 'attention_started', label: 'Attention Started', placeholder: '⚠️ Attention phase started — {team}' },
-  { key: 'sound_started', label: 'Sound Started', placeholder: '🔊 Sound check in progress — {team}' },
+  { key: 'setup_complete', label: 'Setup Complete', placeholder: 'Setup complete — {team} shoot ready to go!' },
+  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', placeholder: 'Pre-shoot started — {team}' },
+  { key: 'attention_started', label: 'Attention Started', placeholder: 'Attention phase started — {team}' },
+  { key: 'sound_started', label: 'Sound Started', placeholder: 'Sound check in progress — {team}' },
 ];
 
 export default function Settings() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('user');
-  const [inviting, setInviting] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [slackMsgs, setSlackMsgs] = useState({});
   const [slackSaved, setSlackSaved] = useState(false);
   const [standbyDone, setStandbyDone] = useState(false);
+
+  // Pending users
+  const [showAddPending, setShowAddPending] = useState(false);
+  const [pendingForm, setPendingForm] = useState({ full_name: '', email: '', role: 'user', notes: '' });
+  const [savingPending, setSavingPending] = useState(false);
+  const [invitingId, setInvitingId] = useState(null);
+
+  // Logo
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef();
 
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
@@ -36,10 +45,17 @@ export default function Settings() {
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list('-created_date', 100),
     enabled: isAdmin,
   });
 
-  // Load slack message settings
+  const logoSetting = appSettings.find(s => s.key === 'app_logo_url');
+  const logoUrl = logoSetting?.value;
+
   useEffect(() => {
     if (!appSettings.length) return;
     const msgs = {};
@@ -53,22 +69,7 @@ export default function Settings() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['allUsers'] });
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const handleInvite = async () => {
-    if (!inviteEmail) return;
-    setInviting(true);
-    setInviteMsg('');
-    try {
-      await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
-      setInviteEmail('');
-      setInviteMsg(`✓ Invite sent to ${inviteEmail}`);
-      refresh();
-    } catch (e) {
-      setInviteMsg('Failed to send invite.');
-    } finally {
-      setInviting(false);
-    }
+    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
   };
 
   const handleDelete = async (userId) => {
@@ -106,6 +107,43 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    if (logoSetting) {
+      await base44.entities.AppSettings.update(logoSetting.id, { value: file_url });
+    } else {
+      await base44.entities.AppSettings.create({ key: 'app_logo_url', value: file_url, description: 'Custom app logo' });
+    }
+    setLogoUploading(false);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  const handleAddPendingUser = async () => {
+    if (!pendingForm.email) return;
+    setSavingPending(true);
+    await base44.entities.PendingUser.create({ ...pendingForm, invited: false });
+    setPendingForm({ full_name: '', email: '', role: 'user', notes: '' });
+    setShowAddPending(false);
+    setSavingPending(false);
+    refresh();
+  };
+
+  const handleInvitePendingUser = async (pu) => {
+    setInvitingId(pu.id);
+    await base44.users.inviteUser(pu.email, pu.role === 'admin' ? 'admin' : 'user');
+    await base44.entities.PendingUser.update(pu.id, { invited: true });
+    setInvitingId(null);
+    refresh();
+  };
+
+  const handleDeletePendingUser = async (id) => {
+    await base44.entities.PendingUser.delete(id);
+    refresh();
+  };
+
   const isStandby = user?.standby === true;
 
   return (
@@ -134,12 +172,42 @@ export default function Settings() {
                 <p className="text-lg font-semibold text-white">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-gray-400 text-sm">{user?.email}</p>
                 <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                  {user?.role === 'admin' ? `⚡ Admin Level ${user?.admin_level ?? 1}` : '📡 Remote Operator'}
+                  {user?.role === 'admin' ? `Admin Level ${user?.admin_level ?? 1}` : 'Remote Operator'}
                 </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* App Logo — Admin only */}
+        {isAdmin && (
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Image className="h-5 w-5 text-blue-400" /> App Logo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="w-16 h-16 bg-gray-800 rounded-xl flex items-center justify-center overflow-hidden border border-gray-700">
+                  {logoUrl
+                    ? <img src={logoUrl} alt="App Logo" className="w-full h-full object-contain" />
+                    : <span className="text-2xl font-bold text-blue-400">R</span>
+                  }
+                </div>
+                <div>
+                  <p className="text-sm text-gray-300 mb-2">Upload a custom logo (PNG, JPG, SVG recommended)</p>
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
+                    className="bg-blue-700 hover:bg-blue-600 gap-2">
+                    <Image className="h-4 w-4" />
+                    {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Standby Toggle — Admin only */}
         {isAdmin && (
@@ -203,43 +271,93 @@ export default function Settings() {
         {/* User Management — Admin only */}
         {isAdmin && (
           <>
+            {/* Pending / Pre-registered Users */}
             <Card className="bg-gray-900 border-gray-800 mb-6">
               <CardHeader className="border-b border-gray-800 pb-4">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <UserPlus className="h-5 w-5 text-green-400" /> Invite User
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="flex gap-3 flex-wrap">
-                  <Input
-                    placeholder="Email address"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 flex-1 min-w-40"
-                  />
-                  <select
-                    value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 text-sm"
-                  >
-                    <option value="user">Remote Operator</option>
-                    {isLevel1Admin && <option value="admin">Admin</option>}
-                  </select>
-                  <Button onClick={handleInvite} disabled={inviting || !inviteEmail} className="bg-green-700 hover:bg-green-600">
-                    {inviting ? 'Sending...' : 'Invite'}
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-orange-400" /> Pre-registered Users ({pendingUsers.length})
+                  </CardTitle>
+                  <Button size="sm" onClick={() => setShowAddPending(!showAddPending)}
+                    className="bg-orange-700 hover:bg-orange-600 gap-1.5 text-xs">
+                    <UserPlus className="h-3.5 w-3.5" /> Add User
                   </Button>
                 </div>
-                {inviteMsg && (
-                  <p className={`text-sm mt-2 ${inviteMsg.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{inviteMsg}</p>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {showAddPending && (
+                  <div className="bg-gray-800/60 rounded-xl p-4 mb-4 border border-gray-700 space-y-3">
+                    <p className="text-sm font-medium text-gray-300">Add user — invite now or later</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input placeholder="Full Name" value={pendingForm.full_name}
+                        onChange={e => setPendingForm({ ...pendingForm, full_name: e.target.value })}
+                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+                      <Input placeholder="Email address *" value={pendingForm.email}
+                        onChange={e => setPendingForm({ ...pendingForm, email: e.target.value })}
+                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+                    </div>
+                    <div className="flex gap-3 flex-wrap items-center">
+                      <select value={pendingForm.role} onChange={e => setPendingForm({ ...pendingForm, role: e.target.value })}
+                        className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm">
+                        <option value="user">Remote Operator</option>
+                        {isLevel1Admin && <option value="admin">Admin</option>}
+                      </select>
+                      <Input placeholder="Notes (optional)" value={pendingForm.notes}
+                        onChange={e => setPendingForm({ ...pendingForm, notes: e.target.value })}
+                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 flex-1" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAddPendingUser} disabled={savingPending || !pendingForm.email}
+                        className="bg-orange-700 hover:bg-orange-600 gap-1.5">
+                        <Save className="h-3.5 w-3.5" /> Save (invite later)
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setShowAddPending(false)}>
+                        <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                      </Button>
+                    </div>
+                  </div>
                 )}
+
+                {pendingUsers.length === 0 && !showAddPending && (
+                  <p className="text-gray-500 text-sm text-center py-4">No pre-registered users. Use "Add User" to register someone for later.</p>
+                )}
+
+                <div className="space-y-2">
+                  {pendingUsers.map(pu => (
+                    <div key={pu.id} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white">{pu.full_name || pu.email}</p>
+                        <p className="text-xs text-gray-400">{pu.email}</p>
+                        {pu.notes && <p className="text-xs text-gray-500 mt-0.5">{pu.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                        <Badge className={`text-xs ${pu.invited ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}>
+                          {pu.invited ? 'Invited' : 'Pending'}
+                        </Badge>
+                        {!pu.invited && (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-700 gap-1"
+                            disabled={invitingId === pu.id}
+                            onClick={() => handleInvitePendingUser(pu)}>
+                            <Send className="h-3 w-3" />
+                            {invitingId === pu.id ? 'Sending...' : 'Invite Now'}
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400"
+                          onClick={() => handleDeletePendingUser(pu.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
+            {/* Active Team Members */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="border-b border-gray-800 pb-4">
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-400" /> Team Members ({users.length})
+                  <Users className="h-5 w-5 text-purple-400" /> Active Team Members ({users.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -253,14 +371,13 @@ export default function Settings() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
                           <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                          {u.standby && <span className="text-xs text-yellow-400">📞 On Standby</span>}
+                          {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                          {u.role === 'admin' ? `⚡ L${u.admin_level ?? 1}` : '📡'}
+                          {u.role === 'admin' ? `L${u.admin_level ?? 1}` : 'Operator'}
                         </Badge>
-                        {/* Level 1 admin can set admin levels for other admins */}
                         {isLevel1Admin && u.role === 'admin' && u.id !== user?.id && (
                           <select
                             value={u.admin_level ?? 1}
@@ -272,19 +389,17 @@ export default function Settings() {
                           </select>
                         )}
                         {isLevel1Admin && u.id !== user?.id && (
-                          <>
-                            {deleteConfirm === u.id ? (
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs text-red-400">Sure?</span>
-                                <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
-                                <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
-                              </div>
-                            ) : (
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </>
+                          deleteConfirm === u.id ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-red-400">Sure?</span>
+                              <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
+                              <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
+                            </div>
+                          ) : (
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>
