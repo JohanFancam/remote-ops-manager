@@ -65,20 +65,23 @@ export default function Dashboard() {
       return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
     });
 
-  const myUpcoming = upcomingShoots.filter(s => s.assigned_operators?.includes(user?.email));
-  const displayShoots = isAdmin
-    ? upcomingShoots.slice(0, displayCount)
-    : myUpcoming;
+  const myUpcoming = upcomingShoots.filter(s =>
+    s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email
+  );
+  // Admins see only their own assigned/standby shoots (like remote users)
+  const displayShoots = myUpcoming.slice(0, isAdmin ? displayCount : undefined);
 
   const availableRigs = rigs.filter(r => r.status === 'available').length;
   const thisMonthShoots = shoots.filter(s => s.date?.startsWith(format(today, 'yyyy-MM')));
+
+  const myStandbyCount = upcomingShoots.filter(s => s.standby_admin === user?.email).length;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">
-            {isAdmin ? 'Operations Dashboard' : `Welcome, ${user?.full_name?.split(' ')[0] || 'Operator'}`}
+            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
           </h1>
           <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d yyyy')}</p>
         </div>
