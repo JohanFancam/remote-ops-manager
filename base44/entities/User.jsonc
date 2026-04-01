@@ -1,0 +1,23 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "accounts"
+      ],
+      "default": "user"
+    },
+    "admin_level": {
+      "type": "number",
+      "description": "1 = full admin, 2 = restricted admin"
+    },
+    "standby": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

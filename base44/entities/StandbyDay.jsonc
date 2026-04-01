@@ -1,0 +1,31 @@
+{
+  "name": "StandbyDay",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date of the standby assignment"
+    },
+    "admin_email": {
+      "type": "string",
+      "description": "Email of admin on standby"
+    },
+    "admin_name": {
+      "type": "string",
+      "description": "Display name of admin on standby"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes for this standby day"
+    },
+    "swapped_from": {
+      "type": "string",
+      "description": "Original admin email if this was swapped"
+    }
+  },
+  "required": [
+    "date",
+    "admin_email"
+  ]
+}

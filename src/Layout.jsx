@@ -6,13 +6,13 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isLevel1Admin, adminLevel, isLoading } = useApp();
+  const { user, isAdmin, isAccounts, isLevel1Admin, adminLevel, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -78,16 +78,24 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Timesheets', icon: Clock, page: 'Timesheets' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
+    { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Timesheets', icon: Clock, page: 'Timesheets' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  const navItems = isAdmin ? adminNav : remoteNav;
+  const accountsNav = [
+    { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+    { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Settings', icon: Settings, page: 'Settings' },
+  ];
+
+  const navItems = isAdmin ? adminNav : isAccounts ? accountsNav : remoteNav;
 
   const handleLogout = () => base44.auth.logout();
 

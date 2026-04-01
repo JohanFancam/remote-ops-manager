@@ -3,19 +3,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
-import EarningsSummary from '../components/dashboard/EarningsSummary';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 import TeamActivityList from '../components/dashboard/TeamActivityList';
+import StandbyManager from '../components/dashboard/StandbyManager';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team'
+  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team' | 'accounts'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -46,11 +46,18 @@ export default function Dashboard() {
     enabled: !isAdmin,
   });
 
-  const allUsers = isAdmin ? users : allUsersPublic;
-  const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
 
+  const allUsers = isAdmin ? users : allUsersPublic;
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
+
+  // Standby contact for today (from StandbyDay entity)
+  const todayStandby = standbyDays.find(s => s.date === todayStr);
+  const todayStandbyUser = todayStandby ? allUsers.find(u => u.email === todayStandby.admin_email) : null;
 
   const upcomingShoots = shoots
     .filter(s => s.status !== 'cancelled' && s.status !== 'completed' && s.date >= todayStr)
@@ -60,7 +67,8 @@ export default function Dashboard() {
     });
 
   const myUpcoming = upcomingShoots.filter(s =>
-    s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email
+    s.assigned_operators?.includes(user?.email) ||
+    standbyDays.some(sd => sd.date === s.date && sd.admin_email === user?.email)
   );
 
   const todayShoots = myUpcoming.filter(s => s.date === todayStr);
@@ -70,9 +78,11 @@ export default function Dashboard() {
   const availableRigs = rigs.filter(r => r.status === 'available').length;
   const thisMonthMyShoots = shoots.filter(s =>
     s.date?.startsWith(format(today, 'yyyy-MM')) &&
-    (s.assigned_operators?.includes(user?.email) || s.standby_admin === user?.email)
+    s.assigned_operators?.includes(user?.email)
   );
-  const myStandbyCount = upcomingShoots.filter(s => s.standby_admin === user?.email).length;
+  const myStandbyCount = standbyDays.filter(s =>
+    s.admin_email === user?.email && s.date >= todayStr
+  ).length;
 
   const handleShootUpdate = async (id, data) => {
     await base44.entities.Shoot.update(id, data);
@@ -91,12 +101,12 @@ export default function Dashboard() {
         </div>
 
         {/* Standby contact banner — remote users */}
-        {!isAdmin && standbyAdmins.length > 0 && (
+        {!isAdmin && todayStandbyUser && (
           <div className="mb-6 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3 flex items-center gap-3">
             <Phone className="h-5 w-5 text-yellow-400 flex-shrink-0" />
             <div>
-              <p className="text-yellow-300 text-sm font-medium">Standby Contact{standbyAdmins.length > 1 ? 's' : ''}:</p>
-              <p className="text-yellow-200 text-sm">{standbyAdmins.map(a => a.full_name || a.email).join(', ')}</p>
+              <p className="text-yellow-300 text-sm font-medium">Today's Standby Contact:</p>
+              <p className="text-yellow-200 text-sm">{todayStandbyUser.full_name || todayStandbyUser.email}</p>
             </div>
           </div>
         )}
@@ -133,7 +143,7 @@ export default function Dashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm">My Standby</p>
+                      <p className="text-gray-400 text-sm">My Standby Days</p>
                       <p className="text-3xl font-bold text-white mt-1">{myStandbyCount}</p>
                     </div>
                     <Phone className="h-10 w-10 text-yellow-500 opacity-80" />
@@ -186,29 +196,28 @@ export default function Dashboard() {
 
         {/* Admin: tabs */}
         {isAdmin && (
-          <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
-            <button
-              onClick={() => setAdminTab('my')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                adminTab === 'my' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
+          <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit flex-wrap">
+            <button onClick={() => setAdminTab('my')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'my' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
               <LayoutDashboard className="h-4 w-4" /> My Schedule
             </button>
-            <button
-              onClick={() => setAdminTab('team')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                adminTab === 'team' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
+            <button onClick={() => setAdminTab('team')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'team' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
               <Activity className="h-4 w-4" /> Team Activity
             </button>
+            {isLevel1Admin && (
+              <button onClick={() => setAdminTab('accounts')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'accounts' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                <DollarSign className="h-4 w-4" /> Accounts
+              </button>
+            )}
           </div>
         )}
 
         {/* MY SCHEDULE tab */}
         {(!isAdmin || adminTab === 'my') && (
           <>
+            {isAdmin && <StandbyManager user={user} allUsers={users} />}
             {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
 
             <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
@@ -226,7 +235,6 @@ export default function Dashboard() {
                   <CountdownCard
                     key={shoot.id}
                     shoot={shoot}
-                    standbyAdmins={standbyAdmins}
                     isAdmin={isAdmin}
                     rigSettings={rigSettings}
                     onUpdate={handleShootUpdate}
@@ -237,14 +245,12 @@ export default function Dashboard() {
             )}
 
             <div className="mt-8">
-              {isLevel1Admin ? (
-                <EarningsSummary shoots={shoots} users={users} />
-              ) : !isAdmin ? (
+              {!isAdmin && (
                 <RemoteEarnings
                   shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
                   user={user}
                 />
-              ) : null}
+              )}
             </div>
 
             {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
@@ -255,6 +261,92 @@ export default function Dashboard() {
         {isAdmin && adminTab === 'team' && (
           <TeamActivityList shoots={shoots} allUsers={users} />
         )}
+
+        {/* ACCOUNTS tab — level 1 admin only */}
+        {isAdmin && adminTab === 'accounts' && isLevel1Admin && (
+          <AccountsQuickView shoots={shoots} allUsers={users} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Inline quick accounts view for admin tab
+function AccountsQuickView({ shoots, allUsers }) {
+  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const { data: paymentRecords = [] } = useQuery({
+    queryKey: ['paymentRecords'],
+    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
+  });
+
+  const BASE_RATE = 200;
+  const ADDITIONAL_RATE = 150;
+
+  const goMonth = (delta) => {
+    const [y, m] = filterMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setFilterMonth(format(d, 'yyyy-MM'));
+  };
+
+  const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+  const remoteUsers = allUsers.filter(u => u.role === 'user');
+
+  const rows = remoteUsers.map(op => {
+    const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
+    const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
+    const total = opShoots.reduce((sum, sh) => {
+      const rec = opRecords.find(r => r.shoot_id === sh.id);
+      const fee = rec?.override_fee != null ? rec.override_fee : (rec?.is_additional ? ADDITIONAL_RATE : BASE_RATE);
+      return sum + fee;
+    }, 0);
+    const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
+    return { ...op, shoots: opShoots.length, total, paid: allPaid };
+  }).filter(op => op.shoots > 0);
+
+  const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-white">Accounts Overview</h2>
+        <div className="flex items-center gap-2">
+          <button className="text-gray-400 hover:text-white px-2" onClick={() => goMonth(-1)}>{'<'}</button>
+          <span className="text-sm text-gray-300">{format(new Date(filterMonth + '-01'), 'MMM yyyy')}</span>
+          <button className="text-gray-400 hover:text-white px-2" onClick={() => goMonth(1)}>{'>'}</button>
+        </div>
+      </div>
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="grid grid-cols-4 text-xs text-gray-500 uppercase tracking-wider px-4 py-2 border-b border-gray-800">
+          <span>Operator</span><span className="text-center">Shoots</span><span className="text-center">Amount</span><span className="text-center">Status</span>
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-gray-500 text-sm text-center py-8">No activity this month.</p>
+        ) : rows.map(r => (
+          <div key={r.email} className="grid grid-cols-4 px-4 py-3 border-b border-gray-800/50 last:border-0 items-center">
+            <div>
+              <p className="text-sm text-white">{r.full_name || r.email}</p>
+              <p className="text-xs text-gray-500 truncate">{r.email}</p>
+            </div>
+            <p className="text-center text-white">{r.shoots}</p>
+            <p className="text-center font-mono text-white">${r.total.toFixed(2)}</p>
+            <div className="flex justify-center">
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${r.paid ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
+                {r.paid ? 'Paid' : 'Unpaid'}
+              </span>
+            </div>
+          </div>
+        ))}
+        {rows.length > 0 && (
+          <div className="grid grid-cols-4 px-4 py-3 border-t border-gray-700 bg-gray-800/30">
+            <span className="text-sm font-semibold text-white">Total</span>
+            <span />
+            <span className="text-center font-mono font-bold text-white">${grandTotal.toFixed(2)}</span>
+            <span />
+          </div>
+        )}
+      </div>
+      <div className="mt-4 text-center">
+        <a href="/Accounts" className="text-sm text-blue-400 hover:text-blue-300">Open full Accounts page →</a>
       </div>
     </div>
   );

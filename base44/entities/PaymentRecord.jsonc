@@ -1,0 +1,54 @@
+{
+  "name": "PaymentRecord",
+  "type": "object",
+  "properties": {
+    "operator_email": {
+      "type": "string"
+    },
+    "operator_name": {
+      "type": "string"
+    },
+    "period_month": {
+      "type": "string",
+      "description": "YYYY-MM format"
+    },
+    "shoot_id": {
+      "type": "string"
+    },
+    "shoot_title": {
+      "type": "string"
+    },
+    "shoot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_additional": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this was an additional shoot"
+    },
+    "base_fee": {
+      "type": "number",
+      "description": "Default calculated fee"
+    },
+    "override_fee": {
+      "type": "number",
+      "description": "Manually overridden fee amount"
+    },
+    "paid": {
+      "type": "boolean",
+      "default": false
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_email",
+    "period_month"
+  ]
+}
