@@ -2,79 +2,104 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Download, DollarSign, Check, X, FileText, Edit2, Save, RefreshCw
+  Download, Check, X, FileText, Edit2, Save, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
+import { getAdditionalShootIds } from '../components/utils/earningsUtils';
 
-const BASE_RATE = 200;
-const ADDITIONAL_RATE = 150;
-
-function calcFee(shoot, isAdditional) {
-  return isAdditional ? ADDITIONAL_RATE : BASE_RATE;
-}
-
-function exportPDF(rows, month, zarToUsd) {
+function exportPDF(rows, month, baseRate, additionalRate) {
   const doc = new jsPDF();
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
   doc.text('Remote Ops — Accounts Summary', 20, 20);
   doc.setFontSize(11); doc.setFont('helvetica', 'normal');
-  doc.text(`Month: ${month}   |   Rate: 1 USD = R${(1 / zarToUsd).toFixed(2)} ZAR`, 20, 30);
+  doc.text(`Month: ${month}   |   Standard: R${baseRate}  Additional: R${additionalRate}`, 20, 30);
   doc.setFontSize(8); doc.setTextColor(120, 120, 120);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 38);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, 20, 38);
   let y = 52;
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-  doc.text('Operator', 20, y); doc.text('Shoots', 75, y); doc.text('ZAR', 105, y); doc.text('USD', 140, y); doc.text('Status', 170, y);
+  doc.text('Operator', 20, y); doc.text('Shoots', 90, y); doc.text('Amount (ZAR)', 130, y); doc.text('Status', 175, y);
   doc.setDrawColor(180, 180, 180); doc.line(20, y + 3, 190, y + 3); y += 10;
   doc.setFont('helvetica', 'normal');
   rows.forEach(r => {
     if (y > 270) { doc.addPage(); y = 20; }
-    doc.text((r.name || r.email).substring(0, 25), 20, y);
-    doc.text(String(r.shoots), 75, y);
-    doc.text(`R${r.total.toFixed(2)}`, 105, y);
-    doc.text(`$${(r.total * zarToUsd).toFixed(2)}`, 140, y);
-    doc.text(r.paid ? 'PAID' : 'UNPAID', 170, y);
+    doc.text((r.name || r.email).substring(0, 35), 20, y);
+    doc.text(String(r.shoots), 90, y);
+    doc.text(`R${r.total.toFixed(2)}`, 130, y);
+    doc.text(r.paid ? 'PAID' : 'UNPAID', 175, y);
     y += 9;
   });
   doc.line(20, y + 2, 190, y + 2); y += 8;
   doc.setFont('helvetica', 'bold');
   const grand = rows.reduce((s, r) => s + r.total, 0);
   doc.text('TOTAL', 20, y);
-  doc.text(`R${grand.toFixed(2)}`, 105, y);
-  doc.text(`$${(grand * zarToUsd).toFixed(2)}`, 140, y);
+  doc.text(`R${grand.toFixed(2)}`, 130, y);
   doc.save(`Accounts_${month}.pdf`);
 }
 
-function exportCSV(rows, month, zarToUsd) {
-  const header = 'Operator,Email,Shoots,ZAR Amount,USD Amount,Paid\n';
-  const body = rows.map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${(r.total * zarToUsd).toFixed(2)},${r.paid ? 'Yes' : 'No'}`).join('\n');
+function exportCSV(rows, month) {
+  const header = 'Operator,Email,Shoots,Amount (ZAR),Paid\n';
+  const body = rows.map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${r.paid ? 'Yes' : 'No'}`).join('\n');
   const blob = new Blob([header + body], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `Accounts_${month}.csv`; a.click();
 }
 
-function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePaid, onSaveNote, zarToUsd }) {
+function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePaid, onSaveNote, onToggleAdditional, baseRate, additionalRate }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
   const [note, setNote] = useState('');
   const [editingNote, setEditingNote] = useState(null);
 
-  const opShoots = shoots.filter(s => s.assigned_operators?.includes(op.email));
+  const opShoots = shoots
+    .filter(s => s.assigned_operators?.includes(op.email))
+    .sort((a, b) => {
+      const dc = a.date.localeCompare(b.date);
+      return dc !== 0 ? dc : (a.game_time || '').localeCompare(b.game_time || '');
+    });
+
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
 
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
+
+  // Group shoots by date to auto-detect additional (2hr window), but allow manual override
+  const shootsByDate = useMemo(() => {
+    const byDate = {};
+    opShoots.forEach(s => {
+      if (!byDate[s.date]) byDate[s.date] = [];
+      byDate[s.date].push(s);
+    });
+    return byDate;
+  }, [opShoots]);
+
+  const autoAdditionalIds = useMemo(() => {
+    const ids = new Set();
+    Object.values(shootsByDate).forEach(dayShots => {
+      getAdditionalShootIds(dayShots).forEach(id => ids.add(id));
+    });
+    return ids;
+  }, [shootsByDate]);
+
+  const isAdditional = (shoot) => {
+    const rec = getRecord(shoot);
+    // If manually overridden, use that
+    if (rec?.is_additional != null) return rec.is_additional;
+    // Otherwise use auto-detection
+    return autoAdditionalIds.has(shoot.id);
+  };
+
   const getFee = (shoot) => {
     const rec = getRecord(shoot);
     if (rec?.override_fee != null) return rec.override_fee;
-    return calcFee(shoot, rec?.is_additional || false);
+    return isAdditional(shoot) ? additionalRate : baseRate;
   };
 
   const total = opShoots.reduce((s, sh) => s + getFee(sh), 0);
@@ -105,6 +130,12 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
     setNote('');
   };
 
+  const handleToggleAdditional = async (shoot) => {
+    const rec = getRecord(shoot);
+    const current = isAdditional(shoot);
+    await onToggleAdditional({ shoot, email: op.email, name: op.full_name, month, is_additional: !current, existingId: rec?.id });
+  };
+
   return (
     <div className={`rounded-xl border transition-colors ${allPaid ? 'border-green-800/60 bg-green-950/10' : 'border-gray-800 bg-gray-900'}`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
@@ -116,7 +147,6 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
           <div className="text-right">
             <p className="text-sm text-gray-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
             <p className="font-mono font-bold text-white">R{total.toFixed(2)}</p>
-            <p className="font-mono text-xs text-gray-400">${(total * zarToUsd).toFixed(2)}</p>
           </div>
           <Badge className={allPaid ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}>
             {allPaid ? 'Paid' : 'Unpaid'}
@@ -138,21 +168,27 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
             const rec = getRecord(shoot);
             const fee = getFee(shoot);
             const isPaid = rec?.paid === true;
-            const isAdditional = rec?.is_additional === true;
+            const additional = isAdditional(shoot);
+            const hasOverrideFee = rec?.override_fee != null;
+            const hasManualAdditional = rec?.is_additional != null;
             return (
               <div key={shoot.id} className={`rounded-lg p-3 border ${isPaid ? 'border-green-800/40 bg-green-950/10' : 'border-gray-800 bg-gray-800/40'}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{shoot.title}</p>
                     <p className="text-xs text-gray-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
-                    {isAdditional && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30 mt-1">Additional Shoot</Badge>}
+                    <div className="flex gap-1 flex-wrap mt-1">
+                      {additional && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
+                      {hasOverrideFee && <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Fee Override</Badge>}
+                      {hasManualAdditional && <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">Manual</Badge>}
+                    </div>
                     {rec?.notes && <p className="text-xs text-gray-400 mt-1 italic">{rec.notes}</p>}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {editingId === shoot.id ? (
                       <>
                         <Input type="number" value={editFee} onChange={e => setEditFee(e.target.value)}
-                          className="bg-gray-700 border-gray-600 text-white h-7 w-24 text-sm" placeholder="Fee" />
+                          className="bg-gray-700 border-gray-600 text-white h-7 w-24 text-sm" placeholder="Fee (R)" />
                         <Button size="sm" className="h-7 bg-blue-600 hover:bg-blue-700 text-xs px-2" onClick={() => handleSaveFee(shoot)}>
                           <Save className="h-3 w-3" />
                         </Button>
@@ -162,10 +198,7 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
                       </>
                     ) : (
                       <>
-                        <div className="text-right">
-                          <span className="font-mono font-bold text-white">R{fee.toFixed(2)}</span>
-                          <p className="font-mono text-xs text-gray-400">${(fee * zarToUsd).toFixed(2)}</p>
-                        </div>
+                        <span className="font-mono font-bold text-white">R{fee.toFixed(2)}</span>
                         <Button size="sm" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white p-0"
                           onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
                           <Edit2 className="h-3 w-3" />
@@ -178,10 +211,18 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
                     </Button>
                   </div>
                 </div>
-                {/* Note row */}
-                <div className="mt-2">
+                {/* Manual additional toggle + note */}
+                <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                  <button
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${additional
+                      ? 'border-orange-700 text-orange-400 bg-orange-950/30 hover:bg-orange-950/60'
+                      : 'border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600'}`}
+                    onClick={() => handleToggleAdditional(shoot)}
+                    title="Toggle additional shoot rate">
+                    {additional ? '⚡ Mark as Standard' : '+ Mark as Additional'}
+                  </button>
                   {editingNote === shoot.id ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-1">
                       <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Add note..."
                         className="bg-gray-700 border-gray-600 text-white h-7 text-xs flex-1" />
                       <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 px-2" onClick={() => handleSaveNote(shoot)}>Save</Button>
@@ -210,9 +251,6 @@ export default function Accounts() {
   const canView = isAdmin || isAccounts;
 
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
-  // ZAR to USD rate: e.g. if 1 USD = 18 ZAR, zarToUsd = 1/18
-  const [zarPerUsd, setZarPerUsd] = useState(18.5);
-  const zarToUsd = 1 / zarPerUsd;
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -232,6 +270,15 @@ export default function Accounts() {
     enabled: canView,
   });
 
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+    enabled: canView,
+  });
+
+  const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
+  const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
 
   const goMonth = (delta) => {
@@ -247,15 +294,24 @@ export default function Accounts() {
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
+
+      // Group by date to detect additional shoots
+      const byDate = {};
+      opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+      const autoAdditionalIds = new Set();
+      Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
+
       const total = opShoots.reduce((sum, sh) => {
         const rec = opRecords.find(r => r.shoot_id === sh.id);
-        const fee = rec?.override_fee != null ? rec.override_fee : (rec?.is_additional ? ADDITIONAL_RATE : BASE_RATE);
-        return sum + fee;
+        if (rec?.override_fee != null) return sum + rec.override_fee;
+        const additional = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(sh.id);
+        return sum + (additional ? additionalRate : baseRate);
       }, 0);
+
       const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
       return { ...op, name: op.full_name || op.email, shoots: opShoots.length, total, paid: allPaid };
     }).filter(op => op.shoots > 0);
-  }, [remoteUsers, monthShoots, paymentRecords, filterMonth]);
+  }, [remoteUsers, monthShoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
   const grandTotal = summaryRows.reduce((s, r) => s + r.total, 0);
   const paidCount = summaryRows.filter(r => r.paid).length;
@@ -280,6 +336,7 @@ export default function Accounts() {
   const handleSaveFee = (args) => upsertRecord(args);
   const handleTogglePaid = (args) => upsertRecord(args);
   const handleSaveNote = (args) => upsertRecord(args);
+  const handleToggleAdditional = (args) => upsertRecord(args);
 
   if (!canView) {
     return (
@@ -296,27 +353,17 @@ export default function Accounts() {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Accounts</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Operator earnings & payment tracking</p>
+            <p className="text-gray-400 text-sm mt-0.5">Operator earnings — Standard: R{baseRate} · Additional: R{additionalRate}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Exchange rate input */}
-            <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5">
-              <span className="text-xs text-gray-400">1 USD =</span>
-              <Input
-                type="number"
-                value={zarPerUsd}
-                onChange={e => setZarPerUsd(parseFloat(e.target.value) || 1)}
-                className="bg-transparent border-0 text-white h-6 w-16 text-xs p-0 focus-visible:ring-0"
-                step="0.1"
-                min="1"
-              />
-              <span className="text-xs text-gray-400">ZAR</span>
-            </div>
-            <Button onClick={() => exportPDF(summaryRows, filterMonth, zarToUsd)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
+            <Button onClick={() => exportPDF(summaryRows, filterMonth, baseRate, additionalRate)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
               <FileText className="h-4 w-4" /> PDF
             </Button>
-            <Button onClick={() => exportCSV(summaryRows, filterMonth, zarToUsd)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
+            <Button onClick={() => exportCSV(summaryRows, filterMonth)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
               <Download className="h-4 w-4" /> CSV
+            </Button>
+            <Button onClick={refresh} variant="ghost" size="icon" className="text-gray-500 hover:text-white h-9 w-9">
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -338,7 +385,6 @@ export default function Accounts() {
             <CardContent className="p-5">
               <p className="text-gray-400 text-sm">Total Payout</p>
               <p className="text-2xl font-bold text-white mt-1">R{grandTotal.toFixed(2)}</p>
-              <p className="text-sm text-gray-400 mt-0.5">${(grandTotal * zarToUsd).toFixed(2)} USD</p>
             </CardContent>
           </Card>
           <Card className="bg-gray-900 border-gray-800">
@@ -376,7 +422,9 @@ export default function Accounts() {
                 onSaveFee={handleSaveFee}
                 onTogglePaid={handleTogglePaid}
                 onSaveNote={handleSaveNote}
-                zarToUsd={zarToUsd}
+                onToggleAdditional={handleToggleAdditional}
+                baseRate={baseRate}
+                additionalRate={additionalRate}
               />
             ))}
           </div>

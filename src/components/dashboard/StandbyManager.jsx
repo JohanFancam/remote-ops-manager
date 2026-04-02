@@ -10,7 +10,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMont
 export default function StandbyManager({ user, allUsers = [] }) {
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [addingDate, setAddingDate] = useState(null);
   const [swapping, setSwapping] = useState(null); // standbyDay id being swapped
 

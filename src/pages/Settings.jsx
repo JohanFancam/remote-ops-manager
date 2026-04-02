@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign
 } from 'lucide-react';
 
 const SLACK_PHASES = [
@@ -25,6 +25,9 @@ export default function Settings() {
   const [slackMsgs, setSlackMsgs] = useState({});
   const [slackSaved, setSlackSaved] = useState(false);
   const [standbyDone, setStandbyDone] = useState(false);
+  const [rateBaseInput, setRateBaseInput] = useState('');
+  const [rateAdditionalInput, setRateAdditionalInput] = useState('');
+  const [ratesSaved, setRatesSaved] = useState(false);
 
   // Pending users
   const [showAddPending, setShowAddPending] = useState(false);
@@ -64,6 +67,10 @@ export default function Settings() {
       if (setting) msgs[p.key] = setting.value;
     });
     setSlackMsgs(msgs);
+    const br = appSettings.find(s => s.key === 'base_rate')?.value;
+    const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
+    if (br) setRateBaseInput(br);
+    if (ar) setRateAdditionalInput(ar);
   }, [appSettings]);
 
   const refresh = () => {
@@ -89,6 +96,24 @@ export default function Settings() {
     setStandbyDone(true);
     setTimeout(() => setStandbyDone(false), 2000);
     queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+  };
+
+  const handleSaveRates = async () => {
+    const pairs = [
+      { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
+      { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
+    ];
+    for (const pair of pairs) {
+      const existing = appSettings.find(s => s.key === pair.key);
+      if (existing) {
+        await base44.entities.AppSettings.update(existing.id, { value: pair.value });
+      } else {
+        await base44.entities.AppSettings.create(pair);
+      }
+    }
+    setRatesSaved(true);
+    setTimeout(() => setRatesSaved(false), 2000);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
   const handleSaveSlackMessages = async () => {
@@ -236,6 +261,45 @@ export default function Settings() {
                   {standbyDone ? '✓ Saved' : isStandby ? 'Go Off Standby' : 'Go On Standby'}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pay Rates — Admin only */}
+        {isAdmin && (
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-400" /> Pay Rates (ZAR)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <p className="text-xs text-gray-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Standard Shoot Rate (R)</label>
+                  <Input
+                    type="number"
+                    value={rateBaseInput}
+                    onChange={e => setRateBaseInput(e.target.value)}
+                    placeholder="1000"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Additional Shoot Rate (R)</label>
+                  <Input
+                    type="number"
+                    value={rateAdditionalInput}
+                    onChange={e => setRateAdditionalInput(e.target.value)}
+                    placeholder="250"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSaveRates} className="bg-green-700 hover:bg-green-600 gap-2">
+                <Save className="h-4 w-4" /> {ratesSaved ? '✓ Saved!' : 'Save Rates'}
+              </Button>
             </CardContent>
           </Card>
         )}
