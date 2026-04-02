@@ -4,13 +4,19 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Phone, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Camera, Phone, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminMonthlySummary({ shoots, user }) {
   const [expanded, setExpanded] = useState(false);
-  const today = new Date();
-  const monthStr = format(today, 'yyyy-MM');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const monthStr = format(currentMonth, 'yyyy-MM');
+
+  const goMonth = (delta) => {
+    const d = new Date(currentMonth);
+    d.setMonth(d.getMonth() + delta);
+    setCurrentMonth(d);
+  };
 
   const myMonthShoots = shoots.filter(s =>
     s.date?.startsWith(monthStr) &&
@@ -36,13 +42,22 @@ export default function AdminMonthlySummary({ shoots, user }) {
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">
       <CardHeader className="border-b border-gray-800 pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-base">My {format(today, 'MMMM')} Summary</CardTitle>
-          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs"
-            onClick={() => setExpanded(!expanded)}>
-            {expanded ? 'Less' : 'Details'}
-            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </Button>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-white text-base">My Monthly Summary</CardTitle>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium text-gray-300 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs ml-1"
+              onClick={() => setExpanded(!expanded)}>
+              {expanded ? 'Less' : 'Details'}
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -120,7 +135,7 @@ export default function AdminMonthlySummary({ shoots, user }) {
             )}
 
             {myMonthShoots.length === 0 && myMonthStandby.length === 0 && monthEntries.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">Nothing logged for this month yet.</p>
+              <p className="text-sm text-gray-500 text-center py-4">Nothing logged for {format(currentMonth, 'MMMM yyyy')}.</p>
             )}
           </div>
         )}

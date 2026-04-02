@@ -7,56 +7,159 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Sun, Moon, Building2 } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
-const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400'];
-const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
-const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
-
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
+
+// Canon 5DS based options
+const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400', '1/500', '1/640', '1/800'];
+const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
+const ISO_OPTIONS = ['100', '200', '400', '800', '1000', '1600', '3200', '6400', '12800'];
+
+const CONDITION_SECTIONS = [
+  { key: 'day', label: 'Day Settings', Icon: Sun, color: 'text-yellow-400', border: 'border-yellow-700', bg: 'bg-yellow-950/20', rangeable: true },
+  { key: 'night', label: 'Night Settings', Icon: Moon, color: 'text-blue-400', border: 'border-blue-700', bg: 'bg-blue-950/20', rangeable: false },
+  { key: 'arena', label: 'Arena Settings', Icon: Building2, color: 'text-purple-400', border: 'border-purple-700', bg: 'bg-purple-950/20', rangeable: false },
+];
+
+const CAMERAS = [
+  { key: 'hd', label: 'HD Camera' },
+  { key: 'wide', label: 'Wide Camera' },
+  { key: 'attention', label: 'Attention Camera' },
+];
+
+// Toggle switch component
+function Toggle({ enabled, onChange, color = 'bg-blue-600' }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={`relative inline-flex w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${enabled ? color : 'bg-gray-700'}`}
+    >
+      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+    </button>
+  );
+}
+
+// Single camera setting (for night/arena — fixed values)
+function CameraFixed({ label, enabled, onToggle, form, setForm, prefix, condKey }) {
+  const fKey = `${condKey}_${prefix}`;
+  const cam = form[fKey] || { shutter: '1/250', aperture: 'F8', iso: '800' };
+  const set = (field, val) => setForm({ ...form, [fKey]: { ...cam, [field]: val } });
+  return (
+    <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-300">{label}</span>
+        <Toggle enabled={enabled} onChange={onToggle} color="bg-blue-600" />
+      </div>
+      {enabled && (
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          {[
+            { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
+            { label: 'Aperture', field: 'aperture', options: APERTURE_OPTIONS },
+            { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
+          ].map(f => (
+            <div key={f.field}>
+              <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+              <select value={cam[f.field] || ''} onChange={e => set(f.field, e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+                {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Range camera setting (for day — min/max values)
+function CameraRange({ label, enabled, onToggle, form, setForm, prefix, condKey }) {
+  const fKey = `${condKey}_${prefix}`;
+  const cam = form[fKey] || { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' };
+  const set = (field, val) => setForm({ ...form, [fKey]: { ...cam, [field]: val } });
+  return (
+    <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-300">{label}</span>
+        <Toggle enabled={enabled} onChange={onToggle} color="bg-blue-600" />
+      </div>
+      {enabled && (
+        <div className="space-y-2 mt-2">
+          {[
+            { label: 'Shutter Speed', minField: 'shutter_min', maxField: 'shutter_max', options: SHUTTER_OPTIONS },
+            { label: 'Aperture', minField: 'aperture_min', maxField: 'aperture_max', options: APERTURE_OPTIONS },
+            { label: 'ISO', minField: 'iso_min', maxField: 'iso_max', options: ISO_OPTIONS },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="text-xs text-gray-500 block mb-1">{f.label} range</label>
+              <div className="flex items-center gap-2">
+                <select value={cam[f.minField] || ''} onChange={e => set(f.minField, e.target.value)}
+                  className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <span className="text-gray-500 text-xs">–</span>
+                <select value={cam[f.maxField] || ''} onChange={e => set(f.maxField, e.target.value)}
+                  className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const emptyForm = {
   team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
   remote_rigs: [],
   sound: false,
-  hd_camera: true, hd_shutter: '1/250', hd_aperture: 'F8', hd_iso: 'Auto',
-  wide_camera: true, wide_shutter: '1/250', wide_aperture: 'F8', wide_iso: 'Auto',
-  attention_camera: false, attention_shutter: '1/250', attention_aperture: 'F8', attention_iso: 'Auto',
+  // Day (range)
+  day_hd: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
+  day_wide: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
+  day_attention: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
+  day_hd_enabled: true, day_wide_enabled: true, day_attention_enabled: false,
+  // Night (fixed)
+  night_hd: { shutter: '1/250', aperture: 'F8', iso: '3200' },
+  night_wide: { shutter: '1/250', aperture: 'F8', iso: '3200' },
+  night_attention: { shutter: '1/250', aperture: 'F8', iso: '3200' },
+  night_hd_enabled: true, night_wide_enabled: true, night_attention_enabled: false,
+  // Arena (fixed)
+  arena_hd: { shutter: '1/250', aperture: 'F8', iso: '1600' },
+  arena_wide: { shutter: '1/250', aperture: 'F8', iso: '1600' },
+  arena_attention: { shutter: '1/250', aperture: 'F8', iso: '1600' },
+  arena_hd_enabled: true, arena_wide_enabled: true, arena_attention_enabled: false,
   notes: '',
 };
 
-function CameraSection({ label, enabled, onToggle, form, setForm, prefix }) {
+function CamDisplay({ label, enabled, cam, isRange }) {
+  if (!enabled) return (
+    <div className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-800/30">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs text-gray-700">OFF</span>
+    </div>
+  );
   return (
-    <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-blue-700 bg-blue-950/20' : 'border-gray-700 bg-gray-800/20'}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-semibold text-white">{label}</span>
-        <button
-          type="button"
-          onClick={onToggle}
-          className={`w-11 h-6 rounded-full transition-colors relative ${enabled ? 'bg-blue-600' : 'bg-gray-600'}`}
-        >
-          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-        </button>
-      </div>
-      {enabled && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Shutter Speed', key: `${prefix}_shutter`, options: SHUTTER_OPTIONS },
-            { label: 'Aperture', key: `${prefix}_aperture`, options: APERTURE_OPTIONS },
-            { label: 'ISO', key: `${prefix}_iso`, options: ISO_OPTIONS },
-          ].map(field => (
-            <div key={field.key}>
-              <label className="text-xs text-gray-400 block mb-1">{field.label}</label>
-              <select
-                value={form[field.key]}
-                onChange={e => setForm({ ...form, [field.key]: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5"
-              >
-                {field.options.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          ))}
+    <div className="flex flex-wrap items-start justify-between py-1.5 px-2 rounded bg-blue-950/20 gap-1">
+      <span className="text-xs text-gray-300 font-medium">{label}</span>
+      {cam && (
+        <div className="flex gap-2 text-xs text-gray-400 flex-wrap">
+          {isRange ? (
+            <>
+              <span>⏱ {cam.shutter_min}–{cam.shutter_max}</span>
+              <span>🔲 {cam.aperture_min}–{cam.aperture_max}</span>
+              <span>💡 {cam.iso_min}–{cam.iso_max}</span>
+            </>
+          ) : (
+            <>
+              <span>⏱ {cam.shutter}</span>
+              <span>🔲 {cam.aperture}</span>
+              <span>💡 {cam.iso}</span>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -71,6 +174,7 @@ export default function Rigs() {
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [rigInput, setRigInput] = useState('');
+  const [activeCondTab, setActiveCondTab] = useState('day');
 
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
@@ -120,7 +224,7 @@ export default function Rigs() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Rig Settings</h1>
-            <p className="text-gray-400 text-sm mt-1">Team-based camera and rig configurations</p>
+            <p className="text-gray-400 text-sm mt-1">Team-based camera and rig configurations (Canon 5DS)</p>
           </div>
           {isAdmin && !isAdding && (
             <Button onClick={() => { setIsAdding(true); setEditingId(null); setForm(emptyForm); }} className="bg-blue-600 hover:bg-blue-700">
@@ -168,26 +272,18 @@ export default function Rigs() {
               {/* Shoot plan */}
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Shoot Plan</label>
-                <textarea
-                  value={form.shoot_plan}
-                  onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
-                  placeholder="Describe the shoot plan..."
-                  rows={3}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none"
-                />
+                <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
+                  placeholder="Describe the shoot plan..." rows={3}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
               </div>
 
               {/* Remote Rigs */}
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Remote Rigs (Google Remote Names)</label>
                 <div className="flex gap-2 mb-2">
-                  <Input
-                    placeholder="e.g. RemotePC-01"
-                    value={rigInput}
-                    onChange={e => setRigInput(e.target.value)}
+                  <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addRig()}
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                  />
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                   <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
                 </div>
                 {form.remote_rigs?.length > 0 && (
@@ -195,47 +291,59 @@ export default function Rigs() {
                     {form.remote_rigs.map((r, i) => (
                       <span key={i} className="flex items-center gap-1 bg-blue-900/40 text-blue-300 border border-blue-700/40 text-sm px-2 py-1 rounded-full">
                         {r}
-                        <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1">
-                          <X className="h-3 w-3" />
-                        </button>
+                        <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
                       </span>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Camera toggles */}
-              <div className="space-y-3">
-                <label className="text-xs text-gray-400 uppercase tracking-wider block">Camera Settings</label>
-                <CameraSection label="HD Camera" enabled={form.hd_camera} onToggle={() => setForm({ ...form, hd_camera: !form.hd_camera })} form={form} setForm={setForm} prefix="hd" />
-                <CameraSection label="Wide Camera" enabled={form.wide_camera} onToggle={() => setForm({ ...form, wide_camera: !form.wide_camera })} form={form} setForm={setForm} prefix="wide" />
-                <CameraSection label="Attention Camera" enabled={form.attention_camera} onToggle={() => setForm({ ...form, attention_camera: !form.attention_camera })} form={form} setForm={setForm} prefix="attention" />
-
-                {/* Sound toggle */}
-                <div className={`rounded-lg border p-3 ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-700 bg-gray-800/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">Sound</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, sound: !form.sound })}
-                      className={`w-11 h-6 rounded-full transition-colors relative ${form.sound ? 'bg-green-600' : 'bg-gray-600'}`}
-                    >
-                      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.sound ? 'translate-x-6' : 'translate-x-1'}`} />
+              {/* Condition tabs */}
+              <div>
+                <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
+                <div className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1 w-fit">
+                  {CONDITION_SECTIONS.map(cond => (
+                    <button key={cond.key}
+                      onClick={() => setActiveCondTab(cond.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeCondTab === cond.key ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                      <cond.Icon className={`h-3.5 w-3.5 ${activeCondTab === cond.key ? cond.color : ''}`} />
+                      {cond.label.split(' ')[0]}
                     </button>
-                  </div>
+                  ))}
                 </div>
+
+                {CONDITION_SECTIONS.map(cond => activeCondTab === cond.key && (
+                  <div key={cond.key} className={`rounded-xl border ${cond.border} p-4 space-y-3`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <cond.Icon className={`h-4 w-4 ${cond.color}`} />
+                      <span className="text-sm font-semibold text-white">{cond.label}</span>
+                      {cond.rangeable && <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">Range guide mode</span>}
+                    </div>
+                    {CAMERAS.map(cam => {
+                      const enabledKey = `${cond.key}_${cam.key}_enabled`;
+                      const enabled = form[enabledKey] !== false;
+                      const toggle = () => setForm({ ...form, [enabledKey]: !enabled });
+                      return cond.rangeable
+                        ? <CameraRange key={cam.key} label={cam.label} enabled={enabled} onToggle={toggle} form={form} setForm={setForm} prefix={cam.key} condKey={cond.key} />
+                        : <CameraFixed key={cam.key} label={cam.label} enabled={enabled} onToggle={toggle} form={form} setForm={setForm} prefix={cam.key} condKey={cond.key} />;
+                    })}
+                    {/* Sound toggle */}
+                    <div className={`rounded-lg border p-3 ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-300">Sound</span>
+                        <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} color="bg-green-600" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Notes */}
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Any additional notes..."
-                  rows={2}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none"
-                />
+                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+                  placeholder="Any additional notes..." rows={2}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
               </div>
 
               <div className="flex gap-3">
@@ -252,10 +360,8 @@ export default function Rigs() {
         <div className="space-y-3">
           {rigSettings.map(rig => (
             <Card key={rig.id} className="bg-gray-900 border-gray-800">
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer"
-                onClick={() => setExpandedId(expandedId === rig.id ? null : rig.id)}
-              >
+              <div className="flex items-center justify-between p-4 cursor-pointer"
+                onClick={() => setExpandedId(expandedId === rig.id ? null : rig.id)}>
                 <div className="flex items-center gap-3">
                   {expandedId === rig.id ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
                   <div>
@@ -271,9 +377,9 @@ export default function Rigs() {
                   <div className="flex gap-1 flex-wrap">
                     {rig.rig_type && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">{rig.rig_type}</Badge>}
                     {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
-                    {rig.hd_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">HD</Badge>}
-                    {rig.wide_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
-                    {rig.attention_camera && <Badge className="bg-gray-700 text-gray-300 border-gray-600 text-xs">Attention</Badge>}
+                    {rig.day_hd_enabled !== false && <Badge className="bg-yellow-900/40 text-yellow-300 border-yellow-700/40 text-xs">Day</Badge>}
+                    {rig.night_hd_enabled !== false && <Badge className="bg-blue-900/40 text-blue-300 border-blue-700/40 text-xs">Night</Badge>}
+                    {rig.arena_hd_enabled !== false && <Badge className="bg-purple-900/40 text-purple-300 border-purple-700/40 text-xs">Arena</Badge>}
                   </div>
                   {isAdmin && (
                     <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
@@ -306,29 +412,34 @@ export default function Rigs() {
                       <p className="text-sm text-gray-300">{rig.shoot_plan}</p>
                     </div>
                   )}
-                  <div className="space-y-2">
-                    {[
-                      { label: 'HD Camera', on: rig.hd_camera, s: rig.hd_shutter, a: rig.hd_aperture, iso: rig.hd_iso },
-                      { label: 'Wide Camera', on: rig.wide_camera, s: rig.wide_shutter, a: rig.wide_aperture, iso: rig.wide_iso },
-                      { label: 'Attention Camera', on: rig.attention_camera, s: rig.attention_shutter, a: rig.attention_aperture, iso: rig.attention_iso },
-                    ].map(cam => (
-                      <div key={cam.label} className={`flex items-center gap-3 rounded p-2 ${cam.on ? 'bg-blue-950/20' : 'bg-gray-800/30'}`}>
-                        <span className="text-xs font-medium text-gray-300 w-36">{cam.label}</span>
-                        {cam.on ? (
-                          <div className="flex gap-3 text-xs text-gray-400">
-                            <span>⏱ {cam.s}</span>
-                            <span>🔲 {cam.a}</span>
-                            <span>💡 {cam.iso}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-600">OFF</span>
-                        )}
+
+                  {/* Day / Night / Arena display */}
+                  {CONDITION_SECTIONS.map(cond => {
+                    const hasAny = CAMERAS.some(cam => rig[`${cond.key}_${cam.key}_enabled`] !== false);
+                    if (!hasAny) return null;
+                    return (
+                      <div key={cond.key}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <cond.Icon className={`h-3.5 w-3.5 ${cond.color}`} />
+                          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{cond.label}</p>
+                          {cond.rangeable && <span className="text-xs text-gray-600">(guide range)</span>}
+                        </div>
+                        <div className="space-y-1">
+                          {CAMERAS.map(cam => (
+                            <CamDisplay key={cam.key}
+                              label={cam.label}
+                              enabled={rig[`${cond.key}_${cam.key}_enabled`] !== false}
+                              cam={rig[`${cond.key}_${cam.key}`]}
+                              isRange={cond.rangeable} />
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                    <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
-                      <span className="text-xs font-medium text-gray-300 w-36">Sound</span>
-                      <span className={`text-xs font-bold ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
-                    </div>
+                    );
+                  })}
+
+                  <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
+                    <span className="text-xs font-medium text-gray-300 w-36">Sound</span>
+                    <span className={`text-xs font-bold ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
                   </div>
                   {rig.notes && <p className="text-sm text-gray-400 italic">{rig.notes}</p>}
                 </div>

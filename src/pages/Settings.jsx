@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2
 } from 'lucide-react';
 
 const SLACK_PHASES = [
@@ -166,6 +166,24 @@ export default function Settings() {
 
   const handleDeletePendingUser = async (id) => {
     await base44.entities.PendingUser.delete(id);
+    refresh();
+  };
+
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({ full_name: '', role: 'user', admin_level: 1 });
+
+  const handleEditUser = (u) => {
+    setEditingUserId(u.id);
+    setEditUserForm({ full_name: u.full_name || '', role: u.role || 'user', admin_level: u.admin_level ?? 1 });
+  };
+
+  const handleSaveUser = async (u) => {
+    await base44.entities.User.update(u.id, {
+      full_name: editUserForm.full_name,
+      role: editUserForm.role,
+      admin_level: editUserForm.role === 'admin' ? editUserForm.admin_level : null,
+    });
+    setEditingUserId(null);
     refresh();
   };
 
@@ -427,45 +445,80 @@ export default function Settings() {
               <CardContent className="p-0">
                 <div className="divide-y divide-gray-800">
                   {users.map(u => (
-                    <div key={u.id} className="px-5 py-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
-                          {u.full_name?.charAt(0) || u.email?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
-                          <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                          {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                          {u.role === 'admin' ? `L${u.admin_level ?? 1}` : 'Operator'}
-                        </Badge>
-                        {isLevel1Admin && u.role === 'admin' && u.id !== user?.id && (
-                          <select
-                            value={u.admin_level ?? 1}
-                            onChange={e => handleSetAdminLevel(u.id, Number(e.target.value))}
-                            className="bg-gray-800 border border-gray-700 text-white rounded px-1.5 py-0.5 text-xs"
-                          >
-                            <option value={1}>L1 Full</option>
-                            <option value={2}>L2 Restricted</option>
-                          </select>
-                        )}
-                        {isLevel1Admin && u.id !== user?.id && (
-                          deleteConfirm === u.id ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-red-400">Sure?</span>
-                              <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
-                              <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
-                            </div>
-                          ) : (
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
-                              <Trash2 className="h-4 w-4" />
+                    <div key={u.id} className="px-5 py-4">
+                      {editingUserId === u.id ? (
+                        <div className="space-y-3">
+                          <Input
+                            value={editUserForm.full_name}
+                            onChange={e => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
+                            placeholder="Full name"
+                            className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
+                          />
+                          <div className="flex gap-2 flex-wrap items-center">
+                            <select
+                              value={editUserForm.role}
+                              onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                              className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
+                            >
+                              <option value="user">Remote Operator</option>
+                              <option value="admin">Admin</option>
+                              <option value="accounts">Accounts</option>
+                            </select>
+                            {editUserForm.role === 'admin' && (
+                              <select
+                                value={editUserForm.admin_level}
+                                onChange={e => setEditUserForm({ ...editUserForm, admin_level: Number(e.target.value) })}
+                                className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
+                              >
+                                <option value={1}>L1 Full</option>
+                                <option value={2}>L2 Restricted</option>
+                              </select>
+                            )}
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
+                              <Save className="h-3 w-3" /> Save
                             </Button>
-                          )
-                        )}
-                      </div>
+                            <Button size="sm" variant="ghost" className="h-8 text-gray-400 hover:text-white" onClick={() => setEditingUserId(null)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
+                              {u.full_name?.charAt(0) || u.email?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
+                              <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                              {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                              {u.role === 'admin' ? `Admin L${u.admin_level ?? 1}` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
+                            </Badge>
+                            {isLevel1Admin && u.id !== user?.id && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {isLevel1Admin && u.id !== user?.id && (
+                              deleteConfirm === u.id ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-red-400">Sure?</span>
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
+                                </div>
+                              ) : (
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {users.length === 0 && <p className="text-gray-500 text-sm p-6 text-center">No users found.</p>}

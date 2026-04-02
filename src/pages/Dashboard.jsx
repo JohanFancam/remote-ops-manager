@@ -239,6 +239,7 @@ export default function Dashboard() {
                     rigSettings={rigSettings}
                     onUpdate={handleShootUpdate}
                     userEmail={user?.email}
+                    allUsers={allUsers}
                   />
                 ))}
               </div>

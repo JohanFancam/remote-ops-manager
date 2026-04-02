@@ -49,7 +49,7 @@ function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClic
   );
 }
 
-export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate, userEmail }) {
+export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = false, rigSettings = [], onUpdate, userEmail, allUsers = [] }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
@@ -250,9 +250,14 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Operators</p>
                 <div className="flex flex-wrap gap-1">
-                  {shoot.assigned_operators.map(e => (
-                    <span key={e} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">{e.split('@')[0]}</span>
-                  ))}
+                  {shoot.assigned_operators.map(e => {
+                    const u = allUsers.find(u => u.email === e);
+                    return (
+                      <span key={e} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">
+                        {u?.full_name || e.split('@')[0]}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -261,8 +266,18 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {shoot.standby_admin && (
               <div className="flex items-center gap-1.5 text-xs text-yellow-400">
                 <Phone className="h-3 w-3" />
-                Standby: {shoot.standby_admin.split('@')[0]}
+                Standby: {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin.split('@')[0]}
               </div>
+            )}
+
+            {/* Shoot Complete button */}
+            {canMarkPhases && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+              <button
+                onClick={() => onUpdate && onUpdate(shoot.id, { status: 'completed', phase_status: { ...shoot.phase_status, shoot_complete: new Date().toISOString() } })}
+                className="w-full mt-1 py-2 rounded-lg border border-green-700 bg-green-950/30 text-green-400 text-xs font-semibold hover:bg-green-950/60 transition-colors"
+              >
+                ✓ Mark Shoot Complete
+              </button>
             )}
 
             {/* External link to calendar */}
