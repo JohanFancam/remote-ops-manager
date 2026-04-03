@@ -14,7 +14,8 @@ const PHASES = [
   { key: 'shoot_complete', label: 'Complete', icon: CheckCircle },
 ];
 
-function getLatestPhase(phaseStatus = {}) {
+function getLatestPhase(phaseStatus) {
+  phaseStatus = phaseStatus || {};
   for (let i = PHASES.length - 1; i >= 0; i--) {
     if (phaseStatus[PHASES[i].key]) return PHASES[i];
   }
