@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Sun, Moon, Building2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Sun, Moon, Building2, Database } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -21,6 +21,7 @@ const CONDITION_SECTIONS = [
   { key: 'day', label: 'Day Settings', Icon: Sun, color: 'text-yellow-400', border: 'border-yellow-700', bg: 'bg-yellow-950/20', rangeable: true },
   { key: 'night', label: 'Night Settings', Icon: Moon, color: 'text-blue-400', border: 'border-blue-700', bg: 'bg-blue-950/20', rangeable: false },
   { key: 'arena', label: 'Arena Settings', Icon: Building2, color: 'text-purple-400', border: 'border-purple-700', bg: 'bg-purple-950/20', rangeable: false },
+  { key: 'data', label: 'Data Settings', Icon: Database, color: 'text-green-400', border: 'border-green-700', bg: 'bg-green-950/20', rangeable: false },
 ];
 
 const CAMERAS = [
@@ -118,20 +119,29 @@ const emptyForm = {
   remote_rigs: [],
   sound: false,
   // Day (range)
+  day_enabled: true,
   day_hd: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
   day_wide: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
   day_attention: { shutter_min: '1/100', shutter_max: '1/400', aperture_min: 'F5.6', aperture_max: 'F10', iso_min: '200', iso_max: '1000' },
   day_hd_enabled: true, day_wide_enabled: true, day_attention_enabled: false,
   // Night (fixed)
+  night_enabled: true,
   night_hd: { shutter: '1/250', aperture: 'F8', iso: '3200' },
   night_wide: { shutter: '1/250', aperture: 'F8', iso: '3200' },
   night_attention: { shutter: '1/250', aperture: 'F8', iso: '3200' },
   night_hd_enabled: true, night_wide_enabled: true, night_attention_enabled: false,
   // Arena (fixed)
+  arena_enabled: false,
   arena_hd: { shutter: '1/250', aperture: 'F8', iso: '1600' },
   arena_wide: { shutter: '1/250', aperture: 'F8', iso: '1600' },
   arena_attention: { shutter: '1/250', aperture: 'F8', iso: '1600' },
   arena_hd_enabled: true, arena_wide_enabled: true, arena_attention_enabled: false,
+  // Data (fixed)
+  data_enabled: false,
+  data_hd: { shutter: '1/250', aperture: 'F8', iso: '800' },
+  data_wide: { shutter: '1/250', aperture: 'F8', iso: '800' },
+  data_attention: { shutter: '1/250', aperture: 'F8', iso: '800' },
+  data_hd_enabled: true, data_wide_enabled: true, data_attention_enabled: false,
   notes: '',
 };
 
@@ -314,12 +324,22 @@ export default function Rigs() {
 
                 {CONDITION_SECTIONS.map(cond => activeCondTab === cond.key && (
                   <div key={cond.key} className={`rounded-xl border ${cond.border} p-4 space-y-3`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <cond.Icon className={`h-4 w-4 ${cond.color}`} />
-                      <span className="text-sm font-semibold text-white">{cond.label}</span>
-                      {cond.rangeable && <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">Range guide mode</span>}
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <cond.Icon className={`h-4 w-4 ${cond.color}`} />
+                        <span className="text-sm font-semibold text-white">{cond.label}</span>
+                        {cond.rangeable && <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">Range guide</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{form[`${cond.key}_enabled`] !== false ? 'Active' : 'Inactive'}</span>
+                        <Toggle
+                          enabled={form[`${cond.key}_enabled`] !== false}
+                          onChange={() => setForm({ ...form, [`${cond.key}_enabled`]: !(form[`${cond.key}_enabled`] !== false) })}
+                          color={cond.key === 'day' ? 'bg-yellow-600' : cond.key === 'night' ? 'bg-blue-600' : cond.key === 'arena' ? 'bg-purple-600' : 'bg-green-600'}
+                        />
+                      </div>
                     </div>
-                    {CAMERAS.map(cam => {
+                    {form[`${cond.key}_enabled`] !== false && CAMERAS.map(cam => {
                       const enabledKey = `${cond.key}_${cam.key}_enabled`;
                       const enabled = form[enabledKey] !== false;
                       const toggle = () => setForm({ ...form, [enabledKey]: !enabled });
@@ -327,13 +347,17 @@ export default function Rigs() {
                         ? <CameraRange key={cam.key} label={cam.label} enabled={enabled} onToggle={toggle} form={form} setForm={setForm} prefix={cam.key} condKey={cond.key} />
                         : <CameraFixed key={cam.key} label={cam.label} enabled={enabled} onToggle={toggle} form={form} setForm={setForm} prefix={cam.key} condKey={cond.key} />;
                     })}
-                    {/* Sound toggle */}
-                    <div className={`rounded-lg border p-3 ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-300">Sound</span>
-                        <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} color="bg-green-600" />
+                    {form[`${cond.key}_enabled`] !== false && (
+                      <div className={`rounded-lg border p-3 ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-300">Sound</span>
+                          <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} color="bg-green-600" />
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {form[`${cond.key}_enabled`] === false && (
+                      <p className="text-xs text-gray-600 text-center py-2">This condition is disabled — toggle to activate</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -377,9 +401,10 @@ export default function Rigs() {
                   <div className="flex gap-1 flex-wrap">
                     {rig.rig_type && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">{rig.rig_type}</Badge>}
                     {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
-                    {rig.day_hd_enabled !== false && <Badge className="bg-yellow-900/40 text-yellow-300 border-yellow-700/40 text-xs">Day</Badge>}
-                    {rig.night_hd_enabled !== false && <Badge className="bg-blue-900/40 text-blue-300 border-blue-700/40 text-xs">Night</Badge>}
-                    {rig.arena_hd_enabled !== false && <Badge className="bg-purple-900/40 text-purple-300 border-purple-700/40 text-xs">Arena</Badge>}
+                    {rig.day_enabled !== false && <Badge className="bg-yellow-900/40 text-yellow-300 border-yellow-700/40 text-xs">Day</Badge>}
+                    {rig.night_enabled !== false && <Badge className="bg-blue-900/40 text-blue-300 border-blue-700/40 text-xs">Night</Badge>}
+                    {rig.arena_enabled !== false && <Badge className="bg-purple-900/40 text-purple-300 border-purple-700/40 text-xs">Arena</Badge>}
+                    {rig.data_enabled && <Badge className="bg-green-900/40 text-green-300 border-green-700/40 text-xs">Data</Badge>}
                   </div>
                   {isAdmin && (
                     <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
@@ -413,8 +438,9 @@ export default function Rigs() {
                     </div>
                   )}
 
-                  {/* Day / Night / Arena display */}
+                  {/* Day / Night / Arena / Data display */}
                   {CONDITION_SECTIONS.map(cond => {
+                    if (rig[`${cond.key}_enabled`] === false) return null;
                     const hasAny = CAMERAS.some(cam => rig[`${cond.key}_${cam.key}_enabled`] !== false);
                     if (!hasAny) return null;
                     return (

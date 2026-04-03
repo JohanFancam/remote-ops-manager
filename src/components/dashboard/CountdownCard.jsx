@@ -224,7 +224,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {matchedRig && (
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Rig Config</p>
-                <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="grid grid-cols-2 gap-1 text-xs mb-2">
                   {matchedRig.sport && <span className="text-gray-400">Sport: <span className="text-gray-200">{matchedRig.sport}</span></span>}
                   {matchedRig.venue_type && <span className="text-gray-400">Venue: <span className="text-gray-200">{matchedRig.venue_type}</span></span>}
                   {matchedRig.shoot_plan && (
@@ -233,6 +233,13 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                   {matchedRig.remote_rigs?.length > 0 && (
                     <span className="col-span-2 text-gray-400">Remotes: <span className="text-gray-200">{matchedRig.remote_rigs.join(', ')}</span></span>
                   )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {matchedRig.day_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-700/40">Day</span>}
+                  {matchedRig.night_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-700/40">Night</span>}
+                  {matchedRig.arena_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-400 border border-purple-700/40">Arena</span>}
+                  {matchedRig.data_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-700/40">Data</span>}
+                  {matchedRig.sound && <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-700/40">Sound</span>}
                 </div>
               </div>
             )}

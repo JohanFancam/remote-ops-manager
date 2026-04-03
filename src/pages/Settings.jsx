@@ -178,11 +178,15 @@ export default function Settings() {
   };
 
   const handleSaveUser = async (u) => {
-    await base44.entities.User.update(u.id, {
-      full_name: editUserForm.full_name,
+    const updatePayload = {
       role: editUserForm.role,
-      admin_level: editUserForm.role === 'admin' ? editUserForm.admin_level : null,
-    });
+      admin_level: editUserForm.role === 'admin' ? Number(editUserForm.admin_level) : null,
+    };
+    // full_name can be updated via User.update for other users (admin only)
+    if (editUserForm.full_name && editUserForm.full_name !== u.full_name) {
+      updatePayload.full_name = editUserForm.full_name;
+    }
+    await base44.entities.User.update(u.id, updatePayload);
     setEditingUserId(null);
     refresh();
   };

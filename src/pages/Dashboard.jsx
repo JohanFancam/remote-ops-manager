@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard, DollarSign } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
@@ -15,7 +15,7 @@ import StandbyManager from '../components/dashboard/StandbyManager';
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team' | 'accounts'
+  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -205,12 +205,6 @@ export default function Dashboard() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'team' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
               <Activity className="h-4 w-4" /> Team Activity
             </button>
-            {isLevel1Admin && (
-              <button onClick={() => setAdminTab('accounts')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'accounts' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                <DollarSign className="h-4 w-4" /> Accounts
-              </button>
-            )}
           </div>
         )}
 
@@ -263,91 +257,6 @@ export default function Dashboard() {
           <TeamActivityList shoots={shoots} allUsers={users} />
         )}
 
-        {/* ACCOUNTS tab — level 1 admin only */}
-        {isAdmin && adminTab === 'accounts' && isLevel1Admin && (
-          <AccountsQuickView shoots={shoots} allUsers={users} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Inline quick accounts view for admin tab
-function AccountsQuickView({ shoots, allUsers }) {
-  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const { data: paymentRecords = [] } = useQuery({
-    queryKey: ['paymentRecords'],
-    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
-  });
-
-  const BASE_RATE = 200;
-  const ADDITIONAL_RATE = 150;
-
-  const goMonth = (delta) => {
-    const [y, m] = filterMonth.split('-').map(Number);
-    const d = new Date(y, m - 1 + delta, 1);
-    setFilterMonth(format(d, 'yyyy-MM'));
-  };
-
-  const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
-  const remoteUsers = allUsers.filter(u => u.role === 'user');
-
-  const rows = remoteUsers.map(op => {
-    const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
-    const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
-    const total = opShoots.reduce((sum, sh) => {
-      const rec = opRecords.find(r => r.shoot_id === sh.id);
-      const fee = rec?.override_fee != null ? rec.override_fee : (rec?.is_additional ? ADDITIONAL_RATE : BASE_RATE);
-      return sum + fee;
-    }, 0);
-    const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
-    return { ...op, shoots: opShoots.length, total, paid: allPaid };
-  }).filter(op => op.shoots > 0);
-
-  const grandTotal = rows.reduce((s, r) => s + r.total, 0);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Accounts Overview</h2>
-        <div className="flex items-center gap-2">
-          <button className="text-gray-400 hover:text-white px-2" onClick={() => goMonth(-1)}>{'<'}</button>
-          <span className="text-sm text-gray-300">{format(new Date(filterMonth + '-01'), 'MMM yyyy')}</span>
-          <button className="text-gray-400 hover:text-white px-2" onClick={() => goMonth(1)}>{'>'}</button>
-        </div>
-      </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-4 text-xs text-gray-500 uppercase tracking-wider px-4 py-2 border-b border-gray-800">
-          <span>Operator</span><span className="text-center">Shoots</span><span className="text-center">Amount</span><span className="text-center">Status</span>
-        </div>
-        {rows.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-8">No activity this month.</p>
-        ) : rows.map(r => (
-          <div key={r.email} className="grid grid-cols-4 px-4 py-3 border-b border-gray-800/50 last:border-0 items-center">
-            <div>
-              <p className="text-sm text-white">{r.full_name || r.email}</p>
-              <p className="text-xs text-gray-500 truncate">{r.email}</p>
-            </div>
-            <p className="text-center text-white">{r.shoots}</p>
-            <p className="text-center font-mono text-white">${r.total.toFixed(2)}</p>
-            <div className="flex justify-center">
-              <span className={`text-xs px-2 py-0.5 rounded-full border ${r.paid ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
-                {r.paid ? 'Paid' : 'Unpaid'}
-              </span>
-            </div>
-          </div>
-        ))}
-        {rows.length > 0 && (
-          <div className="grid grid-cols-4 px-4 py-3 border-t border-gray-700 bg-gray-800/30">
-            <span className="text-sm font-semibold text-white">Total</span>
-            <span />
-            <span className="text-center font-mono font-bold text-white">${grandTotal.toFixed(2)}</span>
-            <span />
-          </div>
-        )}
-      </div>
-      <div className="mt-4 text-center">
-        <a href="/Accounts" className="text-sm text-blue-400 hover:text-blue-300">Open full Accounts page →</a>
       </div>
     </div>
   );

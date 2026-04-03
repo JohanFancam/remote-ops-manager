@@ -209,6 +209,18 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               <Tv2 className="h-3 w-3" /> {matchedRig.rig_type}
             </span>
           )}
+          {matchedRig.day_enabled !== false && (
+            <span className="text-xs bg-yellow-950/40 border border-yellow-800/50 text-yellow-300 px-2.5 py-1 rounded-full">☀ Day</span>
+          )}
+          {matchedRig.night_enabled !== false && (
+            <span className="text-xs bg-blue-950/40 border border-blue-800/50 text-blue-300 px-2.5 py-1 rounded-full">🌙 Night</span>
+          )}
+          {matchedRig.arena_enabled && (
+            <span className="text-xs bg-purple-950/40 border border-purple-800/50 text-purple-300 px-2.5 py-1 rounded-full">🏟 Arena</span>
+          )}
+          {matchedRig.data_enabled && (
+            <span className="text-xs bg-green-950/40 border border-green-800/50 text-green-300 px-2.5 py-1 rounded-full">📊 Data</span>
+          )}
           {matchedRig.sound && (
             <span className="flex items-center gap-1.5 text-xs bg-green-950/40 border border-green-800/50 text-green-300 px-2.5 py-1 rounded-full">
               <Volume2 className="h-3 w-3" /> Sound

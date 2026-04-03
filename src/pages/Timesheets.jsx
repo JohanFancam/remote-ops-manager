@@ -6,20 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Clock, Trash2, Download, Plus, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-
+import { Clock, Trash2, Download, Plus, X, ChevronLeft, ChevronRight, ChevronDown, Edit2, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 
-const statusColors = {
-  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  approved: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  paid: 'bg-green-500/20 text-green-400 border-green-500/30',
-};
+// Day types
+const DAY_TYPES = [
+  { value: 'work_day', label: 'Work Day', color: 'bg-gray-800 text-gray-300 border-gray-700' },
+  { value: 'shoot', label: 'Shoot', color: 'bg-blue-900/30 text-blue-400 border-blue-700/50' },
+  { value: 'standby', label: 'Standby', color: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50' },
+  { value: 'shoot_standby', label: 'Shoot/Standby', color: 'bg-purple-900/30 text-purple-400 border-purple-700/50' },
+];
 
-const entryTypeLabel = { clock: 'Clock', coffee_break: 'Coffee', lunch_break: 'Lunch', manual: 'Manual', shoot: 'Shoot', standby: 'Standby' };
+function getDayTypeInfo(type) {
+  return DAY_TYPES.find(d => d.value === type) || DAY_TYPES[0];
+}
 
-function exportTimesheetPDF(entries, title = 'Timesheet Report') {
+function exportTimesheetPDF(dayEntries, title = 'Timesheet Report') {
   const doc = new jsPDF();
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
   doc.text('Remote Ops Manager — Timesheet', 20, 20);
@@ -30,47 +33,56 @@ function exportTimesheetPDF(entries, title = 'Timesheet Report') {
   let y = 52;
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-  doc.text('Operator', 20, y); doc.text('Date', 75, y); doc.text('Hours', 110, y); doc.text('Type', 130, y); doc.text('Notes', 155, y);
+  doc.text('Date', 20, y); doc.text('Type', 70, y); doc.text('Hours', 120, y); doc.text('Notes', 145, y);
   doc.setDrawColor(180, 180, 180); doc.line(20, y + 3, 190, y + 3); y += 10;
   doc.setFont('helvetica', 'normal');
-  entries.forEach(e => {
+  dayEntries.forEach(e => {
     if (y > 270) { doc.addPage(); y = 20; }
-    doc.text((e.operator_name || e.operator_email || '').substring(0, 20), 20, y);
-    doc.text(e.date || '', 75, y);
-    doc.text(`${Number(e.hours || 0).toFixed(2)}h`, 110, y);
-    doc.text(entryTypeLabel[e.entry_type] || 'Manual', 130, y);
-    doc.text((e.notes || '').substring(0, 30), 155, y);
+    doc.text(e.date || '', 20, y);
+    doc.text(getDayTypeInfo(e.day_type).label, 70, y);
+    doc.text(`${Number(e.hours || 0).toFixed(2)}h`, 120, y);
+    doc.text((e.notes || '').substring(0, 35), 145, y);
     y += 9;
   });
-  const totalHours = entries.reduce((s, e) => s + (e.hours || 0), 0);
+  const totalHours = dayEntries.reduce((s, e) => s + (e.hours || 0), 0);
   doc.line(20, y + 2, 190, y + 2); y += 8;
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL HOURS', 20, y);
-  doc.text(`${totalHours.toFixed(2)}h`, 110, y);
+  doc.text(`${totalHours.toFixed(2)}h`, 120, y);
   doc.save(`${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 }
 
-function ManualAddForm({ onAdd, onClose }) {
+function AddEntryForm({ onAdd, onClose }) {
   const today = format(new Date(), 'yyyy-MM-dd');
-  const [form, setForm] = useState({ date: today, start_time: '', end_time: '', notes: '' });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    date: today,
+    day_type: 'work_day',
+    start_time: '',
+    end_time: '',
+    hours: '',
+    notes: '',
+  });
 
   const calcHours = () => {
     if (!form.start_time || !form.end_time) return null;
     const [sh, sm] = form.start_time.split(':').map(Number);
     const [eh, em] = form.end_time.split(':').map(Number);
     const mins = (eh * 60 + em) - (sh * 60 + sm);
-    return mins > 0 ? mins / 60 : null;
+    return mins > 0 ? parseFloat((mins / 60).toFixed(2)) : null;
   };
 
-  const hours = calcHours();
+  const derivedHours = calcHours();
+  const effectiveHours = form.start_time && form.end_time ? derivedHours : (form.hours ? parseFloat(form.hours) : null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!hours) return;
-    setSaving(true);
-    await onAdd({ date: form.date, hours, notes: form.notes, start_time: form.start_time, end_time: form.end_time });
-    setSaving(false);
+    if (!effectiveHours) return;
+    await onAdd({
+      date: form.date,
+      day_type: form.day_type,
+      hours: effectiveHours,
+      notes: form.notes,
+    });
     onClose();
   };
 
@@ -79,119 +91,171 @@ function ManualAddForm({ onAdd, onClose }) {
       <CardHeader className="pb-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-sm flex items-center gap-2">
-            <Plus className="h-4 w-4 text-blue-400" /> Add Time Entry
+            <Plus className="h-4 w-4 text-blue-400" /> Add Work Day Entry
           </CardTitle>
           <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Date</label>
-            <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Start Time</label>
-            <Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">End Time</label>
-            <Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Duration</label>
-            <div className="h-9 flex items-center px-3 bg-gray-900 border border-gray-700 rounded-md font-mono text-sm text-white">
-              {hours ? `${hours.toFixed(2)}h` : '—'}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Date</label>
+              <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Type</label>
+              <select value={form.day_type} onChange={e => setForm({ ...form, day_type: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-2 py-2 text-sm h-9">
+                {DAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Start Time</label>
+              <Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">End Time</label>
+              <Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
             </div>
           </div>
-          <div className="col-span-2 md:col-span-3">
-            <label className="text-xs text-gray-400 mb-1 block">Notes</label>
-            <Input placeholder="e.g. NBA Lakers shoot, travel, etc." value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">
+                Hours {form.start_time && form.end_time ? '(auto)' : '(manual)'}
+              </label>
+              {form.start_time && form.end_time ? (
+                <div className="h-9 flex items-center px-3 bg-gray-900 border border-gray-700 rounded-md font-mono text-sm text-white">
+                  {derivedHours ? `${derivedHours}h` : '—'}
+                </div>
+              ) : (
+                <Input type="number" step="0.25" min="0" placeholder="e.g. 9.5"
+                  value={form.hours} onChange={e => setForm({ ...form, hours: e.target.value })}
+                  className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+              )}
+            </div>
+            <div className="col-span-1 md:col-span-3">
+              <label className="text-xs text-gray-400 mb-1 block">Notes (optional)</label>
+              <Input placeholder="e.g. Lakers shoot + travel" value={form.notes}
+                onChange={e => setForm({ ...form, notes: e.target.value })}
+                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+            </div>
           </div>
-          <div className="flex items-end">
-            <Button type="submit" disabled={saving || !hours} className="bg-blue-600 hover:bg-blue-700 h-9 text-sm w-full">
-              {saving ? 'Saving...' : 'Add Entry'}
-            </Button>
+          <div className="text-xs text-gray-500">
+            💡 Each day has one entry with a total duration. Multiple shoots/standby on the same day don't multiply hours.
           </div>
+          <Button type="submit" disabled={!effectiveHours} className="bg-blue-600 hover:bg-blue-700 h-9 text-sm">
+            Add Entry
+          </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
 
-function DayBlock({ date, entries, isAdmin, userEmail, onDelete }) {
+function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
   const [open, setOpen] = useState(false);
-  const totalHours = entries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
-  const hasHours = totalHours > 0;
-  const isToday = date === format(new Date(), 'yyyy-MM-dd');
-  const dayLabel = format(new Date(date + 'T12:00:00'), 'EEE');
-  const dayNum = format(new Date(date + 'T12:00:00'), 'd');
-  const monthLabel = format(new Date(date + 'T12:00:00'), 'MMM');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ hours: entry.hours, notes: entry.notes || '', day_type: entry.day_type || 'work_day' });
+
+  const isToday = entry.date === format(new Date(), 'yyyy-MM-dd');
+  const dayLabel = format(new Date(entry.date + 'T12:00:00'), 'EEE');
+  const dayNum = format(new Date(entry.date + 'T12:00:00'), 'd');
+  const monthLabel = format(new Date(entry.date + 'T12:00:00'), 'MMM');
+  const canModify = isAdmin || entry.operator_email === userEmail;
+  const typeInfo = getDayTypeInfo(entry.day_type || 'work_day');
+
+  const handleSave = async () => {
+    await onEdit(entry.id, {
+      hours: parseFloat(editForm.hours),
+      notes: editForm.notes,
+      day_type: editForm.day_type,
+    });
+    setEditing(false);
+  };
 
   return (
     <div className={`rounded-xl border transition-colors ${isToday ? 'border-blue-700 bg-blue-950/20' : 'border-gray-800 bg-gray-900'}`}>
-      <button
-        className="w-full flex items-center gap-4 p-4 text-left"
-        onClick={() => setOpen(!open)}
-      >
-        {/* Date block */}
+      <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setOpen(!open)}>
         <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-blue-600' : 'bg-gray-800'}`}>
           <span className="text-xs text-gray-300 leading-none">{dayLabel}</span>
           <span className="text-xl font-bold text-white leading-tight">{dayNum}</span>
           <span className="text-xs text-gray-400 leading-none">{monthLabel}</span>
         </div>
-        {/* Summary */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-1.5 mb-1">
-            {entries.map((e, i) => (
-              <span key={i} className={`text-xs px-2 py-0.5 rounded-full border ${
-                e.entry_type === 'standby' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50' :
-                e.entry_type === 'shoot' ? 'bg-blue-900/30 text-blue-400 border-blue-700/50' :
-                'bg-gray-800 text-gray-400 border-gray-700'
-              }`}>
-                {e._shootTitle || e.notes || entryTypeLabel[e.entry_type]}
-              </span>
-            ))}
+            <span className={`text-xs px-2 py-0.5 rounded-full border ${typeInfo.color}`}>
+              {typeInfo.label}
+            </span>
+            {entry.notes && (
+              <span className="text-xs text-gray-500 truncate max-w-xs">{entry.notes}</span>
+            )}
           </div>
-          <p className="text-xs text-gray-500">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</p>
         </div>
-        {/* Hours + expand */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className={`font-mono font-bold text-lg ${hasHours ? 'text-white' : 'text-gray-600'}`}>
-            {hasHours ? `${totalHours.toFixed(1)}h` : '—'}
+          <span className="font-mono font-bold text-lg text-white">
+            {entry.hours ? `${Number(entry.hours).toFixed(1)}h` : '—'}
           </span>
           <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-2">
-          {entries.map(entry => {
-            const canDelete = isAdmin || entry.operator_email === userEmail;
-            return (
-              <div key={entry.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-800/50 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-white">{entry._shootTitle || entry.notes || entry.operator_email}</span>
-                    <Badge className="text-xs border border-gray-600 bg-gray-700/50 text-gray-400">{entryTypeLabel[entry.entry_type] || 'Manual'}</Badge>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    <span className="font-mono text-white font-bold">{entry.hours != null ? `${Number(entry.hours).toFixed(2)}h` : '—'}</span>
-                  </p>
+        <div className="px-4 pb-4 border-t border-gray-800 pt-3">
+          {editing ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Type</label>
+                  <select value={editForm.day_type} onChange={e => setEditForm({ ...editForm, day_type: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm">
+                    {DAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
                 </div>
-                {canDelete && !entry._synthetic && (
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Hours</label>
+                  <Input type="number" step="0.25" min="0" value={editForm.hours}
+                    onChange={e => setEditForm({ ...editForm, hours: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Notes</label>
+                  <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 gap-1 text-xs" onClick={handleSave}>
+                  <Save className="h-3 w-3" /> Save
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className={`text-xs border ${typeInfo.color}`}>{typeInfo.label}</Badge>
+                  <span className="font-mono font-bold text-white">{Number(entry.hours).toFixed(2)}h</span>
+                </div>
+                {entry.notes && <p className="text-sm text-gray-300">{entry.notes}</p>}
+                <p className="text-xs text-gray-600">Added: {entry.operator_name || entry.operator_email}</p>
+              </div>
+              {canModify && (
+                <div className="flex gap-1 flex-shrink-0">
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => setEditing(true)}>
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => onDelete(entry.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -211,13 +275,14 @@ export default function Timesheets() {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
 
-  const handleAddManual = async (form) => {
+  const handleAdd = async (form) => {
     await base44.entities.TimeEntry.create({
       operator_email: user.email,
       operator_name: user.full_name,
       date: form.date,
-      hours: parseFloat(Number(form.hours).toFixed(4)),
-      notes: form.notes || 'Manual entry',
+      hours: form.hours,
+      notes: form.notes || '',
+      day_type: form.day_type,
       entry_type: 'manual',
       status: 'approved',
     });
@@ -229,28 +294,30 @@ export default function Timesheets() {
     refresh();
   };
 
+  const handleEdit = async (id, data) => {
+    await base44.entities.TimeEntry.update(id, data);
+    refresh();
+  };
+
   const myEmail = user?.email;
+
+  // Filter to this user's entries for this month
+  // Group by date — take ONE entry per date (no double-counting)
   const filtered = entries
     .filter(e => e.operator_email === myEmail && e.date?.startsWith(filterMonth))
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const totalHours = filtered.reduce((s, e) => s + (Number(e.hours) || 0), 0);
 
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    return format(d, 'yyyy-MM');
-  });
-
-  // Group entries by date
+  // Deduplicate by date: only show one entry per date (most recent if multiple)
   const byDate = {};
   filtered.forEach(e => {
-    const d = e.date || 'unknown';
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(e);
+    if (!byDate[e.date] || e.updated_date > byDate[e.date].updated_date) {
+      byDate[e.date] = e;
+    }
   });
-  const sortedDates = Object.keys(byDate).sort();
+  const dedupedEntries = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 
-  // Navigate months
+  const totalHours = dedupedEntries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
+
   const goMonth = (delta) => {
     const [y, m] = filterMonth.split('-').map(Number);
     const d = new Date(y, m - 1 + delta, 1);
@@ -260,14 +327,14 @@ export default function Timesheets() {
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Timesheets</h1>
           <div className="flex gap-2">
             <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-blue-600 hover:bg-blue-700 gap-2 h-9">
               <Plus className="h-4 w-4" /> Add Entry
             </Button>
-            <Button onClick={() => exportTimesheetPDF(filtered, `Timesheet ${filterMonth}`)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9">
+            <Button onClick={() => exportTimesheetPDF(dedupedEntries, `Timesheet ${filterMonth}`)}
+              variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9">
               <Download className="h-4 w-4" /> Export PDF
             </Button>
           </div>
@@ -287,7 +354,7 @@ export default function Timesheets() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
               <p className="text-gray-400 text-sm">Total Hours</p>
@@ -296,35 +363,40 @@ export default function Timesheets() {
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Days with Activity</p>
-              <p className="text-2xl font-bold text-white mt-1">{sortedDates.length}</p>
+              <p className="text-gray-400 text-sm">Work Days</p>
+              <p className="text-2xl font-bold text-white mt-1">{dedupedEntries.length}</p>
             </CardContent>
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Entries</p>
-              <p className="text-2xl font-bold text-white mt-1">{filtered.length}</p>
+              <p className="text-gray-400 text-sm">Shoot Days</p>
+              <p className="text-2xl font-bold text-blue-400 mt-1">
+                {dedupedEntries.filter(e => e.day_type === 'shoot' || e.day_type === 'shoot_standby').length}
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {showAddForm && (
-          <ManualAddForm onAdd={handleAddManual} onClose={() => setShowAddForm(false)} />
+          <AddEntryForm onAdd={handleAdd} onClose={() => setShowAddForm(false)} />
         )}
 
-        {/* Day blocks */}
-        {filtered.length === 0 ? (
+        <div className="mb-4 text-xs text-gray-500 bg-gray-900/60 border border-gray-800 rounded-lg px-4 py-3">
+          💡 <strong className="text-gray-400">One entry per day</strong> — multiple shoots or standby on the same day are recorded as one duration. Use <em>Shoot/Standby</em> type if both apply. Hours don't stack per shoot.
+        </div>
+
+        {dedupedEntries.length === 0 ? (
           <div className="text-center py-16 text-gray-500">No entries for this month. Use "Add Entry" to log time.</div>
         ) : (
           <div className="space-y-3">
-            {sortedDates.map(date => (
+            {dedupedEntries.map(entry => (
               <DayBlock
-                key={date}
-                date={date}
-                entries={byDate[date]}
+                key={entry.id}
+                entry={entry}
                 isAdmin={isAdmin}
                 userEmail={user?.email}
                 onDelete={handleDelete}
+                onEdit={handleEdit}
               />
             ))}
           </div>

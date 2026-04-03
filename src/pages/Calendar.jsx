@@ -390,8 +390,18 @@ export default function Calendar() {
                               }`}>{shoot.status}</span>
                               {isAssigned && <span className="text-xs text-green-400">✓ Assigned</span>}
                               {isPending && <span className="text-xs text-yellow-400">Pending</span>}
-                              {isAdmin && nonAdminAssigned.length > 0 && (
-                                <span className="text-xs text-gray-400">{allUsers.find(u => u.email === nonAdminAssigned[0])?.full_name?.split(' ')[0] || nonAdminAssigned[0].split('@')[0]}</span>
+                                      {shoot.assigned_operators?.length > 0 && (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  {shoot.assigned_operators.map(email => {
+                                    const u = allUsers.find(u2 => u2.email === email);
+                                    return (
+                                      <span key={email} className="text-xs text-gray-400">
+                                        {u?.full_name?.split(' ')[0] || email.split('@')[0]}
+                                        {u?.role === 'admin' ? ' (admin)' : ''}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
                               )}
                             </div>
                           </div>

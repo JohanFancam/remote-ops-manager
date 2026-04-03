@@ -1,0 +1,153 @@
+{
+  "name": "RigSetting",
+  "type": "object",
+  "properties": {
+    "team": {
+      "type": "string",
+      "description": "Team name \u2014 matches shoot client/title"
+    },
+    "venue_type": {
+      "type": "string",
+      "enum": [
+        "Indoor",
+        "Outdoor"
+      ],
+      "default": "Indoor"
+    },
+    "sport": {
+      "type": "string",
+      "description": "Sport category e.g. NBA, NHL, NFL, Soccer"
+    },
+    "rig_type": {
+      "type": "string",
+      "enum": [
+        "Data",
+        "Fancam",
+        "Data/Fancam"
+      ],
+      "default": "Data",
+      "description": "Primary rig output type"
+    },
+    "shoot_plan": {
+      "type": "string",
+      "description": "Shoot plan notes"
+    },
+    "remote_rigs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Google Remote names"
+    },
+    "sound": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "day_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "day_hd_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "day_hd": {
+      "type": "object"
+    },
+    "day_wide_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "day_wide": {
+      "type": "object"
+    },
+    "day_attention_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "day_attention": {
+      "type": "object"
+    },
+    "night_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "night_hd_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "night_hd": {
+      "type": "object"
+    },
+    "night_wide_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "night_wide": {
+      "type": "object"
+    },
+    "night_attention_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "night_attention": {
+      "type": "object"
+    },
+    "arena_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "arena_hd_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "arena_hd": {
+      "type": "object"
+    },
+    "arena_wide_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "arena_wide": {
+      "type": "object"
+    },
+    "arena_attention_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "arena_attention": {
+      "type": "object"
+    },
+    "data_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "data_hd_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "data_hd": {
+      "type": "object"
+    },
+    "data_wide_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "data_wide": {
+      "type": "object"
+    },
+    "data_attention_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "data_attention": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "team"
+  ]
+}
