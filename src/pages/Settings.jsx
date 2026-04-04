@@ -38,6 +38,8 @@ export default function Settings() {
   const [emailTemplate, setEmailTemplate] = useState('');
   const [emailSubjectTemplate, setEmailSubjectTemplate] = useState('');
   const [emailTemplateSaved, setEmailTemplateSaved] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [testEmailSent, setTestEmailSent] = useState(false);
 
   // Pending users
   const [showAddPending, setShowAddPending] = useState(false);
@@ -125,6 +127,22 @@ export default function Settings() {
     setNotifySaved(true);
     setTimeout(() => setNotifySaved(false), 2000);
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!user?.email) return;
+    setSendingTestEmail(true);
+    const subjectTpl = emailSubjectTemplate || '📡 Your Shoots This Week';
+    const bodyTpl = emailTemplate || `Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`;
+    const sampleShoot = `📅 Sample Shoot — Lakers vs Celtics\n🗓 Date: ${new Date().toISOString().split('T')[0]}\n⏰ Setup Time: 17:30\n🎥 Rig Type: Data\n📍 Location: Staples Center\n`;
+    const body = bodyTpl
+      .replace(/{name}/g, user.full_name || user.email.split('@')[0])
+      .replace(/{shoots}/g, sampleShoot);
+    const subject = `[TEST] ${subjectTpl.replace(/{name}/g, user.full_name || user.email.split('@')[0])}`;
+    await base44.integrations.Core.SendEmail({ to: user.email, subject, body });
+    setSendingTestEmail(false);
+    setTestEmailSent(true);
+    setTimeout(() => setTestEmailSent(false), 3000);
   };
 
   const handleSaveEmailTemplate = async () => {
@@ -501,9 +519,15 @@ export default function Settings() {
                     className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm min-h-[160px] font-mono text-xs"
                   />
                 </div>
-                <Button onClick={handleSaveEmailTemplate} className="bg-blue-700 hover:bg-blue-600 gap-2">
-                  <Save className="h-4 w-4" /> {emailTemplateSaved ? '✓ Saved!' : 'Save Template'}
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={handleSaveEmailTemplate} className="bg-blue-700 hover:bg-blue-600 gap-2">
+                    <Save className="h-4 w-4" /> {emailTemplateSaved ? '✓ Saved!' : 'Save Template'}
+                  </Button>
+                  <Button onClick={handleSendTestEmail} disabled={sendingTestEmail} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 gap-2">
+                    <Mail className="h-4 w-4" />
+                    {sendingTestEmail ? 'Sending...' : testEmailSent ? '✓ Test Sent!' : `Send Test to Me`}
+                  </Button>
+                </div>
               </div>
 
               <div className="border-t border-gray-800 pt-4 space-y-3">

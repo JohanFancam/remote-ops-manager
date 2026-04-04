@@ -24,10 +24,15 @@ export default function AdminMonthlySummary({ shoots, user }) {
     s.status !== 'cancelled'
   );
 
-  const myMonthStandby = shoots.filter(s =>
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('date', 500),
+    enabled: !!user?.email,
+  });
+
+  const myMonthStandby = standbyDays.filter(s =>
     s.date?.startsWith(monthStr) &&
-    s.standby_admin === user?.email &&
-    s.status !== 'cancelled'
+    s.admin_email === user?.email
   );
 
   const { data: myEntries = [] } = useQuery({
@@ -110,8 +115,11 @@ export default function AdminMonthlySummary({ shoots, user }) {
                   {myMonthStandby.sort((a, b) => a.date.localeCompare(b.date)).map(s => (
                     <div key={s.id} className="flex items-center justify-between bg-yellow-950/20 border border-yellow-900/30 rounded px-3 py-2">
                       <div>
-                        <p className="text-sm text-white font-medium">{s.title}</p>
-                        <p className="text-xs text-gray-400">{format(new Date(s.date + 'T12:00:00'), 'EEE, MMM d')}</p>
+                        <p className="text-sm text-white font-medium">{format(new Date(s.date + 'T12:00:00'), 'EEE, MMM d')}</p>
+                        {(s.start_time || s.end_time) && (
+                          <p className="text-xs text-gray-400">{s.start_time || ''}{s.start_time && s.end_time ? ' – ' : ''}{s.end_time || ''}</p>
+                        )}
+                        {s.notes && <p className="text-xs text-gray-500">{s.notes}</p>}
                       </div>
                       <Phone className="h-3.5 w-3.5 text-yellow-400" />
                     </div>
