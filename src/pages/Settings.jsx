@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Zap
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Zap, Mail
 } from 'lucide-react';
 
 const SLACK_PHASES = [
@@ -32,6 +33,9 @@ export default function Settings() {
   const [notifySaved, setNotifySaved] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [remindersSent, setRemindersSent] = useState(false);
+  const [emailTemplate, setEmailTemplate] = useState('');
+  const [emailSubjectTemplate, setEmailSubjectTemplate] = useState('');
+  const [emailTemplateSaved, setEmailTemplateSaved] = useState(false);
 
   // Pending users
   const [showAddPending, setShowAddPending] = useState(false);
@@ -77,6 +81,10 @@ export default function Settings() {
     if (ar) setRateAdditionalInput(ar);
     const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
     if (nh) setNotifyHoursInput(nh);
+    const et = appSettings.find(s => s.key === 'email_reminder_template')?.value;
+    if (et) setEmailTemplate(et);
+    const es = appSettings.find(s => s.key === 'email_reminder_subject')?.value;
+    if (es) setEmailSubjectTemplate(es);
   }, [appSettings]);
 
   const refresh = () => {
@@ -117,35 +125,87 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
+  const handleSaveEmailTemplate = async () => {
+    const pairs = [
+      { key: 'email_reminder_template', value: emailTemplate, description: 'Weekly shoot reminder email body template' },
+      { key: 'email_reminder_subject', value: emailSubjectTemplate, description: 'Weekly shoot reminder email subject template' },
+    ];
+    for (const pair of pairs) {
+      const existing = appSettings.find(s => s.key === pair.key);
+      if (existing) {
+        await base44.entities.AppSettings.update(existing.id, { value: pair.value });
+      } else {
+        await base44.entities.AppSettings.create(pair);
+      }
+    }
+    setEmailTemplateSaved(true);
+    setTimeout(() => setEmailTemplateSaved(false), 2000);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
   const handleSendReminders = async () => {
     setSendingReminders(true);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    const shoots = await base44.entities.Shoot.list('-date', 200);
+    // Get shoots for the next 7 days
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    const shoots = await base44.entities.Shoot.list('date', 500);
     const upcoming = shoots.filter(s =>
       s.status !== 'cancelled' && s.status !== 'completed' &&
-      s.date >= todayStr && s.date <= tomorrowStr &&
+      s.date >= todayStr && s.date <= nextWeekStr &&
       s.assigned_operators?.length > 0
     );
 
-    const sent = new Set();
+    // Group shoots by operator
+    const byOperator = {};
     for (const shoot of upcoming) {
       for (const email of (shoot.assigned_operators || [])) {
         const u = users.find(u => u.email === email);
         if (!u || u.role === 'admin') continue;
-        const key = `${shoot.id}_${email}`;
-        if (sent.has(key)) continue;
-        sent.add(key);
-        await base44.integrations.Core.SendEmail({
-          to: email,
-          subject: `📡 Shoot Reminder: ${shoot.title}`,
-          body: `Hi ${u.full_name || email.split('@')[0]},\n\nThis is a reminder that you have an upcoming shoot:\n\n📅 ${shoot.title}\n🗓 Date: ${shoot.date}\n⏰ Game Time: ${shoot.game_time || 'TBD'}\n📍 Location: ${shoot.location || 'TBD'}\n\nPlease check the Remote Ops Manager app for full schedule and rig settings.\n\nThanks,\nRemote Ops Team`,
-        });
+        if (!byOperator[email]) byOperator[email] = { user: u, shoots: [] };
+        byOperator[email].shoots.push(shoot);
       }
     }
+
+    const defaultSubject = `📡 Your Shoots This Week`;
+    const defaultTemplate = `Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`;
+    const defaultShootBlock = `📅 {shoot_title}\n🗓 Date: {date}\n⏰ Setup Time: {setup_time}\n🎥 Rig Type: {rig_type}\n📍 Location: {location}\n`;
+
+    const subjectTpl = emailSubjectTemplate || defaultSubject;
+    const bodyTpl = emailTemplate || defaultTemplate;
+
+    for (const [email, { user: u, shoots: operatorShoots }] of Object.entries(byOperator)) {
+      const shootsText = operatorShoots.map(s => {
+        // Calculate setup time from game_time
+        let setupTime = 'TBD';
+        if (s.game_time) {
+          const [h, m] = s.game_time.split(':').map(Number);
+          const offset = s.setup_offset ?? -150;
+          const totalMins = h * 60 + m + offset;
+          const sh = Math.floor(((totalMins % 1440) + 1440) % 1440 / 60);
+          const sm = ((totalMins % 1440) + 1440) % 1440 % 60;
+          setupTime = `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}`;
+        }
+        return defaultShootBlock
+          .replace('{shoot_title}', s.title)
+          .replace('{date}', s.date)
+          .replace('{setup_time}', setupTime)
+          .replace('{rig_type}', s.rig_type_override || 'Standard')
+          .replace('{location}', s.location || 'TBD');
+      }).join('\n---\n\n');
+
+      const body = bodyTpl
+        .replace(/{name}/g, u.full_name || email.split('@')[0])
+        .replace(/{shoots}/g, shootsText);
+
+      const subject = subjectTpl.replace(/{name}/g, u.full_name || email.split('@')[0]);
+
+      await base44.integrations.Core.SendEmail({ to: email, subject, body });
+    }
+
     setSendingReminders(false);
     setRemindersSent(true);
     setTimeout(() => setRemindersSent(false), 3000);
@@ -409,10 +469,40 @@ export default function Settings() {
                 </Button>
               </div>
 
+              <div className="border-t border-gray-800 pt-4 space-y-3">
+                <p className="text-xs text-gray-400 font-medium flex items-center gap-2"><Mail className="h-4 w-4 text-orange-400" /> Weekly Email Template</p>
+                <p className="text-xs text-gray-500">
+                  Customize the email sent to each operator. Available variables:<br />
+                  <code className="text-blue-400">{'{name}'}</code> — operator's name &nbsp;|&nbsp;
+                  <code className="text-blue-400">{'{shoots}'}</code> — list of their shoots
+                </p>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Subject</label>
+                  <Input
+                    value={emailSubjectTemplate}
+                    onChange={e => setEmailSubjectTemplate(e.target.value)}
+                    placeholder="📡 Your Shoots This Week"
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Body</label>
+                  <Textarea
+                    value={emailTemplate}
+                    onChange={e => setEmailTemplate(e.target.value)}
+                    placeholder={`Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`}
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm min-h-[160px] font-mono text-xs"
+                  />
+                </div>
+                <Button onClick={handleSaveEmailTemplate} className="bg-blue-700 hover:bg-blue-600 gap-2">
+                  <Save className="h-4 w-4" /> {emailTemplateSaved ? '✓ Saved!' : 'Save Template'}
+                </Button>
+              </div>
+
               <div className="border-t border-gray-800 pt-4">
-                <p className="text-xs text-gray-400 mb-3 font-medium">Manual Override — Send reminders now</p>
+                <p className="text-xs text-gray-400 mb-1 font-medium">Send Weekly Schedule Emails</p>
                 <p className="text-xs text-gray-500 mb-3">
-                  Send an email reminder immediately to all operators assigned to shoots today or tomorrow.
+                  Each operator receives one email with all their shoots for the next 7 days grouped together.
                 </p>
                 <Button
                   onClick={handleSendReminders}
@@ -420,7 +510,7 @@ export default function Settings() {
                   className="bg-orange-700 hover:bg-orange-600 gap-2"
                 >
                   <Zap className="h-4 w-4" />
-                  {sendingReminders ? 'Sending...' : remindersSent ? '✓ Reminders Sent!' : 'Send Shoot Reminders Now'}
+                  {sendingReminders ? 'Sending...' : remindersSent ? '✓ Emails Sent!' : 'Send Weekly Schedule Now'}
                 </Button>
               </div>
             </CardContent>
