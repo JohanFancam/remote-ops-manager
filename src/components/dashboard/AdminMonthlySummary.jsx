@@ -18,10 +18,12 @@ export default function AdminMonthlySummary({ shoots, user }) {
     setCurrentMonth(d);
   };
 
+  // Only count shoots where the admin actually completed them (shoot_complete phase set)
   const myMonthShoots = shoots.filter(s =>
     s.date?.startsWith(monthStr) &&
     s.assigned_operators?.includes(user?.email) &&
-    s.status !== 'cancelled'
+    s.status !== 'cancelled' &&
+    s.phase_status?.shoot_complete
   );
 
   const { data: standbyDays = [] } = useQuery({
@@ -41,8 +43,19 @@ export default function AdminMonthlySummary({ shoots, user }) {
     enabled: !!user?.email,
   });
 
-  const monthEntries = myEntries.filter(e => e.date?.startsWith(monthStr));
-  const totalHours = monthEntries.reduce((s, e) => s + (e.hours || 0), 0);
+  // For admins: calculate hours from completed shoots only (phase_status.shoot_complete)
+  // De-duplicate by date — one shoot day = one time block (use the first completed shoot's hours per date)
+  const completedShootDates = new Set(myMonthShoots.map(s => s.date));
+  const monthEntries = myEntries.filter(e =>
+    e.date?.startsWith(monthStr) && completedShootDates.has(e.date)
+  );
+  // Sum unique dates only — avoid double-counting multiple entries on same day
+  const seenDates = new Set();
+  const totalHours = monthEntries.reduce((sum, e) => {
+    if (seenDates.has(e.date)) return sum;
+    seenDates.add(e.date);
+    return sum + (e.hours || 0);
+  }, 0);
 
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">

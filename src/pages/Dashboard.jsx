@@ -65,10 +65,34 @@ export default function Dashboard() {
       return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
     });
 
-  const myUpcoming = upcomingShoots.filter(s =>
-    s.assigned_operators?.includes(user?.email) ||
-    standbyDays.some(sd => sd.date === s.date && sd.admin_email === user?.email)
-  );
+  // For admins: only include standby shoots if they are currently on standby for that date
+  // (i.e. there's a standby entry for that date AND no other admin's standby has started after theirs)
+  const nowStr = new Date().toISOString();
+  const activeStandbyDates = isAdmin ? new Set(
+    standbyDays
+      .filter(sd => {
+        if (sd.admin_email !== user?.email) return false;
+        if (sd.date < todayStr) return false;
+        if (sd.date > todayStr) return true; // future standby — include
+        // Today: check if standby time window is still active
+        // If end_time is set and current time is past it, exclude
+        if (sd.end_time) {
+          const [eh, em] = sd.end_time.split(':').map(Number);
+          const endMins = eh * 60 + em;
+          const now = new Date();
+          const nowMins = now.getHours() * 60 + now.getMinutes();
+          if (nowMins > endMins) return false;
+        }
+        return true;
+      })
+      .map(sd => sd.date)
+  ) : new Set();
+
+  const myUpcoming = upcomingShoots.filter(s => {
+    if (s.assigned_operators?.includes(user?.email)) return true;
+    if (isAdmin && activeStandbyDates.has(s.date)) return true;
+    return false;
+  });
 
   const todayShoots = myUpcoming.filter(s => s.date === todayStr);
   const futureShoots = myUpcoming.filter(s => s.date > todayStr);
