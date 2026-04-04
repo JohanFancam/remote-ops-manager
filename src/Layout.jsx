@@ -17,7 +17,24 @@ function LayoutContent({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [unread, setUnread] = useState(0);
   const seenRef = useRef(new Set());
+
+  const playNotifSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) { /* silently fail if audio not available */ }
+  };
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -44,6 +61,8 @@ function LayoutContent({ children, currentPageName }) {
             const key = `req_${shoot.id}_${email}`;
             if (!seenRef.current.has(key)) {
               seenRef.current.add(key);
+              playNotifSound();
+              setUnread(prev => prev + 1);
               setNotifications(prev => [{
                 id: key,
                 message: `${email} requested assignment to "${shoot.title}"`,
@@ -66,6 +85,8 @@ function LayoutContent({ children, currentPageName }) {
           const notifKey = `phase_${shoot.id}_${key}`;
           if (!seenRef.current.has(notifKey)) {
             seenRef.current.add(notifKey);
+            playNotifSound();
+            setUnread(prev => prev + 1);
             setNotifications(prev => [{
               id: notifKey,
               message: `"${shoot.title}" — ${phaseLabels[key] || key}`,
@@ -78,7 +99,7 @@ function LayoutContent({ children, currentPageName }) {
     return unsub;
   }, [isAdmin]);
 
-  const unreadCount = notifications.length;
+  const unreadCount = unread;
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -159,7 +180,7 @@ function LayoutContent({ children, currentPageName }) {
         {isAdmin && (
           <div className="px-3 pb-2 relative">
             <button
-              onClick={() => { setShowNotifs(!showNotifs); if (!showNotifs) setNotifications([]); }}
+              onClick={() => { setShowNotifs(p => !p); setUnread(0); }}
               className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
             >
               <span className="flex items-center gap-2 text-sm">
@@ -175,7 +196,7 @@ function LayoutContent({ children, currentPageName }) {
               <div className="absolute bottom-12 left-3 right-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto">
                 <div className="p-3 border-b border-gray-700 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-300">Notifications</span>
-                  <button onClick={() => setNotifications([])} className="text-xs text-gray-500 hover:text-white">Clear all</button>
+                  <button onClick={() => { setNotifications([]); setShowNotifs(false); }} className="text-xs text-gray-500 hover:text-white">Clear all</button>
                 </div>
                 {notifications.length === 0 ? (
                   <p className="text-xs text-gray-500 p-4 text-center">No new notifications</p>
