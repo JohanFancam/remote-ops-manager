@@ -23,9 +23,9 @@ const CAMERAS = [
 ];
 
 const DEFAULT_CAM = {
-  shutter_min: '1/100', shutter_max: '1/400',
-  aperture_min: 'F5.6', aperture_max: 'F11',
-  iso_min: 'Auto', iso_max: '6400',
+  shutter: '1/400',
+  aperture: 'F5.6',
+  iso: 'Auto',
 };
 
 const emptyForm = {
@@ -47,7 +47,7 @@ function Toggle({ enabled, onChange }) {
   );
 }
 
-function CameraRangeEditor({ label, enabled, onToggle, cam, onChange }) {
+function CameraEditor({ label, enabled, onToggle, cam, onChange }) {
   const set = (field, val) => onChange({ ...cam, [field]: val });
   return (
     <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
@@ -56,25 +56,18 @@ function CameraRangeEditor({ label, enabled, onToggle, cam, onChange }) {
         <Toggle enabled={enabled} onChange={onToggle} />
       </div>
       {enabled && (
-        <div className="space-y-2 mt-2">
+        <div className="grid grid-cols-3 gap-2 mt-2">
           {[
-            { label: 'Shutter Speed', minField: 'shutter_min', maxField: 'shutter_max', options: SHUTTER_OPTIONS },
-            { label: 'F-Stop', minField: 'aperture_min', maxField: 'aperture_max', options: APERTURE_OPTIONS },
-            { label: 'ISO', minField: 'iso_min', maxField: 'iso_max', options: ISO_OPTIONS },
+            { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
+            { label: 'F-Stop', field: 'aperture', options: APERTURE_OPTIONS },
+            { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
           ].map(f => (
-            <div key={f.label}>
-              <label className="text-xs text-gray-500 block mb-1">{f.label} range</label>
-              <div className="flex items-center gap-2">
-                <select value={cam?.[f.minField] || ''} onChange={e => set(f.minField, e.target.value)}
-                  className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
-                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <span className="text-gray-500 text-xs">–</span>
-                <select value={cam?.[f.maxField] || ''} onChange={e => set(f.maxField, e.target.value)}
-                  className="flex-1 bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
-                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
+            <div key={f.field}>
+              <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+              <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+                {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
             </div>
           ))}
         </div>
@@ -95,9 +88,9 @@ function CamDisplayRow({ label, enabled, cam }) {
       <span className="text-xs text-gray-300 font-medium">{label}</span>
       {cam && (
         <div className="flex gap-2 text-xs text-gray-400 flex-wrap">
-          <span>⏱ {cam.shutter_min}–{cam.shutter_max}</span>
-          <span>▪ {cam.aperture_min}–{cam.aperture_max}</span>
-          <span>💡 {cam.iso_min}–{cam.iso_max}</span>
+          <span>⏱ {cam.shutter || cam.shutter_min || '—'}</span>
+          <span>▪ {cam.aperture || cam.aperture_min || '—'}</span>
+          <span>💡 {cam.iso || cam.iso_min || '—'}</span>
         </div>
       )}
     </div>
@@ -242,7 +235,7 @@ export default function Rigs() {
                 <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
                 <div className="space-y-3">
                   {CAMERAS.map(cam => (
-                    <CameraRangeEditor
+                    <CameraEditor
                       key={cam.key}
                       label={cam.label}
                       enabled={form[`${cam.key}_enabled`] !== false}

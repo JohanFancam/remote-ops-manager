@@ -45,7 +45,7 @@
     },
     "hd": {
       "type": "object",
-      "description": "HD Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+      "description": "HD Camera settings: shutter, aperture, iso"
     },
     "wide_enabled": {
       "type": "boolean",
@@ -53,7 +53,7 @@
     },
     "wide": {
       "type": "object",
-      "description": "Wide Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+      "description": "Wide Camera settings: shutter, aperture, iso"
     },
     "attention_enabled": {
       "type": "boolean",
@@ -61,7 +61,7 @@
     },
     "attention": {
       "type": "object",
-      "description": "Attention Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+      "description": "Attention Camera settings: shutter, aperture, iso"
     },
     "sound": {
       "type": "boolean",
