@@ -33,6 +33,8 @@ export default function Settings() {
   const [notifySaved, setNotifySaved] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [remindersSent, setRemindersSent] = useState(false);
+  const [showRecipientPicker, setShowRecipientPicker] = useState(false);
+  const [selectedRecipients, setSelectedRecipients] = useState(null); // null = not yet initialized
   const [emailTemplate, setEmailTemplate] = useState('');
   const [emailSubjectTemplate, setEmailSubjectTemplate] = useState('');
   const [emailTemplateSaved, setEmailTemplateSaved] = useState(false);
@@ -159,12 +161,17 @@ export default function Settings() {
       s.assigned_operators?.length > 0
     );
 
+    // Determine which emails are allowed
+    const allowedEmails = selectedRecipients !== null
+      ? selectedRecipients
+      : new Set(users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email));
+
     // Group shoots by operator
     const byOperator = {};
     for (const shoot of upcoming) {
       for (const email of (shoot.assigned_operators || [])) {
         const u = users.find(u => u.email === email);
-        if (!u || u.role === 'admin') continue;
+        if (!u || !allowedEmails.has(email)) continue;
         if (!byOperator[email]) byOperator[email] = { user: u, shoots: [] };
         byOperator[email].shoots.push(shoot);
       }
@@ -499,14 +506,77 @@ export default function Settings() {
                 </Button>
               </div>
 
-              <div className="border-t border-gray-800 pt-4">
+              <div className="border-t border-gray-800 pt-4 space-y-3">
                 <p className="text-xs text-gray-400 mb-1 font-medium">Send Weekly Schedule Emails</p>
-                <p className="text-xs text-gray-500 mb-3">
-                  Each operator receives one email with all their shoots for the next 7 days grouped together.
+                <p className="text-xs text-gray-500">
+                  Each selected user receives one email with all their shoots for the next 7 days.
                 </p>
+
+                {/* Recipient picker toggle */}
+                <button
+                  onClick={() => {
+                    if (!showRecipientPicker) {
+                      // Initialize selection: only non-admin users by default
+                      if (selectedRecipients === null) {
+                        const defaultSelected = users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email);
+                        setSelectedRecipients(new Set(defaultSelected));
+                      }
+                    }
+                    setShowRecipientPicker(!showRecipientPicker);
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                >
+                  {showRecipientPicker ? 'Hide recipients' : `Select recipients (${selectedRecipients === null ? users.filter(u => u.role !== 'admin' && u.role !== 'accounts').length : selectedRecipients.size} selected)`}
+                </button>
+
+                {showRecipientPicker && (
+                  <div className="bg-gray-800/60 rounded-xl border border-gray-700 divide-y divide-gray-700/50">
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-xs text-gray-400 font-medium">Recipients</span>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setSelectedRecipients(new Set(users.map(u => u.email)))}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >Select all</button>
+                        <button
+                          onClick={() => setSelectedRecipients(new Set())}
+                          className="text-xs text-gray-500 hover:text-gray-300"
+                        >Clear all</button>
+                      </div>
+                    </div>
+                    {users.map(u => {
+                      const checked = selectedRecipients === null
+                        ? (u.role !== 'admin' && u.role !== 'accounts')
+                        : selectedRecipients.has(u.email);
+                      return (
+                        <label key={u.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-700/40">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const current = selectedRecipients ?? new Set(users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email));
+                              const next = new Set(current);
+                              if (next.has(u.email)) next.delete(u.email); else next.add(u.email);
+                              setSelectedRecipients(next);
+                            }}
+                            className="accent-blue-500 w-4 h-4 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">{u.full_name || u.email}</p>
+                            <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                          </div>
+                          <Badge className={`text-xs border flex-shrink-0 ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                            {u.role === 'admin' ? `Admin` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
+                          </Badge>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <Button
                   onClick={handleSendReminders}
-                  disabled={sendingReminders}
+                  disabled={sendingReminders || (selectedRecipients !== null && selectedRecipients.size === 0)}
                   className="bg-orange-700 hover:bg-orange-600 gap-2"
                 >
                   <Zap className="h-4 w-4" />
