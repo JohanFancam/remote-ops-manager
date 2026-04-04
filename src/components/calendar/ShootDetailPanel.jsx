@@ -282,9 +282,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                         <span className={`text-sm ${enabled ? 'text-white font-medium' : 'text-gray-600'}`}>{cam.label}</span>
                         {enabled && settings ? (
                           <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap justify-end">
-                            <span>⏱ {settings.shutter_min}–{settings.shutter_max}</span>
-                            <span>▪ {settings.aperture_min}–{settings.aperture_max}</span>
-                            <span>💡 {settings.iso_min}–{settings.iso_max}</span>
+                            <span>⏱ {settings.shutter || settings.shutter_min || '—'}</span>
+                            <span>▪ {settings.aperture || settings.aperture_min || '—'}</span>
+                            <span>💡 {settings.iso || settings.iso_min || '—'}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-600">OFF</span>
