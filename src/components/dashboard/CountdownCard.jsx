@@ -80,9 +80,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
   );
-  const showAttention = matchedRig
-    ? (matchedRig.day_attention_enabled || matchedRig.night_attention_enabled || matchedRig.arena_attention_enabled || matchedRig.data_attention_enabled)
-    : false;
+  const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
 
   // Effective rig type: shoot override first, then rig setting
@@ -237,10 +235,9 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {matchedRig.day_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-700/40">Day</span>}
-                  {matchedRig.night_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-700/40">Night</span>}
-                  {matchedRig.arena_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-400 border border-purple-700/40">Arena</span>}
-                  {matchedRig.data_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-700/40">Data</span>}
+                  {matchedRig.hd_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600">HD</span>}
+                  {matchedRig.wide_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600">Wide</span>}
+                  {matchedRig.attention_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-orange-900/30 text-orange-400 border border-orange-700/40">Attention</span>}
                   {matchedRig.sound && <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-700/40">Sound</span>}
                 </div>
               </div>

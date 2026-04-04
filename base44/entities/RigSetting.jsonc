@@ -39,112 +39,36 @@
       },
       "description": "Google Remote names"
     },
+    "hd_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "hd": {
+      "type": "object",
+      "description": "HD Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+    },
+    "wide_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "wide": {
+      "type": "object",
+      "description": "Wide Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+    },
+    "attention_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "attention": {
+      "type": "object",
+      "description": "Attention Camera settings: shutter_min, shutter_max, aperture_min, aperture_max, iso_min, iso_max"
+    },
     "sound": {
       "type": "boolean",
       "default": false
     },
     "notes": {
       "type": "string"
-    },
-    "day_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "day_hd_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "day_hd": {
-      "type": "object"
-    },
-    "day_wide_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "day_wide": {
-      "type": "object"
-    },
-    "day_attention_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "day_attention": {
-      "type": "object"
-    },
-    "night_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "night_hd_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "night_hd": {
-      "type": "object"
-    },
-    "night_wide_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "night_wide": {
-      "type": "object"
-    },
-    "night_attention_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "night_attention": {
-      "type": "object"
-    },
-    "arena_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "arena_hd_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "arena_hd": {
-      "type": "object"
-    },
-    "arena_wide_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "arena_wide": {
-      "type": "object"
-    },
-    "arena_attention_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "arena_attention": {
-      "type": "object"
-    },
-    "data_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "data_hd_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "data_hd": {
-      "type": "object"
-    },
-    "data_wide_enabled": {
-      "type": "boolean",
-      "default": true
-    },
-    "data_wide": {
-      "type": "object"
-    },
-    "data_attention_enabled": {
-      "type": "boolean",
-      "default": false
-    },
-    "data_attention": {
-      "type": "object"
     }
   },
   "required": [
