@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
-  Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone, PhoneOff,
+  Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone,
   MapPin, Tv2
 } from 'lucide-react';
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
@@ -122,7 +122,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   );
 
   // Which optional phases are enabled for this shoot
-  const showAttention = matchedRig?.attention_camera === true;
+  const showAttention = matchedRig
+    ? (matchedRig.day_attention_enabled || matchedRig.night_attention_enabled || matchedRig.arena_attention_enabled || matchedRig.data_attention_enabled)
+    : false;
   const showSound = matchedRig?.sound === true;
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigTypeLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
@@ -406,47 +408,19 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} rigType={rigTypeLabel} />
       )}
 
-      {/* Admin: assign self as standby for this shoot */}
-      {isAdmin && !isPast && (
-        <div className="bg-gray-800/40 rounded-lg border border-gray-700 p-3">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Phone className="h-3 w-3" /> Standby Assignment
+      {/* Standby info for this shoot date — show who is on standby */}
+      {shoot.standby_admin && (
+        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
+          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <Phone className="h-3 w-3" /> Standby Admin
           </p>
-          {shoot.standby_admin ? (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-yellow-300">
-                {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin}
-              </span>
-              {shoot.standby_admin === user?.email && (
-                <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:text-red-400"
-                  onClick={() => onUpdate(shoot.id, { standby_admin: null })}>
-                  <PhoneOff className="h-3 w-3 mr-1" /> Remove
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-yellow-400 hover:bg-yellow-950/40 border border-yellow-800/50 w-full"
-              onClick={async () => {
-                await onUpdate(shoot.id, { standby_admin: user?.email });
-                await createShootTimeEntry(shoot, user.email, user.full_name, 'manual', `Standby: ${shoot.title}`);
-              }}>
-              <Phone className="h-3 w-3 mr-1.5" /> Set Myself as Standby
-            </Button>
-          )}
+          <p className="text-sm text-yellow-200">
+            {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin}
+          </p>
         </div>
       )}
 
-      {/* Standby contact — remote users */}
-      {!isAdmin && standbyAdmins.length > 0 && (
-        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
-          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <Phone className="h-3 w-3" /> Standby Contact
-          </p>
-          {standbyAdmins.map(a => (
-            <p key={a.email} className="text-sm text-yellow-200">{a.full_name || a.email}</p>
-          ))}
-        </div>
-      )}
+
 
       {/* Phase buttons — only when assigned */}
       {isApproved && !isPast && (

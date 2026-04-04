@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Phone, Plus, X, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -12,12 +12,11 @@ export default function StandbyManager({ user, allUsers = [] }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [addingDate, setAddingDate] = useState(null);
-  const [swapping, setSwapping] = useState(null); // standbyDay id being swapped
+  const [addForm, setAddForm] = useState({ start_time: '', end_time: '', notes: '' });
+  const [swapping, setSwapping] = useState(null);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: standbyDays = [] } = useQuery({
@@ -28,19 +27,21 @@ export default function StandbyManager({ user, allUsers = [] }) {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
 
   const monthStandbys = standbyDays.filter(s => s.date?.startsWith(monthStr));
-
   const getStandbyForDay = (dateStr) => monthStandbys.find(s => s.date === dateStr);
 
   const handleClaim = async (dateStr) => {
-    const existing = getStandbyForDay(dateStr);
-    if (existing) return;
+    if (getStandbyForDay(dateStr)) return;
     await base44.entities.StandbyDay.create({
       date: dateStr,
       admin_email: user.email,
       admin_name: user.full_name || user.email,
+      start_time: addForm.start_time || '',
+      end_time: addForm.end_time || '',
+      notes: addForm.notes || '',
     });
     refresh();
     setAddingDate(null);
+    setAddForm({ start_time: '', end_time: '', notes: '' });
   };
 
   const handleRemove = async (id) => {
@@ -76,13 +77,9 @@ export default function StandbyManager({ user, allUsers = [] }) {
           </button>
           {expanded && (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                {'<'}
-              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>{'<'}</Button>
               <span className="text-sm text-gray-300 font-medium">{format(currentMonth, 'MMM yyyy')}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                {'>'}
-              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>{'>'}</Button>
             </div>
           )}
         </div>
@@ -99,72 +96,99 @@ export default function StandbyManager({ user, allUsers = [] }) {
               const dayLabel = format(day, 'EEE, MMM d');
 
               return (
-                <div key={dateStr} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                  isMe ? 'bg-yellow-950/30 border border-yellow-800/40' :
-                  standby ? 'bg-gray-800/50 border border-gray-700/50' :
-                  'border border-transparent'
+                <div key={dateStr} className={`rounded-lg px-3 py-2 border ${
+                  isMe ? 'bg-yellow-950/30 border-yellow-800/40' :
+                  standby ? 'bg-gray-800/50 border-gray-700/50' :
+                  'border-transparent'
                 } ${isPast ? 'opacity-50' : ''}`}>
-                  <span className={`text-xs w-28 flex-shrink-0 font-mono ${isMe ? 'text-yellow-300' : 'text-gray-400'}`}>{dayLabel}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs w-28 flex-shrink-0 font-mono ${isMe ? 'text-yellow-300' : 'text-gray-400'}`}>{dayLabel}</span>
 
-                  {standby ? (
-                    <div className="flex-1 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Phone className={`h-3 w-3 flex-shrink-0 ${isMe ? 'text-yellow-400' : 'text-gray-500'}`} />
-                        <span className={`text-sm ${isMe ? 'text-yellow-200 font-medium' : 'text-gray-300'}`}>
-                          {standby.admin_name || standby.admin_email}
-                          {isMe && ' (You)'}
-                        </span>
-                        {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
-                      </div>
-                      {!isPast && (
-                        <div className="flex gap-1">
-                          {isMe && (
-                            <>
-                              <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-500 hover:text-yellow-400 px-2 gap-1"
-                                onClick={() => setSwapping(swapping === standby.id ? null : standby.id)}>
-                                <ArrowLeftRight className="h-3 w-3" /> Swap
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
-                                onClick={() => handleRemove(standby.id)}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </>
+                    {standby ? (
+                      <div className="flex-1 flex items-center justify-between gap-2 flex-wrap">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Phone className={`h-3 w-3 flex-shrink-0 ${isMe ? 'text-yellow-400' : 'text-gray-500'}`} />
+                            <span className={`text-sm ${isMe ? 'text-yellow-200 font-medium' : 'text-gray-300'}`}>
+                              {standby.admin_name || standby.admin_email}{isMe && ' (You)'}
+                            </span>
+                            {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
+                          </div>
+                          {(standby.start_time || standby.end_time) && (
+                            <p className="text-xs text-gray-500 ml-5 mt-0.5">
+                              {standby.start_time && `From ${standby.start_time}`}{standby.start_time && standby.end_time && ' → '}{standby.end_time && `Until ${standby.end_time}`}
+                            </p>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ) : !isPast ? (
-                    <div className="flex-1">
-                      {addingDate === dateStr ? (
-                        <div className="flex gap-2">
-                          <Button size="sm" className="h-6 text-xs bg-yellow-700 hover:bg-yellow-600 px-3"
-                            onClick={() => handleClaim(dateStr)}>Claim Standby</Button>
-                          <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-500" onClick={() => setAddingDate(null)}>Cancel</Button>
-                        </div>
-                      ) : (
-                        <button className="text-xs text-gray-600 hover:text-gray-400 flex items-center gap-1 transition-colors"
-                          onClick={() => setAddingDate(dateStr)}>
-                          <Plus className="h-3 w-3" /> Claim
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-600">—</span>
-                  )}
+                        {!isPast && (
+                          <div className="flex gap-1">
+                            {isMe && (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-500 hover:text-yellow-400 px-2 gap-1"
+                                  onClick={() => setSwapping(swapping === standby.id ? null : standby.id)}>
+                                  <ArrowLeftRight className="h-3 w-3" /> Swap
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
+                                  onClick={() => handleRemove(standby.id)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : !isPast ? (
+                      <div className="flex-1">
+                        {addingDate === dateStr ? (
+                          <div className="space-y-2 mt-1">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Standby from (time)</label>
+                                <Input type="time" value={addForm.start_time}
+                                  onChange={e => setAddForm({ ...addForm, start_time: e.target.value })}
+                                  className="bg-gray-800 border-gray-700 text-white h-7 text-xs" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Until (time)</label>
+                                <Input type="time" value={addForm.end_time}
+                                  onChange={e => setAddForm({ ...addForm, end_time: e.target.value })}
+                                  className="bg-gray-800 border-gray-700 text-white h-7 text-xs" />
+                              </div>
+                            </div>
+                            <Input placeholder="Notes (optional)" value={addForm.notes}
+                              onChange={e => setAddForm({ ...addForm, notes: e.target.value })}
+                              className="bg-gray-800 border-gray-700 text-white h-7 text-xs" />
+                            <div className="flex gap-2">
+                              <Button size="sm" className="h-6 text-xs bg-yellow-700 hover:bg-yellow-600 px-3"
+                                onClick={() => handleClaim(dateStr)}>Claim Standby</Button>
+                              <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-500"
+                                onClick={() => { setAddingDate(null); setAddForm({ start_time: '', end_time: '', notes: '' }); }}>Cancel</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button className="text-xs text-gray-600 hover:text-gray-400 flex items-center gap-1 transition-colors"
+                            onClick={() => setAddingDate(dateStr)}>
+                            <Plus className="h-3 w-3" /> Claim
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
+                    )}
 
-                  {/* Swap dropdown */}
-                  {swapping === standby?.id && !isPast && (
-                    <div className="w-full mt-1">
-                      <select onChange={e => { if (e.target.value) handleSwap(standby.id, e.target.value); }}
-                        defaultValue=""
-                        className="w-full bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1">
-                        <option value="" disabled>Swap with…</option>
-                        {adminUsers.filter(u => u.email !== standby.admin_email).map(u => (
-                          <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                    {swapping === standby?.id && !isPast && (
+                      <div className="w-full mt-1">
+                        <select onChange={e => { if (e.target.value) handleSwap(standby.id, e.target.value); }}
+                          defaultValue=""
+                          className="w-full bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1">
+                          <option value="" disabled>Swap with…</option>
+                          {adminUsers.filter(u => u.email !== standby.admin_email).map(u => (
+                            <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

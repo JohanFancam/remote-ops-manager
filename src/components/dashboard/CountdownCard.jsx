@@ -80,7 +80,9 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
   );
-  const showAttention = matchedRig?.attention_camera === true;
+  const showAttention = matchedRig
+    ? (matchedRig.day_attention_enabled || matchedRig.night_attention_enabled || matchedRig.arena_attention_enabled || matchedRig.data_attention_enabled)
+    : false;
   const showSound = matchedRig?.sound === true;
 
   // Effective rig type: shoot override first, then rig setting

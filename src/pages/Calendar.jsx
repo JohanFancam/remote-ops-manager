@@ -74,6 +74,11 @@ export default function Calendar() {
 
   const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
 
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
+
   useEffect(() => {
     if (selectedShoot?._pending && shoots.length > 0) {
       const found = shoots.find(s => s.id === selectedShoot.id);
@@ -337,6 +342,23 @@ export default function Calendar() {
                   {isSelectedPast && <span className="text-xs text-gray-500 ml-2 font-normal">(past)</span>}
                 </CardTitle>
                 <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s) — click to view details</p>
+                {/* Standby for this day */}
+                {(() => {
+                  const sd = standbyDays.find(s => s.date === selectedDateStr);
+                  if (!sd) return null;
+                  const sdUser = allUsers.find(u => u.email === sd.admin_email);
+                  return (
+                    <div className="mt-2 flex items-center gap-2 bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2">
+                      <span className="text-yellow-400 text-xs">📞 Standby:</span>
+                      <span className="text-yellow-200 text-xs font-medium">{sdUser?.full_name || sd.admin_name || sd.admin_email}</span>
+                      {(sd.start_time || sd.end_time) && (
+                        <span className="text-yellow-600 text-xs">
+                          {sd.start_time && `from ${sd.start_time}`}{sd.start_time && sd.end_time && ' → '}{sd.end_time && `until ${sd.end_time}`}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </CardHeader>
               <CardContent className="p-0">
                 {selectedShoots.length === 0 ? (

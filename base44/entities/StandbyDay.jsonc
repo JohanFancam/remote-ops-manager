@@ -15,6 +15,14 @@
       "type": "string",
       "description": "Display name of admin on standby"
     },
+    "start_time": {
+      "type": "string",
+      "description": "Time standby begins e.g. 20:00 (previous evening) or 06:00"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "Time standby ends e.g. 06:00 next morning"
+    },
     "notes": {
       "type": "string",
       "description": "Optional notes for this standby day"
