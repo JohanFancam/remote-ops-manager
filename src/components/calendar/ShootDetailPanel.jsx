@@ -58,25 +58,47 @@ function ScheduleRow({ Icon, label, time, highlight }) {
   );
 }
 
-function CameraToggle({ label, enabled, shutter, aperture, iso }) {
+// Formats a camera settings object (shutter/aperture/iso ranges) into a compact string
+function formatCamSettings(cam) {
+  if (!cam) return null;
+  const parts = [];
+  if (cam.shutter_min && cam.shutter_max) parts.push(`${cam.shutter_min}–${cam.shutter_max}`);
+  else if (cam.shutter_min) parts.push(cam.shutter_min);
+  if (cam.aperture_min && cam.aperture_max) parts.push(`${cam.aperture_min}–${cam.aperture_max}`);
+  else if (cam.aperture_min) parts.push(cam.aperture_min);
+  if (cam.iso) parts.push(cam.iso);
+  return parts.length ? parts : null;
+}
+
+function CamRow({ label, enabled, cam }) {
+  const vals = enabled ? formatCamSettings(cam) : null;
   return (
-    <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-blue-700 bg-blue-950/30' : 'border-gray-700 bg-gray-800/40'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-white">{label}</span>
-        <Badge className={enabled ? 'bg-green-500/20 text-green-400 border-green-500/30 text-xs' : 'bg-gray-700 text-gray-500 border-gray-600 text-xs'}>
-          {enabled ? 'ON' : 'OFF'}
-        </Badge>
-      </div>
-      {enabled && (
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          {[{ label: 'Shutter', value: shutter }, { label: 'Aperture', value: aperture }, { label: 'ISO', value: iso }].map(field => (
-            <div key={field.label}>
-              <p className="text-xs text-gray-500 mb-1">{field.label}</p>
-              <p className="text-xs font-mono text-blue-300 bg-gray-700/60 px-2 py-1 rounded">{field.value}</p>
-            </div>
-          ))}
+    <div className="flex items-center justify-between py-1.5 border-b border-gray-700/40 last:border-0">
+      <span className={`text-sm ${enabled ? 'text-white font-medium' : 'text-gray-600'}`}>{label}</span>
+      {enabled && vals ? (
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          {vals[0] && <span>⏱ {vals[0]}</span>}
+          {vals[1] && <span>▪ {vals[1]}</span>}
+          {vals[2] && <span>💡 {vals[2]}</span>}
         </div>
+      ) : (
+        <span className="text-xs text-gray-600">OFF</span>
       )}
+    </div>
+  );
+}
+
+function RigSectionDetail({ label, emoji, note, hdEnabled, hd, wideEnabled, wide, attentionEnabled, attention }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <span>{emoji}</span> {label} {note && <span className="normal-case font-normal text-gray-600">({note})</span>}
+      </p>
+      <div className="bg-gray-800/50 rounded-lg px-3 py-1 border border-gray-700/50">
+        <CamRow label="HD Camera" enabled={hdEnabled} cam={hd} />
+        <CamRow label="Wide Camera" enabled={wideEnabled} cam={wide} />
+        <CamRow label="Attention Camera" enabled={attentionEnabled} cam={attention} />
+      </div>
     </div>
   );
 }
@@ -277,14 +299,12 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             {showRigSettings ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
           </button>
           {showRigSettings && (
-            <div className="px-3 pb-3 space-y-3">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><p className="text-xs text-gray-500">Sport</p><p className="text-gray-200">{matchedRig.sport || '—'}</p></div>
-                <div><p className="text-xs text-gray-500">Venue</p><p className="text-gray-200">{matchedRig.venue_type || '—'}</p></div>
-                {matchedRig.rig_type && <div className="col-span-2"><p className="text-xs text-gray-500">Rig Type</p><p className="text-blue-300 font-medium">{matchedRig.rig_type}{matchedRig.sound ? '/Sound' : ''}</p></div>}
+            <div className="px-3 pb-3 space-y-4">
+              {/* Meta */}
+              <div className="space-y-1 text-sm">
                 {matchedRig.remote_rigs?.length > 0 && (
-                  <div className="col-span-2">
-                    <p className="text-xs text-gray-500 mb-1">Remote Rigs (Google)</p>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Remote Rigs</p>
                     <div className="flex flex-wrap gap-1">
                       {matchedRig.remote_rigs.map((r, i) => (
                         <span key={i} className="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/40 px-2 py-0.5 rounded-full">{r}</span>
@@ -293,24 +313,74 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                   </div>
                 )}
                 {matchedRig.shoot_plan && (
-                  <div className="col-span-2">
-                    <p className="text-xs text-gray-500 mb-1">Shoot Plan</p>
-                    <p className="text-sm text-gray-300">{matchedRig.shoot_plan}</p>
+                  <div>
+                    <p className="text-xs text-gray-500">Shoot Plan</p>
+                    <p className="text-sm text-gray-200">{matchedRig.shoot_plan}</p>
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <CameraToggle label="HD Camera" enabled={matchedRig.hd_camera} shutter={matchedRig.hd_shutter} aperture={matchedRig.hd_aperture} iso={matchedRig.hd_iso} />
-                <CameraToggle label="Wide Camera" enabled={matchedRig.wide_camera} shutter={matchedRig.wide_shutter} aperture={matchedRig.wide_aperture} iso={matchedRig.wide_iso} />
-                <CameraToggle label="Attention Camera" enabled={matchedRig.attention_camera} shutter={matchedRig.attention_shutter} aperture={matchedRig.attention_aperture} iso={matchedRig.attention_iso} />
-                <div className={`rounded-lg border p-3 ${matchedRig.sound ? 'border-green-700 bg-green-950/30' : 'border-gray-700 bg-gray-800/40'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">Sound</span>
-                    <Badge className={matchedRig.sound ? 'bg-green-500/20 text-green-400 border-green-500/30 text-xs' : 'bg-gray-700 text-gray-500 border-gray-600 text-xs'}>
-                      {matchedRig.sound ? 'YES' : 'NO'}
-                    </Badge>
-                  </div>
-                </div>
+
+              {/* DAY SETTINGS */}
+              {matchedRig.day_enabled !== false && (
+                <RigSectionDetail
+                  label="DAY SETTINGS"
+                  emoji="☀️"
+                  note={matchedRig.venue_type === 'Outdoor' ? 'guide range' : null}
+                  hdEnabled={matchedRig.day_hd_enabled !== false}
+                  hd={matchedRig.day_hd}
+                  wideEnabled={matchedRig.day_wide_enabled !== false}
+                  wide={matchedRig.day_wide}
+                  attentionEnabled={matchedRig.day_attention_enabled}
+                  attention={matchedRig.day_attention}
+                />
+              )}
+
+              {/* NIGHT SETTINGS */}
+              {matchedRig.night_enabled !== false && (
+                <RigSectionDetail
+                  label="NIGHT SETTINGS"
+                  emoji="🌙"
+                  hdEnabled={matchedRig.night_hd_enabled !== false}
+                  hd={matchedRig.night_hd}
+                  wideEnabled={matchedRig.night_wide_enabled !== false}
+                  wide={matchedRig.night_wide}
+                  attentionEnabled={matchedRig.night_attention_enabled}
+                  attention={matchedRig.night_attention}
+                />
+              )}
+
+              {/* ARENA SETTINGS */}
+              {matchedRig.arena_enabled && (
+                <RigSectionDetail
+                  label="ARENA SETTINGS"
+                  emoji="🏟️"
+                  hdEnabled={matchedRig.arena_hd_enabled !== false}
+                  hd={matchedRig.arena_hd}
+                  wideEnabled={matchedRig.arena_wide_enabled !== false}
+                  wide={matchedRig.arena_wide}
+                  attentionEnabled={matchedRig.arena_attention_enabled}
+                  attention={matchedRig.arena_attention}
+                />
+              )}
+
+              {/* DATA SETTINGS */}
+              {matchedRig.data_enabled && (
+                <RigSectionDetail
+                  label="DATA SETTINGS"
+                  emoji="📊"
+                  hdEnabled={matchedRig.data_hd_enabled !== false}
+                  hd={matchedRig.data_hd}
+                  wideEnabled={matchedRig.data_wide_enabled !== false}
+                  wide={matchedRig.data_wide}
+                  attentionEnabled={matchedRig.data_attention_enabled}
+                  attention={matchedRig.data_attention}
+                />
+              )}
+
+              {/* Sound */}
+              <div className={`rounded-lg border px-3 py-2 flex items-center justify-between ${matchedRig.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-700 bg-gray-800/30'}`}>
+                <span className="text-sm text-gray-300">Sound</span>
+                <span className={`text-xs font-semibold ${matchedRig.sound ? 'text-green-400' : 'text-gray-600'}`}>{matchedRig.sound ? 'YES' : 'NO'}</span>
               </div>
             </div>
           )}

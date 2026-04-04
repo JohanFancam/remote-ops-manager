@@ -342,20 +342,29 @@ export default function Calendar() {
                   {isSelectedPast && <span className="text-xs text-gray-500 ml-2 font-normal">(past)</span>}
                 </CardTitle>
                 <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s) — click to view details</p>
-                {/* Standby for this day */}
+                {/* Standby for this day — show all entries */}
                 {(() => {
-                  const sd = standbyDays.find(s => s.date === selectedDateStr);
-                  if (!sd) return null;
-                  const sdUser = allUsers.find(u => u.email === sd.admin_email);
+                  const dayStandbys = standbyDays.filter(s => s.date === selectedDateStr);
+                  if (dayStandbys.length === 0) return null;
                   return (
-                    <div className="mt-2 flex items-center gap-2 bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2">
-                      <span className="text-yellow-400 text-xs">📞 Standby:</span>
-                      <span className="text-yellow-200 text-xs font-medium">{sdUser?.full_name || sd.admin_name || sd.admin_email}</span>
-                      {(sd.start_time || sd.end_time) && (
-                        <span className="text-yellow-600 text-xs">
-                          {sd.start_time && `from ${sd.start_time}`}{sd.start_time && sd.end_time && ' → '}{sd.end_time && `until ${sd.end_time}`}
-                        </span>
-                      )}
+                    <div className="mt-2 bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2 space-y-1">
+                      <span className="text-yellow-500 text-xs font-medium">📞 Standby</span>
+                      {dayStandbys.map((sd, i) => {
+                        const sdUser = allUsers.find(u => u.email === sd.admin_email);
+                        return (
+                          <div key={sd.id || i} className="flex items-center gap-2 flex-wrap">
+                            <span className="text-yellow-200 text-xs font-medium">{sdUser?.full_name || sd.admin_name || sd.admin_email}</span>
+                            {(sd.start_time || sd.end_time) && (
+                              <span className="text-yellow-600 text-xs">
+                                {sd.start_time && `from ${sd.start_time}`}{sd.start_time && sd.end_time && ' → '}{sd.end_time && `until ${sd.end_time}`}
+                              </span>
+                            )}
+                            {dayStandbys.length > 1 && i < dayStandbys.length - 1 && (
+                              <span className="text-yellow-800 text-xs">then →</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
