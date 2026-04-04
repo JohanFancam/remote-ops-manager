@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
   Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign
 } from 'lucide-react';
+import ShootNotifications from './components/dashboard/ShootNotifications';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,13 @@ function LayoutContent({ children, currentPageName }) {
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
   });
+
+  const { data: myShoots = [] } = useQuery({
+    queryKey: ['myShoots', user?.email],
+    queryFn: () => base44.entities.Shoot.list('-date', 200),
+    enabled: !!user && !isAdmin,
+  });
+  const notifyHours = Number(appSettings.find(s => s.key === 'notify_hours_before')?.value || 5);
   const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
 
   // Real-time: admins get notified for all shoot updates from remote users
@@ -181,6 +189,13 @@ function LayoutContent({ children, currentPageName }) {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Notification bell — remote users only */}
+        {!isAdmin && (
+          <div className="px-3 pb-2 flex justify-end">
+            <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
           </div>
         )}
 

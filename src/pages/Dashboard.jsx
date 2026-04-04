@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard, MessageCircle } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
@@ -11,6 +11,7 @@ import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 import TeamActivityList from '../components/dashboard/TeamActivityList';
 import StandbyManager from '../components/dashboard/StandbyManager';
+import StandbyBanner from '../components/dashboard/StandbyBanner';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
@@ -55,9 +56,7 @@ export default function Dashboard() {
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  // Standby contact for today (from StandbyDay entity)
-  const todayStandby = standbyDays.find(s => s.date === todayStr);
-  const todayStandbyUser = todayStandby ? allUsers.find(u => u.email === todayStandby.admin_email) : null;
+  const notifyHours = 5; // read from appSettings on layout level
 
   const upcomingShoots = shoots
     .filter(s => s.status !== 'cancelled' && s.status !== 'completed' && s.date >= todayStr)
@@ -100,37 +99,8 @@ export default function Dashboard() {
           <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d yyyy')}</p>
         </div>
 
-        {/* Standby contact banner — remote users */}
-        {!isAdmin && todayStandbyUser && (
-          <div className="mb-4 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3 flex items-center gap-3">
-            <Phone className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-            <div>
-              <p className="text-yellow-300 text-sm font-medium">Today's Standby Contact:</p>
-              <p className="text-yellow-200 text-sm">{todayStandbyUser.full_name || todayStandbyUser.email}</p>
-            </div>
-          </div>
-        )}
-
-        {/* WhatsApp reminder — remote users */}
-        {!isAdmin && (
-          <div className="mb-6 bg-green-950/30 border border-green-800/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <MessageCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
-              <div>
-                <p className="text-green-300 text-sm font-medium">Check the app before your shoot</p>
-                <p className="text-green-600 text-xs">Make sure you have the latest schedule and rig settings.</p>
-              </div>
-            </div>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent('📡 Reminder: Please check the Remote Ops Manager app for your latest shoot schedule and rig settings before your next shoot.')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
-            >
-              <MessageCircle className="h-3.5 w-3.5" /> Send WhatsApp Reminder
-            </a>
-          </div>
-        )}
+        {/* Standby banner — visible to ALL users */}
+        <StandbyBanner standbyDays={standbyDays} allUsers={allUsers} todayStr={todayStr} />
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

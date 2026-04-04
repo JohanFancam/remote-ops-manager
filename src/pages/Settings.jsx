@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Zap
 } from 'lucide-react';
 
 const SLACK_PHASES = [
@@ -28,6 +28,10 @@ export default function Settings() {
   const [rateBaseInput, setRateBaseInput] = useState('');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [ratesSaved, setRatesSaved] = useState(false);
+  const [notifyHoursInput, setNotifyHoursInput] = useState('5');
+  const [notifySaved, setNotifySaved] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
+  const [remindersSent, setRemindersSent] = useState(false);
 
   // Pending users
   const [showAddPending, setShowAddPending] = useState(false);
@@ -71,6 +75,8 @@ export default function Settings() {
     const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
+    const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
+    if (nh) setNotifyHoursInput(nh);
   }, [appSettings]);
 
   const refresh = () => {
@@ -96,6 +102,53 @@ export default function Settings() {
     setStandbyDone(true);
     setTimeout(() => setStandbyDone(false), 2000);
     queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+  };
+
+  const handleSaveNotifySettings = async () => {
+    const key = 'notify_hours_before';
+    const existing = appSettings.find(s => s.key === key);
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: notifyHoursInput });
+    } else {
+      await base44.entities.AppSettings.create({ key, value: notifyHoursInput, description: 'Hours before setup to notify operators' });
+    }
+    setNotifySaved(true);
+    setTimeout(() => setNotifySaved(false), 2000);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  const handleSendReminders = async () => {
+    setSendingReminders(true);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 2);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const shoots = await base44.entities.Shoot.list('-date', 200);
+    const upcoming = shoots.filter(s =>
+      s.status !== 'cancelled' && s.status !== 'completed' &&
+      s.date >= todayStr && s.date <= tomorrowStr &&
+      s.assigned_operators?.length > 0
+    );
+
+    const sent = new Set();
+    for (const shoot of upcoming) {
+      for (const email of (shoot.assigned_operators || [])) {
+        const u = users.find(u => u.email === email);
+        if (!u || u.role === 'admin') continue;
+        const key = `${shoot.id}_${email}`;
+        if (sent.has(key)) continue;
+        sent.add(key);
+        await base44.integrations.Core.SendEmail({
+          to: email,
+          subject: `📡 Shoot Reminder: ${shoot.title}`,
+          body: `Hi ${u.full_name || email.split('@')[0]},\n\nThis is a reminder that you have an upcoming shoot:\n\n📅 ${shoot.title}\n🗓 Date: ${shoot.date}\n⏰ Game Time: ${shoot.game_time || 'TBD'}\n📍 Location: ${shoot.location || 'TBD'}\n\nPlease check the Remote Ops Manager app for full schedule and rig settings.\n\nThanks,\nRemote Ops Team`,
+        });
+      }
+    }
+    setSendingReminders(false);
+    setRemindersSent(true);
+    setTimeout(() => setRemindersSent(false), 3000);
   };
 
   const handleSaveRates = async () => {
@@ -322,6 +375,54 @@ export default function Settings() {
               <Button onClick={handleSaveRates} className="bg-green-700 hover:bg-green-600 gap-2">
                 <Save className="h-4 w-4" /> {ratesSaved ? '✓ Saved!' : 'Save Rates'}
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notification Settings — Admin only */}
+        {isAdmin && (
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Bell className="h-5 w-5 text-blue-400" /> Shoot Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <p className="text-xs text-gray-500">
+                Remote operators see an in-app notification badge when a shoot setup is approaching.
+                Set how many hours before setup they are notified.
+              </p>
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Notify operators (hours before setup)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="48"
+                    value={notifyHoursInput}
+                    onChange={e => setNotifyHoursInput(e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-white w-32"
+                  />
+                </div>
+                <Button onClick={handleSaveNotifySettings} className="bg-blue-700 hover:bg-blue-600 gap-2">
+                  <Save className="h-4 w-4" /> {notifySaved ? '✓ Saved!' : 'Save'}
+                </Button>
+              </div>
+
+              <div className="border-t border-gray-800 pt-4">
+                <p className="text-xs text-gray-400 mb-3 font-medium">Manual Override — Send reminders now</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Send an email reminder immediately to all operators assigned to shoots today or tomorrow.
+                </p>
+                <Button
+                  onClick={handleSendReminders}
+                  disabled={sendingReminders}
+                  className="bg-orange-700 hover:bg-orange-600 gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  {sendingReminders ? 'Sending...' : remindersSent ? '✓ Reminders Sent!' : 'Send Shoot Reminders Now'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
