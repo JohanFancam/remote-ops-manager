@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
   Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone,
-  MapPin, Tv2
+  MapPin, Tv2, Timer, Aperture, Sun
 } from 'lucide-react';
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
@@ -30,7 +30,7 @@ function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType 
   return (
     <div className="bg-gray-800/60 rounded-lg border border-gray-700 p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">📢 Ready Message — Copy to Slack</p>
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><Copy className="h-3 w-3" /> Ready Message — Copy to Slack</p>
         <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(lines); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
           className="h-6 text-xs text-gray-400 hover:text-white hover:bg-gray-700">
           {copied ? <><Check className="h-3 w-3 mr-1 text-green-400" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
@@ -268,7 +268,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
               {/* Camera Settings */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">📷 Camera Settings</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" /> Camera Settings</p>
                 <div className="bg-gray-800/50 rounded-lg px-3 py-1 border border-gray-700/50 space-y-0">
                   {[
                     { key: 'hd', label: 'HD Camera' },
@@ -282,9 +282,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                         <span className={`text-sm ${enabled ? 'text-white font-medium' : 'text-gray-600'}`}>{cam.label}</span>
                         {enabled && settings ? (
                           <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap justify-end">
-                            <span>⏱ {settings.shutter || settings.shutter_min || '—'}</span>
-                            <span>▪ {settings.aperture || settings.aperture_min || '—'}</span>
-                            <span>💡 {settings.iso || settings.iso_min || '—'}</span>
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{settings.shutter || settings.shutter_min || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{settings.aperture || settings.aperture_min || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{settings.iso || settings.iso_min || '—'}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-600">OFF</span>

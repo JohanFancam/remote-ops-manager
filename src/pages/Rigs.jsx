@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2, Timer, Aperture, Sun, Settings2 } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -88,9 +88,9 @@ function CamDisplayRow({ label, enabled, cam }) {
       <span className="text-xs text-gray-300 font-medium">{label}</span>
       {cam && (
         <div className="flex gap-2 text-xs text-gray-400 flex-wrap">
-          <span>⏱ {cam.shutter || cam.shutter_min || '—'}</span>
-          <span>▪ {cam.aperture || cam.aperture_min || '—'}</span>
-          <span>💡 {cam.iso || cam.iso_min || '—'}</span>
+          <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{cam.shutter || cam.shutter_min || '—'}</span>
+          <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{cam.aperture || cam.aperture_min || '—'}</span>
+          <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{cam.iso || cam.iso_min || '—'}</span>
         </div>
       )}
     </div>
@@ -360,7 +360,7 @@ export default function Rigs() {
 
         {rigSettings.length === 0 && (
           <div className="text-center py-20 text-gray-500">
-            <p className="text-5xl mb-4">⚙️</p>
+            <Settings2 className="h-12 w-12 text-gray-700 mx-auto mb-4" />
             <p>No rig settings yet. Add your first team configuration.</p>
           </div>
         )}
