@@ -17,6 +17,70 @@ const statusColors = {
   cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
 
+// Derive the current live phase label from phase_status + schedule times
+function getLivePhase(shoot, now, schedule, gameDate, showAttention, showSound) {
+  const phase = shoot.phase_status || {};
+  if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+
+  if (!schedule) return null;
+
+  const toDate = (timeStr) => {
+    if (!timeStr || !shoot.date) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    const d = new Date(shoot.date + 'T00:00:00');
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+
+  const setupTime = toDate(schedule.setup);
+  const preShootTime = toDate(schedule.pre_shoot);
+  const attentionTime = showAttention ? toDate(schedule.attention) : null;
+  const soundTime = showSound ? toDate(schedule.sound) : null;
+
+  // Walk through phases newest-first to find current active phase
+  if (phase.sound_started || (soundTime && now >= soundTime && showSound)) {
+    return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+  }
+  if (phase.attention_started || (attentionTime && now >= attentionTime && showAttention)) {
+    return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+  }
+  if (phase.pre_shoot_started || (preShootTime && now >= preShootTime)) {
+    return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+  }
+  if (phase.setup_complete || (setupTime && now >= setupTime)) {
+    return { label: 'Setup', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+  }
+  return null;
+}
+
+// Find the next upcoming phase and return its time + label
+function getNextPhase(shoot, now, schedule, gameDate, showAttention, showSound) {
+  const phase = shoot.phase_status || {};
+  if (phase.shoot_complete || !schedule) return null;
+
+  const toDate = (timeStr) => {
+    if (!timeStr || !shoot.date) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    const d = new Date(shoot.date + 'T00:00:00');
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+
+  const candidates = [
+    { label: 'Setup', key: 'setup_complete', time: toDate(schedule.setup) },
+    { label: 'Pre-Shoot', key: 'pre_shoot_started', time: toDate(schedule.pre_shoot) },
+    showAttention && { label: 'Attention', key: 'attention_started', time: toDate(schedule.attention) },
+    showSound && { label: 'Sound Check', key: 'sound_started', time: toDate(schedule.sound) },
+    { label: 'Game Time', key: null, time: gameDate },
+  ].filter(Boolean);
+
+  for (const c of candidates) {
+    if (c.key && phase[c.key]) continue; // already done
+    if (c.time && c.time > now) return c;
+  }
+  return null;
+}
+
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 
 function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClick }) {
@@ -83,6 +147,10 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
 
+  const livePhase = getLivePhase(shoot, now, schedule, gameDate, showAttention, showSound);
+  const nextPhase = getNextPhase(shoot, now, schedule, gameDate, showAttention, showSound);
+  const nextCountdown = nextPhase?.time ? nextPhase.time - now : null;
+
   // Effective rig type: shoot override first, then rig setting
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
@@ -119,9 +187,15 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {shoot.client && <p className="text-sm text-gray-400 truncate">{shoot.client}</p>}
           </div>
           <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
-            <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
-              {shoot.status}
-            </Badge>
+            {livePhase ? (
+              <Badge className={`text-xs border ${livePhase.color}`}>
+                {livePhase.label}
+              </Badge>
+            ) : (
+              <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
+                {shoot.status}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -146,6 +220,20 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {countdown}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">until game time</div>
+          {nextPhase && nextCountdown > 0 && (
+            <div className="mt-1.5 text-xs text-gray-400">
+              <span className="text-gray-600">next: </span>
+              <span className="font-semibold text-gray-300">{nextPhase.label}</span>
+              <span className="text-gray-600"> in </span>
+              <span className="font-mono text-yellow-400">{formatCountdown(nextCountdown)}</span>
+            </div>
+          )}
+          {livePhase && livePhase.label !== 'Complete' && (
+            <div className="mt-1 text-xs">
+              <span className="text-gray-500">now: </span>
+              <span className="font-semibold text-yellow-300">{livePhase.label}</span>
+            </div>
+          )}
         </div>
 
         {/* Admin rig type quick toggle */}
