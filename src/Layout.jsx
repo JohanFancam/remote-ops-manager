@@ -127,18 +127,29 @@ function LayoutContent({ children, currentPageName }) {
           return isOnline ? [...filtered, p] : filtered;
         });
 
-        // Notify admin when someone comes online (not self)
-        if (event.type === 'update' && isOnline && p.user_email !== user?.email) {
-          const key = `online_${p.user_email}_${Math.floor(Date.now() / 60000)}`; // once per minute
-          if (!seenRef.current.has(key)) {
-            seenRef.current.add(key);
+        // Notify admin only when someone comes online (is_online flips to true) — not on heartbeat updates
+        const onlineKey = `online_${p.user_email}`;
+        const wasOnline = seenRef.current.has(onlineKey);
+        if (p.user_email !== user?.email) {
+          if (isOnline && !wasOnline) {
+            // They just came online
+            seenRef.current.add(onlineKey);
             playNotifSound();
             setUnread(prev => prev + 1);
             setNotifications(prev => [{
-              id: key,
+              id: `${onlineKey}_${Date.now()}`,
               message: `${p.user_name || p.user_email} is now online`,
               time: new Date(),
             }, ...prev].slice(0, 50));
+          } else if (!isOnline && wasOnline) {
+            // They went offline
+            seenRef.current.delete(onlineKey);
+            setNotifications(prev => [{
+              id: `offline_${p.user_email}_${Date.now()}`,
+              message: `${p.user_name || p.user_email} went offline`,
+              time: new Date(),
+            }, ...prev].slice(0, 50));
+            setUnread(prev => prev + 1);
           }
         }
       }
