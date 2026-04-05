@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wrench, Copy, Check, ChevronDown, ChevronUp, Archive, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
 
 const ARCHIVE_KEY = 'rigscheck_archived';
-
 function getArchived() {
   try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); } catch { return []; }
 }
-function saveArchived(ids) {
-  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(ids));
-}
+function saveArchived(ids) { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(ids)); }
 
 function getRigTypeLabel(rig) {
   if (!rig) return null;
@@ -22,13 +19,18 @@ function getRigTypeLabel(rig) {
   return parts.length > 0 ? parts.join('/') : null;
 }
 
-export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
+export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSettings = [] }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [checked, setChecked] = useState({});
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [archived, setArchived] = useState(() => getArchived());
   const [showArchived, setShowArchived] = useState(false);
+
+  // Customizable template from settings
+  // Tokens: {list} = comma-separated "Name (Type)" entries
+  const template = appSettings.find(s => s.key === 'rigscheck_template')?.value
+    || 'Rigs ready for today: {list}';
 
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + 7);
@@ -42,17 +44,17 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
   const archivedShoots = allUpcoming.filter(s => archived.includes(s.id));
 
   const toggle = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
-
   const checkedShoots = activeShoots.filter(s => checked[s.id]);
 
   const generateMessage = () => {
     if (checkedShoots.length === 0) return '';
-    const lines = checkedShoots.map(s => {
+    const items = checkedShoots.map(s => {
       const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
       const label = getRigTypeLabel(rig);
-      return `${shortenTitle(s.title)}${label ? ` (${label})` : ''}`;
+      const name = shortenTitle(s.title);
+      return label ? `${name} (${label})` : name;
     });
-    return `Rigs ready:\n\n${lines.join('\n')}`;
+    return template.replace('{list}', items.join(', '));
   };
 
   const handleCopy = () => {
@@ -64,16 +66,16 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
   };
 
   const handleArchiveChecked = () => {
-    const newArchived = [...new Set([...archived, ...checkedShoots.map(s => s.id)])];
-    setArchived(newArchived);
-    saveArchived(newArchived);
+    const next = [...new Set([...archived, ...checkedShoots.map(s => s.id)])];
+    setArchived(next);
+    saveArchived(next);
     setChecked({});
   };
 
   const handleUnarchive = (id) => {
-    const newArchived = archived.filter(a => a !== id);
-    setArchived(newArchived);
-    saveArchived(newArchived);
+    const next = archived.filter(a => a !== id);
+    setArchived(next);
+    saveArchived(next);
   };
 
   return (
@@ -96,22 +98,13 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
           {expanded && (
             <div className="flex gap-2">
               {checkedShoots.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleArchiveChecked}
-                  className="gap-1.5 text-xs h-7 text-gray-400 hover:text-yellow-400 hover:bg-gray-800"
-                  title="Archive checked shoots"
-                >
+                <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
+                  className="gap-1.5 text-xs h-7 text-gray-400 hover:text-yellow-400 hover:bg-gray-800">
                   <Archive className="h-3 w-3" /> Archive
                 </Button>
               )}
-              <Button
-                size="sm"
-                onClick={handleCopy}
-                disabled={checkedShoots.length === 0}
-                className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs h-7"
-              >
+              <Button size="sm" onClick={handleCopy} disabled={checkedShoots.length === 0}
+                className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs h-7">
                 {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy Message</>}
               </Button>
             </div>
@@ -156,16 +149,14 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [] }) {
             <div className="mt-4 bg-gray-800/60 rounded-lg p-3 border border-gray-700">
               <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Preview</p>
               <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{generateMessage()}</pre>
-              <p className="text-xs text-gray-500 mt-2">After copying, click <strong className="text-yellow-400">Archive</strong> to remove these from the list.</p>
+              <p className="text-xs text-gray-500 mt-2">After copying, click <strong className="text-yellow-400">Archive</strong> to remove from the list.</p>
             </div>
           )}
 
           {archivedShoots.length > 0 && (
             <div className="mt-4 border-t border-gray-800 pt-3">
-              <button
-                onClick={() => setShowArchived(!showArchived)}
-                className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1.5"
-              >
+              <button onClick={() => setShowArchived(!showArchived)}
+                className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1.5">
                 <Archive className="h-3 w-3" />
                 {showArchived ? 'Hide' : 'Show'} archived ({archivedShoots.length})
               </button>

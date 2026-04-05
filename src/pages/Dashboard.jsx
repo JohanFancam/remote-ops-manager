@@ -53,6 +53,12 @@ export default function Dashboard() {
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
   });
 
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+    enabled: isAdmin,
+  });
+
   const allUsers = isAdmin ? users : allUsersPublic;
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -234,8 +240,8 @@ export default function Dashboard() {
         {(!isAdmin || adminTab === 'my') && (
           <>
             {isAdmin && <StandbyManager user={user} allUsers={users} />}
-            {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
-            {isAdmin && <ShootSummaryPanel shoots={shoots} />}
+            {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
+            {isAdmin && <ShootSummaryPanel shoots={shoots} appSettings={appSettings} />}
 
             <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
 
