@@ -311,7 +311,7 @@ function LayoutContent({ children, currentPageName }) {
 
         {/* Notification bell — remote users only */}
         {!isAdmin && (
-          <div className="px-3 pb-2 flex justify-end">
+          <div className="px-3 pb-2">
             <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
           </div>
         )}

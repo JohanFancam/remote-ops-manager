@@ -531,80 +531,21 @@ export default function Settings() {
               </div>
 
               <div className="border-t border-gray-800 pt-4 space-y-3">
-                <p className="text-xs text-gray-400 mb-1 font-medium">Send Weekly Schedule Emails</p>
-                <p className="text-xs text-gray-500">
-                  Each selected user receives one email with all their shoots for the next 7 days.
+                <p className="text-xs text-gray-400 mb-1 font-medium flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-400" /> WhatsApp Schedule Reminder
                 </p>
-
-                {/* Recipient picker toggle */}
-                <button
-                  onClick={() => {
-                    if (!showRecipientPicker) {
-                      // Initialize selection: only non-admin users by default
-                      if (selectedRecipients === null) {
-                        const defaultSelected = users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email);
-                        setSelectedRecipients(new Set(defaultSelected));
-                      }
-                    }
-                    setShowRecipientPicker(!showRecipientPicker);
-                  }}
-                  className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2"
-                >
-                  {showRecipientPicker ? 'Hide recipients' : `Select recipients (${selectedRecipients === null ? users.filter(u => u.role !== 'admin' && u.role !== 'accounts').length : selectedRecipients.size} selected)`}
-                </button>
-
-                {showRecipientPicker && (
-                  <div className="bg-gray-800/60 rounded-xl border border-gray-700 divide-y divide-gray-700/50">
-                    <div className="flex items-center justify-between px-3 py-2">
-                      <span className="text-xs text-gray-400 font-medium">Recipients</span>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setSelectedRecipients(new Set(users.map(u => u.email)))}
-                          className="text-xs text-blue-400 hover:text-blue-300"
-                        >Select all</button>
-                        <button
-                          onClick={() => setSelectedRecipients(new Set())}
-                          className="text-xs text-gray-500 hover:text-gray-300"
-                        >Clear all</button>
-                      </div>
-                    </div>
-                    {users.map(u => {
-                      const checked = selectedRecipients === null
-                        ? (u.role !== 'admin' && u.role !== 'accounts')
-                        : selectedRecipients.has(u.email);
-                      return (
-                        <label key={u.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-700/40">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => {
-                              const current = selectedRecipients ?? new Set(users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email));
-                              const next = new Set(current);
-                              if (next.has(u.email)) next.delete(u.email); else next.add(u.email);
-                              setSelectedRecipients(next);
-                            }}
-                            className="accent-blue-500 w-4 h-4 flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{u.full_name || u.email}</p>
-                            <p className="text-xs text-gray-500 truncate">{u.email}</p>
-                          </div>
-                          <Badge className={`text-xs border flex-shrink-0 ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                            {u.role === 'admin' ? `Admin` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
-                          </Badge>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-
+                <p className="text-xs text-gray-500">
+                  Opens WhatsApp so you can select which team members to remind to check their Remote Ops app for their schedule.
+                </p>
                 <Button
-                  onClick={handleSendReminders}
-                  disabled={sendingReminders || (selectedRecipients !== null && selectedRecipients.size === 0)}
-                  className="bg-orange-700 hover:bg-orange-600 gap-2"
+                  onClick={() => {
+                    const msg = encodeURIComponent("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
+                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                  }}
+                  className="bg-green-700 hover:bg-green-600 gap-2"
                 >
-                  <Zap className="h-4 w-4" />
-                  {sendingReminders ? 'Sending...' : remindersSent ? '✓ Emails Sent!' : 'Send Weekly Schedule Now'}
+                  <MessageSquare className="h-4 w-4" />
+                  Open WhatsApp Reminder
                 </Button>
               </div>
             </CardContent>

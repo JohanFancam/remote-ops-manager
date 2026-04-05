@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Phone, Wifi } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-const OFFLINE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+const OFFLINE_THRESHOLD = 3 * 60 * 1000; // 3 minutes
 
 export default function StandbyBanner({ standbyDays = [], allUsers = [], todayStr }) {
   const todayEntries = standbyDays.filter(s => s.date === todayStr);

@@ -86,21 +86,23 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
   };
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div className="relative w-full" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
       >
-        <Bell className="h-5 w-5" />
+        <span className="flex items-center gap-2 text-sm">
+          <Bell className="h-4 w-4" /> Notifications
+        </span>
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+          <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 bottom-10 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
             <span className="text-sm font-semibold text-white">Shoot Notifications</span>
             {active.length > 0 && (
@@ -110,7 +112,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-64 overflow-y-auto">
             {active.length === 0 ? (
               <div className="p-6 text-center">
                 <Bell className="h-8 w-8 text-gray-700 mx-auto mb-2" />

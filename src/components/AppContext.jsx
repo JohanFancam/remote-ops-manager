@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 const AppContext = createContext(null);
 
 // How long without a heartbeat before considered offline (ms)
-const OFFLINE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+const OFFLINE_THRESHOLD = 3 * 60 * 1000; // 3 minutes (heartbeat is 1 min, allow 2 missed)
 const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
 
 export { OFFLINE_THRESHOLD };
