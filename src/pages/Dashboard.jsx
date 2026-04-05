@@ -59,7 +59,13 @@ export default function Dashboard() {
   const notifyHours = 5; // read from appSettings on layout level
 
   const upcomingShoots = shoots
-    .filter(s => s.status !== 'cancelled' && s.status !== 'completed' && s.date >= todayStr)
+    .filter(s => {
+      if (s.status === 'cancelled') return false;
+      // Keep today's shoots visible until shoot_complete is marked, even if status=completed
+      if (s.date === todayStr) return !s.phase_status?.shoot_complete;
+      // Future shoots: hide only if explicitly completed
+      return s.date > todayStr && !s.phase_status?.shoot_complete;
+    })
     .sort((a, b) => {
       const d = a.date.localeCompare(b.date);
       return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');

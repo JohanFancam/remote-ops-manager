@@ -100,7 +100,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 bottom-10 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
             <span className="text-sm font-semibold text-white">Shoot Notifications</span>
             {active.length > 0 && (
