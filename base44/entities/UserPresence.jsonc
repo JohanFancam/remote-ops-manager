@@ -1,0 +1,29 @@
+{
+  "name": "UserPresence",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who is online"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Role of the user (admin / user)"
+    },
+    "last_seen": {
+      "type": "string",
+      "description": "ISO timestamp of last heartbeat"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "user_email"
+  ]
+}

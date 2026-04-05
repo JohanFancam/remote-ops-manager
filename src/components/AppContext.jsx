@@ -1,8 +1,14 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 const AppContext = createContext(null);
+
+// How long without a heartbeat before considered offline (ms)
+const OFFLINE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
+
+export { OFFLINE_THRESHOLD };
 
 export function AppProvider({ children }) {
   const { data: user, isLoading } = useQuery({
@@ -10,12 +16,68 @@ export function AppProvider({ children }) {
     queryFn: () => base44.auth.me(),
   });
 
+  const presenceIdRef = useRef(null);
+
   const isAdmin = user?.role === 'admin';
   const isAccounts = user?.role === 'accounts';
-  // Level 1 = full access, Level 2 = restricted
   const adminLevel = isAdmin ? (user?.admin_level ?? 1) : null;
   const isLevel1Admin = isAdmin && adminLevel === 1;
   const isLevel2Admin = isAdmin && adminLevel === 2;
+
+  // Write/update presence record when user loads
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const upsertPresence = async () => {
+      const now = new Date().toISOString();
+      try {
+        const existing = await base44.entities.UserPresence.filter({ user_email: user.email });
+        if (existing?.length > 0) {
+          presenceIdRef.current = existing[0].id;
+          await base44.entities.UserPresence.update(existing[0].id, {
+            last_seen: now,
+            is_online: true,
+            user_name: user.full_name || user.email,
+            user_role: user.role || 'user',
+          });
+        } else {
+          const created = await base44.entities.UserPresence.create({
+            user_email: user.email,
+            user_name: user.full_name || user.email,
+            user_role: user.role || 'user',
+            last_seen: now,
+            is_online: true,
+          });
+          presenceIdRef.current = created.id;
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    upsertPresence();
+
+    // Heartbeat
+    const interval = setInterval(async () => {
+      if (!presenceIdRef.current) return;
+      try {
+        await base44.entities.UserPresence.update(presenceIdRef.current, {
+          last_seen: new Date().toISOString(),
+          is_online: true,
+        });
+      } catch (e) { /* ignore */ }
+    }, HEARTBEAT_INTERVAL);
+
+    // Mark offline on unload
+    const handleUnload = () => {
+      if (!presenceIdRef.current) return;
+      navigator.sendBeacon && base44.entities.UserPresence.update(presenceIdRef.current, { is_online: false });
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [user?.email]);
 
   return (
     <AppContext.Provider value={{ user, isAdmin, isAccounts, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>

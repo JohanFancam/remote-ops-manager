@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { AppProvider, useApp } from './components/AppContext';
+import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign, Users
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ function LayoutContent({ children, currentPageName }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [showOnline, setShowOnline] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const seenRef = useRef(new Set());
 
   const playNotifSound = () => {
@@ -99,6 +101,52 @@ function LayoutContent({ children, currentPageName }) {
     return unsub;
   }, [isAdmin]);
 
+  // Load initial online users and subscribe to presence changes (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const loadOnline = async () => {
+      const all = await base44.entities.UserPresence.list();
+      const now = Date.now();
+      const online = all.filter(p =>
+        p.is_online && p.last_seen && (now - new Date(p.last_seen).getTime()) < OFFLINE_THRESHOLD
+      );
+      setOnlineUsers(online);
+    };
+
+    loadOnline();
+
+    const unsub = base44.entities.UserPresence.subscribe((event) => {
+      if (event.type === 'create' || event.type === 'update') {
+        const p = event.data;
+        const isRecent = p.last_seen && (Date.now() - new Date(p.last_seen).getTime()) < OFFLINE_THRESHOLD;
+        const isOnline = p.is_online && isRecent;
+
+        setOnlineUsers(prev => {
+          const filtered = prev.filter(u => u.user_email !== p.user_email);
+          return isOnline ? [...filtered, p] : filtered;
+        });
+
+        // Notify admin when someone comes online (not self)
+        if (event.type === 'update' && isOnline && p.user_email !== user?.email) {
+          const key = `online_${p.user_email}_${Math.floor(Date.now() / 60000)}`; // once per minute
+          if (!seenRef.current.has(key)) {
+            seenRef.current.add(key);
+            playNotifSound();
+            setUnread(prev => prev + 1);
+            setNotifications(prev => [{
+              id: key,
+              message: `${p.user_name || p.user_email} is now online`,
+              time: new Date(),
+            }, ...prev].slice(0, 50));
+          }
+        }
+      }
+    });
+
+    return unsub;
+  }, [isAdmin, user?.email]);
+
   const unreadCount = unread;
 
   const adminNav = [
@@ -175,6 +223,43 @@ function LayoutContent({ children, currentPageName }) {
             </Link>
           ))}
         </nav>
+
+        {/* Online users panel — admin only */}
+        {isAdmin && (
+          <div className="px-3 pb-1 relative">
+            <button
+              onClick={() => setShowOnline(p => !p)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <Users className="h-4 w-4" /> Online Now
+              </span>
+              <span className={`text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ${onlineUsers.length > 0 ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-400'}`}>
+                {onlineUsers.length}
+              </span>
+            </button>
+            {showOnline && (
+              <div className="absolute bottom-12 left-3 right-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto">
+                <div className="p-3 border-b border-gray-700">
+                  <span className="text-xs font-medium text-gray-300">Currently Online</span>
+                </div>
+                {onlineUsers.length === 0 ? (
+                  <p className="text-xs text-gray-500 p-4 text-center">No one online</p>
+                ) : (
+                  onlineUsers.map(u => (
+                    <div key={u.user_email} className="px-3 py-2.5 border-b border-gray-700/50 last:border-0 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-200 font-medium">{u.user_name || u.user_email}</p>
+                        <p className="text-xs text-gray-500">{u.user_role === 'admin' ? 'Admin' : 'Remote'} · {u.user_email}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Notification bell — admin only */}
         {isAdmin && (
