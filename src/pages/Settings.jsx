@@ -12,6 +12,38 @@ import {
   MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell
 } from 'lucide-react';
 
+function TutorialToggle({ appSettings, settingKey, label, queryClient }) {
+  const current = appSettings.find(s => s.key === settingKey)?.value;
+  const enabled = current !== 'false';
+  const [saving, setSaving] = React.useState(false);
+
+  const toggle = async () => {
+    setSaving(true);
+    const existing = appSettings.find(s => s.key === settingKey);
+    const newVal = enabled ? 'false' : 'true';
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: newVal });
+    } else {
+      await base44.entities.AppSettings.create({ key: settingKey, value: newVal, description: `Tutorial enabled for ${label}` });
+    }
+    setSaving(false);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-gray-300">{label}</span>
+      <button
+        onClick={toggle}
+        disabled={saving}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-700'}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+    </div>
+  );
+}
+
 const SLACK_PHASES = [
   { key: 'setup_complete', label: 'Setup Complete', placeholder: 'Setup complete — {team} shoot ready to go!' },
   { key: 'pre_shoot_started', label: 'Pre-Shoot Started', placeholder: 'Pre-shoot started — {team}' },
@@ -414,6 +446,22 @@ export default function Settings() {
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tutorial Settings — Admin only */}
+        {isAdmin && (
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Bell className="h-5 w-5 text-purple-400" /> Tutorial Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <p className="text-xs text-gray-500">Control whether the onboarding tutorial is shown to admins and remote operators. Users can re-open it anytime from the sidebar.</p>
+              <TutorialToggle appSettings={appSettings} settingKey="tutorial_admin" label="Admin Tutorial" queryClient={queryClient} />
+              <TutorialToggle appSettings={appSettings} settingKey="tutorial_remote" label="Remote Operator Tutorial" queryClient={queryClient} />
             </CardContent>
           </Card>
         )}

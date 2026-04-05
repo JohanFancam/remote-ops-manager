@@ -9,6 +9,7 @@ import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
+import ShootSummaryPanel from '../components/dashboard/ShootSummaryPanel';
 import TeamActivityList from '../components/dashboard/TeamActivityList';
 import StandbyManager from '../components/dashboard/StandbyManager';
 import StandbyBanner from '../components/dashboard/StandbyBanner';
@@ -234,6 +235,7 @@ export default function Dashboard() {
           <>
             {isAdmin && <StandbyManager user={user} allUsers={users} />}
             {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} />}
+            {isAdmin && <ShootSummaryPanel shoots={shoots} />}
 
             <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
 

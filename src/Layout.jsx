@@ -6,9 +6,10 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign, Users
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign, Users, BookOpen
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
+import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,9 @@ function LayoutContent({ children, currentPageName }) {
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
   });
+
+  const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
+  const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
 
   const { data: myShoots = [] } = useQuery({
     queryKey: ['myShoots', user?.email],
@@ -166,12 +170,14 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
     { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -309,6 +315,11 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
 
+        {/* Tutorial reopen button */}
+        <div className="px-3 pb-1">
+          <TutorialReopenButton isAdmin={isAdmin} tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled} />
+        </div>
+
         {/* Notification bell — remote users only */}
         {!isAdmin && (
           <div className="px-3 pb-2">
@@ -377,6 +388,14 @@ function LayoutContent({ children, currentPageName }) {
             </button>
           </nav>
         </div>
+      )}
+
+      {/* Tutorial overlay */}
+      {!isLoading && user && (
+        <TutorialOverlay
+          isAdmin={isAdmin}
+          tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled}
+        />
       )}
 
       {/* Main content */}
