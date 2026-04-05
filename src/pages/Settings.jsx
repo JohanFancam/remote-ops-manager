@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Zap, Mail
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell
 } from 'lucide-react';
 
 const SLACK_PHASES = [
@@ -31,15 +31,7 @@ export default function Settings() {
   const [ratesSaved, setRatesSaved] = useState(false);
   const [notifyHoursInput, setNotifyHoursInput] = useState('5');
   const [notifySaved, setNotifySaved] = useState(false);
-  const [sendingReminders, setSendingReminders] = useState(false);
-  const [remindersSent, setRemindersSent] = useState(false);
-  const [showRecipientPicker, setShowRecipientPicker] = useState(false);
-  const [selectedRecipients, setSelectedRecipients] = useState(null); // null = not yet initialized
-  const [emailTemplate, setEmailTemplate] = useState('');
-  const [emailSubjectTemplate, setEmailSubjectTemplate] = useState('');
-  const [emailTemplateSaved, setEmailTemplateSaved] = useState(false);
-  const [sendingTestEmail, setSendingTestEmail] = useState(false);
-  const [testEmailSent, setTestEmailSent] = useState(false);
+  const [whatsappMsg, setWhatsappMsg] = useState("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
 
   // Pending users
   const [showAddPending, setShowAddPending] = useState(false);
@@ -85,10 +77,8 @@ export default function Settings() {
     if (ar) setRateAdditionalInput(ar);
     const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
     if (nh) setNotifyHoursInput(nh);
-    const et = appSettings.find(s => s.key === 'email_reminder_template')?.value;
-    if (et) setEmailTemplate(et);
-    const es = appSettings.find(s => s.key === 'email_reminder_subject')?.value;
-    if (es) setEmailSubjectTemplate(es);
+    const wm = appSettings.find(s => s.key === 'whatsapp_reminder_msg')?.value;
+    if (wm) setWhatsappMsg(wm);
   }, [appSettings]);
 
   const refresh = () => {
@@ -129,111 +119,15 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
-  const handleSendTestEmail = async () => {
-    if (!user?.email) return;
-    setSendingTestEmail(true);
-    const subjectTpl = emailSubjectTemplate || '📡 Your Shoots This Week';
-    const bodyTpl = emailTemplate || `Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`;
-    const sampleShoot = `📅 Sample Shoot — Lakers vs Celtics\n🗓 Date: ${new Date().toISOString().split('T')[0]}\n⏰ Setup Time: 17:30\n🎥 Rig Type: Data\n📍 Location: Staples Center\n`;
-    const body = bodyTpl
-      .replace(/{name}/g, user.full_name || user.email.split('@')[0])
-      .replace(/{shoots}/g, sampleShoot);
-    const subject = `[TEST] ${subjectTpl.replace(/{name}/g, user.full_name || user.email.split('@')[0])}`;
-    await base44.integrations.Core.SendEmail({ to: user.email, subject, body });
-    setSendingTestEmail(false);
-    setTestEmailSent(true);
-    setTimeout(() => setTestEmailSent(false), 3000);
-  };
-
-  const handleSaveEmailTemplate = async () => {
-    const pairs = [
-      { key: 'email_reminder_template', value: emailTemplate, description: 'Weekly shoot reminder email body template' },
-      { key: 'email_reminder_subject', value: emailSubjectTemplate, description: 'Weekly shoot reminder email subject template' },
-    ];
-    for (const pair of pairs) {
-      const existing = appSettings.find(s => s.key === pair.key);
-      if (existing) {
-        await base44.entities.AppSettings.update(existing.id, { value: pair.value });
-      } else {
-        await base44.entities.AppSettings.create(pair);
-      }
+  const handleSaveWhatsappMsg = async () => {
+    const key = 'whatsapp_reminder_msg';
+    const existing = appSettings.find(s => s.key === key);
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: whatsappMsg });
+    } else {
+      await base44.entities.AppSettings.create({ key, value: whatsappMsg, description: 'WhatsApp reminder message template' });
     }
-    setEmailTemplateSaved(true);
-    setTimeout(() => setEmailTemplateSaved(false), 2000);
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const handleSendReminders = async () => {
-    setSendingReminders(true);
-
-    // Get shoots for the next 7 days
-    const todayStr = new Date().toISOString().split('T')[0];
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextWeekStr = nextWeek.toISOString().split('T')[0];
-
-    const shoots = await base44.entities.Shoot.list('date', 500);
-    const upcoming = shoots.filter(s =>
-      s.status !== 'cancelled' && s.status !== 'completed' &&
-      s.date >= todayStr && s.date <= nextWeekStr &&
-      s.assigned_operators?.length > 0
-    );
-
-    // Determine which emails are allowed
-    const allowedEmails = selectedRecipients !== null
-      ? selectedRecipients
-      : new Set(users.filter(u => u.role !== 'admin' && u.role !== 'accounts').map(u => u.email));
-
-    // Group shoots by operator
-    const byOperator = {};
-    for (const shoot of upcoming) {
-      for (const email of (shoot.assigned_operators || [])) {
-        const u = users.find(u => u.email === email);
-        if (!u || !allowedEmails.has(email)) continue;
-        if (!byOperator[email]) byOperator[email] = { user: u, shoots: [] };
-        byOperator[email].shoots.push(shoot);
-      }
-    }
-
-    const defaultSubject = `📡 Your Shoots This Week`;
-    const defaultTemplate = `Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`;
-    const defaultShootBlock = `📅 {shoot_title}\n🗓 Date: {date}\n⏰ Setup Time: {setup_time}\n🎥 Rig Type: {rig_type}\n📍 Location: {location}\n`;
-
-    const subjectTpl = emailSubjectTemplate || defaultSubject;
-    const bodyTpl = emailTemplate || defaultTemplate;
-
-    for (const [email, { user: u, shoots: operatorShoots }] of Object.entries(byOperator)) {
-      const shootsText = operatorShoots.map(s => {
-        // Calculate setup time from game_time
-        let setupTime = 'TBD';
-        if (s.game_time) {
-          const [h, m] = s.game_time.split(':').map(Number);
-          const offset = s.setup_offset ?? -150;
-          const totalMins = h * 60 + m + offset;
-          const sh = Math.floor(((totalMins % 1440) + 1440) % 1440 / 60);
-          const sm = ((totalMins % 1440) + 1440) % 1440 % 60;
-          setupTime = `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}`;
-        }
-        return defaultShootBlock
-          .replace('{shoot_title}', s.title)
-          .replace('{date}', s.date)
-          .replace('{setup_time}', setupTime)
-          .replace('{rig_type}', s.rig_type_override || 'Standard')
-          .replace('{location}', s.location || 'TBD');
-      }).join('\n---\n\n');
-
-      const body = bodyTpl
-        .replace(/{name}/g, u.full_name || email.split('@')[0])
-        .replace(/{shoots}/g, shootsText);
-
-      const subject = subjectTpl.replace(/{name}/g, u.full_name || email.split('@')[0]);
-
-      await base44.integrations.Core.SendEmail({ to: email, subject, body });
-    }
-
-    setSendingReminders(false);
-    setRemindersSent(true);
-    setTimeout(() => setRemindersSent(false), 3000);
   };
 
   const handleSaveRates = async () => {
@@ -495,58 +389,30 @@ export default function Settings() {
               </div>
 
               <div className="border-t border-gray-800 pt-4 space-y-3">
-                <p className="text-xs text-gray-400 font-medium flex items-center gap-2"><Mail className="h-4 w-4 text-orange-400" /> Weekly Email Template</p>
-                <p className="text-xs text-gray-500">
-                  Customize the email sent to each operator. Available variables:<br />
-                  <code className="text-blue-400">{'{name}'}</code> — operator's name &nbsp;|&nbsp;
-                  <code className="text-blue-400">{'{shoots}'}</code> — list of their shoots
-                </p>
-                <div>
-                  <label className="text-xs text-gray-400 block mb-1">Subject</label>
-                  <Input
-                    value={emailSubjectTemplate}
-                    onChange={e => setEmailSubjectTemplate(e.target.value)}
-                    placeholder="📡 Your Shoots This Week"
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 block mb-1">Body</label>
-                  <Textarea
-                    value={emailTemplate}
-                    onChange={e => setEmailTemplate(e.target.value)}
-                    placeholder={`Hi {name},\n\nHere are your upcoming shoots for the week:\n\n{shoots}\n\nCheck the Remote Ops Manager app for full details.\n\nThanks,\nRemote Ops Team`}
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm min-h-[160px] font-mono text-xs"
-                  />
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button onClick={handleSaveEmailTemplate} className="bg-blue-700 hover:bg-blue-600 gap-2">
-                    <Save className="h-4 w-4" /> {emailTemplateSaved ? '✓ Saved!' : 'Save Template'}
-                  </Button>
-                  <Button onClick={handleSendTestEmail} disabled={sendingTestEmail} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 gap-2">
-                    <Mail className="h-4 w-4" />
-                    {sendingTestEmail ? 'Sending...' : testEmailSent ? '✓ Test Sent!' : `Send Test to Me`}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-800 pt-4 space-y-3">
                 <p className="text-xs text-gray-400 mb-1 font-medium flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-green-400" /> WhatsApp Schedule Reminder
                 </p>
-                <p className="text-xs text-gray-500">
-                  Opens WhatsApp so you can select which team members to remind to check their Remote Ops app for their schedule.
-                </p>
-                <Button
-                  onClick={() => {
-                    const msg = encodeURIComponent("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
-                    window.open(`https://wa.me/?text=${msg}`, '_blank');
-                  }}
-                  className="bg-green-700 hover:bg-green-600 gap-2"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Open WhatsApp Reminder
-                </Button>
+                <p className="text-xs text-gray-500">Customize the message that opens in WhatsApp when you send a reminder.</p>
+                <Textarea
+                  value={whatsappMsg}
+                  onChange={e => setWhatsappMsg(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 text-sm min-h-[100px]"
+                />
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={() => {
+                      handleSaveWhatsappMsg();
+                      window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
+                    }}
+                    className="bg-green-700 hover:bg-green-600 gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Open WhatsApp Reminder
+                  </Button>
+                  <Button onClick={handleSaveWhatsappMsg} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 gap-2">
+                    <Save className="h-4 w-4" /> Save Message
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
