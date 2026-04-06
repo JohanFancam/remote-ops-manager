@@ -39,13 +39,6 @@ export default function Dashboard() {
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
-    enabled: isAdmin,
-  });
-
-  const { data: allUsersPublic = [] } = useQuery({
-    queryKey: ['allUsersPublic'],
-    queryFn: () => base44.entities.User.list(),
-    enabled: !isAdmin,
   });
 
   const { data: standbyDays = [] } = useQuery({
@@ -59,7 +52,7 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
-  const allUsers = isAdmin ? users : allUsersPublic;
+  const allUsers = users;
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
@@ -231,9 +224,9 @@ export default function Dashboard() {
         </div>
 
         {/* Admin schedule */}
-        {isAdmin && <StandbyManager user={user} allUsers={users} />}
-        {isAdmin && <AdminAvailabilityView allUsers={users} />}
-        {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={users} />}
+        {isAdmin && <StandbyManager user={user} allUsers={allUsers} />}
+        {isAdmin && <AdminAvailabilityView allUsers={allUsers} />}
+        {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />}
         {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
 
 
