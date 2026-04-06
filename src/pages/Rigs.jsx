@@ -275,82 +275,82 @@ export default function Rigs() {
           </Card>
         )}
 
-        {/* Settings list */}
-        <div className="space-y-3">
+        {/* Tile grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {rigSettings.map(rig => (
-            <Card key={rig.id} className="bg-gray-900 border-gray-800">
-              <div className="flex items-center justify-between p-4 cursor-pointer"
-                onClick={() => setExpandedId(expandedId === rig.id ? null : rig.id)}>
-                <div className="flex items-center gap-3">
-                  {expandedId === rig.id ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-                  <div>
-                    <p className="font-semibold text-white">{rig.team}</p>
-                    <div className="flex gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">{rig.sport}</span>
-                      <span className="text-xs text-gray-600">·</span>
-                      <span className="text-xs text-gray-400">{rig.venue_type}</span>
-                    </div>
-                  </div>
+            <Card key={rig.id} className="bg-gray-900 border-gray-800 flex flex-col">
+              {/* Tile header */}
+              <div className="p-4 border-b border-gray-800 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-bold text-white text-base leading-tight truncate">{rig.team}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{rig.sport} · {rig.venue_type}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1 flex-wrap">
-                    {rig.rig_type && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">{rig.rig_type}</Badge>}
-                    {rig.hd_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">HD</Badge>}
-                    {rig.wide_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
-                    {rig.attention_enabled && <Badge className="bg-orange-900/40 text-orange-300 border-orange-700/40 text-xs">Attention</Badge>}
-                    {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
-                  </div>
-                  {isAdmin && (
-                    <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white hover:bg-gray-800" onClick={() => startEdit(rig)}>
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(rig.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {rig.rig_type && (
+                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs flex-shrink-0">{rig.rig_type}</Badge>
+                )}
               </div>
 
+              {/* Camera badges */}
+              <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                {rig.hd_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">HD</Badge>}
+                {rig.wide_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
+                {rig.attention_enabled && <Badge className="bg-orange-900/40 text-orange-300 border-orange-700/40 text-xs">Attention</Badge>}
+                {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
+              </div>
+
+              {/* Camera settings rows */}
+              <div className="px-4 pb-3 space-y-1 flex-1">
+                {CAMERAS.map(cam => (
+                  <CamDisplayRow key={cam.key} label={cam.label} enabled={rig[`${cam.key}_enabled`] !== false} cam={rig[cam.key]} />
+                ))}
+              </div>
+
+              {/* Remote rigs */}
+              {rig.remote_rigs?.length > 0 && (
+                <div className="px-4 pb-3">
+                  <p className="text-xs text-gray-500 mb-1">Remote Rigs</p>
+                  <div className="flex flex-wrap gap-1">
+                    {rig.remote_rigs.map((r, i) => (
+                      <span key={i} className="text-xs bg-blue-900/30 text-blue-300 border border-blue-700/30 px-2 py-0.5 rounded-full">{r}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer actions */}
+              <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between">
+                <button
+                  onClick={() => setExpandedId(expandedId === rig.id ? null : rig.id)}
+                  className="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
+                >
+                  {expandedId === rig.id ? <><ChevronUp className="h-3.5 w-3.5" /> Hide details</> : <><ChevronDown className="h-3.5 w-3.5" /> View details</>}
+                </button>
+                {isAdmin && (
+                  <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white hover:bg-gray-800" onClick={() => startEdit(rig)}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(rig.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Expandable details */}
               {expandedId === rig.id && (
-                <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-3">
-                  {rig.remote_rigs?.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Remote Rigs</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {rig.remote_rigs.map((r, i) => (
-                          <span key={i} className="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/40 px-2 py-0.5 rounded-full">{r}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-2">
                   {rig.shoot_plan && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Shoot Plan</p>
                       <p className="text-sm text-gray-300">{rig.shoot_plan}</p>
                     </div>
                   )}
-
-                  {/* Camera display */}
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Camera Settings</p>
-                    {CAMERAS.map(cam => (
-                      <CamDisplayRow
-                        key={cam.key}
-                        label={cam.label}
-                        enabled={rig[`${cam.key}_enabled`] !== false}
-                        cam={rig[cam.key]}
-                      />
-                    ))}
-                  </div>
-
                   <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
                     <Volume2 className={`h-3.5 w-3.5 ${rig.sound ? 'text-green-400' : 'text-gray-600'}`} />
                     <span className="text-xs font-medium text-gray-300">Sound Recording</span>
                     <span className={`text-xs font-bold ml-auto ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
                   </div>
-
                   {rig.notes && <p className="text-sm text-gray-400 italic">{rig.notes}</p>}
                 </div>
               )}

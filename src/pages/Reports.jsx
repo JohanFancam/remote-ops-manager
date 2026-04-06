@@ -115,62 +115,73 @@ export default function Reports() {
           </div>
         )}
 
-        <div className="grid gap-3">
+        {/* List */}
+        <Card className="bg-gray-900 border-gray-800">
           {monthReports.length === 0 ? (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardContent className="p-12 text-center">
-                <FileText className="h-12 w-12 text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500">No reports for {monthLabel}.</p>
-              </CardContent>
-            </Card>
-          ) : monthReports.map(r => (
-            <Card key={r.id} className={`bg-gray-900 border-gray-800 cursor-pointer hover:border-gray-600 transition-colors ${selected?.id === r.id ? 'border-blue-700' : ''}`}
-              onClick={() => setSelected(selected?.id === r.id ? null : r)}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+            <CardContent className="p-12 text-center">
+              <FileText className="h-12 w-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500">No reports for {monthLabel}.</p>
+            </CardContent>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {monthReports.map(r => (
+                <div key={r.id}>
+                  <div className="flex items-center justify-between px-4 py-3 gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {r.had_issues
                         ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
                         : <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
                       }
-                      <p className="font-semibold text-white truncate">{r.shoot_title}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white text-sm truncate">{r.shoot_title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {r.shoot_date && format(new Date(r.shoot_date), 'EEE, MMM d yyyy')} · {r.operator_name || r.operator_email}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 ml-6">
-                      {r.shoot_date && format(new Date(r.shoot_date), 'EEE, MMM d yyyy')} · {r.operator_name || r.operator_email}
-                    </p>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Badge className={r.had_issues ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs' : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'}>
+                        {r.had_issues ? 'Issues' : 'Clean'}
+                      </Badge>
+                      <Button size="sm" variant="ghost"
+                        className={`h-7 text-xs gap-1 ${selected?.id === r.id ? 'text-blue-400 bg-blue-950/30' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                        onClick={() => setSelected(selected?.id === r.id ? null : r)}>
+                        <FileText className="h-3 w-3" />
+                        {selected?.id === r.id ? 'Hide' : 'Details'}
+                      </Button>
+                    </div>
                   </div>
-                  <Badge className={r.had_issues ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs ml-2' : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs ml-2'}>
-                    {r.had_issues ? 'Issues' : 'Clean'}
-                  </Badge>
-                </div>
 
-                {selected?.id === r.id && (
-                  <div className="mt-3 ml-6 space-y-3 border-t border-gray-800 pt-3">
-                    {r.notes && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Notes:</p>
-                        <p className="text-sm text-gray-300">{r.notes}</p>
-                      </div>
-                    )}
-                    {r.slack_message && (
-                      <div className="bg-gray-800 rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-xs text-gray-500">Slack Message:</p>
-                          <CopyBtn text={r.slack_message} />
+                  {selected?.id === r.id && (
+                    <div className="mx-4 mb-4 bg-gray-800/60 rounded-lg p-4 space-y-3 border border-gray-700">
+                      {r.notes && (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Notes:</p>
+                          <p className="text-sm text-gray-300">{r.notes}</p>
                         </div>
-                        <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">{r.slack_message}</pre>
-                      </div>
-                    )}
-                    {r.completed_at && (
-                      <p className="text-xs text-gray-500">Completed: {new Date(r.completed_at).toLocaleString()}</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      )}
+                      {r.slack_message && (
+                        <div className="bg-gray-900 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs text-gray-500">Slack Message:</p>
+                            <CopyBtn text={r.slack_message} />
+                          </div>
+                          <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">{r.slack_message}</pre>
+                        </div>
+                      )}
+                      {r.completed_at && (
+                        <p className="text-xs text-gray-500">Completed: {new Date(r.completed_at).toLocaleString()}</p>
+                      )}
+                      {!r.notes && !r.slack_message && (
+                        <p className="text-xs text-gray-500">No additional details for this report.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
