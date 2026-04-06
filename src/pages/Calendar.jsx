@@ -166,7 +166,7 @@ export default function Calendar() {
               <button onClick={() => setMobileView('calendar')} className={`p-1.5 rounded ${mobileView === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><Grid3x3 className="h-4 w-4" /></button>
               <button onClick={() => setMobileView('list')} className={`p-1.5 rounded ${mobileView === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><List className="h-4 w-4" /></button>
             </div>
-            {isLevel1Admin && (
+            {isAdmin && (
               <>
                 <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
@@ -314,7 +314,7 @@ export default function Calendar() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                {isLevel1Admin && (
+                {isAdmin && (
                   <div className="flex gap-2 mt-2">
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(liveSelectedShoot)}>Edit</Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDeleteShoot(liveSelectedShoot.id)}>Delete</Button>
@@ -345,7 +345,11 @@ export default function Calendar() {
                 <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s) — click to view details</p>
                 {/* Standby for this day — show all entries */}
                 {(() => {
-                  const dayStandbys = standbyDays.filter(s => s.date === selectedDateStr);
+                  const dayStandbys = standbyDays.filter(s => {
+                    const sd = s.start_date || s.date;
+                    const ed = s.end_date || sd;
+                    return sd && sd <= selectedDateStr && selectedDateStr <= ed;
+                  });
                   if (dayStandbys.length === 0) return null;
                   return (
                     <div className="mt-2 bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2 space-y-1">
@@ -447,7 +451,7 @@ export default function Calendar() {
           )}
 
           {/* Edit form — anchored below panel */}
-          {isLevel1Admin && showAddForm && (
+          {isAdmin && showAddForm && (
             <div id="edit-form-anchor" className="mt-4">
               <Card className="bg-gray-900 border-blue-700">
                 <CardHeader className="border-b border-gray-800 py-3">
