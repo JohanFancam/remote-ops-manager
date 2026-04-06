@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
+import { getDisplayName } from '../utils/nameUtils';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -378,7 +379,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                     const u = allUsers.find(u => u.email === e);
                     return (
                       <span key={e} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">
-                        {u?.full_name || e.split('@')[0]}
+                        {getDisplayName(u, e)}
                       </span>
                     );
                   })}
@@ -390,7 +391,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {shoot.standby_admin && (
               <div className="flex items-center gap-1.5 text-xs text-yellow-400">
                 <Phone className="h-3 w-3" />
-                Standby: {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin.split('@')[0]}
+                Standby: {getDisplayName(allUsers.find(u => u.email === shoot.standby_admin), shoot.standby_admin)}
               </div>
             )}
 

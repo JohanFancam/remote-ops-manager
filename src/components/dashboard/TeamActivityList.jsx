@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Zap, Camera, AlertTriangle, Volume2, CheckCircle, Clock, Calendar, MapPin } from 'lucide-react';
+import { getDisplayName } from '../utils/nameUtils';
 import { format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -110,14 +111,14 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                           <span key={email} className={`text-xs px-2 py-0.5 rounded-full border ${
                             isRemote ? 'bg-blue-950/40 border-blue-800/50 text-blue-300' : 'bg-gray-800 border-gray-700 text-gray-400'
                           }`}>
-                            {(u?.full_name && u.full_name.trim()) ? u.full_name : email}
+                            {getDisplayName(u, email)}
                             {!isRemote && ' (admin)'}
                           </span>
                         );
                       })}
                       {shoot.standby_admin && (
                         <span className="text-xs px-2 py-0.5 rounded-full border bg-yellow-950/40 border-yellow-800/50 text-yellow-300">
-                          {(() => { const u = allUsers.find(u => u.email === shoot.standby_admin); return (u?.full_name && u.full_name.trim()) ? u.full_name : shoot.standby_admin; })()} (standby)
+                          {getDisplayName(allUsers.find(u => u.email === shoot.standby_admin), shoot.standby_admin)} (standby)
                         </span>
                       )}
                       {(shoot.assigned_operators || []).length === 0 && !shoot.standby_admin && (
@@ -155,7 +156,7 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                       const u = allUsers.find(u2 => u2.email === email);
                       return (
                         <span key={email} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
-                          {(u?.full_name && u.full_name.trim()) ? u.full_name : email}
+                          {getDisplayName(u, email)}
                         </span>
                       );
                     })}

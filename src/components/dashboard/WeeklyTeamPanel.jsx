@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, CheckCircle2, Clock, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
+import { getDisplayName } from '../utils/nameUtils';
 import { format, addDays } from 'date-fns';
 
 export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
@@ -42,7 +43,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
 
   const getUserName = (email) => {
     const u = allUsers.find(u => u.email === email);
-    return (u?.full_name && u.full_name.trim()) ? u.full_name : email;
+    return getDisplayName(u, email);
   };
 
   return (

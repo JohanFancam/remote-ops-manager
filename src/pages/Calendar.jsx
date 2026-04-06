@@ -12,6 +12,7 @@ import {
   isSameDay, addMonths, subMonths, isToday
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
+import { getDisplayName } from '../components/utils/nameUtils';
 import ShootDetailPanel from '../components/calendar/ShootDetailPanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 
@@ -353,7 +354,7 @@ export default function Calendar() {
                         const sdUser = allUsers.find(u => u.email === sd.admin_email);
                         return (
                           <div key={sd.id || i} className="flex items-center gap-2 flex-wrap">
-                            <span className="text-yellow-200 text-xs font-medium">{sdUser?.full_name || sd.admin_name || sd.admin_email}</span>
+                            <span className="text-yellow-200 text-xs font-medium">{getDisplayName(sdUser, sd.admin_email, sd.admin_name)}</span>
                             {(sd.start_time || sd.end_time) && (
                               <span className="text-yellow-600 text-xs">
                                 {sd.start_time && `from ${sd.start_time}`}{sd.start_time && sd.end_time && ' → '}{sd.end_time && `until ${sd.end_time}`}
@@ -427,7 +428,7 @@ export default function Calendar() {
                                     const u = allUsers.find(u2 => u2.email === email);
                                     return (
                                       <span key={email} className="text-xs text-gray-400">
-                                        {u?.full_name || email.split('@')[0]}
+                                        {getDisplayName(u, email)}
                                         {u?.role === 'admin' ? ' (admin)' : ''}
                                       </span>
                                     );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Phone } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { getDisplayName } from '../utils/nameUtils';
 
 const OFFLINE_THRESHOLD = 3 * 60 * 1000; // 3 minutes
 
@@ -73,10 +74,9 @@ export default function StandbyBanner({ todayStr }) {
 
   if (activeEntries.length === 0) return null;
 
-  const getDisplayName = (entry) => {
+  const getEntryName = (entry) => {
     const u = allUsers.find(u => u.email === entry.admin_email);
-    const fullName = u?.full_name?.trim();
-    return fullName || entry.admin_name || entry.admin_email;
+    return getDisplayName(u, entry.admin_email, entry.admin_name);
   };
 
   return (
@@ -89,7 +89,7 @@ export default function StandbyBanner({ todayStr }) {
           </p>
           <div className="space-y-1">
             {activeEntries.map((entry, i) => {
-              const name = getDisplayName(entry);
+              const name = getEntryName(entry);
               const isOnline = onlineEmails.has(entry.admin_email);
               return (
                 <div key={entry.id || i} className="flex items-center gap-2 flex-wrap">

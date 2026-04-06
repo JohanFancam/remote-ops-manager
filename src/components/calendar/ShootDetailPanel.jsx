@@ -8,6 +8,7 @@ import {
   MapPin, Tv2, Timer, Aperture, Sun
 } from 'lucide-react';
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
+import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
@@ -315,7 +316,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           <div className="space-y-2">
             {shoot.pending_operators.map(email => (
               <div key={email} className="flex items-center justify-between">
-                <span className="text-sm text-gray-300 truncate">{allUsers.find(u => u.email === email)?.full_name || email}</span>
+                <span className="text-sm text-gray-300 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
                 <div className="flex gap-1.5 ml-2 flex-shrink-0">
                   <Button size="sm" className="h-6 text-xs bg-green-700 hover:bg-green-600 px-2" onClick={() => handleApprove(email)}>
                     <UserCheck className="h-3 w-3 mr-1" />Approve
@@ -337,7 +338,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           <div className="space-y-1">
             {shoot.assigned_operators.map(email => (
               <div key={email} className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-1.5">
-                <span className="text-sm text-gray-300 truncate">{allUsers.find(u => u.email === email)?.full_name || email}</span>
+                <span className="text-sm text-gray-300 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
                 {isAdmin && (
                   <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-600 hover:text-red-400 ml-2 flex-shrink-0" onClick={() => handleRemoveOperator(email)}>
                     <UserX className="h-3 w-3" />
@@ -358,7 +359,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               <select onChange={e => handleAdminAssignUser(e.target.value)} defaultValue="" className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 mb-2">
                 <option value="" disabled>Select user…</option>
                 {assignableUsers.map(u => (
-                  <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
+                  <option key={u.email} value={u.email}>{getDisplayName(u, u.email)}</option>
                 ))}
               </select>
               <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-white" onClick={() => setShowAssignUser(false)}>Cancel</Button>
@@ -406,7 +407,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             <Phone className="h-3 w-3" /> Standby Admin
           </p>
           <p className="text-sm text-yellow-200">
-            {allUsers.find(u => u.email === shoot.standby_admin)?.full_name || shoot.standby_admin}
+            {getDisplayName(allUsers.find(u => u.email === shoot.standby_admin), shoot.standby_admin)}
           </p>
         </div>
       )}
