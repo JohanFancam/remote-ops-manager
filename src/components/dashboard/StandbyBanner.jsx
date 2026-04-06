@@ -23,16 +23,17 @@ export default function StandbyBanner({ todayStr, currentUser }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  // Find entries where the standby period covers right now (date + time)
+  // Find entries where the standby period covers right now (date + time).
+  // An entry with no end_time on end_date stays active until 23:59 that day,
+  // so multi-day standby overlapping into today is correctly shown.
   const activeEntries = standbyDays.filter(entry => {
     const sd = entry.start_date || entry.date;
     const ed = entry.end_date || sd;
     if (!sd) return false;
 
-    // Build start datetime
     const startDt = new Date(`${sd}T${entry.start_time || '00:00'}`);
-    // Build end datetime
-    const endDt = new Date(`${ed}T${entry.end_time || '23:59'}`);
+    // If no end_time is set, use end of day so multi-day slots stay visible all day
+    const endDt = new Date(`${ed}T${entry.end_time || '23:59:59'}`);
 
     return now >= startDt && now <= endDt;
   });
