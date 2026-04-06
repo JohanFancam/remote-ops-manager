@@ -4,27 +4,34 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Plus, X, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO } from 'date-fns';
+import { Phone, Plus, X, ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  format, addMonths, subMonths,
+  startOfMonth, endOfMonth, eachDayOfInterval,
+  startOfWeek, endOfWeek, isSameMonth
+} from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
 
-function isStandbyActive(entry, now) {
-  // Build start and end DateTime from entry fields
-  const startStr = `${entry.start_date}T${entry.start_time || '00:00'}`;
-  const endStr = entry.end_date
-    ? `${entry.end_date}T${entry.end_time || '23:59'}`
-    : `${entry.start_date}T${entry.end_time || '23:59'}`;
-  const start = new Date(startStr);
-  const end = new Date(endStr);
-  return now >= start && now <= end;
+function getCalendarGrid(month) {
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  return eachDayOfInterval({ start, end });
+}
+
+// Does this standby entry cover the given dateStr?
+function entryCoversDate(entry, dateStr) {
+  const sd = entry.start_date || entry.date;
+  const ed = entry.end_date || sd;
+  if (!sd) return false;
+  return sd <= dateStr && dateStr <= ed;
 }
 
 export default function StandbyManager({ user, allUsers = [] }) {
   const queryClient = useQueryClient();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [expanded, setExpanded] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [swapping, setSwapping] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null); // dateStr of selected day for detail
   const [form, setForm] = useState({
     start_date: format(new Date(), 'yyyy-MM-dd'),
     start_time: '',
@@ -34,8 +41,6 @@ export default function StandbyManager({ user, allUsers = [] }) {
   });
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const monthStr = format(currentMonth, 'yyyy-MM');
-  const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
 
   const { data: standbyDays = [] } = useQuery({
     queryKey: ['standbyDays'],
@@ -44,21 +49,21 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
 
-  // Filter entries that overlap with the current month
-  const monthEntries = standbyDays.filter(s => {
+  // All entries that touch ANY day in the current calendar grid (incl. padding days)
+  const calDays = getCalendarGrid(calMonth);
+  const gridStart = format(calDays[0], 'yyyy-MM-dd');
+  const gridEnd = format(calDays[calDays.length - 1], 'yyyy-MM-dd');
+
+  const visibleEntries = standbyDays.filter(s => {
     const sd = s.start_date || s.date;
     const ed = s.end_date || sd;
     if (!sd) return false;
-    return sd.startsWith(monthStr) || ed.startsWith(monthStr) || (sd < monthStr && ed > monthStr);
+    // Overlaps the grid if not entirely before or entirely after
+    return sd <= gridEnd && ed >= gridStart;
   });
 
-  // Get entries that cover a given date
   const getEntriesForDay = (dateStr) =>
-    monthEntries.filter(s => {
-      const sd = s.start_date || s.date;
-      const ed = s.end_date || sd;
-      return sd <= dateStr && dateStr <= ed;
-    });
+    visibleEntries.filter(s => entryCoversDate(s, dateStr));
 
   const handleClaim = async () => {
     if (!form.start_date) return;
@@ -70,7 +75,6 @@ export default function StandbyManager({ user, allUsers = [] }) {
       notes: form.notes || '',
       admin_email: user.email,
       admin_name: user.full_name || user.email,
-      // legacy
       date: form.start_date,
     });
     refresh();
@@ -81,6 +85,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
   const handleRemove = async (id) => {
     await base44.entities.StandbyDay.delete(id);
     refresh();
+    setSelectedDay(null);
   };
 
   const handleSwap = async (standbyId, newEmail) => {
@@ -95,174 +100,244 @@ export default function StandbyManager({ user, allUsers = [] }) {
   };
 
   const adminUsers = allUsers.filter(u => u.role === 'admin');
-  const now = new Date();
-  const myMonthEntries = monthEntries.filter(s => s.admin_email === user.email);
+  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // Count my standby slots in this month
+  const monthStr = format(calMonth, 'yyyy-MM');
+  const myMonthCount = standbyDays.filter(s => {
+    if (s.admin_email !== user.email) return false;
+    const sd = s.start_date || s.date;
+    const ed = s.end_date || sd;
+    return sd?.startsWith(monthStr) || ed?.startsWith(monthStr);
+  }).length;
+
+  const selectedEntries = selectedDay ? getEntriesForDay(selectedDay) : [];
 
   return (
     <Card className="bg-gray-900 border-gray-800 mb-6">
       <CardHeader className="border-b border-gray-800 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-white font-semibold text-base hover:text-blue-400 transition-colors">
+          <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-yellow-400" />
-            Standby Schedule
-            {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-            <span className="text-xs bg-yellow-600/20 text-yellow-400 border border-yellow-700/40 px-2 py-0.5 rounded-full ml-1">
-              {myMonthEntries.length} slot{myMonthEntries.length !== 1 ? 's' : ''} this month
+            <span className="text-white font-semibold text-base">Standby Schedule</span>
+            <span className="text-xs bg-yellow-600/20 text-yellow-400 border border-yellow-700/40 px-2 py-0.5 rounded-full">
+              {myMonthCount} slot{myMonthCount !== 1 ? 's' : ''} this month
             </span>
-          </button>
-          {expanded && (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>{'<'}</Button>
-              <span className="text-sm text-gray-300 font-medium">{format(currentMonth, 'MMM yyyy')}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>{'>'}</Button>
-            </div>
-          )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+              onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-300 font-medium w-24 text-center">{format(calMonth, 'MMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+              onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
-      {expanded && (
-        <CardContent className="pt-4">
-          {/* Add new standby slot */}
-          <div className="mb-4">
-            {showForm ? (
-              <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
-                <p className="text-sm font-medium text-yellow-300">New Standby Period</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">From Date</label>
-                    <Input type="date" value={form.start_date}
-                      onChange={e => setForm({ ...form, start_date: e.target.value })}
-                      className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">From Time</label>
-                    <Input type="time" value={form.start_time}
-                      onChange={e => setForm({ ...form, start_time: e.target.value })}
-                      className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">To Date</label>
-                    <Input type="date" value={form.end_date}
-                      onChange={e => setForm({ ...form, end_date: e.target.value })}
-                      className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">To Time</label>
-                    <Input type="time" value={form.end_time}
-                      onChange={e => setForm({ ...form, end_time: e.target.value })}
-                      className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
-                  </div>
+      <CardContent className="pt-4">
+        {/* Claim button */}
+        <div className="mb-4">
+          {showForm ? (
+            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-medium text-yellow-300">New Standby Period</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">From Date</label>
+                  <Input type="date" value={form.start_date}
+                    onChange={e => setForm({ ...form, start_date: e.target.value })}
+                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
                 </div>
-                <Input placeholder="Notes (optional)" value={form.notes}
-                  onChange={e => setForm({ ...form, notes: e.target.value })}
-                  className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
-                <div className="flex gap-2">
-                  <Button size="sm" className="h-7 text-xs bg-yellow-700 hover:bg-yellow-600 px-4" onClick={handleClaim}>
-                    Claim Standby
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500" onClick={() => setShowForm(false)}>
-                    Cancel
-                  </Button>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">From Time</label>
+                  <Input type="time" value={form.start_time}
+                    onChange={e => setForm({ ...form, start_time: e.target.value })}
+                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">To Date</label>
+                  <Input type="date" value={form.end_date}
+                    onChange={e => setForm({ ...form, end_date: e.target.value })}
+                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">To Time</label>
+                  <Input type="time" value={form.end_time}
+                    onChange={e => setForm({ ...form, end_time: e.target.value })}
+                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
                 </div>
               </div>
-            ) : (
-              <Button size="sm" variant="outline" className="border-yellow-700/50 text-yellow-400 hover:bg-yellow-900/30 h-7 text-xs gap-1"
-                onClick={() => setShowForm(true)}>
-                <Plus className="h-3 w-3" /> Claim Standby Slot
-              </Button>
-            )}
-          </div>
+              <Input placeholder="Notes (optional)" value={form.notes}
+                onChange={e => setForm({ ...form, notes: e.target.value })}
+                className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+              <div className="flex gap-2">
+                <Button size="sm" className="h-7 text-xs bg-yellow-700 hover:bg-yellow-600 px-4" onClick={handleClaim}>
+                  Claim Standby
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500" onClick={() => setShowForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline"
+              className="border-yellow-700/50 text-yellow-400 hover:bg-yellow-900/30 h-7 text-xs gap-1"
+              onClick={() => setShowForm(true)}>
+              <Plus className="h-3 w-3" /> Claim Standby Slot
+            </Button>
+          )}
+        </div>
 
-          {/* Calendar days */}
-          <div className="space-y-1.5">
-            {days.map(day => {
-              const dateStr = format(day, 'yyyy-MM-dd');
-              const isPast = dateStr < todayStr;
-              const entries = getEntriesForDay(dateStr);
-              const hasMe = entries.some(s => s.admin_email === user.email);
-              const dayLabel = format(day, 'EEE, MMM d');
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+          {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5 mb-4">
+          {calDays.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            const inMonth = isSameMonth(day, calMonth);
+            const isToday = dateStr === todayStr;
+            const isPast = dateStr < todayStr;
+            const entries = getEntriesForDay(dateStr);
+            const hasMe = entries.some(s => s.admin_email === user.email);
+            const hasOther = entries.some(s => s.admin_email !== user.email);
+            const isSelected = selectedDay === dateStr;
 
-              // Hide past days with no entries, BUT show past days that are part of an active multi-day range
-              if (entries.length === 0 && isPast) return null;
-              // Also hide past days that have entries but the entire range ends before today
-              if (isPast && entries.length > 0 && entries.every(s => {
-                const ed = s.end_date || s.start_date || s.date;
-                return ed < todayStr;
-              })) return null;
+            let bg = inMonth ? 'rgba(31,41,55,0.6)' : 'rgba(17,24,39,0.3)';
+            if (hasMe && hasOther) bg = 'rgba(120,53,15,0.5)';
+            else if (hasMe) bg = 'rgba(113,63,18,0.5)';
+            else if (hasOther) bg = 'rgba(30,58,138,0.4)';
 
-              return (
-                <div key={dateStr} className={`rounded-lg px-3 py-2 border ${
-                  hasMe ? 'bg-yellow-950/30 border-yellow-800/40' :
-                  entries.length > 0 ? 'bg-gray-800/50 border-gray-700/50' :
-                  'border-transparent'
-                } ${isPast ? 'opacity-50' : ''}`}>
-                  <div className="flex items-start gap-3">
-                    <span className={`text-xs w-28 flex-shrink-0 font-mono mt-0.5 ${hasMe ? 'text-yellow-300' : 'text-gray-400'}`}>{dayLabel}</span>
-                    <div className="flex-1">
-                      {entries.length > 0 ? (
-                        <div className="space-y-1">
-                          {entries.map((standby, idx) => {
-                            const isMe = standby.admin_email === user.email;
-                            const u = allUsers.find(u => u.email === standby.admin_email);
-                            const name = getDisplayName(u, standby.admin_email, standby.admin_name);
-                            const isFirst = (standby.start_date || standby.date) === dateStr;
-                            const isLast = (standby.end_date || standby.start_date || standby.date) === dateStr;
-                            return (
-                              <div key={standby.id} className={`flex items-center justify-between gap-2 flex-wrap ${idx > 0 ? 'pt-1 border-t border-gray-700/40' : ''}`}>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <Phone className={`h-3 w-3 ${isMe ? 'text-yellow-400' : 'text-blue-400'}`} />
-                                    <span className={`text-sm font-medium ${isMe ? 'text-yellow-200' : 'text-blue-300'}`}>
-                                      {name}{isMe ? ' (You)' : ''}
-                                    </span>
-                                    {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
-                                  </div>
-                                  <p className="text-xs text-gray-500 ml-5">
-                                    {isFirst && standby.start_time && `Starts ${standby.start_time}`}
-                                    {isLast && standby.end_time && `${isFirst && standby.start_time ? ' → ' : ''}Ends ${standby.end_time}`}
-                                    {!isFirst && !isLast && 'Continues'}
-                                  </p>
-                                  {standby.notes && <p className="text-xs text-gray-600 ml-5">{standby.notes}</p>}
-                                </div>
-                                {!isPast && isMe && (
-                                  <div className="flex gap-1">
-                                    <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-500 hover:text-yellow-400 px-2 gap-1"
-                                      onClick={() => setSwapping(swapping === standby.id ? null : standby.id)}>
-                                      <ArrowLeftRight className="h-3 w-3" /> Swap
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
-                                      onClick={() => handleRemove(standby.id)}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                                {swapping === standby.id && !isPast && (
-                                  <div className="w-full mt-1">
-                                    <select onChange={e => { if (e.target.value) handleSwap(standby.id, e.target.value); }}
-                                      defaultValue=""
-                                      className="w-full bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1">
-                                      <option value="" disabled>Swap with…</option>
-                                      {adminUsers.filter(u => u.email !== standby.admin_email).map(u => (
-                                        <option key={u.email} value={u.email}>{getDisplayName(u, u.email)}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+            return (
+              <button
+                key={dateStr}
+                onClick={() => setSelectedDay(isSelected ? null : dateStr)}
+                className={`rounded-md p-1 min-h-[52px] text-left transition-all ${
+                  isSelected ? 'ring-2 ring-yellow-400' : 'hover:ring-1 hover:ring-gray-600'
+                } ${!inMonth ? 'opacity-30' : ''} ${isPast && !hasMe && !hasOther ? 'opacity-40' : ''}`}
+                style={{ background: bg }}
+              >
+                <span className={`text-xs font-medium block ${
+                  isToday ? 'text-blue-400 font-bold' :
+                  hasMe ? 'text-yellow-300' :
+                  hasOther ? 'text-blue-300' :
+                  isPast ? 'text-gray-600' : 'text-gray-400'
+                }`}>
+                  {format(day, 'd')}
+                </span>
+                {hasMe && (
+                  <div className="mt-0.5">
+                    <Phone className="h-2.5 w-2.5 text-yellow-400 inline" />
+                    <span className="text-xs text-yellow-400 ml-0.5">You</span>
+                  </div>
+                )}
+                {hasOther && !hasMe && (
+                  <div className="mt-0.5 space-y-0.5">
+                    {entries.filter(e => e.admin_email !== user.email).slice(0, 2).map(e => {
+                      const u = allUsers.find(u => u.email === e.admin_email);
+                      const name = getDisplayName(u, e.admin_email, e.admin_name);
+                      return (
+                        <div key={e.id} className="text-xs text-blue-300 truncate leading-tight">
+                          {name.split(' ')[0]}
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-600">—</span>
+                      );
+                    })}
+                  </div>
+                )}
+                {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mb-4 flex-wrap">
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(113,63,18,0.6)' }} /> My Standby
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(30,58,138,0.5)' }} /> Other Admin
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="w-1 h-1 rounded-full bg-blue-400 inline-block" /> Today
+          </span>
+        </div>
+
+        {/* Detail panel for selected day */}
+        {selectedDay && (
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4">
+            <p className="text-sm font-semibold text-white mb-3">
+              {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
+            </p>
+            {selectedEntries.length === 0 ? (
+              <p className="text-xs text-gray-500">No standby scheduled.</p>
+            ) : (
+              <div className="space-y-3">
+                {selectedEntries.map(standby => {
+                  const isMe = standby.admin_email === user.email;
+                  const u = allUsers.find(u => u.email === standby.admin_email);
+                  const name = getDisplayName(u, standby.admin_email, standby.admin_name);
+                  const isPastDay = selectedDay < todayStr;
+                  const sd = standby.start_date || standby.date;
+                  const ed = standby.end_date || sd;
+
+                  return (
+                    <div key={standby.id} className={`rounded-lg px-3 py-2 border ${
+                      isMe ? 'bg-yellow-950/40 border-yellow-800/40' : 'bg-blue-950/30 border-blue-800/30'
+                    }`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Phone className={`h-3 w-3 ${isMe ? 'text-yellow-400' : 'text-blue-400'}`} />
+                            <span className={`text-sm font-medium ${isMe ? 'text-yellow-200' : 'text-blue-300'}`}>
+                              {name}{isMe ? ' (You)' : ''}
+                            </span>
+                            {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 ml-5">
+                            {sd}{standby.start_time ? ` @ ${standby.start_time}` : ''} → {ed}{standby.end_time ? ` @ ${standby.end_time}` : ''}
+                          </p>
+                          {standby.notes && <p className="text-xs text-gray-500 ml-5 italic">{standby.notes}</p>}
+                        </div>
+                        {!isPastDay && isMe && (
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button size="sm" variant="ghost"
+                              className="h-6 text-xs text-gray-500 hover:text-yellow-400 px-2 gap-1"
+                              onClick={() => setSwapping(swapping === standby.id ? null : standby.id)}>
+                              <ArrowLeftRight className="h-3 w-3" /> Swap
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
+                              onClick={() => handleRemove(standby.id)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {swapping === standby.id && !isPastDay && (
+                        <div className="mt-2">
+                          <select
+                            onChange={e => { if (e.target.value) handleSwap(standby.id, e.target.value); }}
+                            defaultValue=""
+                            className="w-full bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1">
+                            <option value="" disabled>Swap with…</option>
+                            {adminUsers.filter(u => u.email !== standby.admin_email).map(u => (
+                              <option key={u.email} value={u.email}>{getDisplayName(u, u.email)}</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }

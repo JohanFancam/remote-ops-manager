@@ -3,14 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone, Activity, LayoutDashboard } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 import ShootSummaryPanel from '../components/dashboard/ShootSummaryPanel';
-import TeamActivityList from '../components/dashboard/TeamActivityList';
 import StandbyManager from '../components/dashboard/StandbyManager';
 import StandbyBanner from '../components/dashboard/StandbyBanner';
 import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
@@ -19,7 +18,6 @@ import { AdminAvailabilityView, OperatorAvailabilityPanel } from '../components/
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [adminTab, setAdminTab] = useState('my'); // 'my' | 'team'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -224,66 +222,42 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Admin: tabs */}
-        {isAdmin && (
-          <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit flex-wrap">
-            <button onClick={() => setAdminTab('my')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'my' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-              <LayoutDashboard className="h-4 w-4" /> My Schedule
-            </button>
-            <button onClick={() => setAdminTab('team')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === 'team' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-              <Activity className="h-4 w-4" /> Team Activity
-            </button>
+        {/* Admin schedule */}
+        {isAdmin && <StandbyManager user={user} allUsers={users} />}
+        {isAdmin && <AdminAvailabilityView allUsers={users} />}
+        {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={users} />}
+        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
+        {isAdmin && <ShootSummaryPanel shoots={shoots} appSettings={appSettings} />}
+
+        <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
+
+        {displayShoots.length === 0 ? (
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-12 text-center">
+              <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500">No upcoming shoots assigned to you.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {displayShoots.map(shoot => (
+              <CountdownCard
+                key={shoot.id}
+                shoot={shoot}
+                isAdmin={isAdmin}
+                rigSettings={rigSettings}
+                onUpdate={handleShootUpdate}
+                userEmail={user?.email}
+                allUsers={allUsers}
+              />
+            ))}
           </div>
         )}
 
-        {/* MY SCHEDULE tab */}
-        {(!isAdmin || adminTab === 'my') && (
-          <>
-            {isAdmin && <StandbyManager user={user} allUsers={users} />}
-            {isAdmin && <AdminAvailabilityView allUsers={users} />}
-            {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={users} />}
-            {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
-            {isAdmin && <ShootSummaryPanel shoots={shoots} appSettings={appSettings} />}
+        <div className="mt-8" />
 
-            <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
-
-            {displayShoots.length === 0 ? (
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-12 text-center">
-                  <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500">No upcoming shoots assigned to you.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {displayShoots.map(shoot => (
-                  <CountdownCard
-                    key={shoot.id}
-                    shoot={shoot}
-                    isAdmin={isAdmin}
-                    rigSettings={rigSettings}
-                    onUpdate={handleShootUpdate}
-                    userEmail={user?.email}
-                    allUsers={allUsers}
-                  />
-                ))}
-              </div>
-            )}
-
-            <div className="mt-8">
-            </div>
-
-            {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
-            {!isAdmin && <OperatorAvailabilityPanel user={user} />}
-          </>
-        )}
-
-        {/* TEAM ACTIVITY tab */}
-        {isAdmin && adminTab === 'team' && (
-          <TeamActivityList shoots={shoots} allUsers={users} />
-        )}
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
+        {!isAdmin && <OperatorAvailabilityPanel user={user} />}
 
       </div>
     </div>
