@@ -18,9 +18,16 @@ export function toTitleCase(str) {
  * @param {string} email - Email address as ultimate fallback
  * @param {string|null} storedName - Optional pre-stored name (e.g. admin_name on StandbyDay)
  */
+export function nameFromEmail(email) {
+  if (!email) return '';
+  const local = email.split('@')[0];
+  // Replace dots, underscores, hyphens with spaces then Title Case
+  return toTitleCase(local.replace(/[._-]/g, ' '));
+}
+
 export function getDisplayName(userRecord, email, storedName = null) {
   const fullName = userRecord?.full_name?.trim();
   if (fullName) return toTitleCase(fullName);
   if (storedName?.trim()) return toTitleCase(storedName.trim());
-  return email || '';
+  return nameFromEmail(email) || email || '';
 }
