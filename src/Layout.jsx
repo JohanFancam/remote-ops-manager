@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
+import RefreshReminder from './components/RefreshReminder';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,23 @@ function LayoutContent({ children, currentPageName }) {
 
   const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
   const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
+
+  // Feature visibility — L1 always sees everything; L2 sees only what L1 enabled for them
+  const isFeatureVisible = (key) => {
+    if (!isAdmin) return true; // remotes unaffected
+    const masterEnabled = appSettings.find(s => s.key === `feature_${key}`)?.value !== 'false';
+    if (!masterEnabled) return false;
+    if (adminLevel === 2) {
+      return appSettings.find(s => s.key === `l2_feature_${key}`)?.value !== 'false';
+    }
+    return true;
+  };
+  const showRigs = isFeatureVisible('rigs');
+  const showReports = isFeatureVisible('reports');
+  const showAccounts = isFeatureVisible('accounts');
+  const showReference = isFeatureVisible('reference');
+  const showOnlineNow = isFeatureVisible('online_now');
+  const showTutorialBtn = isFeatureVisible('tutorial');
 
   const { data: myShoots = [] } = useQuery({
     queryKey: ['myShoots', user?.email],
@@ -214,12 +232,12 @@ function LayoutContent({ children, currentPageName }) {
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Rigs', icon: Wrench, page: 'Rigs' },
-    { name: 'Reports', icon: BarChart2, page: 'Reports' },
-    { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
+    showRigs && { name: 'Rigs', icon: Wrench, page: 'Rigs' },
+    showReports && { name: 'Reports', icon: BarChart2, page: 'Reports' },
+    showAccounts && { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+    showReference && { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
-  ];
+  ].filter(Boolean);
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -288,8 +306,8 @@ function LayoutContent({ children, currentPageName }) {
           ))}
         </nav>
 
-        {/* Online users panel — admin only */}
-        {isAdmin && (
+        {/* Online users panel — admin only, feature-toggled */}
+        {isAdmin && showOnlineNow && (
           <div className="px-3 pb-1 relative">
             <button
               onClick={() => setShowOnline(p => !p)}
@@ -373,9 +391,11 @@ function LayoutContent({ children, currentPageName }) {
         )}
 
         {/* Tutorial reopen button */}
-        <div className="px-3 pb-1">
-          <TutorialReopenButton isAdmin={isAdmin} tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled} />
-        </div>
+        {(isAdmin ? showTutorialBtn : true) && (
+          <div className="px-3 pb-1">
+            <TutorialReopenButton isAdmin={isAdmin} tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled} />
+          </div>
+        )}
 
         {/* Notification bell — remote users only */}
         {!isAdmin && (
@@ -446,6 +466,8 @@ function LayoutContent({ children, currentPageName }) {
           </nav>
         </div>
       )}
+
+      <RefreshReminder />
 
       {/* Tutorial overlay */}
       {!isLoading && user && (

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell
+  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Settings2
 } from 'lucide-react';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
@@ -104,6 +104,142 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+// Feature keys that can be toggled on/off by L1 Admin
+const FEATURE_TOGGLES = [
+  { key: 'feature_rigs', label: 'Rig Settings', description: 'Rigs page & Rigs Check panel' },
+  { key: 'feature_reports', label: 'Reports', description: 'Shoot reports page' },
+  { key: 'feature_accounts', label: 'Accounts', description: 'Accounts/Payroll page' },
+  { key: 'feature_reference', label: 'Reference Guide', description: 'Reference Guide page' },
+  { key: 'feature_online_now', label: 'Online Now', description: 'Online users panel in sidebar' },
+  { key: 'feature_tutorial', label: 'Tutorial', description: 'Tutorial overlay & reopen button' },
+];
+
+// Which features L2 admins can see — controlled by L1
+const L2_VISIBILITY_KEYS = FEATURE_TOGGLES.map(f => `l2_${f.key}`);
+
+function FeatureToggleSection({ appSettings, queryClient, isLevel1Admin }) {
+  const [saving, setSaving] = React.useState(null);
+
+  const isEnabled = (key) => appSettings.find(s => s.key === key)?.value !== 'false';
+  const canL2See = (key) => appSettings.find(s => s.key === `l2_${key}`)?.value !== 'false';
+
+  const toggleFeature = async (key) => {
+    setSaving(key);
+    const current = isEnabled(key);
+    const existing = appSettings.find(s => s.key === key);
+    const newVal = current ? 'false' : 'true';
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: newVal });
+    } else {
+      await base44.entities.AppSettings.create({ key, value: newVal, description: `Feature toggle: ${key}` });
+    }
+    setSaving(null);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  const toggleL2 = async (key) => {
+    const l2key = `l2_${key}`;
+    setSaving(l2key);
+    const current = canL2See(key);
+    const existing = appSettings.find(s => s.key === l2key);
+    const newVal = current ? 'false' : 'true';
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: newVal });
+    } else {
+      await base44.entities.AppSettings.create({ key: l2key, value: newVal, description: `L2 visibility: ${key}` });
+    }
+    setSaving(null);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  return (
+    <Card className="bg-gray-900 border-gray-800 mb-6">
+      <CardHeader className="border-b border-gray-800 pb-4">
+        <CardTitle className="text-white flex items-center gap-2">
+          <Settings2 className="h-5 w-5 text-blue-400" /> Feature Visibility
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-1">
+        <p className="text-xs text-gray-500 mb-3">
+          Toggle which features are visible. L1 controls global visibility; also set what L2 admins can see.
+        </p>
+        <div className="grid grid-cols-1 gap-2">
+          {FEATURE_TOGGLES.map(f => {
+            const enabled = isEnabled(f.key);
+            const l2Visible = canL2See(f.key);
+            return (
+              <div key={f.key} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${enabled ? 'border-gray-700 bg-gray-800/40' : 'border-gray-800 bg-gray-900/40 opacity-60'}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white font-medium">{f.label}</p>
+                  <p className="text-xs text-gray-500">{f.description}</p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {/* L2 visibility toggle */}
+                  {enabled && (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-xs text-gray-600">L2</span>
+                      <button
+                        disabled={saving === `l2_${f.key}`}
+                        onClick={() => toggleL2(f.key)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${l2Visible ? 'bg-purple-600' : 'bg-gray-700'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${l2Visible ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                  )}
+                  {/* L1 master toggle */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-xs text-gray-600">On</span>
+                    <button
+                      disabled={saving === f.key}
+                      onClick={() => toggleFeature(f.key)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-700'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// App Version bump — triggers RefreshReminder for all users
+function AppVersionBump({ appSettings, queryClient }) {
+  const [bumping, setBumping] = React.useState(false);
+  const [done, setDone] = React.useState(false);
+
+  const handleBump = async () => {
+    setBumping(true);
+    const newVersion = Date.now().toString();
+    const existing = appSettings.find(s => s.key === 'app_version');
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value: newVersion });
+    } else {
+      await base44.entities.AppSettings.create({ key: 'app_version', value: newVersion, description: 'App version — bump to notify users to refresh' });
+    }
+    setBumping(false);
+    setDone(true);
+    setTimeout(() => setDone(false), 3000);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  return (
+    <div className="border-t border-gray-800 pt-4 mt-2">
+      <p className="text-xs text-gray-500 mb-2">Notify all users to refresh the app (e.g. after a major update):</p>
+      <Button size="sm" onClick={handleBump} disabled={bumping}
+        className="bg-orange-700 hover:bg-orange-600 gap-2 text-sm">
+        <RefreshCw className="h-4 w-4" />
+        {done ? '✓ Notification sent!' : bumping ? 'Sending...' : 'Send Refresh Reminder to All Users'}
+      </Button>
+    </div>
   );
 }
 
@@ -548,6 +684,26 @@ export default function Settings() {
         {/* Message Templates — Admin only */}
         {isAdmin && (
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
+        )}
+
+        {/* Feature Visibility — L1 Admin only */}
+        {isLevel1Admin && (
+          <FeatureToggleSection appSettings={appSettings} queryClient={queryClient} isLevel1Admin={isLevel1Admin} />
+        )}
+
+        {/* App Version / Refresh Reminder — L1 Admin only */}
+        {isLevel1Admin && (
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-orange-400" /> App Updates
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <p className="text-xs text-gray-500 mb-1">Use this after deploying changes to remind all logged-in users to refresh their browser.</p>
+              <AppVersionBump appSettings={appSettings} queryClient={queryClient} />
+            </CardContent>
+          </Card>
         )}
 
         {/* Tutorial Settings — Admin only */}

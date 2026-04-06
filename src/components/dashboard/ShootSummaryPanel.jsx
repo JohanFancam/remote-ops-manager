@@ -24,6 +24,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
   const [editMsg, setEditMsg] = useState('');
   const [overrides, setOverrides] = useState({});
   const [archived, setArchived] = useState(() => getArchived());
+  const [checked, setChecked] = useState({});
   const [showArchived, setShowArchived] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,17 +39,16 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
     || '{name} complete — ⚠️ Issues reported: {notes}';
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-  // Last 7 days completed
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = format(cutoff, 'yyyy-MM-dd');
 
+  // Completed shoots in last 7 days (not archived)
   const completedShoots = shoots
     .filter(s => s.phase_status?.shoot_complete && s.date >= cutoffStr)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  // Today's in-progress (assigned, not yet complete)
+  // Today's in-progress shoots
   const inProgressShoots = shoots.filter(s =>
     s.date === todayStr &&
     !s.phase_status?.shoot_complete &&
@@ -57,8 +57,9 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
       s.phase_status?.attention_started || s.phase_status?.sound_started)
   ).sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
 
-  const activeCompleted = completedShoots.filter(s => !archived.includes(s.id));
+  const activeShoots = completedShoots.filter(s => !archived.includes(s.id));
   const archivedShoots = completedShoots.filter(s => archived.includes(s.id));
+  const checkedShoots = activeShoots.filter(s => checked[s.id]);
 
   const getReport = (shootId) => reports.find(r => r.shoot_id === shootId);
 
@@ -85,6 +86,8 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
     return 'In Progress';
   };
 
+  const toggle = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+
   const handleEdit = (shoot) => {
     setEditingId(shoot.id);
     setEditMsg(getMessage(shoot));
@@ -95,10 +98,11 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
     setEditingId(null);
   };
 
-  const handleArchive = (id) => {
-    const next = [...new Set([...archived, id])];
+  const handleArchiveChecked = () => {
+    const next = [...new Set([...archived, ...checkedShoots.map(s => s.id)])];
     setArchived(next);
     saveArchived(next);
+    setChecked({});
   };
 
   const handleUnarchive = (id) => {
@@ -114,8 +118,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // Build bullet-point summary (completed only, not in-progress)
-  const bulletSummary = activeCompleted.map(s => `• ${getMessage(s)}`).join('\n');
+  const bulletSummary = checkedShoots.map(s => `• ${getMessage(s)}`).join('\n');
   const fullCopyText = `Shoot Summary:\n\n${bulletSummary}`;
 
   const handleCopy = () => {
@@ -125,7 +128,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const totalCount = activeCompleted.length + inProgressShoots.length;
+  const totalCount = activeShoots.length + inProgressShoots.length;
 
   return (
     <Card className="bg-gray-900 border-gray-800 mt-6">
@@ -146,17 +149,20 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
           </button>
           {expanded && (
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                title="Refresh"
-                className={`text-gray-500 hover:text-white transition-colors ${refreshing ? 'animate-spin' : ''}`}
-              >
+              <button onClick={handleRefresh} title="Refresh"
+                className={`text-gray-500 hover:text-white transition-colors ${refreshing ? 'animate-spin' : ''}`}>
                 <RefreshCw className="h-4 w-4" />
               </button>
-              {activeCompleted.length > 0 && (
-                <Button size="sm" onClick={handleCopy} className="bg-green-700 hover:bg-green-600 gap-1.5 text-xs h-7">
-                  {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy Summary</>}
-                </Button>
+              {checkedShoots.length > 0 && (
+                <>
+                  <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
+                    className="gap-1.5 text-xs h-7 text-gray-400 hover:text-yellow-400 hover:bg-gray-800">
+                    <Archive className="h-3 w-3" /> Archive Selected
+                  </Button>
+                  <Button size="sm" onClick={handleCopy} className="bg-green-700 hover:bg-green-600 gap-1.5 text-xs h-7">
+                    {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy Selected</>}
+                  </Button>
+                </>
               )}
             </div>
           )}
@@ -189,22 +195,23 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
             </div>
           )}
 
-          {/* Completed */}
+          {/* Completed — checkbox model like RigsCheck */}
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <CheckCircle2 className="h-3 w-3 text-green-400" /> Completed — Last 7 Days
             </p>
-            {activeCompleted.length === 0 ? (
+            {activeShoots.length === 0 ? (
               <p className="text-gray-600 text-sm text-center py-3">No completed shoots yet.</p>
             ) : (
               <div className="space-y-2">
-                {activeCompleted.map(s => {
+                {activeShoots.map(s => {
                   const report = getReport(s.id);
                   const hasIssues = report?.had_issues;
                   const isEditing = editingId === s.id;
+                  const isChecked = !!checked[s.id];
 
                   return (
-                    <div key={s.id} className={`rounded-lg px-3 py-2.5 border ${hasIssues ? 'bg-red-950/20 border-red-800/40' : 'bg-gray-800/40 border-gray-700/50'}`}>
+                    <div key={s.id} className={`rounded-lg px-3 py-2.5 border transition-colors ${isChecked ? 'bg-green-950/20 border-green-700/50' : hasIssues ? 'bg-red-950/20 border-red-800/40' : 'bg-gray-800/40 border-gray-700/50'}`}>
                       {isEditing ? (
                         <div className="space-y-2">
                           <Textarea
@@ -223,27 +230,32 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2 flex-1">
-                            {hasIssues
-                              ? <AlertTriangle className="h-3.5 w-3.5 text-red-400 mt-0.5 flex-shrink-0" />
-                              : <CheckCircle2 className="h-3.5 w-3.5 text-green-400 mt-0.5 flex-shrink-0" />
-                            }
-                            <p className="text-sm text-gray-200 leading-relaxed">{getMessage(s)}</p>
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggle(s.id)}
+                            className="w-4 h-4 rounded accent-green-500 flex-shrink-0 mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-2">
+                              {hasIssues
+                                ? <AlertTriangle className="h-3.5 w-3.5 text-red-400 mt-0.5 flex-shrink-0" />
+                                : <CheckCircle2 className="h-3.5 w-3.5 text-green-400 mt-0.5 flex-shrink-0" />
+                              }
+                              <p className={`text-sm leading-relaxed ${isChecked ? 'line-through text-gray-500' : 'text-gray-200'}`}>
+                                {getMessage(s)}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-0.5 ml-5">
+                              {s.date === todayStr ? 'Today' : format(new Date(s.date + 'T12:00:00'), 'EEE, MMM d')}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                            <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-blue-400" title="Edit">
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => handleArchive(s.id)} className="text-gray-600 hover:text-yellow-400" title="Archive">
-                              <Archive className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-blue-400 flex-shrink-0 mt-0.5" title="Edit">
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       )}
-                      <p className="text-xs text-gray-600 mt-1 ml-5">
-                        {s.date === todayStr ? 'Today' : format(new Date(s.date + 'T12:00:00'), 'EEE, MMM d')}
-                      </p>
                     </div>
                   );
                 })}
@@ -251,13 +263,17 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
             )}
           </div>
 
-          {/* Bullet-point preview */}
-          {activeCompleted.length > 0 && (
+          {/* Tip */}
+          {activeShoots.length > 0 && checkedShoots.length === 0 && (
+            <p className="text-xs text-gray-600 text-center">✓ Tick shoots to include in message, then Copy & Archive.</p>
+          )}
+
+          {/* Preview */}
+          {checkedShoots.length > 0 && (
             <div className="bg-gray-800/60 rounded-lg p-3 border border-gray-700">
               <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Slack Message Preview</p>
-              <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                {fullCopyText}
-              </pre>
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{fullCopyText}</pre>
+              <p className="text-xs text-gray-600 mt-2">After copying, click <strong className="text-yellow-400">Archive Selected</strong> to remove from list.</p>
             </div>
           )}
 

@@ -13,6 +13,7 @@ import ShootSummaryPanel from '../components/dashboard/ShootSummaryPanel';
 import TeamActivityList from '../components/dashboard/TeamActivityList';
 import StandbyManager from '../components/dashboard/StandbyManager';
 import StandbyBanner from '../components/dashboard/StandbyBanner';
+import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
@@ -240,6 +241,7 @@ export default function Dashboard() {
         {(!isAdmin || adminTab === 'my') && (
           <>
             {isAdmin && <StandbyManager user={user} allUsers={users} />}
+            {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={users} />}
             {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
             {isAdmin && <ShootSummaryPanel shoots={shoots} appSettings={appSettings} />}
 
