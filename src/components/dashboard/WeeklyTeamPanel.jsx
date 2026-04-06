@@ -42,7 +42,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
 
   const getUserName = (email) => {
     const u = allUsers.find(u => u.email === email);
-    return u?.full_name || email.split('@')[0];
+    return (u?.full_name && u.full_name.trim()) ? u.full_name : email;
   };
 
   return (

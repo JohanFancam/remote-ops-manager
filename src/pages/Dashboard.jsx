@@ -138,7 +138,7 @@ export default function Dashboard() {
         </div>
 
         {/* Standby banner — visible to ALL users */}
-        <StandbyBanner standbyDays={standbyDays} allUsers={allUsers} todayStr={todayStr} />
+        <StandbyBanner todayStr={todayStr} />
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -271,12 +271,6 @@ export default function Dashboard() {
             )}
 
             <div className="mt-8">
-              {(!isAdmin || isLevel1Admin) && (
-                <RemoteEarnings
-                  shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
-                  user={user}
-                />
-              )}
             </div>
 
             {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}

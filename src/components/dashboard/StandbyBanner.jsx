@@ -1,12 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, Wifi } from 'lucide-react';
+import { Phone } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 const OFFLINE_THRESHOLD = 3 * 60 * 1000; // 3 minutes
 
-export default function StandbyBanner({ standbyDays = [], allUsers = [], todayStr }) {
-  const todayEntries = standbyDays.filter(s => s.date === todayStr);
+export default function StandbyBanner({ todayStr }) {
   const [onlineEmails, setOnlineEmails] = useState(new Set());
+  const [now, setNow] = useState(new Date());
+
+  // Fetch standby days directly — don't rely on prop
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
+
+  // Fetch all users directly for name lookup
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const todayEntries = standbyDays.filter(s => s.date === todayStr);
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   useEffect(() => {
     if (todayEntries.length === 0) return;
@@ -14,10 +34,10 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
     const load = async () => {
       try {
         const presences = await base44.entities.UserPresence.list();
-        const now = Date.now();
+        const nowTs = Date.now();
         const online = new Set(
           presences
-            .filter(p => p.is_online && p.last_seen && (now - new Date(p.last_seen).getTime()) < OFFLINE_THRESHOLD)
+            .filter(p => p.is_online && p.last_seen && (nowTs - new Date(p.last_seen).getTime()) < OFFLINE_THRESHOLD)
             .map(p => p.user_email)
         );
         setOnlineEmails(online);
@@ -26,7 +46,6 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
 
     load();
 
-    // Subscribe to real-time presence updates
     const unsub = base44.entities.UserPresence.subscribe((event) => {
       if (event.type === 'update' || event.type === 'create') {
         const p = event.data;
@@ -42,14 +61,7 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
     });
 
     return unsub;
-  }, [todayStr]);
-
-  // Filter out entries where end_time has passed (today only)
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(iv);
-  }, []);
+  }, [todayStr, todayEntries.length]);
 
   const activeEntries = todayEntries.filter(entry => {
     if (!entry.end_time) return true;
@@ -61,6 +73,12 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
 
   if (activeEntries.length === 0) return null;
 
+  const getDisplayName = (entry) => {
+    const u = allUsers.find(u => u.email === entry.admin_email);
+    const fullName = u?.full_name?.trim();
+    return fullName || entry.admin_name || entry.admin_email;
+  };
+
   return (
     <div className="mb-4 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3">
       <div className="flex items-start gap-3">
@@ -71,8 +89,7 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
           </p>
           <div className="space-y-1">
             {activeEntries.map((entry, i) => {
-              const u = allUsers.find(u => u.email === entry.admin_email);
-              const name = u?.full_name || entry.admin_name || entry.admin_email;
+              const name = getDisplayName(entry);
               const isOnline = onlineEmails.has(entry.admin_email);
               return (
                 <div key={entry.id || i} className="flex items-center gap-2 flex-wrap">
