@@ -78,28 +78,36 @@ export default function Dashboard() {
       return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
     });
 
-  // For admins: only include standby shoots if they are currently on standby for that date
-  // (i.e. there's a standby entry for that date AND no other admin's standby has started after theirs)
-  const nowStr = new Date().toISOString();
-  const activeStandbyDates = isAdmin ? new Set(
+  // For admins: collect all dates covered by their active/future standby entries.
+  // A multi-day standby (e.g. 6th→7th) means the admin is responsible for shoots on ALL those dates.
+  const now = new Date();
+  const activeStandbyDates = isAdmin ? (() => {
+    const dates = new Set();
     standbyDays
-      .filter(sd => {
-        if (sd.admin_email !== user?.email) return false;
-        if (sd.date < todayStr) return false;
-        if (sd.date > todayStr) return true; // future standby — include
-        // Today: check if standby time window is still active
-        // If end_time is set and current time is past it, exclude
-        if (sd.end_time) {
-          const [eh, em] = sd.end_time.split(':').map(Number);
-          const endMins = eh * 60 + em;
-          const now = new Date();
-          const nowMins = now.getHours() * 60 + now.getMinutes();
-          if (nowMins > endMins) return false;
+      .filter(sd => sd.admin_email === user?.email)
+      .forEach(sd => {
+        const startDate = sd.start_date || sd.date;
+        const endDate = sd.end_date || startDate;
+        if (!startDate) return;
+
+        // Build start/end datetimes
+        const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
+        const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
+
+        // Skip entries that are fully in the past
+        if (endDt < now) return;
+
+        // Walk every date in the standby range and add it if >= today
+        const cur = new Date(startDate + 'T12:00:00');
+        const last = new Date(endDate + 'T12:00:00');
+        while (cur <= last) {
+          const ds = format(cur, 'yyyy-MM-dd');
+          if (ds >= todayStr) dates.add(ds);
+          cur.setDate(cur.getDate() + 1);
         }
-        return true;
-      })
-      .map(sd => sd.date)
-  ) : new Set();
+      });
+    return dates;
+  })() : new Set();
 
   const myUpcoming = upcomingShoots.filter(s => {
     if (s.assigned_operators?.includes(user?.email)) return true;

@@ -750,182 +750,184 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* User Management — L1 Admin only */}
+        {/* Pre-registered Users — L1 only */}
         {isLevel1Admin && (
-          <>
-            {/* Pending / Pre-registered Users */}
-            <Card className="bg-gray-900 border-gray-800 mb-6">
-              <CardHeader className="border-b border-gray-800 pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-orange-400" /> Pre-registered Users ({pendingUsers.length})
-                  </CardTitle>
-                  <Button size="sm" onClick={() => setShowAddPending(!showAddPending)}
-                    className="bg-orange-700 hover:bg-orange-600 gap-1.5 text-xs">
-                    <UserPlus className="h-3.5 w-3.5" /> Add User
-                  </Button>
+          <Card className="bg-gray-900 border-gray-800 mb-6">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-orange-400" /> Pre-registered Users ({pendingUsers.length})
+                </CardTitle>
+                <Button size="sm" onClick={() => setShowAddPending(!showAddPending)}
+                  className="bg-orange-700 hover:bg-orange-600 gap-1.5 text-xs">
+                  <UserPlus className="h-3.5 w-3.5" /> Add User
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {showAddPending && (
+                <div className="bg-gray-800/60 rounded-xl p-4 mb-4 border border-gray-700 space-y-3">
+                  <p className="text-sm font-medium text-gray-300">Add user — invite now or later</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input placeholder="Full Name" value={pendingForm.full_name}
+                      onChange={e => setPendingForm({ ...pendingForm, full_name: e.target.value })}
+                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+                    <Input placeholder="Email address *" value={pendingForm.email}
+                      onChange={e => setPendingForm({ ...pendingForm, email: e.target.value })}
+                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+                  </div>
+                  <div className="flex gap-3 flex-wrap items-center">
+                    <select value={pendingForm.role} onChange={e => setPendingForm({ ...pendingForm, role: e.target.value })}
+                      className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm">
+                      <option value="user">Remote Operator</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <Input placeholder="Notes (optional)" value={pendingForm.notes}
+                      onChange={e => setPendingForm({ ...pendingForm, notes: e.target.value })}
+                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 flex-1" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAddPendingUser} disabled={savingPending || !pendingForm.email}
+                      className="bg-orange-700 hover:bg-orange-600 gap-1.5">
+                      <Save className="h-3.5 w-3.5" /> Save (invite later)
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setShowAddPending(false)}>
+                      <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                    </Button>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {showAddPending && (
-                  <div className="bg-gray-800/60 rounded-xl p-4 mb-4 border border-gray-700 space-y-3">
-                    <p className="text-sm font-medium text-gray-300">Add user — invite now or later</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input placeholder="Full Name" value={pendingForm.full_name}
-                        onChange={e => setPendingForm({ ...pendingForm, full_name: e.target.value })}
-                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-                      <Input placeholder="Email address *" value={pendingForm.email}
-                        onChange={e => setPendingForm({ ...pendingForm, email: e.target.value })}
-                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+              )}
+              {pendingUsers.length === 0 && !showAddPending && (
+                <p className="text-gray-500 text-sm text-center py-4">No pre-registered users. Use "Add User" to register someone for later.</p>
+              )}
+              <div className="space-y-2">
+                {pendingUsers.map(pu => (
+                  <div key={pu.id} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white">{pu.full_name || pu.email}</p>
+                      <p className="text-xs text-gray-400">{pu.email}</p>
+                      {pu.notes && <p className="text-xs text-gray-500 mt-0.5">{pu.notes}</p>}
                     </div>
-                    <div className="flex gap-3 flex-wrap items-center">
-                      <select value={pendingForm.role} onChange={e => setPendingForm({ ...pendingForm, role: e.target.value })}
-                        className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm">
-                        <option value="user">Remote Operator</option>
-                        {isLevel1Admin && <option value="admin">Admin</option>}
-                      </select>
-                      <Input placeholder="Notes (optional)" value={pendingForm.notes}
-                        onChange={e => setPendingForm({ ...pendingForm, notes: e.target.value })}
-                        className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 flex-1" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAddPendingUser} disabled={savingPending || !pendingForm.email}
-                        className="bg-orange-700 hover:bg-orange-600 gap-1.5">
-                        <Save className="h-3.5 w-3.5" /> Save (invite later)
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setShowAddPending(false)}>
-                        <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                      <Badge className={`text-xs ${pu.invited ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}>
+                        {pu.invited ? 'Invited' : 'Pending'}
+                      </Badge>
+                      {!pu.invited && (
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-700 gap-1"
+                          disabled={invitingId === pu.id}
+                          onClick={() => handleInvitePendingUser(pu)}>
+                          <Send className="h-3 w-3" />
+                          {invitingId === pu.id ? 'Sending...' : 'Invite Now'}
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400"
+                        onClick={() => handleDeletePendingUser(pu.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Active Team Members — all admins can view; only L1 can edit */}
+        {isAdmin && (
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="border-b border-gray-800 pb-4">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-400" /> Active Team Members ({users.length})
+                {!isLevel1Admin && (
+                  <span className="text-xs text-gray-500 font-normal ml-2 bg-gray-800 border border-gray-700 px-2 py-0.5 rounded-full">
+                    👁 View only — contact L1 Admin to make changes
+                  </span>
                 )}
-
-                {pendingUsers.length === 0 && !showAddPending && (
-                  <p className="text-gray-500 text-sm text-center py-4">No pre-registered users. Use "Add User" to register someone for later.</p>
-                )}
-
-                <div className="space-y-2">
-                  {pendingUsers.map(pu => (
-                    <div key={pu.id} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-4 py-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white">{pu.full_name || pu.email}</p>
-                        <p className="text-xs text-gray-400">{pu.email}</p>
-                        {pu.notes && <p className="text-xs text-gray-500 mt-0.5">{pu.notes}</p>}
-                      </div>
-                      <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                        <Badge className={`text-xs ${pu.invited ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}>
-                          {pu.invited ? 'Invited' : 'Pending'}
-                        </Badge>
-                        {!pu.invited && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-700 gap-1"
-                            disabled={invitingId === pu.id}
-                            onClick={() => handleInvitePendingUser(pu)}>
-                            <Send className="h-3 w-3" />
-                            {invitingId === pu.id ? 'Sending...' : 'Invite Now'}
-                          </Button>
-                        )}
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400"
-                          onClick={() => handleDeletePendingUser(pu.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Active Team Members */}
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-4">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-400" /> Active Team Members ({users.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-gray-800">
-                  {users.map(u => (
-                    <div key={u.id} className="px-5 py-4">
-                      {editingUserId === u.id ? (
-                        <div className="space-y-3">
-                          <Input
-                            value={editUserForm.full_name}
-                            onChange={e => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
-                            placeholder="Full name"
-                            className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
-                          />
-                          <div className="flex gap-2 flex-wrap items-center">
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-800">
+                {users.map(u => (
+                  <div key={u.id} className="px-5 py-4">
+                    {isLevel1Admin && editingUserId === u.id ? (
+                      <div className="space-y-3">
+                        <Input
+                          value={editUserForm.full_name}
+                          onChange={e => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
+                          placeholder="Full name"
+                          className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
+                        />
+                        <div className="flex gap-2 flex-wrap items-center">
+                          <select
+                            value={editUserForm.role}
+                            onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                            className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
+                          >
+                            <option value="user">Remote Operator</option>
+                            <option value="admin">Admin</option>
+                            <option value="accounts">Accounts</option>
+                          </select>
+                          {editUserForm.role === 'admin' && (
                             <select
-                              value={editUserForm.role}
-                              onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                              value={editUserForm.admin_level}
+                              onChange={e => setEditUserForm({ ...editUserForm, admin_level: Number(e.target.value) })}
                               className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
                             >
-                              <option value="user">Remote Operator</option>
-                              <option value="admin">Admin</option>
-                              <option value="accounts">Accounts</option>
+                              <option value={1}>L1 Full</option>
+                              <option value={2}>L2 Restricted</option>
                             </select>
-                            {editUserForm.role === 'admin' && (
-                              <select
-                                value={editUserForm.admin_level}
-                                onChange={e => setEditUserForm({ ...editUserForm, admin_level: Number(e.target.value) })}
-                                className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
-                              >
-                                <option value={1}>L1 Full</option>
-                                <option value={2}>L2 Restricted</option>
-                              </select>
-                            )}
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
-                              <Save className="h-3 w-3" /> Save
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 text-gray-400 hover:text-white" onClick={() => setEditingUserId(null)}>
-                              <X className="h-3 w-3" />
-                            </Button>
+                          )}
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
+                            <Save className="h-3 w-3" /> Save
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 text-gray-400 hover:text-white" onClick={() => setEditingUserId(null)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
+                            {u.full_name?.charAt(0) || u.email?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
+                            <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                            {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
                           </div>
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
-                              {u.full_name?.charAt(0) || u.email?.charAt(0)?.toUpperCase() || '?'}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
-                              <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                              {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                              {u.role === 'admin' ? `Admin L${u.admin_level ?? 1}` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
-                            </Badge>
-                            {isLevel1Admin && u.id !== user?.id && (
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>
-                                <Edit2 className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                            {u.role === 'admin' ? `Admin L${u.admin_level ?? 1}` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
+                          </Badge>
+                          {isLevel1Admin && u.id !== user?.id && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {isLevel1Admin && u.id !== user?.id && (
+                            deleteConfirm === u.id ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-red-400">Sure?</span>
+                                <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
+                                <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
+                              </div>
+                            ) : (
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            )}
-                            {isLevel1Admin && u.id !== user?.id && (
-                              deleteConfirm === u.id ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-red-400">Sure?</span>
-                                  <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-red-900/30" onClick={() => handleDelete(u.id)}>Yes</Button>
-                                  <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(null)}>No</Button>
-                                </div>
-                              ) : (
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => setDeleteConfirm(u.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )
-                            )}
-                          </div>
+                            )
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                  {users.length === 0 && <p className="text-gray-500 text-sm p-6 text-center">No users found.</p>}
-                </div>
-              </CardContent>
-            </Card>
-          </>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {users.length === 0 && <p className="text-gray-500 text-sm p-6 text-center">No users found.</p>}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
