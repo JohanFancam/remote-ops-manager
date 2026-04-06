@@ -55,10 +55,25 @@ export default function Calendar() {
     queryFn: () => base44.entities.RigSetting.list(),
   });
 
-  const { data: allUsers = [] } = useQuery({
+  const { data: rawUsers = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
   });
+
+  const { data: presenceRecords = [] } = useQuery({
+    queryKey: ['userPresence'],
+    queryFn: () => base44.entities.UserPresence.list(),
+  });
+
+  // Merge User records with UserPresence so name lookups work for all admins
+  const allUsers = useMemo(() => {
+    const map = new Map();
+    presenceRecords.forEach(p => {
+      if (p.user_email) map.set(p.user_email, { email: p.user_email, full_name: p.user_name, role: p.user_role });
+    });
+    rawUsers.forEach(u => { if (u.email) map.set(u.email, u); });
+    return Array.from(map.values());
+  }, [rawUsers, presenceRecords]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],

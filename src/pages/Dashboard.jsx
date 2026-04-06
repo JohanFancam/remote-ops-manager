@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -41,6 +41,13 @@ export default function Dashboard() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  // UserPresence is written by every user themselves — readable by all.
+  // Use it to fill in names when User.list() doesn't return all users.
+  const { data: presenceRecords = [] } = useQuery({
+    queryKey: ['userPresence'],
+    queryFn: () => base44.entities.UserPresence.list(),
+  });
+
   const { data: standbyDays = [] } = useQuery({
     queryKey: ['standbyDays'],
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
@@ -52,7 +59,18 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
-  const allUsers = users;
+  // Merge User records with UserPresence so name lookups work for all admins
+  const allUsers = useMemo(() => {
+    const map = new Map();
+    // Seed from presence (lower priority)
+    presenceRecords.forEach(p => {
+      if (p.user_email) map.set(p.user_email, { email: p.user_email, full_name: p.user_name, role: p.user_role });
+    });
+    // Override with real User records (higher priority)
+    users.forEach(u => { if (u.email) map.set(u.email, u); });
+    return Array.from(map.values());
+  }, [users, presenceRecords]);
+
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
