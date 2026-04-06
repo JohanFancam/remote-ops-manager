@@ -427,7 +427,7 @@ export default function Calendar() {
                                     const u = allUsers.find(u2 => u2.email === email);
                                     return (
                                       <span key={email} className="text-xs text-gray-400">
-                                        {u?.full_name?.split(' ')[0] || email.split('@')[0]}
+                                        {u?.full_name || email.split('@')[0]}
                                         {u?.role === 'admin' ? ' (admin)' : ''}
                                       </span>
                                     );

@@ -271,7 +271,7 @@ export default function Dashboard() {
             )}
 
             <div className="mt-8">
-              {!isAdmin && (
+              {(!isAdmin || isLevel1Admin) && (
                 <RemoteEarnings
                   shoots={shoots.filter(s => s.assigned_operators?.includes(user?.email))}
                   user={user}
