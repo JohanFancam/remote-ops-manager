@@ -750,8 +750,8 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* User Management — Admin only */}
-        {isAdmin && (
+        {/* User Management — L1 Admin only */}
+        {isLevel1Admin && (
           <>
             {/* Pending / Pre-registered Users */}
             <Card className="bg-gray-900 border-gray-800 mb-6">
