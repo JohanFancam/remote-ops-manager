@@ -123,6 +123,36 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     return () => clearInterval(iv);
   }, []);
 
+  // Auto-confirm phases: if a phase time has passed by 5+ minutes and it hasn't been marked done, auto-mark it
+  useEffect(() => {
+    if (!onUpdate || !canMarkPhases || !schedule || !shoot.date) return;
+    const GRACE_MS = 5 * 60 * 1000;
+    const toDate = (timeStr) => {
+      if (!timeStr) return null;
+      const [h, m] = timeStr.split(':').map(Number);
+      const d = new Date(shoot.date + 'T00:00:00');
+      d.setHours(h, m, 0, 0);
+      return d;
+    };
+    const phase = shoot.phase_status || {};
+    const candidates = [
+      { key: 'setup_complete', time: toDate(schedule.setup) },
+      { key: 'pre_shoot_started', time: toDate(schedule.pre_shoot) },
+      showAttention ? { key: 'attention_started', time: toDate(schedule.attention) } : null,
+      showSound ? { key: 'sound_started', time: toDate(schedule.sound) } : null,
+    ].filter(Boolean);
+
+    const updates = {};
+    candidates.forEach(c => {
+      if (!phase[c.key] && c.time && (now - c.time) >= GRACE_MS) {
+        updates[c.key] = c.time.toISOString(); // use the actual phase time, not now
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      onUpdate(shoot.id, { phase_status: { ...phase, ...updates } });
+    }
+  }, [now]);
+
   const gameDate = getGameDateTime(shoot);
   const diff = gameDate ? gameDate - now : null;
   const isPast = diff !== null && diff <= 0;

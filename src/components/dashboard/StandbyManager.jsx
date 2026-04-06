@@ -112,9 +112,10 @@ export default function StandbyManager({ user, allUsers = [] }) {
                               <div key={standby.id} className={`flex items-center justify-between gap-2 flex-wrap ${idx > 0 ? 'pt-1 border-t border-gray-700/40' : ''}`}>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <Phone className={`h-3 w-3 flex-shrink-0 ${isMe ? 'text-yellow-400' : 'text-gray-500'}`} />
-                                    <span className={`text-sm ${isMe ? 'text-yellow-200 font-medium' : 'text-gray-300'}`}>
-                                      {standby.admin_name || standby.admin_email}{isMe && ' (You)'}
+                                    <Phone className={`h-3 w-3 flex-shrink-0 ${isMe ? 'text-yellow-400' : 'text-blue-400'}`} />
+                                    <span className={`text-sm font-medium ${isMe ? 'text-yellow-200' : 'text-blue-300'}`}>
+                                      {standby.admin_name || standby.admin_email}
+                                      {isMe ? ' (You)' : ' (Admin)'}
                                     </span>
                                     {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
                                   </div>

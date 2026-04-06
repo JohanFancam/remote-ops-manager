@@ -44,7 +44,22 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
     return unsub;
   }, [todayStr]);
 
-  if (todayEntries.length === 0) return null;
+  // Filter out entries where end_time has passed (today only)
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const activeEntries = todayEntries.filter(entry => {
+    if (!entry.end_time) return true;
+    const [h, m] = entry.end_time.split(':').map(Number);
+    const endDate = new Date();
+    endDate.setHours(h, m, 0, 0);
+    return now < endDate;
+  });
+
+  if (activeEntries.length === 0) return null;
 
   return (
     <div className="mb-4 bg-yellow-950/40 border border-yellow-800/60 rounded-xl px-4 py-3">
@@ -52,17 +67,16 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
         <Phone className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="text-yellow-300 text-sm font-medium mb-1">
-            Today's Standby Contact{todayEntries.length > 1 ? 's' : ''}:
+            Today's Standby Contact{activeEntries.length > 1 ? 's' : ''}:
           </p>
           <div className="space-y-1">
-            {todayEntries.map((entry, i) => {
+            {activeEntries.map((entry, i) => {
               const u = allUsers.find(u => u.email === entry.admin_email);
               const name = u?.full_name || entry.admin_name || entry.admin_email;
               const isOnline = onlineEmails.has(entry.admin_email);
               return (
                 <div key={entry.id || i} className="flex items-center gap-2 flex-wrap">
                   <span className="text-yellow-200 text-sm font-medium">{name}</span>
-                  {/* Online indicator */}
                   <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
                     isOnline
                       ? 'bg-green-900/40 border-green-700/50 text-green-400'
@@ -78,7 +92,7 @@ export default function StandbyBanner({ standbyDays = [], allUsers = [], todaySt
                       {entry.end_time && `until ${entry.end_time}`}
                     </span>
                   )}
-                  {todayEntries.length > 1 && i < todayEntries.length - 1 && (
+                  {activeEntries.length > 1 && i < activeEntries.length - 1 && (
                     <span className="text-yellow-800 text-xs">then →</span>
                   )}
                 </div>

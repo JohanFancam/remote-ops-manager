@@ -6,7 +6,8 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign, Users, BookOpen
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, Bell, RefreshCw, DollarSign, Users, BookOpen,
+  BellOff, Volume2
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
@@ -21,9 +22,11 @@ function LayoutContent({ children, currentPageName }) {
   const [unread, setUnread] = useState(0);
   const [showOnline, setShowOnline] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('notif_muted') === 'true');
   const seenRef = useRef(new Set());
 
   const playNotifSound = () => {
+    if (soundMuted) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -37,6 +40,14 @@ function LayoutContent({ children, currentPageName }) {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.4);
     } catch (e) { /* silently fail if audio not available */ }
+  };
+
+  const toggleMute = () => {
+    setSoundMuted(prev => {
+      const next = !prev;
+      localStorage.setItem('notif_muted', String(next));
+      return next;
+    });
   };
 
   const { data: appSettings = [] } = useQuery({
@@ -76,6 +87,42 @@ function LayoutContent({ children, currentPageName }) {
               }, ...prev].slice(0, 50));
             }
           });
+        }
+        // Over-assignment alert: remote user assigned to more than 5 shoots
+        if (shoot.assigned_operators?.length > 0 && event.type === 'update') {
+          // We check this lazily by tracking per-operator counts across all shoots
+          // Just flag the specific operator if shoot was recently updated with new assignment
+          const overKey = `over5_check_${shoot.id}`;
+          if (!seenRef.current.has(overKey)) {
+            seenRef.current.add(overKey);
+            // Fire a deferred check — fetch current shoots to tally per operator
+            setTimeout(async () => {
+              const allShoots = await base44.entities.Shoot.list('-date', 500);
+              const upcoming = allShoots.filter(s => s.status !== 'cancelled' && s.status !== 'completed');
+              const counts = {};
+              upcoming.forEach(s => {
+                (s.assigned_operators || []).forEach(email => {
+                  counts[email] = (counts[email] || 0) + 1;
+                });
+              });
+              Object.entries(counts).forEach(([email, count]) => {
+                if (count > 5) {
+                  const alertKey = `over5_${email}_${count}`;
+                  if (!seenRef.current.has(alertKey)) {
+                    seenRef.current.add(alertKey);
+                    playNotifSound();
+                    setUnread(prev => prev + 1);
+                    setNotifications(prev => [{
+                      id: alertKey,
+                      message: `⚠️ ${email.split('@')[0]} is assigned to ${count} upcoming shoots — please review.`,
+                      time: new Date(),
+                      urgent: true,
+                    }, ...prev].slice(0, 50));
+                  }
+                }
+              });
+            }, 1500);
+          }
         }
         // Phase updates
         const phases = shoot.phase_status || {};
@@ -298,14 +345,24 @@ function LayoutContent({ children, currentPageName }) {
               <div className="absolute bottom-12 left-3 right-3 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto">
                 <div className="p-3 border-b border-gray-700 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-300">Notifications</span>
-                  <button onClick={() => { setNotifications([]); setShowNotifs(false); }} className="text-xs text-gray-500 hover:text-white">Clear all</button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggleMute}
+                      title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
+                      className={`text-xs flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${soundMuted ? 'border-red-700 text-red-400 bg-red-950/30' : 'border-gray-700 text-gray-400 hover:text-white'}`}
+                    >
+                      {soundMuted ? <BellOff className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                      {soundMuted ? 'Muted' : 'Sound on'}
+                    </button>
+                    <button onClick={() => { setNotifications([]); setShowNotifs(false); }} className="text-xs text-gray-500 hover:text-white">Clear</button>
+                  </div>
                 </div>
                 {notifications.length === 0 ? (
                   <p className="text-xs text-gray-500 p-4 text-center">No new notifications</p>
                 ) : (
                   notifications.map(n => (
-                    <div key={n.id} className="px-3 py-2.5 border-b border-gray-700/50 last:border-0">
-                      <p className="text-xs text-gray-200 leading-relaxed">{n.message}</p>
+                    <div key={n.id} className={`px-3 py-2.5 border-b border-gray-700/50 last:border-0 ${n.urgent ? 'bg-orange-950/30' : ''}`}>
+                      <p className={`text-xs leading-relaxed ${n.urgent ? 'text-orange-300' : 'text-gray-200'}`}>{n.message}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{n.time.toLocaleTimeString()}</p>
                     </div>
                   ))
