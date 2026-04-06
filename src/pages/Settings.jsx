@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
+import { getDisplayName } from '../components/utils/nameUtils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -889,10 +890,10 @@ export default function Settings() {
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
-                            {u.full_name?.charAt(0) || u.email?.charAt(0)?.toUpperCase() || '?'}
+                            {getDisplayName(u, u.email).charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{u.full_name || 'Unnamed'}</p>
+                            <p className="text-sm font-medium text-white truncate">{getDisplayName(u, u.email)}</p>
                             <p className="text-xs text-gray-400 truncate">{u.email}</p>
                             {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
                           </div>
