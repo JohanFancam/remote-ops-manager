@@ -4,26 +4,44 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { format } from 'date-fns';
+import { CalendarDays, Plus, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth } from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
 
-// Admin view — shows all operators' availability entries
+// Mini calendar cell helpers
+function getCalendarGrid(month) {
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 }); // Mon
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  return eachDayOfInterval({ start, end });
+}
+
+function entryCoversDate(entry, dateStr) {
+  return entry.start_date <= dateStr && dateStr <= entry.end_date;
+}
+
+// ─── Admin view ──────────────────────────────────────────────────────────────
 export function AdminAvailabilityView({ allUsers = [] }) {
   const [expanded, setExpanded] = useState(false);
-  const [monthFilter, setMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
+  const [calMonth, setCalMonth] = useState(new Date());
 
   const { data: entries = [] } = useQuery({
     queryKey: ['operatorAvailability'],
     queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
   });
 
-  const filtered = entries.filter(e => {
-    return e.start_date?.startsWith(monthFilter) || e.end_date?.startsWith(monthFilter) ||
-      (e.start_date < monthFilter && e.end_date > monthFilter);
-  });
+  const monthStr = format(calMonth, 'yyyy-MM');
+  const monthEntries = entries.filter(e =>
+    e.start_date?.startsWith(monthStr) || e.end_date?.startsWith(monthStr) ||
+    (e.start_date < monthStr + '-01' && e.end_date > monthStr + '-31')
+  );
+  const unavailableCount = entries.filter(e =>
+    e.type === 'unavailable' &&
+    (e.start_date?.startsWith(monthStr) || e.end_date?.startsWith(monthStr) ||
+      (e.start_date < monthStr && e.end_date > monthStr))
+  ).length;
 
-  const operators = allUsers.filter(u => u.role === 'user');
+  const calDays = getCalendarGrid(calMonth);
+  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
     <Card className="bg-gray-900 border-gray-800 mb-6">
@@ -33,56 +51,99 @@ export function AdminAvailabilityView({ allUsers = [] }) {
           Operator Availability
           {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
           <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full ml-1">
-            {filtered.filter(e => e.type === 'unavailable').length} unavailable this month
+            {unavailableCount} unavailable this month
           </span>
         </button>
       </CardHeader>
 
       {expanded && (
         <CardContent className="pt-4">
-          <div className="mb-3 flex items-center gap-2">
-            <label className="text-xs text-gray-400">Month:</label>
-            <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white h-7 text-xs w-36" />
+          {/* Month nav */}
+          <div className="flex items-center gap-2 mb-3">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(subMonths(calMonth, 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(addMonths(calMonth, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          {filtered.length === 0 ? (
-            <p className="text-gray-600 text-sm">No availability entries for this month.</p>
-          ) : (
-            <div className="space-y-2">
-              {filtered.map(entry => {
-                const u = allUsers.find(u => u.email === entry.operator_email);
-                const name = getDisplayName(u, entry.operator_email, entry.operator_name);
-                return (
-                  <div key={entry.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${
-                    entry.type === 'unavailable'
-                      ? 'bg-red-950/30 border-red-800/40'
-                      : 'bg-green-950/30 border-green-800/40'
-                  }`}>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      entry.type === 'unavailable' ? 'bg-red-700/30 text-red-300' : 'bg-green-700/30 text-green-300'
-                    }`}>
-                      {entry.type === 'unavailable' ? 'OUT' : 'IN'}
-                    </span>
-                    <span className="text-sm text-white font-medium">{name}</span>
-                    <span className="text-xs text-gray-400">{entry.start_date} → {entry.end_date}</span>
-                    {entry.notes && <span className="text-xs text-gray-500 italic">{entry.notes}</span>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+            {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {calDays.map(day => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const inMonth = isSameMonth(day, calMonth);
+              const dayEntries = entries.filter(e => entryCoversDate(e, dateStr));
+              const unavail = dayEntries.filter(e => e.type === 'unavailable');
+              const avail = dayEntries.filter(e => e.type === 'available');
+              const today = format(new Date(), 'yyyy-MM-dd');
+
+              return (
+                <div key={dateStr}
+                  className={`relative rounded-md p-1 min-h-[48px] ${!inMonth ? 'opacity-30' : ''} ${dateStr === today ? 'ring-1 ring-blue-500' : ''}`}
+                  style={{ background: unavail.length > 0 ? 'rgba(127,29,29,0.25)' : avail.length > 0 ? 'rgba(20,83,45,0.25)' : 'rgba(31,41,55,0.4)' }}
+                >
+                  <span className={`text-xs font-medium ${dateStr === today ? 'text-blue-400' : 'text-gray-400'}`}>
+                    {format(day, 'd')}
+                  </span>
+                  {unavail.length > 0 && (
+                    <div className="mt-0.5 space-y-0.5">
+                      {unavail.map(e => {
+                        const u = allUsers.find(u => u.email === e.operator_email);
+                        const name = getDisplayName(u, e.operator_email, e.operator_name);
+                        return (
+                          <div key={e.id} className="text-xs bg-red-700/50 text-red-200 rounded px-1 truncate" title={name}>
+                            {name.split(' ')[0]}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {avail.length > 0 && (
+                    <div className="mt-0.5 space-y-0.5">
+                      {avail.map(e => {
+                        const u = allUsers.find(u => u.email === e.operator_email);
+                        const name = getDisplayName(u, e.operator_email, e.operator_name);
+                        return (
+                          <div key={e.id} className="text-xs bg-green-700/50 text-green-200 rounded px-1 truncate" title={name}>
+                            {name.split(' ')[0]}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 mt-3">
+            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
+            </span>
+          </div>
         </CardContent>
       )}
     </Card>
   );
 }
 
-// Remote operator view — add/remove their own availability
+// ─── Operator view ───────────────────────────────────────────────────────────
 export function OperatorAvailabilityPanel({ user }) {
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState('calendar'); // 'calendar' | 'list'
   const [expanded, setExpanded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ start_date: '', end_date: '', type: 'unavailable', notes: '' });
+  const [calMonth, setCalMonth] = useState(new Date());
 
   const { data: allEntries = [] } = useQuery({
     queryKey: ['operatorAvailability'],
@@ -91,7 +152,7 @@ export function OperatorAvailabilityPanel({ user }) {
 
   const myEntries = allEntries.filter(e => e.operator_email === user?.email);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const upcoming = myEntries.filter(e => e.end_date >= todayStr).sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const upcoming = [...myEntries].filter(e => e.end_date >= todayStr).sort((a, b) => a.start_date.localeCompare(b.start_date));
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['operatorAvailability'] });
 
@@ -115,6 +176,9 @@ export function OperatorAvailabilityPanel({ user }) {
     refresh();
   };
 
+  const calDays = getCalendarGrid(calMonth);
+  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   return (
     <Card className="bg-gray-900 border-gray-800 mb-6">
       <CardHeader className="border-b border-gray-800 pb-3">
@@ -132,8 +196,28 @@ export function OperatorAvailabilityPanel({ user }) {
         <CardContent className="pt-4">
           <p className="text-xs text-gray-500 mb-3">Let admins know when you're in or out. Only admins can see this.</p>
 
+          {/* Tab switcher */}
+          <div className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1 w-fit">
+            <button onClick={() => setTab('calendar')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'calendar' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              Calendar
+            </button>
+            <button onClick={() => setTab('list')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === 'list' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              List
+            </button>
+          </div>
+
+          {/* Add button (always visible) */}
+          {!showForm && (
+            <Button size="sm" variant="outline" className="border-purple-700/50 text-purple-400 hover:bg-purple-900/30 h-7 text-xs gap-1 mb-4"
+              onClick={() => setShowForm(true)}>
+              <Plus className="h-3 w-3" /> Add Availability
+            </Button>
+          )}
+
           {/* Add form */}
-          {showForm ? (
+          {showForm && (
             <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3 mb-4">
               <div className="flex gap-2">
                 <button onClick={() => setForm({ ...form, type: 'unavailable' })}
@@ -164,38 +248,87 @@ export function OperatorAvailabilityPanel({ user }) {
                 <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </div>
-          ) : (
-            <Button size="sm" variant="outline" className="border-purple-700/50 text-purple-400 hover:bg-purple-900/30 h-7 text-xs gap-1 mb-4"
-              onClick={() => setShowForm(true)}>
-              <Plus className="h-3 w-3" /> Add Availability
-            </Button>
           )}
 
-          {/* List */}
-          {upcoming.length === 0 ? (
-            <p className="text-gray-600 text-sm">No upcoming entries.</p>
-          ) : (
-            <div className="space-y-2">
-              {upcoming.map(entry => (
-                <div key={entry.id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border ${
-                  entry.type === 'unavailable' ? 'bg-red-950/30 border-red-800/40' : 'bg-green-950/30 border-green-800/40'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      entry.type === 'unavailable' ? 'bg-red-700/30 text-red-300' : 'bg-green-700/30 text-green-300'
-                    }`}>
-                      {entry.type === 'unavailable' ? 'OUT' : 'IN'}
-                    </span>
-                    <span className="text-xs text-gray-300">{entry.start_date} → {entry.end_date}</span>
-                    {entry.notes && <span className="text-xs text-gray-500 italic">{entry.notes}</span>}
+          {/* Calendar tab */}
+          {tab === 'calendar' && (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(subMonths(calMonth, 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(addMonths(calMonth, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+                {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {calDays.map(day => {
+                  const dateStr = format(day, 'yyyy-MM-dd');
+                  const inMonth = isSameMonth(day, calMonth);
+                  const myDay = myEntries.find(e => entryCoversDate(e, dateStr));
+                  const isToday = dateStr === todayStr;
+
+                  let bg = 'rgba(31,41,55,0.4)';
+                  let textCls = 'text-gray-600';
+                  let label = null;
+                  if (myDay) {
+                    if (myDay.type === 'unavailable') { bg = 'rgba(127,29,29,0.4)'; textCls = 'text-red-300'; label = <div className="text-xs text-red-400 mt-0.5">OUT</div>; }
+                    else { bg = 'rgba(20,83,45,0.4)'; textCls = 'text-green-300'; label = <div className="text-xs text-green-400 mt-0.5">IN</div>; }
+                  }
+
+                  return (
+                    <div key={dateStr}
+                      className={`rounded-md p-1 min-h-[44px] text-center ${!inMonth ? 'opacity-25' : ''} ${isToday ? 'ring-1 ring-blue-500' : ''}`}
+                      style={{ background: bg }}
+                    >
+                      <span className={`text-xs font-medium ${isToday ? 'text-blue-400' : textCls}`}>{format(day, 'd')}</span>
+                      {inMonth && label}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-4 mt-3">
+                <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* List tab */}
+          {tab === 'list' && (
+            upcoming.length === 0 ? (
+              <p className="text-gray-600 text-sm">No upcoming entries.</p>
+            ) : (
+              <div className="space-y-2">
+                {upcoming.map(entry => (
+                  <div key={entry.id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border ${
+                    entry.type === 'unavailable' ? 'bg-red-950/30 border-red-800/40' : 'bg-green-950/30 border-green-800/40'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        entry.type === 'unavailable' ? 'bg-red-700/30 text-red-300' : 'bg-green-700/30 text-green-300'
+                      }`}>
+                        {entry.type === 'unavailable' ? 'OUT' : 'IN'}
+                      </span>
+                      <span className="text-xs text-gray-300">{entry.start_date} → {entry.end_date}</span>
+                      {entry.notes && <span className="text-xs text-gray-500 italic">{entry.notes}</span>}
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
+                      onClick={() => handleRemove(entry.id)}>
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
-                    onClick={() => handleRemove(entry.id)}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
         </CardContent>
       )}

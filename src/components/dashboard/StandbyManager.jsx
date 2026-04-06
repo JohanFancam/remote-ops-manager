@@ -182,7 +182,13 @@ export default function StandbyManager({ user, allUsers = [] }) {
               const hasMe = entries.some(s => s.admin_email === user.email);
               const dayLabel = format(day, 'EEE, MMM d');
 
+              // Hide past days with no entries, BUT show past days that are part of an active multi-day range
               if (entries.length === 0 && isPast) return null;
+              // Also hide past days that have entries but the entire range ends before today
+              if (isPast && entries.length > 0 && entries.every(s => {
+                const ed = s.end_date || s.start_date || s.date;
+                return ed < todayStr;
+              })) return null;
 
               return (
                 <div key={dateStr} className={`rounded-lg px-3 py-2 border ${

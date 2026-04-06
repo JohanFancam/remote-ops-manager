@@ -135,11 +135,11 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white">
             {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
           </h1>
-          <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d yyyy')}</p>
+          <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d, yyyy')}</p>
         </div>
 
         {/* Standby banner — visible to ALL users */}
-        <StandbyBanner todayStr={todayStr} />
+        <StandbyBanner todayStr={todayStr} currentUser={user} />
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
