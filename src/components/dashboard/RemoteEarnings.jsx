@@ -22,8 +22,27 @@ export default function RemoteEarnings({ shoots, user }) {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
   });
 
-  const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
-  const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  // 1. More flexible month filtering (handles different date separators)
+const monthShoots = shoots.filter(s => {
+  if (!s.date) return false;
+  // This replaces / with - to ensure 2024/10 matches 2024-10
+  const normalizedDate = s.date.replaceAll('/', '-');
+  return normalizedDate.startsWith(monthStr);
+});
+
+// 2. Case-insensitive email matching
+const opRecords = paymentRecords.filter(r => 
+  r.operator_email?.toLowerCase() === user?.email?.toLowerCase() && 
+  r.period_month === monthStr
+);
+
+// 3. Ensure the utility function gets a lowercase email
+const { total, breakdown } = calculateOperatorEarnings(
+  monthShoots, 
+  user?.email?.toLowerCase(), 
+  baseRate, 
+  additionalRate
+);
 
   // Filter shoots for selected month
   const monthShoots = shoots.filter(s => s.date?.startsWith(monthStr));
