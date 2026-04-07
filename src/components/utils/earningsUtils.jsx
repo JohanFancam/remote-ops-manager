@@ -45,24 +45,22 @@ export function getAdditionalShootIds(dayShots) {
 }
 
 export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
-  const email = operatorEmail?.toLowerCase().trim(); // Clean the input email
+  // 1. Clean the input email to prevent case-sensitive misses
+  const targetEmail = operatorEmail?.toLowerCase().trim();
 
+  // 2. Filter shoots belonging to this operator
   const assigned = shoots.filter(s => {
-    // 1. Ensure assigned_operators exists
     if (!s.assigned_operators) return false;
-
-    // 2. Convert the record data to lowercase and check for the email
-    // This works whether assigned_operators is an Array OR a String
-    const operators = String(s.assigned_operators).toLowerCase();
     
-    return operators.includes(email) && s.status !== 'cancelled';
+    // Check if the email exists in the operators list (handles String or Array)
+    const opsList = String(s.assigned_operators).toLowerCase();
+    return opsList.includes(targetEmail) && s.status !== 'cancelled';
   });
 
-  // ... rest of your function (calculation logic)
-}
-
+  // 3. Group by date to handle "Additional Shoot" logic
   const byDate = {};
   assigned.forEach(s => {
+    if (!s.date) return;
     if (!byDate[s.date]) byDate[s.date] = [];
     byDate[s.date].push(s);
   });
@@ -70,11 +68,14 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   let total = 0;
   const breakdown = [];
 
+  // 4. Calculate the rates
   Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, dayShots]) => {
     const additionalIds = getAdditionalShootIds(dayShots);
+    
     const sorted = [...dayShots].sort((a, b) =>
       (timeToMinutes(a.game_time || a.start_time) || 0) - (timeToMinutes(b.game_time || b.start_time) || 0)
     );
+
     sorted.forEach(shoot => {
       const isAdditional = additionalIds.has(shoot.id);
       const amount = isAdditional ? additionalRate : baseRate;
@@ -84,7 +85,8 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   });
 
   return { total, breakdown };
-}
+} // <--- FUNCTION NOW CLOSES CORRECTLY HERE
+
 
 export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
   const adminEmails = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
