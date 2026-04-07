@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Download, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
 export default function RemoteEarnings({ shoots, user }) {
@@ -22,25 +22,9 @@ export default function RemoteEarnings({ shoots, user }) {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
   });
 
- export default function RemoteEarnings({ shoots, user }) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const monthStr = format(currentMonth, 'yyyy-MM');
-
-  const { data: appSettings = [] } = useQuery({
-    queryKey: ['appSettings'],
-    queryFn: () => base44.entities.AppSettings.list(),
-  });
-
-  const { data: paymentRecords = [] } = useQuery({
-    queryKey: ['paymentRecords'],
-    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
-  });
-
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  // --- START CLEANED LOGIC ---
-  
   // 1. Flexible month filtering (handles / or - in dates)
   const monthShoots = shoots.filter(s => {
     if (!s.date) return false;
@@ -52,7 +36,7 @@ export default function RemoteEarnings({ shoots, user }) {
   const opRecords = paymentRecords.filter(r => 
     r.operator_email?.toLowerCase() === user?.email?.toLowerCase() && 
     r.period_month === monthStr
- );
+  );
 
   // 3. Calculation using lowercase email to ensure a match
   const { total, breakdown } = calculateOperatorEarnings(
@@ -62,9 +46,7 @@ export default function RemoteEarnings({ shoots, user }) {
     additionalRate
   );
 
-  // --- END CLEANED LOGIC (Remove the old duplicate lines that were below here) ---
-
-  // Apply admin override fees...
+  // 4. Apply admin override fees or manual flags
   const adjustedBreakdown = breakdown.map(item => {
     const rec = opRecords.find(r => r.shoot_id === item.shoot?.id);
     let amount = item.amount;
@@ -76,8 +58,6 @@ export default function RemoteEarnings({ shoots, user }) {
     }
     return { ...item, amount, isAdditional };
   });
-
-  // ... rest of the component
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
   const mainCount = adjustedBreakdown.filter(b => !b.isAdditional).length;
@@ -111,7 +91,6 @@ export default function RemoteEarnings({ shoots, user }) {
             <Download className="h-4 w-4 mr-1" /> PDF
           </Button>
         </div>
-        {/* Month navigation */}
         <div className="flex items-center justify-between mt-3">
           <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-4 w-4" />
