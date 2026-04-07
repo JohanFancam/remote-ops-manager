@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera, CalendarDays, Wrench, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
-import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 
