@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
+import ShootCompleteModal from '../shoots/ShootCompleteModal';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -118,6 +119,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -209,6 +211,22 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const isStandby = !shoot.assigned_operators?.includes('__self__'); // will be determined by parent
 
   return (
+    <>
+    {showCompleteModal && (
+      <ShootCompleteModal
+        shoot={shoot}
+        user={{ email: userEmail }}
+        onClose={(completed) => {
+          setShowCompleteModal(false);
+          if (completed && onUpdate) {
+            onUpdate(shoot.id, {
+              status: 'completed',
+              phase_status: { ...shoot.phase_status, shoot_complete: new Date().toISOString() }
+            });
+          }
+        }}
+      />
+    )}
     <Card className="bg-gray-900 border-gray-800 hover:border-gray-600 transition-colors">
       <CardContent className="p-5">
         {/* Header */}
@@ -398,11 +416,18 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {/* Shoot Complete button */}
             {canMarkPhases && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
               <button
-                onClick={() => onUpdate && onUpdate(shoot.id, { status: 'completed', phase_status: { ...shoot.phase_status, shoot_complete: new Date().toISOString() } })}
+                onClick={() => setShowCompleteModal(true)}
                 className="w-full mt-1 py-2 rounded-lg border border-green-700 bg-green-950/30 text-green-400 text-xs font-semibold hover:bg-green-950/60 transition-colors"
               >
                 ✓ Mark Shoot Complete
               </button>
+            )}
+
+            {/* Already complete — show report status */}
+            {shoot.status === 'completed' && (
+              <div className="w-full mt-1 py-2 rounded-lg border border-green-800 bg-green-950/20 text-green-500 text-xs font-semibold text-center">
+                ✓ Shoot Complete
+              </div>
             )}
 
             {/* External link to calendar */}
@@ -416,5 +441,6 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
         )}
       </CardContent>
     </Card>
+    </>
   );
 }

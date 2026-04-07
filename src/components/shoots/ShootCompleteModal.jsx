@@ -30,8 +30,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
       slack_message: slack,
     });
 
-    // Mark shoot as completed
-    await base44.entities.Shoot.update(shoot.id, { status: 'completed' });
+    // Note: shoot status is updated by the parent via onClose(true)
 
     setSlackText(slack);
     setSaved(true);
@@ -60,7 +59,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
             <Button onClick={handleCopy} className="flex-1 bg-blue-700 hover:bg-blue-600">
               {copied ? <><Check className="h-4 w-4 mr-2 text-green-300" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy to Slack</>}
             </Button>
-            <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">Done</Button>
+            <Button variant="outline" onClick={() => onClose(true)} className="border-gray-700 text-gray-300 hover:bg-gray-800">Done</Button>
           </div>
         </div>
       </div>
