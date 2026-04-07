@@ -22,35 +22,49 @@ export default function RemoteEarnings({ shoots, user }) {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
   });
 
-  // 1. More flexible month filtering (handles different date separators)
-const monthShoots = shoots.filter(s => {
-  if (!s.date) return false;
-  // This replaces / with - to ensure 2024/10 matches 2024-10
-  const normalizedDate = s.date.replaceAll('/', '-');
-  return normalizedDate.startsWith(monthStr);
-});
+ export default function RemoteEarnings({ shoots, user }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const monthStr = format(currentMonth, 'yyyy-MM');
 
-// 2. Case-insensitive email matching
-const opRecords = paymentRecords.filter(r => 
-  r.operator_email?.toLowerCase() === user?.email?.toLowerCase() && 
-  r.period_month === monthStr
-);
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
 
-// 3. Ensure the utility function gets a lowercase email
-const { total, breakdown } = calculateOperatorEarnings(
-  monthShoots, 
-  user?.email?.toLowerCase(), 
-  baseRate, 
-  additionalRate
-);
+  const { data: paymentRecords = [] } = useQuery({
+    queryKey: ['paymentRecords'],
+    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
+  });
 
-  // Filter shoots for selected month
-  const monthShoots = shoots.filter(s => s.date?.startsWith(monthStr));
-  const opRecords = paymentRecords.filter(r => r.operator_email === user?.email && r.period_month === monthStr);
+  const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
+  const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  const { total, breakdown } = calculateOperatorEarnings(monthShoots, user?.email, baseRate, additionalRate);
+  // --- START CLEANED LOGIC ---
+  
+  // 1. Flexible month filtering (handles / or - in dates)
+  const monthShoots = shoots.filter(s => {
+    if (!s.date) return false;
+    const normalizedDate = s.date.replaceAll('/', '-');
+    return normalizedDate.startsWith(monthStr);
+  });
 
-  // Apply any admin override fees or manual additional flags from PaymentRecord
+  // 2. Case-insensitive email matching for payment records
+  const opRecords = paymentRecords.filter(r => 
+    r.operator_email?.toLowerCase() === user?.email?.toLowerCase() && 
+    r.period_month === monthStr
+ );
+
+  // 3. Calculation using lowercase email to ensure a match
+  const { total, breakdown } = calculateOperatorEarnings(
+    monthShoots, 
+    user?.email?.toLowerCase(), 
+    baseRate, 
+    additionalRate
+  );
+
+  // --- END CLEANED LOGIC (Remove the old duplicate lines that were below here) ---
+
+  // Apply admin override fees...
   const adjustedBreakdown = breakdown.map(item => {
     const rec = opRecords.find(r => r.shoot_id === item.shoot?.id);
     let amount = item.amount;
@@ -62,6 +76,8 @@ const { total, breakdown } = calculateOperatorEarnings(
     }
     return { ...item, amount, isAdditional };
   });
+
+  // ... rest of the component
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
   const mainCount = adjustedBreakdown.filter(b => !b.isAdditional).length;
