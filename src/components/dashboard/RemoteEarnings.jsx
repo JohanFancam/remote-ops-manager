@@ -79,6 +79,15 @@ export default function RemoteEarnings({ shoots, user }) {
     });
   };
 
+  // --- PASTE THE DEBUG BLOCK HERE ---
+  console.log("--- EARNINGS DEBUG ---");
+  console.log("1. Logged in User Email:", user?.email);
+  console.log("2. Looking for Month:", monthStr);
+  console.log("3. Total Shoots from Database:", shoots?.length);
+  console.log("4. Shoots that matched the Date Filter:", monthShoots?.length);
+  console.log("5. Final Breakdown (After Email Match):", adjustedBreakdown?.length);
+  console.log("----------------------");
+
   return (
     <Card className="bg-gray-900 border-gray-800">
       <CardHeader className="border-b border-gray-800 pb-4">
