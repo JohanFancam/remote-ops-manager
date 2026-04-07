@@ -45,10 +45,21 @@ export function getAdditionalShootIds(dayShots) {
 }
 
 export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
-  const assigned = shoots.filter(s =>
-    s.assigned_operators?.includes(operatorEmail) &&
-    s.status !== 'cancelled'
-  );
+  const email = operatorEmail?.toLowerCase().trim(); // Clean the input email
+
+  const assigned = shoots.filter(s => {
+    // 1. Ensure assigned_operators exists
+    if (!s.assigned_operators) return false;
+
+    // 2. Convert the record data to lowercase and check for the email
+    // This works whether assigned_operators is an Array OR a String
+    const operators = String(s.assigned_operators).toLowerCase();
+    
+    return operators.includes(email) && s.status !== 'cancelled';
+  });
+
+  // ... rest of your function (calculation logic)
+}
 
   const byDate = {};
   assigned.forEach(s => {
