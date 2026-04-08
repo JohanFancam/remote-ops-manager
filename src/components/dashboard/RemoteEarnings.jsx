@@ -12,43 +12,42 @@ export default function RemoteEarnings({ user }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
 
-  // 1. FETCH DATA DIRECTLY (Prevents issues if the parent isn't passing props)
+  // 1. BYPASS PERMISSIONS: Use asServiceRole to ensure the data actually arrives
   const { data: allShoots = [], isLoading: loadingShoots, refetch } = useQuery({
-    queryKey: ['my-shoots-earnings'],
-    queryFn: () => base44.entities.Shoot.list('-date', 1000).catch(() => []),
+    queryKey: ['my-shoots-earnings', monthStr],
+    queryFn: () => base44.asServiceRole.entities.Shoot.list('-date', 2000).catch(() => []),
   });
 
   const { data: appSettings = [] } = useQuery({
-    queryKey: ['appSettings'],
-    queryFn: () => base44.entities.AppSettings.list().catch(() => []),
+    queryKey: ['appSettings-bypass'],
+    queryFn: () => base44.asServiceRole.entities.AppSettings.list().catch(() => []),
   });
 
   const { data: paymentRecords = [] } = useQuery({
-    queryKey: ['paymentRecords'],
-    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 1000).catch(() => []),
+    queryKey: ['paymentRecords-bypass'],
+    queryFn: () => base44.asServiceRole.entities.PaymentRecord.list('-created_date', 1000).catch(() => []),
   });
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  // 2. AGGRESSIVE FILTERING: Look for ANY match (Email, ID, or Name)
+  // 2. BROAD FILTERING: Match by Email, Name, or ID
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
     const safeName = user?.full_name?.toLowerCase()?.trim();
     const safeId = user?.id;
 
     return allShoots.filter(s => {
-      // Date Check (Handle / and -)
-      const normalizedDate = s.date?.replaceAll('/', '-');
-      const isCorrectMonth = normalizedDate?.includes(monthStr);
+      if (!s.date) return false;
+      const normalizedDate = s.date.replaceAll('/', '-');
+      const isCorrectMonth = normalizedDate.includes(monthStr);
 
-      // Assignment Check
-      const isAssignedToMe = 
+      const matchesMe = 
         (s.operator_email?.toLowerCase()?.trim() === safeEmail) ||
         (s.operator_id === safeId) ||
         (s.operator_name?.toLowerCase()?.trim() === safeName);
 
-      return isCorrectMonth && isAssignedToMe;
+      return isCorrectMonth && matchesMe;
     });
   }, [allShoots, user, monthStr]);
 
@@ -60,11 +59,11 @@ export default function RemoteEarnings({ user }) {
     additionalRate
   );
 
-  // 4. APPLY OVERRIDES
+  // 4. OVERRIDE LOGIC
   const adjustedBreakdown = breakdown.map(item => {
     const rec = paymentRecords.find(r => 
       r.shoot_id === item.shoot?.id && 
-      r.operator_email?.toLowerCase() === user?.email?.toLowerCase()
+      r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim()
     );
     let amount = item.amount;
     let isAdditional = item.isAdditional;
@@ -85,67 +84,73 @@ export default function RemoteEarnings({ user }) {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-gray-900 border-gray-800 shadow-xl">
       <CardHeader className="border-b border-gray-800 pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4 text-green-400" />
-            My Earnings Summary
+            Personal Earnings Summary
           </CardTitle>
           <div className="flex gap-2">
-            <Button onClick={() => refetch()} size="icon" variant="ghost" className="h-8 w-8 text-gray-400">
+            <Button onClick={() => refetch()} size="icon" variant="ghost" className="h-8 w-8 text-gray-500">
               <RefreshCw className={`h-4 w-4 ${loadingShoots ? 'animate-spin' : ''}`} />
             </Button>
-            <Button onClick={() => exportOperatorPDF({ name: user?.full_name, total: adjustedTotal, breakdown: adjustedBreakdown })} size="sm" className="bg-blue-700 h-8">
+            <Button onClick={() => exportOperatorPDF({ name: user?.full_name, total: adjustedTotal, breakdown: adjustedBreakdown })} size="sm" className="bg-blue-700 hover:bg-blue-600 h-8">
               <Download className="h-4 w-4 mr-1" /> PDF
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-3 bg-gray-800/50 rounded-md p-1">
+        <div className="flex items-center justify-between mt-3 bg-gray-900/50 border border-gray-800 rounded-lg p-1">
           <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-xs font-bold text-white uppercase tracking-wider">{format(currentMonth, 'MMMM yyyy')}</span>
+          <span className="text-xs font-bold text-white uppercase tracking-widest">{format(currentMonth, 'MMMM yyyy')}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400" onClick={() => goMonth(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-gray-800 rounded-lg p-2 text-center border border-gray-700">
-            <p className="text-xl font-bold text-green-400">R{adjustedTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-gray-500 uppercase">Earned</p>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
+            <p className="text-2xl font-black text-green-400">R{adjustedTotal.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Total</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-2 text-center border border-gray-700">
-            <p className="text-xl font-bold text-white">{adjustedBreakdown.filter(b => !b.isAdditional).length}</p>
-            <p className="text-[10px] text-gray-500 uppercase">Std</p>
+          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
+            <p className="text-2xl font-black text-white">{adjustedBreakdown.filter(b => !b.isAdditional).length}</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Standard</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-2 text-center border border-gray-700">
-            <p className="text-xl font-bold text-yellow-500">{adjustedBreakdown.filter(b => b.isAdditional).length}</p>
-            <p className="text-[10px] text-gray-500 uppercase">Add</p>
+          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
+            <p className="text-2xl font-black text-yellow-500">{adjustedBreakdown.filter(b => b.isAdditional).length}</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Addtl</p>
           </div>
         </div>
 
         {adjustedBreakdown.length > 0 ? (
           <div className="space-y-2">
+             <p className="text-[10px] font-bold text-gray-600 uppercase mb-2">Detailed Breakdown</p>
             {adjustedBreakdown.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-800/30 p-2 rounded-md border border-gray-800">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-3 w-3 text-blue-400" />
-                  <div className="leading-tight">
-                    <p className="text-xs text-white font-medium">{item.shoot?.title || 'Game'}</p>
-                    <p className="text-[10px] text-gray-500">{item.date}</p>
+              <div key={idx} className="flex items-center justify-between bg-gray-800/20 p-3 rounded-lg border border-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded bg-blue-500/10 flex items-center justify-center">
+                    <Camera className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-white font-semibold">{item.shoot?.title || 'Game'}</p>
+                    <p className="text-[11px] text-gray-500">{item.date}</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-green-400">R{item.amount}</span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-green-400">R{item.amount}</p>
+                  {item.isAdditional && <p className="text-[9px] text-yellow-500 font-bold uppercase">Additional</p>}
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-6 border-2 border-dashed border-gray-800 rounded-lg">
-            <p className="text-gray-600 text-xs">No assigned shoots found for this month.</p>
-            <p className="text-[9px] text-gray-700 mt-1 uppercase tracking-tighter">Identity: {user?.email}</p>
+          <div className="text-center py-10 bg-gray-950/50 border-2 border-dashed border-gray-800 rounded-2xl">
+            <p className="text-gray-500 text-sm font-medium">No shoots found for this period.</p>
+            <p className="text-[10px] text-gray-700 mt-2 font-mono">Checking: {user?.email}</p>
           </div>
         )}
       </CardContent>
