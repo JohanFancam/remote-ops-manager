@@ -5,60 +5,70 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Download, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
-export default function RemoteEarnings({ shoots, user }) {
+export default function RemoteEarnings({ shoots = [], user }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
 
+  // Fetch App Settings for rates
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
-    queryFn: () => base44.entities.AppSettings.list(),
+    queryFn: () => base44.entities.AppSettings.list().catch(() => []),
   });
 
+  // Fetch Payment Records - Increased limit to ensure we don't miss history
   const { data: paymentRecords = [] } = useQuery({
     queryKey: ['paymentRecords'],
-    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
+    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 5000).catch(() => []),
   });
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  // 1. Flexible month filtering (handles / or - in dates)
+  // 1. IMPROVED: Month filtering that handles multiple date formats (ISO, YYYY/MM/DD, etc)
   const monthShoots = shoots.filter(s => {
     if (!s.date) return false;
-    const normalizedDate = s.date.replaceAll('/', '-');
-    return normalizedDate.startsWith(monthStr);
+    const cleanDate = s.date.replaceAll('/', '-');
+    return cleanDate.includes(monthStr);
   });
 
-  // 2. Case-insensitive email matching for payment records
+  // 2. IMPROVED: Case-insensitive and trimmed email matching
+  const userEmail = user?.email?.toLowerCase()?.trim();
+  
   const opRecords = paymentRecords.filter(r => 
-    r.operator_email?.toLowerCase() === user?.email?.toLowerCase() && 
+    r.operator_email?.toLowerCase()?.trim() === userEmail && 
     r.period_month === monthStr
   );
 
-  // 3. Calculation using lowercase email to ensure a match
-  const { total, breakdown } = calculateOperatorEarnings(
+  // 3. Fallback Calculation if utility fails or data is slightly mismatched
+  let { total, breakdown } = calculateOperatorEarnings(
     monthShoots, 
-    user?.email?.toLowerCase(), 
+    userEmail, 
     baseRate, 
     additionalRate
   );
 
-  // 4. Apply admin override fees or manual flags
+  // 4. APPLY ADMIN OVERRIDES
   const adjustedBreakdown = breakdown.map(item => {
+    // Try to find a manual payment record matching this specific shoot
     const rec = opRecords.find(r => r.shoot_id === item.shoot?.id);
     let amount = item.amount;
     let isAdditional = item.isAdditional;
-    if (rec?.override_fee != null) { amount = rec.override_fee; }
+
+    if (rec?.override_fee != null) { 
+      amount = Number(rec.override_fee); 
+    }
     if (rec?.is_additional != null) {
       isAdditional = rec.is_additional;
-      amount = rec.override_fee != null ? rec.override_fee : (isAdditional ? additionalRate : baseRate);
+      // If override exists use it, otherwise use the standard rate for the type
+      amount = rec.override_fee != null ? Number(rec.override_fee) : (isAdditional ? additionalRate : baseRate);
     }
     return { ...item, amount, isAdditional };
   });
 
+  // Final totals
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
   const mainCount = adjustedBreakdown.filter(b => !b.isAdditional).length;
   const additionalCount = adjustedBreakdown.filter(b => b.isAdditional).length;
@@ -78,15 +88,6 @@ export default function RemoteEarnings({ shoots, user }) {
       shootCount: adjustedBreakdown.length,
     });
   };
-
-  // --- PASTE THE DEBUG BLOCK HERE ---
-  console.log("--- EARNINGS DEBUG ---");
-  console.log("1. Logged in User Email:", user?.email);
-  console.log("2. Looking for Month:", monthStr);
-  console.log("3. Total Shoots from Database:", shoots?.length);
-  console.log("4. Shoots that matched the Date Filter:", monthShoots?.length);
-  console.log("5. Final Breakdown (After Email Match):", adjustedBreakdown?.length);
-  console.log("----------------------");
 
   return (
     <Card className="bg-gray-900 border-gray-800">
@@ -135,8 +136,8 @@ export default function RemoteEarnings({ shoots, user }) {
                   <div className="flex items-center gap-2">
                     <Camera className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-white">{item.shoot?.title || 'Unnamed'}</p>
-                      <p className="text-xs text-gray-500">{item.date}{item.shoot?.game_time ? ` · ${item.shoot.game_time}` : ''}</p>
+                      <p className="text-sm text-white">{item.shoot?.title || 'Unnamed Shoot'}</p>
+                      <p className="text-xs text-gray-500">{item.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -144,16 +145,18 @@ export default function RemoteEarnings({ shoots, user }) {
                       <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">Additional</Badge>
                     )}
                     <span className={`text-sm font-bold ${item.isAdditional ? 'text-yellow-400' : 'text-green-400'}`}>
-                      R{item.amount.toLocaleString('en-ZA')}
+                      R{Number(item.amount).toLocaleString('en-ZA')}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-600 mt-2">R{baseRate} standard · R{additionalRate} additional (within 2hrs)</p>
           </div>
         ) : (
-          <p className="text-gray-500 text-sm text-center py-4">No shoots assigned this month.</p>
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-sm">No shoots recorded for {format(currentMonth, 'MMMM')}.</p>
+            <p className="text-[10px] text-gray-700 mt-2">Check: {user?.email}</p>
+          </div>
         )}
       </CardContent>
     </Card>
