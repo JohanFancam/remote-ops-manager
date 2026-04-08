@@ -45,22 +45,13 @@ export function getAdditionalShootIds(dayShots) {
 }
 
 export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
-  // 1. Clean the input email to prevent case-sensitive misses
-  const targetEmail = operatorEmail?.toLowerCase().trim();
+  const assigned = shoots.filter(s =>
+    s.assigned_operators?.includes(operatorEmail) &&
+    s.status !== 'cancelled'
+  );
 
-  // 2. Filter shoots belonging to this operator
-  const assigned = shoots.filter(s => {
-    if (!s.assigned_operators) return false;
-    
-    // Check if the email exists in the operators list (handles String or Array)
-    const opsList = String(s.assigned_operators).toLowerCase();
-    return opsList.includes(targetEmail) && s.status !== 'cancelled';
-  });
-
-  // 3. Group by date to handle "Additional Shoot" logic
   const byDate = {};
   assigned.forEach(s => {
-    if (!s.date) return;
     if (!byDate[s.date]) byDate[s.date] = [];
     byDate[s.date].push(s);
   });
@@ -68,14 +59,11 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   let total = 0;
   const breakdown = [];
 
-  // 4. Calculate the rates
   Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, dayShots]) => {
     const additionalIds = getAdditionalShootIds(dayShots);
-    
     const sorted = [...dayShots].sort((a, b) =>
       (timeToMinutes(a.game_time || a.start_time) || 0) - (timeToMinutes(b.game_time || b.start_time) || 0)
     );
-
     sorted.forEach(shoot => {
       const isAdditional = additionalIds.has(shoot.id);
       const amount = isAdditional ? additionalRate : baseRate;
@@ -85,8 +73,7 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   });
 
   return { total, breakdown };
-} // <--- FUNCTION NOW CLOSES CORRECTLY HERE
-
+}
 
 export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
   const adminEmails = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
