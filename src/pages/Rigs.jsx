@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2, Timer, Aperture, Sun, Settings2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2, Timer, Aperture, Sun, Settings2, StickyNote } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -176,7 +176,6 @@ export default function Rigs() {
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
-              {/* Basic info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })}
                   className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
@@ -201,7 +200,6 @@ export default function Rigs() {
                 </Select>
               </div>
 
-              {/* Shoot plan */}
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Shoot Plan</label>
                 <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
@@ -209,7 +207,6 @@ export default function Rigs() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
               </div>
 
-              {/* Remote Rigs */}
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Remote Rigs (Google Remote Names)</label>
                 <div className="flex gap-2 mb-2">
@@ -230,7 +227,6 @@ export default function Rigs() {
                 )}
               </div>
 
-              {/* Camera Settings */}
               <div>
                 <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
                 <div className="space-y-3">
@@ -245,7 +241,6 @@ export default function Rigs() {
                     />
                   ))}
 
-                  {/* Sound toggle */}
                   <div className={`rounded-lg border p-3 flex items-center justify-between ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
                     <div className="flex items-center gap-2">
                       <Volume2 className={`h-4 w-4 ${form.sound ? 'text-green-400' : 'text-gray-600'}`} />
@@ -256,7 +251,6 @@ export default function Rigs() {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Notes</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
@@ -279,7 +273,6 @@ export default function Rigs() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {rigSettings.map(rig => (
             <Card key={rig.id} className="bg-gray-900 border-gray-800 flex flex-col">
-              {/* Tile header */}
               <div className="p-4 border-b border-gray-800 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-bold text-white text-base leading-tight truncate">{rig.team}</p>
@@ -290,7 +283,6 @@ export default function Rigs() {
                 )}
               </div>
 
-              {/* Camera badges */}
               <div className="px-4 py-3 flex flex-wrap gap-1.5">
                 {rig.hd_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">HD</Badge>}
                 {rig.wide_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
@@ -298,17 +290,15 @@ export default function Rigs() {
                 {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
               </div>
 
-              {/* Camera settings rows */}
               <div className="px-4 pb-3 space-y-1 flex-1">
                 {CAMERAS.map(cam => (
                   <CamDisplayRow key={cam.key} label={cam.label} enabled={rig[`${cam.key}_enabled`] !== false} cam={rig[cam.key]} />
                 ))}
               </div>
 
-              {/* Remote rigs */}
               {rig.remote_rigs?.length > 0 && (
                 <div className="px-4 pb-3">
-                  <p className="text-xs text-gray-500 mb-1">Remote Rigs</p>
+                  <p className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-tighter text-[10px]">Remote Rigs</p>
                   <div className="flex flex-wrap gap-1">
                     {rig.remote_rigs.map((r, i) => (
                       <span key={i} className="text-xs bg-blue-900/30 text-blue-300 border border-blue-700/30 px-2 py-0.5 rounded-full">{r}</span>
@@ -317,7 +307,17 @@ export default function Rigs() {
                 </div>
               )}
 
-              {/* Footer actions */}
+              {/* Quick Note Preview (Visible without expanding) */}
+              {rig.notes && (
+                <div className="px-4 pb-3">
+                  <div className="flex items-center gap-1.5 text-blue-400/80 mb-1">
+                    <StickyNote className="h-3 w-3" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">Notes</span>
+                  </div>
+                  <p className="text-xs text-gray-400 line-clamp-1 italic px-1">"{rig.notes}"</p>
+                </div>
+              )}
+
               <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between">
                 <button
                   onClick={() => setExpandedId(expandedId === rig.id ? null : rig.id)}
@@ -339,19 +339,29 @@ export default function Rigs() {
 
               {/* Expandable details */}
               {expandedId === rig.id && (
-                <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-2">
+                <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-4 bg-gray-900/50">
                   {rig.shoot_plan && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Shoot Plan</p>
-                      <p className="text-sm text-gray-300">{rig.shoot_plan}</p>
+                      <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Shoot Plan</p>
+                      <p className="text-sm text-gray-300 bg-gray-800/50 p-2 rounded border border-gray-800">{rig.shoot_plan}</p>
                     </div>
                   )}
+                  
                   <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
                     <Volume2 className={`h-3.5 w-3.5 ${rig.sound ? 'text-green-400' : 'text-gray-600'}`} />
                     <span className="text-xs font-medium text-gray-300">Sound Recording</span>
                     <span className={`text-xs font-bold ml-auto ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
                   </div>
-                  {rig.notes && <p className="text-sm text-gray-400 italic">{rig.notes}</p>}
+
+                  {/* Enhanced Notes Section */}
+                  {rig.notes && (
+                    <div>
+                      <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Additional Notes</p>
+                      <div className="text-sm text-blue-200/90 italic bg-blue-900/10 p-2.5 rounded border border-blue-900/20 leading-relaxed">
+                        {rig.notes}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
