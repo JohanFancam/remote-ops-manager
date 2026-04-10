@@ -294,7 +294,7 @@ export default function Dashboard() {
           <StandbyManager user={user} allUsers={allUsers} />
         </AdminPanelDrawer>
         <AdminPanelDrawer title="Team Schedule" open={openDrawer === 'team'} onClose={() => setOpenDrawer(null)} wide>
-          <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} rigSettings={rigSettings} />
+          <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />
         </AdminPanelDrawer>
         <AdminPanelDrawer title="Operator Availability" open={openDrawer === 'availability'} onClose={() => setOpenDrawer(null)} wide>
           <AdminAvailabilityView allUsers={allUsers} />

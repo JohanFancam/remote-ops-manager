@@ -18,19 +18,9 @@ function getCalendarGrid(month) {
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function CamRow({ label, enabled, cam }) {
-  if (!enabled) return null;
-  return (
-    <div className="flex items-center justify-between text-xs py-0.5">
-      <span className="text-gray-500">{label}</span>
-      <span className="text-gray-300 font-mono">
-        {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
-      </span>
-    </div>
-  );
-}
 
-export default function WeeklyTeamPanel({ shoots = [], allUsers = [], rigSettings = [] }) {
+
+export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
   const queryClient = useQueryClient();
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
@@ -187,22 +177,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [], rigSetting
                     {s.location && <span className="text-xs text-gray-500 text-right">{s.location}</span>}
                   </div>
 
-                  {/* Rig camera settings */}
-                  {(() => {
-                    const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-                    if (!rig) return null;
-                    const hasAnyCam = rig.hd_enabled !== false || rig.wide_enabled !== false || rig.attention_enabled;
-                    if (!hasAnyCam) return null;
-                    return (
-                      <div className="mb-1.5 bg-gray-900/60 rounded-lg px-2.5 py-1.5 border border-gray-700/30">
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Camera Settings</p>
-                        <CamRow label="HD" enabled={rig.hd_enabled !== false} cam={rig.hd} />
-                        <CamRow label="Wide" enabled={rig.wide_enabled !== false} cam={rig.wide} />
-                        <CamRow label="Attention" enabled={!!rig.attention_enabled} cam={rig.attention} />
-                        {rig.sound && <p className="text-xs text-green-400 mt-0.5">🔊 Sound</p>}
-                      </div>
-                    );
-                  })()}
+
 
                   {assigned.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1">
