@@ -30,13 +30,14 @@ function entryCoversDate(entry, dateStr) {
 export function AdminAvailabilityView({ allUsers = [] }) {
   const [expanded, setExpanded] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const { data: entries = [], refetch: refetchEntries } = useQuery({
     queryKey: ['operatorAvailability'],
     queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
   });
 
-  // Real-time notifications for admin when operators change availability
+  // Real-time notifications when operators change availability
   useEffect(() => {
     const unsub = base44.entities.OperatorAvailability.subscribe((event) => {
       if (event.type === 'create' || event.type === 'update') {
@@ -49,9 +50,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
         });
         refetchEntries();
       }
-      if (event.type === 'delete') {
-        refetchEntries();
-      }
+      if (event.type === 'delete') refetchEntries();
     });
     return () => unsub();
   }, []);
@@ -64,6 +63,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
 
   const calDays = getCalendarGrid(calMonth);
   const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   return (
     <Card className="bg-gray-900 border-gray-800 mb-6">
@@ -81,11 +81,11 @@ export function AdminAvailabilityView({ allUsers = [] }) {
       {expanded && (
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 mb-3">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(subMonths(calMonth, 1))}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => setCalMonth(addMonths(calMonth, 1))}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -100,19 +100,24 @@ export function AdminAvailabilityView({ allUsers = [] }) {
               const dayEntries = entries.filter(e => entryCoversDate(e, dateStr));
               const unavail = dayEntries.filter(e => e.type === 'unavailable');
               const avail = dayEntries.filter(e => e.type === 'available');
-              const today = format(new Date(), 'yyyy-MM-dd');
+              const isSelected = selectedDay === dateStr;
 
               return (
-                <div key={dateStr}
-                  className={`relative rounded-md p-1 min-h-[48px] ${!inMonth ? 'opacity-30' : ''} ${dateStr === today ? 'ring-1 ring-blue-500' : ''}`}
+                <button
+                  key={dateStr}
+                  onClick={() => inMonth && setSelectedDay(isSelected ? null : dateStr)}
+                  className={`relative rounded-md p-1 min-h-[48px] text-left w-full transition-all
+                    ${!inMonth ? 'opacity-30 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
+                    ${dateStr === todayStr ? 'ring-1 ring-blue-500' : ''}
+                    ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
                   style={{ background: unavail.length > 0 ? 'rgba(127,29,29,0.25)' : avail.length > 0 ? 'rgba(20,83,45,0.25)' : 'rgba(31,41,55,0.4)' }}
                 >
-                  <span className={`text-xs font-medium ${dateStr === today ? 'text-blue-400' : 'text-gray-400'}`}>
+                  <span className={`text-xs font-medium ${dateStr === todayStr ? 'text-blue-400' : 'text-gray-400'}`}>
                     {format(day, 'd')}
                   </span>
                   {unavail.length > 0 && (
                     <div className="mt-0.5 space-y-0.5">
-                      {unavail.map(e => {
+                      {unavail.slice(0, 2).map(e => {
                         const u = allUsers.find(u => u.email === e.operator_email);
                         const name = getDisplayName(u, e.operator_email, e.operator_name);
                         return (
@@ -121,11 +126,12 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                           </div>
                         );
                       })}
+                      {unavail.length > 2 && <div className="text-xs text-red-400">+{unavail.length - 2}</div>}
                     </div>
                   )}
                   {avail.length > 0 && (
                     <div className="mt-0.5 space-y-0.5">
-                      {avail.map(e => {
+                      {avail.slice(0, 2).map(e => {
                         const u = allUsers.find(u => u.email === e.operator_email);
                         const name = getDisplayName(u, e.operator_email, e.operator_name);
                         return (
@@ -134,12 +140,76 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                           </div>
                         );
                       })}
+                      {avail.length > 2 && <div className="text-xs text-green-400">+{avail.length - 2}</div>}
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
+
+          {/* Day detail panel */}
+          {selectedDay && (() => {
+            const dayEntries = entries.filter(e => entryCoversDate(e, selectedDay));
+            const unavailEntries = dayEntries.filter(e => e.type === 'unavailable');
+            const availEntries = dayEntries.filter(e => e.type === 'available');
+            return (
+              <div className="mt-3 bg-gray-800/60 border border-purple-700/40 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-white">
+                    {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
+                  </p>
+                  <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {dayEntries.length === 0 ? (
+                  <p className="text-xs text-gray-500">No availability entries for this day.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {unavailEntries.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">❌ Unavailable ({unavailEntries.length})</p>
+                        <div className="space-y-1">
+                          {unavailEntries.map(e => {
+                            const u = allUsers.find(u => u.email === e.operator_email);
+                            return (
+                              <div key={e.id} className="flex items-center justify-between bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
+                                <div>
+                                  <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                                  <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                                </div>
+                                <span className="text-xs bg-red-700/30 text-red-300 px-2 py-0.5 rounded-full">OUT</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {availEntries.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-1.5">✅ Available ({availEntries.length})</p>
+                        <div className="space-y-1">
+                          {availEntries.map(e => {
+                            const u = allUsers.find(u => u.email === e.operator_email);
+                            return (
+                              <div key={e.id} className="flex items-center justify-between bg-green-950/30 border border-green-800/30 rounded-lg px-3 py-2">
+                                <div>
+                                  <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                                  <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                                </div>
+                                <span className="text-xs bg-green-700/30 text-green-300 px-2 py-0.5 rounded-full">IN</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="flex items-center gap-4 mt-3">
             <span className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -148,6 +218,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
             <span className="flex items-center gap-1.5 text-xs text-gray-400">
               <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
             </span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to expand</span>
           </div>
         </CardContent>
       )}
@@ -171,7 +242,7 @@ export function OperatorAvailabilityPanel({ user }) {
 
   // Form state
   const [showForm, setShowForm] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null); // entry being edited
+  const [editingEntry, setEditingEntry] = useState(null);
   const [form, setForm] = useState(BLANK_FORM);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -188,7 +259,6 @@ export function OperatorAvailabilityPanel({ user }) {
   const calDays = getCalendarGrid(calMonth);
   const upcoming = [...myEntries].filter(e => e.end_date >= todayStr).sort((a, b) => a.start_date.localeCompare(b.start_date));
 
-  // Range helpers
   const isInRange = (dateStr) => {
     if (!rangeStart) return false;
     const lo = rangeEnd && rangeEnd < rangeStart ? rangeEnd : rangeStart;
