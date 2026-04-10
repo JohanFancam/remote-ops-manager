@@ -137,7 +137,6 @@ function LayoutContent({ children, currentPageName }) {
         {/* Notification bell */}
         <div className="px-3 pb-2">
           <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
-          {isAdmin && <AssignmentNotifications shoots={myShoots} user={user} />}
         </div>
 
         {/* User footer */}

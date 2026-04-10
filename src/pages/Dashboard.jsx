@@ -228,6 +228,19 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
+              <Card className="bg-gray-900 border-gray-800 border-yellow-700/40">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-yellow-400 text-sm">Pending Approval</p>
+                      <p className="text-3xl font-bold text-yellow-400 mt-1">
+                        {shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length}
+                      </p>
+                    </div>
+                    <CalendarDays className="h-10 w-10 text-yellow-500 opacity-80" />
+                  </div>
+                </CardContent>
+              </Card>
               <Card className="bg-gray-900 border-gray-800">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Download, Check, X, FileText, Edit2, Save, RefreshCw
+  Download, Check, X, FileText, Edit2, Save, RefreshCw, Clock, CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -52,7 +52,7 @@ function exportCSV(rows, month) {
   const a = document.createElement('a'); a.href = url; a.download = `Accounts_${month}.csv`; a.click();
 }
 
-function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePaid, onSaveNote, onToggleAdditional, baseRate, additionalRate }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onTogglePaid, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -67,10 +67,8 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
     });
 
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
-
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
 
-  // Group shoots by date to auto-detect additional (2hr window), but allow manual override
   const shootsByDate = useMemo(() => {
     const byDate = {};
     opShoots.forEach(s => {
@@ -90,9 +88,7 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
 
   const isAdditional = (shoot) => {
     const rec = getRecord(shoot);
-    // If manually overridden, use that
     if (rec?.is_additional != null) return rec.is_additional;
-    // Otherwise use auto-detection
     return autoAdditionalIds.has(shoot.id);
   };
 
@@ -136,14 +132,25 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
     await onToggleAdditional({ shoot, email: op.email, name: op.full_name, month, is_additional: !current, existingId: rec?.id });
   };
 
+  const hasPending = pendingShoots.length > 0;
+
   return (
-    <div className={`rounded-xl border transition-colors ${allPaid ? 'border-green-800/60 bg-green-950/10' : 'border-gray-800 bg-gray-900'}`}>
+    <div className={`rounded-xl border transition-colors ${
+      allPaid ? 'border-green-800/60 bg-green-950/10'
+      : hasPending ? 'border-yellow-800/40 bg-gray-900'
+      : 'border-gray-800 bg-gray-900'
+    }`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-white">{op.full_name || op.email}</p>
           <p className="text-xs text-gray-500">{op.email}</p>
         </div>
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {hasPending && (
+            <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+              <Clock className="h-3 w-3" /> {pendingShoots.length} pending
+            </span>
+          )}
           <div className="text-right">
             <p className="text-sm text-gray-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
             <p className="font-mono font-bold text-white">R{total.toFixed(2)}</p>
@@ -157,13 +164,51 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
 
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-3">
-          <div className="flex justify-end">
-            <Button size="sm" onClick={handleToggleAllPaid}
-              className={allPaid ? 'bg-gray-700 hover:bg-gray-600 text-xs' : 'bg-green-700 hover:bg-green-600 text-xs'}>
-              {allPaid ? 'Mark All Unpaid' : 'Mark All Paid'}
-            </Button>
-          </div>
-          {opShoots.length === 0 && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
+
+          {/* Pending approval section */}
+          {hasPending && (
+            <div className="bg-yellow-950/20 border border-yellow-800/40 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-semibold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="h-3 w-3" /> Pending Approval ({pendingShoots.length})
+              </p>
+              {pendingShoots.map(shoot => (
+                <div key={shoot.id} className="flex items-center justify-between gap-2 bg-gray-900/60 rounded-lg px-3 py-2 border border-yellow-800/20">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{shoot.title}</p>
+                    <p className="text-xs text-gray-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button size="sm" className="h-7 text-xs bg-green-700 hover:bg-green-600 gap-1 px-2" onClick={() => onApprove(shoot, op.email)}>
+                      <Check className="h-3 w-3" /> Approve
+                    </Button>
+                    <Button size="sm" className="h-7 text-xs bg-red-800 hover:bg-red-700 gap-1 px-2" onClick={() => onReject(shoot, op.email)}>
+                      <X className="h-3 w-3" /> Decline
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Approved shoots */}
+          {opShoots.length > 0 && (
+            <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3" /> Approved Shoots ({opShoots.length})
+            </p>
+          )}
+
+          {opShoots.length > 0 && (
+            <div className="flex justify-end">
+              <Button size="sm" onClick={handleToggleAllPaid}
+                className={allPaid ? 'bg-gray-700 hover:bg-gray-600 text-xs' : 'bg-green-700 hover:bg-green-600 text-xs'}>
+                {allPaid ? 'Mark All Unpaid' : 'Mark All Paid'}
+              </Button>
+            </div>
+          )}
+
+          {opShoots.length === 0 && !hasPending && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
+          {opShoots.length === 0 && hasPending && <p className="text-gray-500 text-sm text-center py-2">No approved shoots yet.</p>}
+
           {opShoots.map(shoot => {
             const rec = getRecord(shoot);
             const fee = getFee(shoot);
@@ -211,7 +256,6 @@ function OperatorRow({ op, shoots, paymentRecords, month, onSaveFee, onTogglePai
                     </Button>
                   </div>
                 </div>
-                {/* Manual additional toggle + note */}
                 <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
                   <button
                     className={`text-xs px-2 py-1 rounded border transition-colors ${additional
@@ -279,7 +323,10 @@ export default function Accounts() {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+    queryClient.invalidateQueries({ queryKey: ['shoots'] });
+  };
 
   const goMonth = (delta) => {
     const [y, m] = filterMonth.split('-').map(Number);
@@ -288,14 +335,16 @@ export default function Accounts() {
   };
 
   const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+  // Pending shoots this month (operator in pending_operators, not yet assigned)
+  const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
   const remoteUsers = allUsers.filter(u => u.role === 'user');
 
   const summaryRows = useMemo(() => {
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
+      const opPending = monthPendingShoots.filter(s => s.pending_operators?.includes(op.email));
       const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
 
-      // Group by date to detect additional shoots
       const byDate = {};
       opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
       const autoAdditionalIds = new Set();
@@ -309,12 +358,13 @@ export default function Accounts() {
       }, 0);
 
       const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
-      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, total, paid: allPaid };
-    }).filter(op => op.shoots > 0);
-  }, [remoteUsers, monthShoots, paymentRecords, filterMonth, baseRate, additionalRate]);
+      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length, total, paid: allPaid };
+    }).filter(op => op.shoots > 0 || op.pending > 0);
+  }, [remoteUsers, monthShoots, monthPendingShoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
   const grandTotal = summaryRows.reduce((s, r) => s + r.total, 0);
   const paidCount = summaryRows.filter(r => r.paid).length;
+  const totalPending = summaryRows.reduce((s, r) => s + r.pending, 0);
 
   const upsertRecord = async ({ shoot, email, name, month, existingId, ...fields }) => {
     const base = {
@@ -337,6 +387,22 @@ export default function Accounts() {
   const handleTogglePaid = (args) => upsertRecord(args);
   const handleSaveNote = (args) => upsertRecord(args);
   const handleToggleAdditional = (args) => upsertRecord(args);
+
+  const handleApprove = async (shoot, email) => {
+    const newPending = (shoot.pending_operators || []).filter(e => e !== email);
+    const newAssigned = [...(shoot.assigned_operators || []), email];
+    await base44.entities.Shoot.update(shoot.id, {
+      pending_operators: newPending,
+      assigned_operators: newAssigned,
+    });
+    refresh();
+  };
+
+  const handleReject = async (shoot, email) => {
+    const newPending = (shoot.pending_operators || []).filter(e => e !== email);
+    await base44.entities.Shoot.update(shoot.id, { pending_operators: newPending });
+    refresh();
+  };
 
   if (!canView) {
     return (
@@ -399,10 +465,10 @@ export default function Accounts() {
               <p className="text-2xl font-bold text-green-400 mt-1">{paidCount} / {summaryRows.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className={`border-gray-800 ${totalPending > 0 ? 'bg-yellow-950/20 border-yellow-800/40' : 'bg-gray-900'}`}>
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Total Shoots</p>
-              <p className="text-2xl font-bold text-white mt-1">{monthShoots.length}</p>
+              <p className={`text-sm ${totalPending > 0 ? 'text-yellow-400' : 'text-gray-400'}`}>Pending Approvals</p>
+              <p className={`text-2xl font-bold mt-1 ${totalPending > 0 ? 'text-yellow-400' : 'text-white'}`}>{totalPending}</p>
             </CardContent>
           </Card>
         </div>
@@ -417,12 +483,15 @@ export default function Accounts() {
                 key={op.email}
                 op={op}
                 shoots={monthShoots}
+                pendingShoots={monthPendingShoots.filter(s => s.pending_operators?.includes(op.email))}
                 paymentRecords={paymentRecords}
                 month={filterMonth}
                 onSaveFee={handleSaveFee}
                 onTogglePaid={handleTogglePaid}
                 onSaveNote={handleSaveNote}
                 onToggleAdditional={handleToggleAdditional}
+                onApprove={handleApprove}
+                onReject={handleReject}
                 baseRate={baseRate}
                 additionalRate={additionalRate}
               />
