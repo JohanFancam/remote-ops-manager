@@ -18,12 +18,10 @@ export default function AdminMonthlySummary({ shoots, user }) {
     setCurrentMonth(d);
   };
 
-  // Only count shoots where the admin actually completed them (shoot_complete phase set)
   const myMonthShoots = shoots.filter(s =>
     s.date?.startsWith(monthStr) &&
     s.assigned_operators?.includes(user?.email) &&
-    s.status !== 'cancelled' &&
-    s.phase_status?.shoot_complete
+    s.status !== 'cancelled'
   );
 
   const { data: standbyDays = [] } = useQuery({
