@@ -40,6 +40,9 @@ function getLivePhase(shoot, now, schedule, gameDate, showAttention, showSound) 
   const soundTime = showSound ? toDate(schedule.sound) : null;
 
   // Walk through phases newest-first to find current active phase
+  if (phase.game_started || (gameDate && now >= gameDate)) {
+    return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  }
   if (phase.sound_started || (soundTime && now >= soundTime && showSound)) {
     return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
   }
@@ -184,8 +187,9 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
 
-  const livePhase = getLivePhase(shoot, now, schedule, gameDate, showAttention, showSound);
-  const nextPhase = getNextPhase(shoot, now, schedule, gameDate, showAttention, showSound);
+  const shootWithEffectivePhase = { ...shoot, phase_status: effectivePhaseStatus };
+  const livePhase = getLivePhase(shootWithEffectivePhase, now, schedule, gameDate, showAttention, showSound);
+  const nextPhase = getNextPhase(shootWithEffectivePhase, now, schedule, gameDate, showAttention, showSound);
   const nextCountdown = nextPhase?.time ? nextPhase.time - now : null;
 
   // Effective rig type: shoot override first, then rig setting
