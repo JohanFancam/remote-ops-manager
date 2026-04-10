@@ -121,8 +121,9 @@ export function exportOperatorPDF(operatorData) {
   doc.setFontSize(13); doc.setFont('helvetica', 'normal');
   doc.text(`Earnings Report: ${operatorData.name}`, 20, 30);
   doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-  doc.text(`Email: ${operatorData.email}`, 20, 38);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, 20, 45);
+  if (operatorData.month) doc.text(`Period: ${operatorData.month}`, 20, 38);
+  doc.text(`Email: ${operatorData.email}`, 20, operatorData.month ? 45 : 38);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, 20, operatorData.month ? 51 : 45);
   let y = 62;
   doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
   doc.text('Date', 20, y); doc.text('Shoot', 55, y); doc.text('Type', 135, y); doc.text('Amount', 165, y);
@@ -138,5 +139,6 @@ export function exportOperatorPDF(operatorData) {
   doc.line(20, y + 2, 190, y + 2); y += 8;
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL', 20, y); doc.text(`R ${operatorData.total.toLocaleString('en-ZA')}`, 165, y);
-  doc.save(`Earnings_${operatorData.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  const monthSuffix = operatorData.month ? `_${operatorData.month.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
+  doc.save(`Earnings_${operatorData.name.replace(/[^a-zA-Z0-9]/g, '_')}${monthSuffix}.pdf`);
 }

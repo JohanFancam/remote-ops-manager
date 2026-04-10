@@ -84,6 +84,10 @@ export default function RemoteEarnings({ user }) {
             <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <Button size="sm" variant="outline" className="border-green-700/50 text-green-400 hover:bg-green-900/30 gap-1.5 text-xs h-7"
+              onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown, month: format(currentMonth, 'MMMM yyyy') })}>
+              <Download className="h-3 w-3" /> PDF
+            </Button>
             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs ml-1"
               onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Less' : 'Details'}
