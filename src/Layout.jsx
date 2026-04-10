@@ -44,7 +44,7 @@ function LayoutContent({ children, currentPageName }) {
   const { data: myShoots = [] } = useQuery({
     queryKey: ['myShoots', user?.email],
     queryFn: () => base44.entities.Shoot.list('-date', 200),
-    enabled: !!user && !isAdmin,
+    enabled: !!user,
   });
   const notifyHours = Number(appSettings.find(s => s.key === 'notify_hours_before')?.value || 5);
   const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
@@ -133,12 +133,10 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
 
-        {/* Notification bell — remote users only */}
-        {!isAdmin && (
-          <div className="px-3 pb-2">
-            <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
-          </div>
-        )}
+        {/* Notification bell */}
+        <div className="px-3 pb-2">
+          <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
+        </div>
 
         {/* User footer */}
         <div className="p-4 border-t border-gray-800">
