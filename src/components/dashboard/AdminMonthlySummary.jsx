@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Phone, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Phone, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminMonthlySummary({ shoots, user }) {
@@ -35,25 +35,7 @@ export default function AdminMonthlySummary({ shoots, user }) {
     s.admin_email === user?.email
   );
 
-  const { data: myEntries = [] } = useQuery({
-    queryKey: ['myTimeEntries', user?.email],
-    queryFn: () => base44.entities.TimeEntry.filter({ operator_email: user?.email }, '-date', 200),
-    enabled: !!user?.email,
-  });
 
-  // For admins: calculate hours from completed shoots only (phase_status.shoot_complete)
-  // De-duplicate by date — one shoot day = one time block (use the first completed shoot's hours per date)
-  const completedShootDates = new Set(myMonthShoots.map(s => s.date));
-  const monthEntries = myEntries.filter(e =>
-    e.date?.startsWith(monthStr) && completedShootDates.has(e.date)
-  );
-  // Sum unique dates only — avoid double-counting multiple entries on same day
-  const seenDates = new Set();
-  const totalHours = monthEntries.reduce((sum, e) => {
-    if (seenDates.has(e.date)) return sum;
-    seenDates.add(e.date);
-    return sum + (e.hours || 0);
-  }, 0);
 
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">
@@ -87,11 +69,6 @@ export default function AdminMonthlySummary({ shoots, user }) {
             <Phone className="h-5 w-5 text-yellow-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-white">{myMonthStandby.length}</p>
             <p className="text-xs text-gray-400">Standby</p>
-          </div>
-          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-            <Clock className="h-5 w-5 text-green-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-white">{totalHours.toFixed(1)}h</p>
-            <p className="text-xs text-gray-400">Hours Logged</p>
           </div>
         </div>
 
@@ -139,21 +116,9 @@ export default function AdminMonthlySummary({ shoots, user }) {
               </div>
             )}
 
-            {monthEntries.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Time Entries This Month</p>
-                <div className="space-y-1">
-                  {monthEntries.slice(0, 15).map(e => (
-                    <div key={e.id} className="flex items-center justify-between bg-gray-800/40 rounded px-3 py-2">
-                      <p className="text-sm text-gray-300 truncate flex-1">{e.notes || e.date}</p>
-                      <span className="text-xs font-mono text-white ml-2 flex-shrink-0">{Number(e.hours).toFixed(1)}h</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {myMonthShoots.length === 0 && myMonthStandby.length === 0 && monthEntries.length === 0 && (
+
+            {myMonthShoots.length === 0 && myMonthStandby.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-4">Nothing logged for {format(currentMonth, 'MMMM yyyy')}.</p>
             )}
           </div>

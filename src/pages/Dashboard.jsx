@@ -7,6 +7,7 @@ import { Camera, CalendarDays, Wrench, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
+import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 
@@ -154,6 +155,9 @@ export default function Dashboard() {
           </h1>
           <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d, yyyy')}</p>
         </div>
+
+        {/* Shoot change notifications — remote users only */}
+        {!isAdmin && <ShootChangeNotifier userEmail={user?.email} />}
 
         {/* Standby banner — visible to ALL users */}
         <StandbyBanner todayStr={todayStr} currentUser={user} />

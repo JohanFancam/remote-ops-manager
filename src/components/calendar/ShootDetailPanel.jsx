@@ -304,6 +304,14 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                 </div>
                 <span className={`text-xs font-semibold ${matchedRig.sound ? 'text-green-400' : 'text-gray-600'}`}>{matchedRig.sound ? 'YES' : 'NO'}</span>
               </div>
+
+              {/* Rig Notes */}
+              {matchedRig.notes && (
+                <div className="bg-blue-900/10 border border-blue-900/20 rounded-lg p-3">
+                  <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                  <p className="text-sm text-blue-200/90 leading-relaxed italic">{matchedRig.notes}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

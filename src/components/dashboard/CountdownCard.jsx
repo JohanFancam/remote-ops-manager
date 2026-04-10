@@ -73,7 +73,7 @@ function getNextPhase(shoot, now, schedule, gameDate, showAttention, showSound) 
     { label: 'Pre-Shoot', key: 'pre_shoot_started', time: toDate(schedule.pre_shoot) },
     showAttention && { label: 'Attention', key: 'attention_started', time: toDate(schedule.attention) },
     showSound && { label: 'Sound Check', key: 'sound_started', time: toDate(schedule.sound) },
-    { label: 'Game Time', key: null, time: gameDate },
+    { label: 'Game Time', key: 'game_started', time: gameDate },
   ].filter(Boolean);
 
   for (const c of candidates) {
@@ -339,7 +339,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                     { label: 'Pre-Shoot', time: schedule.pre_shoot, Icon: Camera, doneKey: 'pre_shoot_started', date: toDate(schedule.pre_shoot) },
                     showAttention && { label: 'Attention', time: schedule.attention, Icon: AlertTriangle, doneKey: 'attention_started', date: toDate(schedule.attention) },
                     showSound && { label: 'Sound Check', time: schedule.sound, Icon: Volume2, doneKey: 'sound_started', date: toDate(schedule.sound) },
-                    { label: 'Game Time', time: schedule.game, Icon: Flag, doneKey: null, date: gameDate },
+                    { label: 'Game Time', time: schedule.game, Icon: Flag, doneKey: 'game_started', date: gameDate },
                   ].filter(Boolean);
 
                   return (
@@ -380,7 +380,15 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
               </div>
             )}
 
-            {/* Notes */}
+            {/* Rig Notes */}
+            {matchedRig?.notes && (
+              <div className="bg-blue-900/10 border border-blue-900/20 rounded-lg p-2.5">
+                <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                <p className="text-xs text-blue-200/90 italic leading-relaxed">{matchedRig.notes}</p>
+              </div>
+            )}
+
+            {/* Shoot Notes */}
             {(shoot.description || shoot.notes) && (
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Notes</p>
