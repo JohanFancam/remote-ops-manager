@@ -196,6 +196,11 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const canMarkPhases = isAdmin || isAssigned;
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
+  // Clear optimistic state when the real data arrives from parent
+  useEffect(() => {
+    setLocalPhaseStatus(null);
+  }, [shoot.phase_status]);
+
   const handlePhaseToggle = async (doneKey) => {
     if (!onUpdate || !doneKey) return;
     const current = localPhaseStatus || shoot.phase_status || {};
@@ -205,7 +210,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     };
     setLocalPhaseStatus(newPhaseStatus);
     await onUpdate(shoot.id, { phase_status: newPhaseStatus });
-    setLocalPhaseStatus(null);
+    // Do NOT clear localPhaseStatus here — wait for shoot prop to update
   };
 
   const handleRigTypeChange = async (type) => {
