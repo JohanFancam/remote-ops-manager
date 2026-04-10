@@ -280,8 +280,8 @@ export default function Dashboard() {
         <div className="mt-8" />
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
-        {!isAdmin && <RemoteEarnings user={user} />}
         {!isAdmin && <OperatorAvailabilityPanel user={user} />}
+        {!isAdmin && <div className="mt-6"><RemoteEarnings user={user} /></div>}
 
       </div>
     </div>
