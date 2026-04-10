@@ -1,21 +1,29 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, BarChart2, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp } from 'lucide-react';
 import { useApp } from './AppContext';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+const adminNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
   { label: 'Accounts', icon: DollarSign, path: '/Accounts' },
 ];
 
+const remoteNavItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
+];
+
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin } = useApp();
+  const { isAdmin, isAccounts } = useApp();
 
-  if (!isAdmin) return null;
+  if (isAccounts) return null;
+
+  const navItems = isAdmin ? adminNavItems : remoteNavItems;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 flex items-stretch h-16">
