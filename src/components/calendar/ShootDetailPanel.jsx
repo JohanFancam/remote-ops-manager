@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
   Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone,
@@ -364,12 +365,16 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           {showAssignUser ? (
             <div className="bg-gray-800/60 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-2">Assign a user:</p>
-              <select onChange={e => handleAdminAssignUser(e.target.value)} defaultValue="" className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 mb-2">
-                <option value="" disabled>Select user…</option>
-                {assignableUsers.map(u => (
-                  <option key={u.email} value={u.email}>{getDisplayName(u, u.email)}</option>
-                ))}
-              </select>
+              <Select onValueChange={handleAdminAssignUser}>
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full mb-2">
+                  <SelectValue placeholder="Select user…" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700">
+                  {assignableUsers.map(u => (
+                    <SelectItem key={u.email} value={u.email} className="text-white">{getDisplayName(u, u.email)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-white" onClick={() => setShowAssignUser(false)}>Cancel</Button>
             </div>
           ) : (

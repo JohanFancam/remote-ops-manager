@@ -81,7 +81,7 @@ function LayoutContent({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-gray-950 flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-gray-900 border-r border-gray-800 fixed h-full">
+      <aside className="hidden md:flex flex-col w-64 bg-gray-900 border-r border-gray-800 fixed h-full" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
@@ -115,7 +115,7 @@ function LayoutContent({ children, currentPageName }) {
               key={item.page}
               to={createPageUrl(item.page)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors select-none",
                 currentPageName === item.page
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:bg-gray-800 hover:text-white"
@@ -163,7 +163,7 @@ function LayoutContent({ children, currentPageName }) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 h-14">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 h-14" style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
             <Wifi className="h-4 w-4 text-white" />
@@ -217,7 +217,7 @@ function LayoutContent({ children, currentPageName }) {
       <MobileBottomNav />
 
       {/* Main content */}
-      <main className="flex-1 md:ml-64 pt-14 md:pt-0 pb-16 md:pb-0 min-h-screen">
+      <main className="flex-1 md:ml-64 pb-16 md:pb-0 min-h-screen" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top))' }}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full min-h-screen">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />

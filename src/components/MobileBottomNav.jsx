@@ -26,7 +26,7 @@ export default function MobileBottomNav() {
   const navItems = isAdmin ? adminNavItems : remoteNavItems;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 flex items-stretch h-16">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {navItems.map(item => {
         const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
         return (
@@ -34,7 +34,7 @@ export default function MobileBottomNav() {
             key={item.path}
             to={item.path}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors',
+              'flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors select-none',
               isActive ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
             )}
           >
