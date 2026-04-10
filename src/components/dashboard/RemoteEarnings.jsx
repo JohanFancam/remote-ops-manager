@@ -4,34 +4,39 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Download, Camera, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
 export default function RemoteEarnings({ user }) {
+  const [expanded, setExpanded] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
 
-  // 1. BYPASS PERMISSIONS: Use asServiceRole to ensure the data actually arrives
-  const { data: allShoots = [], isLoading: loadingShoots, refetch } = useQuery({
-    queryKey: ['my-shoots-earnings', monthStr],
-    queryFn: () => base44.asServiceRole.entities.Shoot.list('-date', 2000).catch(() => []),
+  const goMonth = (delta) => {
+    const d = new Date(currentMonth);
+    d.setMonth(d.getMonth() + delta);
+    setCurrentMonth(d);
+  };
+
+  const { data: allShoots = [] } = useQuery({
+    queryKey: ['shoots-earnings'],
+    queryFn: () => base44.entities.Shoot.list('-date', 2000),
   });
 
   const { data: appSettings = [] } = useQuery({
-    queryKey: ['appSettings-bypass'],
-    queryFn: () => base44.asServiceRole.entities.AppSettings.list().catch(() => []),
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
   });
 
   const { data: paymentRecords = [] } = useQuery({
-    queryKey: ['paymentRecords-bypass'],
-    queryFn: () => base44.asServiceRole.entities.PaymentRecord.list('-created_date', 1000).catch(() => []),
+    queryKey: ['paymentRecords'],
+    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 1000),
   });
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  // Filter by assigned_operators (correct field) for the selected month
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
     return allShoots.filter(s =>
@@ -41,18 +46,12 @@ export default function RemoteEarnings({ user }) {
     );
   }, [allShoots, user, monthStr]);
 
-  // Pass month's shoots — calculateOperatorEarnings filters by assigned_operators
-  const { total, breakdown } = calculateOperatorEarnings(
-    myShootsForMonth,
-    user?.email?.toLowerCase()?.trim(),
-    baseRate,
-    additionalRate
-  );
+  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate);
 
-  // 4. OVERRIDE LOGIC
+  // Apply payment record overrides
   const adjustedBreakdown = breakdown.map(item => {
-    const rec = paymentRecords.find(r => 
-      r.shoot_id === item.shoot?.id && 
+    const rec = paymentRecords.find(r =>
+      r.shoot_id === item.shoot?.id &&
       r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim()
     );
     let amount = item.amount;
@@ -66,81 +65,84 @@ export default function RemoteEarnings({ user }) {
   });
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
-
-  const goMonth = (delta) => {
-    const d = new Date(currentMonth);
-    d.setMonth(d.getMonth() + delta);
-    setCurrentMonth(d);
-  };
+  const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional);
+  const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
   return (
-    <Card className="bg-gray-900 border-gray-800 shadow-xl">
-      <CardHeader className="border-b border-gray-800 pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2 text-base">
+    <Card className="bg-gray-900 border-gray-800 mt-8">
+      <CardHeader className="border-b border-gray-800 pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-white text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-green-400" />
-            Personal Earnings Summary
+            My Earnings Summary
           </CardTitle>
-          <div className="flex gap-2">
-            <Button onClick={() => refetch()} size="icon" variant="ghost" className="h-8 w-8 text-gray-500">
-              <RefreshCw className={`h-4 w-4 ${loadingShoots ? 'animate-spin' : ''}`} />
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(-1)}>
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button onClick={() => exportOperatorPDF({ name: user?.full_name, total: adjustedTotal, breakdown: adjustedBreakdown })} size="sm" className="bg-blue-700 hover:bg-blue-600 h-8">
-              <Download className="h-4 w-4 mr-1" /> PDF
+            <span className="text-sm font-medium text-gray-300 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => goMonth(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs ml-1"
+              onClick={() => setExpanded(!expanded)}>
+              {expanded ? 'Less' : 'Details'}
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             </Button>
           </div>
-        </div>
-        <div className="flex items-center justify-between mt-3 bg-gray-900/50 border border-gray-800 rounded-lg p-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400" onClick={() => goMonth(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs font-bold text-white uppercase tracking-widest">{format(currentMonth, 'MMMM yyyy')}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400" onClick={() => goMonth(1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
-            <p className="text-2xl font-black text-green-400">R{adjustedTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Total</p>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-green-400">R{adjustedTotal.toLocaleString()}</p>
+            <p className="text-xs text-gray-400">Total Earned</p>
           </div>
-          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
-            <p className="text-2xl font-black text-white">{adjustedBreakdown.filter(b => !b.isAdditional).length}</p>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Standard</p>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+            <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-white">{mainShoots.length}</p>
+            <p className="text-xs text-gray-400">Main Shoots</p>
           </div>
-          <div className="bg-gray-800/50 rounded-xl p-3 text-center border border-gray-700/50">
-            <p className="text-2xl font-black text-yellow-500">{adjustedBreakdown.filter(b => b.isAdditional).length}</p>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Addtl</p>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-yellow-400">{additionalShoots.length}</p>
+            <p className="text-xs text-gray-400">Additional</p>
           </div>
         </div>
 
-        {adjustedBreakdown.length > 0 ? (
-          <div className="space-y-2">
-             <p className="text-[10px] font-bold text-gray-600 uppercase mb-2">Detailed Breakdown</p>
-            {adjustedBreakdown.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-800/20 p-3 rounded-lg border border-gray-800">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded bg-blue-500/10 flex items-center justify-center">
-                    <Camera className="h-4 w-4 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white font-semibold">{item.shoot?.title || 'Game'}</p>
-                    <p className="text-[11px] text-gray-500">{item.date}</p>
-                  </div>
+        {expanded && (
+          <div className="space-y-3">
+            {adjustedBreakdown.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No shoots assigned for {format(currentMonth, 'MMMM yyyy')}.</p>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">Shoots This Month</p>
+                  <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-300 gap-1 px-2"
+                    onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown })}>
+                    <Download className="h-3 w-3" /> PDF
+                  </Button>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-400">R{item.amount}</p>
-                  {item.isAdditional && <p className="text-[9px] text-yellow-500 font-bold uppercase">Additional</p>}
+                <div className="space-y-1">
+                  {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-gray-800/40 rounded px-3 py-2">
+                      <div>
+                        <p className="text-sm text-white font-medium">{item.shoot?.title || 'Game'}</p>
+                        <p className="text-xs text-gray-400">
+                          {format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d')}
+                          {item.shoot?.game_time && ` · ${item.shoot.game_time}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-green-400">R{item.amount.toLocaleString()}</p>
+                        {item.isAdditional && (
+                          <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Additional</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-gray-950/50 border-2 border-dashed border-gray-800 rounded-2xl">
-            <p className="text-gray-500 text-sm font-medium">No shoots found for this period.</p>
-            <p className="text-[10px] text-gray-700 mt-2 font-mono">Checking: {user?.email}</p>
+            )}
           </div>
         )}
       </CardContent>

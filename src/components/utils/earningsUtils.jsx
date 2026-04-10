@@ -45,8 +45,9 @@ export function getAdditionalShootIds(dayShots) {
 }
 
 export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
+  const safeEmail = operatorEmail?.toLowerCase()?.trim();
   const assigned = shoots.filter(s =>
-    s.assigned_operators?.includes(operatorEmail) &&
+    s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail) &&
     s.status !== 'cancelled'
   );
 
