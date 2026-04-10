@@ -19,9 +19,9 @@ const remoteNavItems = [
 
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isAccounts } = useApp();
+  const { isAdmin, isAccounts, isLoading } = useApp();
 
-  if (isAccounts) return null;
+  if (isLoading || isAccounts) return null;
 
   const navItems = isAdmin ? adminNavItems : remoteNavItems;
 

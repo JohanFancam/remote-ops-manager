@@ -13,6 +13,7 @@ import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
 
 import StandbyManager from '../components/dashboard/StandbyManager';
 import StandbyBanner from '../components/dashboard/StandbyBanner';
+import ShootTimingPanel from '../components/dashboard/ShootTimingPanel';
 import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
 import { AdminAvailabilityView, OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
 
@@ -263,6 +264,7 @@ export default function Dashboard() {
         {isAdmin && <AdminAvailabilityView allUsers={allUsers} />}
         {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />}
         {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
+        {isAdmin && <ShootTimingPanel shoots={shoots} />}
 
 
         <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>

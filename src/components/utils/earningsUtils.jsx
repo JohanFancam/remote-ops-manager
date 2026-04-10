@@ -89,10 +89,10 @@ export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_R
   }).sort((a, b) => b.total - a.total);
 }
 
-export function exportSummaryPDF(operators, title = 'Earnings Summary') {
+export function exportSummaryPDF(operators, title = 'Earnings Summary', companyName = 'Fancam/CrowdIQ') {
   const doc = new jsPDF();
   doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-  doc.text('Remote Ops Manager', 20, 20);
+  doc.text(companyName, 20, 20);
   doc.setFontSize(13); doc.setFont('helvetica', 'normal');
   doc.text(title, 20, 30);
   doc.setFontSize(9); doc.setTextColor(120, 120, 120);
@@ -116,8 +116,9 @@ export function exportSummaryPDF(operators, title = 'Earnings Summary') {
 
 export function exportOperatorPDF(operatorData) {
   const doc = new jsPDF();
+  const companyName = operatorData.companyName || 'Fancam/CrowdIQ';
   doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-  doc.text('Remote Ops Manager', 20, 20);
+  doc.text(companyName, 20, 20);
   doc.setFontSize(13); doc.setFont('helvetica', 'normal');
   doc.text(`Earnings Report: ${operatorData.name}`, 20, 30);
   doc.setFontSize(9); doc.setTextColor(120, 120, 120);
