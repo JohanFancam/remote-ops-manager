@@ -9,6 +9,7 @@ import {
   Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
+import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* Notification bell */}
         <div className="px-3 pb-2">
           <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
+          {!isAdmin && <AssignmentNotifications shoots={myShoots} user={user} />}
         </div>
 
         {/* User footer */}
