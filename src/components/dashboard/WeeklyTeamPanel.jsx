@@ -1,72 +1,45 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, CheckCircle2, Clock, ChevronDown, ChevronUp, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock, ChevronLeft, ChevronRight, UserCheck, X } from 'lucide-react';
 import { getDisplayName } from '../utils/nameUtils';
-import { format, addDays, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
+import {
+  format, addMonths, subMonths,
+  startOfMonth, endOfMonth, eachDayOfInterval,
+  startOfWeek, endOfWeek, isSameMonth
+} from 'date-fns';
+
+function getCalendarGrid(month) {
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  return eachDayOfInterval({ start, end });
+}
+
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
 
-  // Month + window navigation
-  const [viewMonth, setViewMonth] = useState(new Date());
-  const [windowStart, setWindowStart] = useState(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
-  });
-
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const monthStr = format(viewMonth, 'yyyy-MM');
+  const calDays = getCalendarGrid(calMonth);
+  const gridStart = format(calDays[0], 'yyyy-MM-dd');
+  const gridEnd = format(calDays[calDays.length - 1], 'yyyy-MM-dd');
 
-  // Build 7 days from windowStart, clamped within the view month
-  const monthStart = startOfMonth(viewMonth);
-  const monthEnd = endOfMonth(viewMonth);
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = addDays(windowStart, i);
-    return format(d, 'yyyy-MM-dd');
-  });
-
-  const windowStartStr = format(windowStart, 'yyyy-MM-dd');
-  const windowEndStr = days[days.length - 1];
-
-  const windowShoots = shoots.filter(s =>
-    s.date >= windowStartStr && s.date <= windowEndStr && s.status !== 'cancelled'
+  const visibleShoots = shoots.filter(s =>
+    s.date >= gridStart && s.date <= gridEnd && s.status !== 'cancelled'
   );
 
-  const totalPending = windowShoots.reduce((n, s) => n + (s.pending_operators?.length || 0), 0);
+  const getShootsForDay = (dateStr) =>
+    visibleShoots.filter(s => s.date === dateStr)
+      .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
 
-  const handlePrevWeek = () => {
-    const prev = addDays(windowStart, -7);
-    setWindowStart(prev);
-    // If jumped to previous month, update view month
-    const prevStr = format(prev, 'yyyy-MM');
-    if (prevStr !== monthStr) setViewMonth(prev);
-  };
-
-  const handleNextWeek = () => {
-    const next = addDays(windowStart, 7);
-    setWindowStart(next);
-    const nextStr = format(next, 'yyyy-MM');
-    if (nextStr !== monthStr) setViewMonth(next);
-  };
-
-  const handlePrevMonth = () => {
-    const newMonth = subMonths(viewMonth, 1);
-    setViewMonth(newMonth);
-    setWindowStart(startOfMonth(newMonth));
-  };
-
-  const handleNextMonth = () => {
-    const newMonth = addMonths(viewMonth, 1);
-    setViewMonth(newMonth);
-    setWindowStart(startOfMonth(newMonth));
-  };
+  const monthShootCount = shoots.filter(s =>
+    s.date?.startsWith(format(calMonth, 'yyyy-MM')) && s.status !== 'cancelled'
+  ).length;
 
   const handleApprove = async (shoot, email) => {
     setApprovingId(`${shoot.id}_${email}`);
@@ -87,147 +60,170 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
 
   const getUserName = (email) => getDisplayName(allUsers.find(u => u.email === email), email);
 
+  const selectedShoots = selectedDay ? getShootsForDay(selectedDay) : [];
+
   return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <button onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 text-white font-semibold text-base hover:text-blue-400 transition-colors">
-            <CalendarDays className="h-4 w-4 text-blue-400" />
-            Team Schedule
-            {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-            {totalPending > 0 && (
-              <span className="text-xs bg-orange-600/20 text-orange-400 border border-orange-700/40 px-2 py-0.5 rounded-full ml-1">
-                {totalPending} pending
-              </span>
-            )}
-          </button>
-          <span className="text-xs text-gray-500">{windowShoots.length} shoots</span>
+    <div>
+      {/* Month header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-blue-400" />
+          <span className="text-white font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
+          <span className="text-xs bg-blue-600/20 text-blue-400 border border-blue-700/40 px-2 py-0.5 rounded-full">
+            {monthShootCount} shoots
+          </span>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      {expanded && (
-        <CardContent className="pt-4 pb-4">
-          {/* Month + week navigation */}
-          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-            {/* Month nav */}
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handlePrevMonth}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-semibold text-gray-200 w-24 text-center">{format(viewMonth, 'MMMM yyyy')}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handleNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+        {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 mb-4">
+        {calDays.map(day => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const inMonth = isSameMonth(day, calMonth);
+          const isToday = dateStr === todayStr;
+          const dayShoots = getShootsForDay(dateStr);
+          const hasPending = dayShoots.some(s => (s.pending_operators?.length || 0) > 0);
+          const isSelected = selectedDay === dateStr;
 
-            {/* 7-day window nav */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handlePrevWeek}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-gray-400 font-mono whitespace-nowrap">
-                {format(new Date(windowStartStr + 'T12:00:00'), 'd MMM')} – {format(new Date(windowEndStr + 'T12:00:00'), 'd MMM')}
+          let bg = inMonth ? 'rgba(31,41,55,0.6)' : 'rgba(17,24,39,0.3)';
+          if (dayShoots.length > 0) bg = 'rgba(30,58,138,0.3)';
+          if (hasPending) bg = 'rgba(120,53,15,0.4)';
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => inMonth && setSelectedDay(isSelected ? null : dateStr)}
+              className={`rounded-md p-1 min-h-[52px] text-left transition-all
+                ${!inMonth ? 'opacity-25 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
+                ${isSelected ? 'ring-2 ring-blue-400' : ''}
+                ${isToday ? 'ring-1 ring-blue-500' : ''}`}
+              style={{ background: bg }}
+            >
+              <span className={`text-xs font-medium block ${isToday ? 'text-blue-400 font-bold' : dayShoots.length > 0 ? 'text-blue-300' : 'text-gray-500'}`}>
+                {format(day, 'd')}
               </span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handleNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto -mx-1 px-1">
-          <div className="grid gap-2" style={{gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))', minWidth: '770px'}}>
-            {days.map(dateStr => {
-              const isToday = dateStr === todayStr;
-              const dayShoots = windowShoots
-                .filter(s => s.date === dateStr)
-                .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
-              const dayPending = dayShoots.reduce((n, s) => n + (s.pending_operators?.length || 0), 0);
-
-              return (
-                <div key={dateStr} className={`rounded-xl border p-2.5 min-h-[80px] ${
-                  isToday ? 'border-blue-600/50 bg-blue-950/20' :
-                  dayPending > 0 ? 'border-orange-700/40 bg-orange-950/10' :
-                  dayShoots.length > 0 ? 'border-gray-700/50 bg-gray-800/30' :
-                  'border-gray-800/40 bg-gray-900/20'
-                }`}>
-                  <div className="mb-2">
-                    <p className={`text-xs font-semibold ${isToday ? 'text-blue-400' : 'text-gray-400'}`}>
-                      {isToday ? 'Today' : format(new Date(dateStr + 'T12:00:00'), 'EEE')}
-                    </p>
-                    <p className={`text-base font-bold leading-tight ${isToday ? 'text-blue-300' : 'text-gray-300'}`}>
-                      {format(new Date(dateStr + 'T12:00:00'), 'd MMM')}
-                    </p>
-                  </div>
-
-                  {dayShoots.length === 0 ? (
-                    <p className="text-xs text-gray-700 italic">No shoots</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {dayShoots.map(s => {
-                        const assigned = s.assigned_operators || [];
-                        const pending = s.pending_operators || [];
-                        return (
-                          <div key={s.id} className={`rounded-lg border px-2 py-1.5 text-xs ${
-                            pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-gray-800/60 border-gray-700/40'
-                          }`}>
-                            <div className="font-medium text-white truncate">{s.title || s.client}</div>
-                            {s.game_time && <div className="text-gray-500 font-mono">{s.game_time}</div>}
-
-                            {assigned.length > 0 && (
-                              <div className="mt-1 flex flex-wrap gap-0.5">
-                                {assigned.map(email => (
-                                  <span key={email} className="flex items-center gap-0.5 text-xs bg-green-900/30 text-green-400 border border-green-700/30 px-1.5 py-0.5 rounded-full">
-                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                    {getUserName(email).split(' ')[0]}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {assigned.length === 0 && pending.length === 0 && (
-                              <p className="text-gray-600 mt-1 italic">Unassigned</p>
-                            )}
-
-                            {pending.length > 0 && (
-                              <div className="mt-1.5 space-y-1 border-t border-orange-800/20 pt-1.5">
-                                {pending.map(email => {
-                                  const ak = `${s.id}_${email}`;
-                                  const dk = `decline_${s.id}_${email}`;
-                                  return (
-                                    <div key={email} className="flex items-center justify-between gap-1">
-                                      <div className="flex items-center gap-1 min-w-0">
-                                        <Clock className="h-3 w-3 text-orange-400 flex-shrink-0" />
-                                        <span className="text-orange-200 truncate text-xs">{getUserName(email).split(' ')[0]}</span>
-                                      </div>
-                                      <div className="flex gap-1 flex-shrink-0">
-                                        <Button size="sm" disabled={approvingId === ak} onClick={() => handleApprove(s, email)}
-                                          className="h-5 text-xs bg-green-700 hover:bg-green-600 px-1.5 gap-0.5">
-                                          <UserCheck className="h-2.5 w-2.5" />
-                                          {approvingId === ak ? '…' : '✓'}
-                                        </Button>
-                                        <Button size="sm" variant="ghost" disabled={approvingId === dk} onClick={() => handleDecline(s, email)}
-                                          className="h-5 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-1.5">
-                                          {approvingId === dk ? '…' : '✕'}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+              {inMonth && dayShoots.length > 0 && (
+                <div className="mt-0.5 space-y-0.5">
+                  {dayShoots.slice(0, 2).map(s => (
+                    <div key={s.id} className={`text-xs truncate leading-tight rounded px-0.5 ${
+                      (s.pending_operators?.length || 0) > 0 ? 'text-orange-300' : 'text-blue-300'
+                    }`}>
+                      {s.title?.split(' vs ')[0] || s.client || '•'}
                     </div>
-                  )}
+                  ))}
+                  {dayShoots.length > 2 && <div className="text-xs text-gray-500">+{dayShoots.length - 2}</div>}
                 </div>
-              );
-            })}
+              )}
+              {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(30,58,138,0.4)' }} /> Has Shoots
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(120,53,15,0.5)' }} /> Pending Approval
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to expand</span>
+      </div>
+
+      {/* Day detail */}
+      {selectedDay && (
+        <div className="bg-gray-800/60 border border-blue-700/40 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-white">
+              {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
+            </p>
+            <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          </div>
-        </CardContent>
+
+          {selectedShoots.length === 0 ? (
+            <p className="text-xs text-gray-500">No shoots scheduled for this day.</p>
+          ) : (
+            <div className="space-y-3">
+              {selectedShoots.map(s => {
+                const assigned = s.assigned_operators || [];
+                const pending = s.pending_operators || [];
+                return (
+                  <div key={s.id} className={`rounded-lg border px-3 py-2.5 ${
+                    pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-gray-800/60 border-gray-700/40'
+                  }`}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div>
+                        <p className="text-sm font-medium text-white">{s.title || s.client}</p>
+                        {s.game_time && <p className="text-xs text-gray-500 font-mono">{s.game_time}</p>}
+                      </div>
+                      {s.location && <span className="text-xs text-gray-500 text-right">{s.location}</span>}
+                    </div>
+
+                    {assigned.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {assigned.map(email => (
+                          <span key={email} className="flex items-center gap-0.5 text-xs bg-green-900/30 text-green-400 border border-green-700/30 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="h-2.5 w-2.5" />
+                            {getUserName(email).split(' ')[0]}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {assigned.length === 0 && pending.length === 0 && (
+                      <p className="text-xs text-gray-600 italic">Unassigned</p>
+                    )}
+
+                    {pending.length > 0 && (
+                      <div className="mt-1.5 space-y-1 border-t border-orange-800/20 pt-1.5">
+                        <p className="text-xs text-orange-400 font-medium mb-1">Pending approval:</p>
+                        {pending.map(email => {
+                          const ak = `${s.id}_${email}`;
+                          const dk = `decline_${s.id}_${email}`;
+                          return (
+                            <div key={email} className="flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <Clock className="h-3 w-3 text-orange-400 flex-shrink-0" />
+                                <span className="text-orange-200 truncate text-xs">{getUserName(email)}</span>
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Button size="sm" disabled={approvingId === ak} onClick={() => handleApprove(s, email)}
+                                  className="h-6 text-xs bg-green-700 hover:bg-green-600 px-2 gap-0.5">
+                                  <UserCheck className="h-3 w-3" />
+                                  {approvingId === ak ? '…' : '✓'}
+                                </Button>
+                                <Button size="sm" variant="ghost" disabled={approvingId === dk} onClick={() => handleDecline(s, email)}
+                                  className="h-6 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-2">
+                                  {approvingId === dk ? '…' : '✕'}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
-    </Card>
+    </div>
   );
 }

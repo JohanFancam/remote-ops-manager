@@ -26,9 +26,10 @@ function entryCoversDate(entry, dateStr) {
   return entry.start_date <= dateStr && dateStr <= entry.end_date;
 }
 
-// ─── Admin view ──────────────────────────────────────────────────────────────
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// ─── Admin view ───────────────────────────────────────────────────────────────
 export function AdminAvailabilityView({ allUsers = [] }) {
-  const [expanded, setExpanded] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
 
@@ -37,7 +38,6 @@ export function AdminAvailabilityView({ allUsers = [] }) {
     queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
   });
 
-  // Real-time notifications when operators change availability
   useEffect(() => {
     const unsub = base44.entities.OperatorAvailability.subscribe((event) => {
       if (event.type === 'create' || event.type === 'update') {
@@ -56,197 +56,190 @@ export function AdminAvailabilityView({ allUsers = [] }) {
   }, []);
 
   const monthStr = format(calMonth, 'yyyy-MM');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
   const entryCount = entries.filter(e =>
     e.start_date?.startsWith(monthStr) || e.end_date?.startsWith(monthStr) ||
     (e.start_date < monthStr && e.end_date > monthStr)
   ).length;
 
   const calDays = getCalendarGrid(calMonth);
-  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const selectedDayEntries = selectedDay ? entries.filter(e => entryCoversDate(e, selectedDay)) : [];
+  const unavailSelected = selectedDayEntries.filter(e => e.type === 'unavailable');
+  const availSelected = selectedDayEntries.filter(e => e.type === 'available');
 
   return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-white font-semibold text-base hover:text-blue-400 transition-colors">
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-purple-400" />
-          Operator Availability
-          {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-          <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full ml-1">
-            {entryCount} entries this month
+          <span className="text-white font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
+          <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full">
+            {entryCount} entries
           </span>
-        </button>
-      </CardHeader>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      {expanded && (
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+        {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 mb-4">
+        {calDays.map(day => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const inMonth = isSameMonth(day, calMonth);
+          const isToday = dateStr === todayStr;
+          const dayEntries = entries.filter(e => entryCoversDate(e, dateStr));
+          const unavail = dayEntries.filter(e => e.type === 'unavailable');
+          const avail = dayEntries.filter(e => e.type === 'available');
+          const isSelected = selectedDay === dateStr;
 
-          <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-            {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {calDays.map(day => {
-              const dateStr = format(day, 'yyyy-MM-dd');
-              const inMonth = isSameMonth(day, calMonth);
-              const dayEntries = entries.filter(e => entryCoversDate(e, dateStr));
-              const unavail = dayEntries.filter(e => e.type === 'unavailable');
-              const avail = dayEntries.filter(e => e.type === 'available');
-              const isSelected = selectedDay === dateStr;
+          const bg = unavail.length > 0 ? 'rgba(127,29,29,0.3)' : avail.length > 0 ? 'rgba(20,83,45,0.3)' : 'rgba(31,41,55,0.4)';
 
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => inMonth && setSelectedDay(isSelected ? null : dateStr)}
-                  className={`relative rounded-md p-1 min-h-[48px] text-left w-full transition-all
-                    ${!inMonth ? 'opacity-30 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
-                    ${dateStr === todayStr ? 'ring-1 ring-blue-500' : ''}
-                    ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
-                  style={{ background: unavail.length > 0 ? 'rgba(127,29,29,0.25)' : avail.length > 0 ? 'rgba(20,83,45,0.25)' : 'rgba(31,41,55,0.4)' }}
-                >
-                  <span className={`text-xs font-medium ${dateStr === todayStr ? 'text-blue-400' : 'text-gray-400'}`}>
-                    {format(day, 'd')}
-                  </span>
-                  {unavail.length > 0 && (
-                    <div className="mt-0.5 space-y-0.5">
-                      {unavail.slice(0, 2).map(e => {
-                        const u = allUsers.find(u => u.email === e.operator_email);
-                        const name = getDisplayName(u, e.operator_email, e.operator_name);
-                        return (
-                          <div key={e.id} className="text-xs bg-red-700/50 text-red-200 rounded px-1 truncate" title={name}>
-                            {name.split(' ')[0]}
-                          </div>
-                        );
-                      })}
-                      {unavail.length > 2 && <div className="text-xs text-red-400">+{unavail.length - 2}</div>}
-                    </div>
-                  )}
-                  {avail.length > 0 && (
-                    <div className="mt-0.5 space-y-0.5">
-                      {avail.slice(0, 2).map(e => {
-                        const u = allUsers.find(u => u.email === e.operator_email);
-                        const name = getDisplayName(u, e.operator_email, e.operator_name);
-                        return (
-                          <div key={e.id} className="text-xs bg-green-700/50 text-green-200 rounded px-1 truncate" title={name}>
-                            {name.split(' ')[0]}
-                          </div>
-                        );
-                      })}
-                      {avail.length > 2 && <div className="text-xs text-green-400">+{avail.length - 2}</div>}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Day detail panel */}
-          {selectedDay && (() => {
-            const dayEntries = entries.filter(e => entryCoversDate(e, selectedDay));
-            const unavailEntries = dayEntries.filter(e => e.type === 'unavailable');
-            const availEntries = dayEntries.filter(e => e.type === 'available');
-            return (
-              <div className="mt-3 bg-gray-800/60 border border-purple-700/40 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-white">
-                    {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
-                  </p>
-                  <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-white">
-                    <X className="h-4 w-4" />
-                  </button>
+          return (
+            <button
+              key={dateStr}
+              onClick={() => inMonth && setSelectedDay(isSelected ? null : dateStr)}
+              className={`rounded-md p-1 min-h-[52px] text-left transition-all
+                ${!inMonth ? 'opacity-25 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
+                ${isToday ? 'ring-1 ring-blue-500' : ''}
+                ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
+              style={{ background: bg }}
+            >
+              <span className={`text-xs font-medium block ${isToday ? 'text-blue-400 font-bold' : unavail.length > 0 ? 'text-red-300' : avail.length > 0 ? 'text-green-300' : 'text-gray-500'}`}>
+                {format(day, 'd')}
+              </span>
+              {inMonth && unavail.length > 0 && (
+                <div className="mt-0.5 space-y-0.5">
+                  {unavail.slice(0, 2).map(e => {
+                    const u = allUsers.find(u => u.email === e.operator_email);
+                    return (
+                      <div key={e.id} className="text-xs bg-red-700/50 text-red-200 rounded px-0.5 truncate">
+                        {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
+                      </div>
+                    );
+                  })}
+                  {unavail.length > 2 && <div className="text-xs text-red-400">+{unavail.length - 2}</div>}
                 </div>
-                {dayEntries.length === 0 ? (
-                  <p className="text-xs text-gray-500">No availability entries for this day.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {unavailEntries.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">❌ Unavailable ({unavailEntries.length})</p>
-                        <div className="space-y-1">
-                          {unavailEntries.map(e => {
-                            const u = allUsers.find(u => u.email === e.operator_email);
-                            return (
-                              <div key={e.id} className="flex items-center justify-between bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
-                                <div>
-                                  <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
-                                  <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
-                                </div>
-                                <span className="text-xs bg-red-700/30 text-red-300 px-2 py-0.5 rounded-full">OUT</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+              )}
+              {inMonth && avail.length > 0 && unavail.length === 0 && (
+                <div className="mt-0.5 space-y-0.5">
+                  {avail.slice(0, 2).map(e => {
+                    const u = allUsers.find(u => u.email === e.operator_email);
+                    return (
+                      <div key={e.id} className="text-xs bg-green-700/50 text-green-200 rounded px-0.5 truncate">
+                        {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
                       </div>
-                    )}
-                    {availEntries.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-1.5">✅ Available ({availEntries.length})</p>
-                        <div className="space-y-1">
-                          {availEntries.map(e => {
-                            const u = allUsers.find(u => u.email === e.operator_email);
-                            return (
-                              <div key={e.id} className="flex items-center justify-between bg-green-950/30 border border-green-800/30 rounded-lg px-3 py-2">
-                                <div>
-                                  <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
-                                  <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
-                                </div>
-                                <span className="text-xs bg-green-700/30 text-green-300 px-2 py-0.5 rounded-full">IN</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+                    );
+                  })}
+                  {avail.length > 2 && <div className="text-xs text-green-400">+{avail.length - 2}</div>}
+                </div>
+              )}
+              {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="flex items-center gap-4 mt-3">
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to expand</span>
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to expand</span>
+      </div>
+
+      {/* Day detail panel */}
+      {selectedDay && (
+        <div className="bg-gray-800/60 border border-purple-700/40 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-white">
+              {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
+            </p>
+            <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </CardContent>
+          {selectedDayEntries.length === 0 ? (
+            <p className="text-xs text-gray-500">No availability entries for this day.</p>
+          ) : (
+            <div className="space-y-3">
+              {unavailSelected.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">❌ Unavailable ({unavailSelected.length})</p>
+                  <div className="space-y-1">
+                    {unavailSelected.map(e => {
+                      const u = allUsers.find(u => u.email === e.operator_email);
+                      return (
+                        <div key={e.id} className="flex items-center justify-between bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                            <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                          </div>
+                          <span className="text-xs bg-red-700/30 text-red-300 px-2 py-0.5 rounded-full">OUT</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {availSelected.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-1.5">✅ Available ({availSelected.length})</p>
+                  <div className="space-y-1">
+                    {availSelected.map(e => {
+                      const u = allUsers.find(u => u.email === e.operator_email);
+                      return (
+                        <div key={e.id} className="flex items-center justify-between bg-green-950/30 border border-green-800/30 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                            <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                          </div>
+                          <span className="text-xs bg-green-700/30 text-green-300 px-2 py-0.5 rounded-full">IN</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
-// ─── Operator view ───────────────────────────────────────────────────────────
+// ─── Operator view ────────────────────────────────────────────────────────────
 const BLANK_FORM = { start_date: '', end_date: '', type: 'unavailable', notes: '' };
 
 export function OperatorAvailabilityPanel({ user }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
-
-  // Selection state
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
   const [rangeStart, setRangeStart] = useState(null);
   const [rangeEnd, setRangeEnd] = useState(null);
-
-  // Form state
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [form, setForm] = useState(BLANK_FORM);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const { data: allEntries = [] } = useQuery({
     queryKey: ['operatorAvailability'],
@@ -255,7 +248,6 @@ export function OperatorAvailabilityPanel({ user }) {
 
   const myEntries = allEntries.filter(e => e.operator_email === user?.email);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['operatorAvailability'] });
-
   const calDays = getCalendarGrid(calMonth);
   const upcoming = [...myEntries].filter(e => e.end_date >= todayStr).sort((a, b) => a.start_date.localeCompare(b.start_date));
 
@@ -269,79 +261,56 @@ export function OperatorAvailabilityPanel({ user }) {
   const handleDayClick = (dateStr) => {
     if (selectMode) {
       if (!rangeStart || (rangeStart && rangeEnd)) {
-        setRangeStart(dateStr);
-        setRangeEnd(null);
+        setRangeStart(dateStr); setRangeEnd(null);
         setForm(f => ({ ...f, start_date: dateStr, end_date: dateStr }));
-        setShowForm(true);
-        setEditingEntry(null);
-        setSelectedDay(null);
+        setShowForm(true); setEditingEntry(null); setSelectedDay(null);
       } else {
         const lo = dateStr < rangeStart ? dateStr : rangeStart;
         const hi = dateStr < rangeStart ? rangeStart : dateStr;
-        setRangeStart(lo);
-        setRangeEnd(hi);
+        setRangeStart(lo); setRangeEnd(hi);
         setForm(f => ({ ...f, start_date: lo, end_date: hi }));
-        setShowForm(true);
-        setEditingEntry(null);
-        setSelectedDay(null);
+        setShowForm(true); setEditingEntry(null); setSelectedDay(null);
       }
     } else {
       setSelectedDay(selectedDay === dateStr ? null : dateStr);
-      setRangeStart(null);
-      setRangeEnd(null);
+      setRangeStart(null); setRangeEnd(null);
     }
   };
 
   const openQuickAdd = (dateStr) => {
     setForm({ ...BLANK_FORM, start_date: dateStr, end_date: dateStr });
-    setEditingEntry(null);
-    setShowForm(true);
-    setSelectedDay(null);
+    setEditingEntry(null); setShowForm(true); setSelectedDay(null);
   };
 
   const openEdit = (entry) => {
     setEditingEntry(entry);
     setForm({ start_date: entry.start_date, end_date: entry.end_date, type: entry.type, notes: entry.notes || '' });
-    setShowForm(true);
-    setSelectedDay(null);
+    setShowForm(true); setSelectedDay(null);
   };
 
   const handleSave = async () => {
     if (!form.start_date || !form.end_date) return;
     if (editingEntry) {
       await base44.entities.OperatorAvailability.update(editingEntry.id, {
-        start_date: form.start_date,
-        end_date: form.end_date,
-        type: form.type,
-        notes: form.notes,
+        start_date: form.start_date, end_date: form.end_date, type: form.type, notes: form.notes,
       });
     } else {
       await base44.entities.OperatorAvailability.create({
-        operator_email: user.email,
-        operator_name: user.full_name || user.email,
-        start_date: form.start_date,
-        end_date: form.end_date,
-        type: form.type,
-        notes: form.notes,
+        operator_email: user.email, operator_name: user.full_name || user.email,
+        start_date: form.start_date, end_date: form.end_date, type: form.type, notes: form.notes,
       });
     }
-    refresh();
-    closeForm();
+    refresh(); closeForm();
   };
 
   const handleRemove = async (id) => {
     await base44.entities.OperatorAvailability.delete(id);
-    refresh();
-    setSelectedDay(null);
+    refresh(); setSelectedDay(null);
   };
 
   const closeForm = () => {
-    setShowForm(false);
-    setEditingEntry(null);
-    setSelectMode(false);
-    setRangeStart(null);
-    setRangeEnd(null);
-    setForm(BLANK_FORM);
+    setShowForm(false); setEditingEntry(null); setSelectMode(false);
+    setRangeStart(null); setRangeEnd(null); setForm(BLANK_FORM);
   };
 
   const selectedEntries = selectedDay ? myEntries.filter(e => entryCoversDate(e, selectedDay)) : [];
@@ -368,34 +337,27 @@ export function OperatorAvailabilityPanel({ user }) {
             <Button size="sm" variant="outline"
               className="border-purple-700/50 text-purple-400 hover:bg-purple-900/30 h-7 text-xs gap-1"
               onClick={() => {
-                setShowForm(!showForm);
-                setSelectMode(false);
+                setShowForm(!showForm); setSelectMode(false);
                 setRangeStart(null); setRangeEnd(null); setSelectedDay(null);
                 if (!showForm) { setEditingEntry(null); setForm(BLANK_FORM); }
               }}>
               <Plus className="h-3 w-3" /> Add Entry
             </Button>
-
             <Button size="sm" variant={selectMode ? 'default' : 'outline'}
               className={selectMode
                 ? 'h-7 text-xs gap-1 bg-blue-700 hover:bg-blue-600 border-blue-600'
                 : 'h-7 text-xs gap-1 border-blue-700/50 text-blue-400 hover:bg-blue-900/30'}
-              onClick={() => {
-                setSelectMode(!selectMode);
-                setShowForm(false); setSelectedDay(null);
-                setRangeStart(null); setRangeEnd(null);
-              }}>
+              onClick={() => { setSelectMode(!selectMode); setShowForm(false); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               {selectMode ? <><Check className="h-3 w-3" /> Selecting…</> : 'Select Range'}
             </Button>
-
             {selectMode && (
               <span className="text-xs text-blue-300">
-                {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end date` : `${rangeStart} → ${rangeEnd}`}
+                {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end` : `${rangeStart} → ${rangeEnd}`}
               </span>
             )}
           </div>
 
-          {/* Add / Edit form */}
+          {/* Form */}
           {showForm && (
             <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
               <p className="text-sm font-medium text-purple-300">
@@ -434,71 +396,70 @@ export function OperatorAvailabilityPanel({ user }) {
             </div>
           )}
 
+          {/* Month nav */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+              onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+              onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
           {/* Calendar */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
-                onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
-                onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+            {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {calDays.map(day => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const inMonth = isSameMonth(day, calMonth);
+              const isToday = dateStr === todayStr;
+              const myDay = myEntries.find(e => entryCoversDate(e, dateStr));
+              const isSelected = selectedDay === dateStr;
+              const inSelRange = isInRange(dateStr);
+              const isEdge = dateStr === rangeStart || dateStr === rangeEnd;
 
-            <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-              {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
-            </div>
-            <div className="grid grid-cols-7 gap-0.5 mb-3">
-              {calDays.map(day => {
-                const dateStr = format(day, 'yyyy-MM-dd');
-                const inMonth = isSameMonth(day, calMonth);
-                const isToday = dateStr === todayStr;
-                const myDay = myEntries.find(e => entryCoversDate(e, dateStr));
-                const isSelected = selectedDay === dateStr;
-                const inSelRange = isInRange(dateStr);
-                const isEdge = dateStr === rangeStart || dateStr === rangeEnd;
+              let bg = 'rgba(31,41,55,0.4)';
+              if (myDay?.type === 'unavailable') bg = 'rgba(127,29,29,0.4)';
+              else if (myDay?.type === 'available') bg = 'rgba(20,83,45,0.4)';
+              if (inSelRange) bg = 'rgba(109,40,217,0.25)';
+              if (isEdge) bg = 'rgba(109,40,217,0.5)';
 
-                let bg = 'rgba(31,41,55,0.4)';
-                if (myDay?.type === 'unavailable') bg = 'rgba(127,29,29,0.4)';
-                else if (myDay?.type === 'available') bg = 'rgba(20,83,45,0.4)';
-                if (inSelRange) bg = 'rgba(109,40,217,0.25)';
-                if (isEdge) bg = 'rgba(109,40,217,0.5)';
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => handleDayClick(dateStr)}
+                  className={`rounded-md p-1 min-h-[44px] text-center transition-all ${!inMonth ? 'opacity-25' : ''}
+                    ${isSelected ? 'ring-2 ring-purple-400' : isEdge ? 'ring-2 ring-blue-400' : inSelRange ? 'ring-1 ring-blue-600' : 'hover:ring-1 hover:ring-gray-600'}
+                    ${isToday ? 'ring-1 ring-blue-500' : ''}`}
+                  style={{ background: bg }}
+                >
+                  <span className={`text-xs font-medium ${isToday ? 'text-blue-400 font-bold' : myDay?.type === 'unavailable' ? 'text-red-300' : myDay?.type === 'available' ? 'text-green-300' : 'text-gray-500'}`}>
+                    {format(day, 'd')}
+                  </span>
+                  {inMonth && myDay && (
+                    <div className={`text-xs mt-0.5 ${myDay.type === 'unavailable' ? 'text-red-400' : 'text-green-400'}`}>
+                      {myDay.type === 'unavailable' ? 'OUT' : 'IN'}
+                    </div>
+                  )}
+                  {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+                </button>
+              );
+            })}
+          </div>
 
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => handleDayClick(dateStr)}
-                    className={`rounded-md p-1 min-h-[44px] text-center transition-all ${!inMonth ? 'opacity-25' : ''}
-                      ${isSelected ? 'ring-2 ring-purple-400' : isEdge ? 'ring-2 ring-blue-400' : inSelRange ? 'ring-1 ring-blue-600' : 'hover:ring-1 hover:ring-gray-600'}`}
-                    style={{ background: bg }}
-                  >
-                    <span className={`text-xs font-medium ${isToday ? 'text-blue-400 font-bold' : myDay?.type === 'unavailable' ? 'text-red-300' : myDay?.type === 'available' ? 'text-green-300' : 'text-gray-500'}`}>
-                      {format(day, 'd')}
-                    </span>
-                    {inMonth && myDay && (
-                      <div className={`text-xs mt-0.5 ${myDay.type === 'unavailable' ? 'text-red-400' : 'text-green-400'}`}>
-                        {myDay.type === 'unavailable' ? 'OUT' : 'IN'}
-                      </div>
-                    )}
-                    {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="flex items-center gap-1.5 text-xs text-gray-400">
-                <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-400">
-                <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to view / edit</span>
-            </div>
+          {/* Legend */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
+            </span>
           </div>
 
           {/* Day detail panel */}
@@ -514,7 +475,6 @@ export function OperatorAvailabilityPanel({ user }) {
                   <Plus className="h-3 w-3" /> Add Here
                 </Button>
               </div>
-
               {selectedEntries.length === 0 ? (
                 <p className="text-xs text-gray-500">Nothing set for this day — click "Add Here" to add an entry.</p>
               ) : (
@@ -529,9 +489,7 @@ export function OperatorAvailabilityPanel({ user }) {
                         }`}>
                           {entry.type === 'unavailable' ? 'OUT' : 'IN'}
                         </span>
-                        <p className="text-xs text-gray-300 mt-1">
-                          {entry.start_date} → {entry.end_date}
-                        </p>
+                        <p className="text-xs text-gray-300 mt-1">{entry.start_date} → {entry.end_date}</p>
                         {entry.notes && <p className="text-xs text-gray-500 italic mt-0.5">{entry.notes}</p>}
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
