@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -212,8 +213,11 @@ function LayoutContent({ children, currentPageName }) {
         />
       )}
 
+      {/* Mobile bottom nav */}
+      <MobileBottomNav />
+
       {/* Main content */}
-      <main className="flex-1 md:ml-64 pt-14 md:pt-0 min-h-screen">
+      <main className="flex-1 md:ml-64 pt-14 md:pt-0 pb-16 md:pb-0 min-h-screen">
         {isLoading ? (
           <div className="flex items-center justify-center h-full min-h-screen">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />

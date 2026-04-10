@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Download, FileText, AlertCircle, CheckCircle2, Copy, Check,
-  ChevronLeft, ChevronRight, X
+  Download, AlertCircle, CheckCircle2, Copy, Check,
+  ChevronLeft, ChevronRight, X, Trash2, Plus, Save
 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -48,8 +48,11 @@ function downloadCSV(csv, filename) {
 }
 
 // Day detail slide-in panel
-function DayPanel({ date, reports, onClose }) {
+function DayPanel({ date, reports, onClose, onDelete, onAdd }) {
   const [expanded, setExpanded] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ shoot_title: '', operator_name: '', had_issues: false, notes: '' });
+  const [saving, setSaving] = useState(false);
   const label = format(date, 'EEE, MMMM d yyyy');
   const hasIssues = reports.filter(r => r.had_issues);
 
@@ -72,13 +75,37 @@ function DayPanel({ date, reports, onClose }) {
             <Button size="sm" variant="ghost"
               className="text-xs text-gray-400 hover:text-white gap-1.5 h-8"
               onClick={() => downloadCSV(buildCSV(reports), `Reports_${format(date, 'yyyy-MM-dd')}.csv`)}>
-              <Download className="h-3.5 w-3.5" /> Export Day
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+            <Button size="sm" variant="ghost" className="text-xs text-blue-400 hover:text-blue-300 gap-1 h-8"
+              onClick={() => setShowAdd(!showAdd)}>
+              <Plus className="h-3.5 w-3.5" /> Add
             </Button>
             <button onClick={onClose} className="text-gray-500 hover:text-white">
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
+
+        {/* Add report form */}
+        {showAdd && (
+          <div className="px-5 py-4 border-b border-gray-800 bg-gray-800/40 space-y-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Manual Report</p>
+            <input className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white placeholder:text-gray-500" placeholder="Shoot Title *" value={addForm.shoot_title} onChange={e => setAddForm({...addForm, shoot_title: e.target.value})} />
+            <input className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white placeholder:text-gray-500" placeholder="Operator Name" value={addForm.operator_name} onChange={e => setAddForm({...addForm, operator_name: e.target.value})} />
+            <textarea className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white placeholder:text-gray-500 resize-none" placeholder="Notes" rows={2} value={addForm.notes} onChange={e => setAddForm({...addForm, notes: e.target.value})} />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                <input type="checkbox" checked={addForm.had_issues} onChange={e => setAddForm({...addForm, had_issues: e.target.checked})} className="rounded" />
+                Had Issues
+              </label>
+              <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 gap-1 ml-auto" disabled={!addForm.shoot_title || saving}
+                onClick={async () => { setSaving(true); await onAdd({ ...addForm, shoot_date: format(date, 'yyyy-MM-dd') }); setAddForm({ shoot_title: '', operator_name: '', had_issues: false, notes: '' }); setShowAdd(false); setSaving(false); }}>
+                <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Report list */}
         <div className="flex-1 divide-y divide-gray-800">
@@ -95,11 +122,16 @@ function DayPanel({ date, reports, onClose }) {
                     <p className="text-xs text-gray-400 mt-0.5">{r.operator_name || r.operator_email}</p>
                   </div>
                 </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
                 <Badge className={r.had_issues
-                  ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs flex-shrink-0'
-                  : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs flex-shrink-0'}>
-                  {r.had_issues ? 'Issues' : 'Clean'}
-                </Badge>
+                    ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs'
+                    : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'}>
+                    {r.had_issues ? 'Issues' : 'Clean'}
+                  </Badge>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400" onClick={() => onDelete(r.id)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
               </div>
 
               {/* Expandable details */}
@@ -144,8 +176,19 @@ function DayPanel({ date, reports, onClose }) {
 
 export default function Reports() {
   const { isAdmin } = useApp();
+  const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
+
+  const handleDeleteReport = async (id) => {
+    await base44.entities.ShootReport.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['shootReports'] });
+  };
+
+  const handleAddReport = async (data) => {
+    await base44.entities.ShootReport.create({ ...data, operator_email: '', operator_name: data.operator_name || '', shoot_title: data.shoot_title, had_issues: data.had_issues, notes: data.notes, shoot_date: data.shoot_date });
+    queryClient.invalidateQueries({ queryKey: ['shootReports'] });
+  };
 
   const { data: reports = [] } = useQuery({
     queryKey: ['shootReports'],
@@ -326,6 +369,8 @@ export default function Reports() {
           date={selectedDay}
           reports={dayReports}
           onClose={() => setSelectedDay(null)}
+          onDelete={handleDeleteReport}
+          onAdd={handleAddReport}
         />
       )}
     </div>

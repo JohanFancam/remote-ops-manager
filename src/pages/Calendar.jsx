@@ -24,6 +24,16 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
+const isFancamShoot = (shoot, rigSettings) => {
+  if (shoot.rig_type_override === 'Fancam') return true;
+  if (shoot.rig_type_override === 'Data') return false;
+  const rs = rigSettings.find(r => r.team && (
+    (shoot.client || '').toLowerCase().includes(r.team.toLowerCase()) ||
+    (shoot.title || '').toLowerCase().includes(r.team.toLowerCase())
+  ));
+  return rs?.rig_type === 'Fancam';
+};
+
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
@@ -280,7 +290,8 @@ export default function Calendar() {
                       <div className="space-y-0.5">
                         {dayShoots.slice(0, 3).map(s => {
                           const isMyAssigned = s.assigned_operators?.includes(user?.email);
-                          const cellColor = isPast ? 'bg-gray-700 opacity-60' : isMyAssigned ? 'bg-purple-600' : (statusColors[s.status] || 'bg-blue-600');
+                          const fancam = isFancamShoot(s, rigSettings);
+                          const cellColor = isPast ? 'bg-gray-700 opacity-60' : isMyAssigned ? 'bg-purple-600' : fancam ? 'bg-orange-500' : (statusColors[s.status] || 'bg-blue-600');
                           return (
                             <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${cellColor}`}>
                               {s.game_time ? `${s.game_time} ` : ''}{shortenTitle(s.title)}
@@ -306,6 +317,7 @@ export default function Calendar() {
                 { label: 'In Progress', color: 'bg-yellow-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'My Assigned', color: 'bg-purple-600' },
+                { label: 'Fancam', color: 'bg-orange-500' },
                 { label: 'Past', color: 'bg-gray-700 opacity-50' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
@@ -483,7 +495,7 @@ export default function Calendar() {
                     <Input placeholder="Client / Team" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                     <Input placeholder="Venue / Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                     <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
-                    <Input placeholder="Game Time (HH:MM)" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                    <input type="time" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 h-9 text-sm w-full" />
                     <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                       <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-gray-900 border-gray-700">
