@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -30,16 +31,35 @@ export function AdminAvailabilityView({ allUsers = [] }) {
   const [expanded, setExpanded] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
 
-  const { data: entries = [] } = useQuery({
+  const { data: entries = [], refetch: refetchEntries } = useQuery({
     queryKey: ['operatorAvailability'],
     queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
   });
 
+  // Real-time notifications for admin when operators change availability
+  useEffect(() => {
+    const unsub = base44.entities.OperatorAvailability.subscribe((event) => {
+      if (event.type === 'create' || event.type === 'update') {
+        const e = event.data;
+        const name = e?.operator_name || e?.operator_email || 'An operator';
+        const typeLabel = e?.type === 'unavailable' ? 'OUT' : 'IN';
+        toast.info(`📅 Availability updated`, {
+          description: `${name} marked ${typeLabel}: ${e?.start_date} → ${e?.end_date}`,
+          duration: 8000,
+        });
+        refetchEntries();
+      }
+      if (event.type === 'delete') {
+        refetchEntries();
+      }
+    });
+    return () => unsub();
+  }, []);
+
   const monthStr = format(calMonth, 'yyyy-MM');
-  const unavailableCount = entries.filter(e =>
-    e.type === 'unavailable' &&
-    (e.start_date?.startsWith(monthStr) || e.end_date?.startsWith(monthStr) ||
-      (e.start_date < monthStr && e.end_date > monthStr))
+  const entryCount = entries.filter(e =>
+    e.start_date?.startsWith(monthStr) || e.end_date?.startsWith(monthStr) ||
+    (e.start_date < monthStr && e.end_date > monthStr)
   ).length;
 
   const calDays = getCalendarGrid(calMonth);
@@ -53,7 +73,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
           Operator Availability
           {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
           <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full ml-1">
-            {unavailableCount} unavailable this month
+            {entryCount} entries this month
           </span>
         </button>
       </CardHeader>

@@ -156,8 +156,8 @@ export default function Dashboard() {
           <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d, yyyy')}</p>
         </div>
 
-        {/* Shoot change notifications — remote users only */}
-        {!isAdmin && <ShootChangeNotifier userEmail={user?.email} />}
+        {/* Shoot change notifications */}
+        <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
 
         {/* Standby banner — visible to ALL users */}
         <StandbyBanner todayStr={todayStr} currentUser={user} />

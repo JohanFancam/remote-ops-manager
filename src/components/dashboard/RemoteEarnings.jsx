@@ -31,31 +31,21 @@ export default function RemoteEarnings({ user }) {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
 
-  // 2. BROAD FILTERING: Match by Email, Name, or ID
+  // Filter by assigned_operators (correct field) for the selected month
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
-    const safeName = user?.full_name?.toLowerCase()?.trim();
-    const safeId = user?.id;
-
-    return allShoots.filter(s => {
-      if (!s.date) return false;
-      const normalizedDate = s.date.replaceAll('/', '-');
-      const isCorrectMonth = normalizedDate.includes(monthStr);
-
-      const matchesMe = 
-        (s.operator_email?.toLowerCase()?.trim() === safeEmail) ||
-        (s.operator_id === safeId) ||
-        (s.operator_name?.toLowerCase()?.trim() === safeName);
-
-      return isCorrectMonth && matchesMe;
-    });
+    return allShoots.filter(s =>
+      s.date?.startsWith(monthStr) &&
+      s.status !== 'cancelled' &&
+      s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail)
+    );
   }, [allShoots, user, monthStr]);
 
-  // 3. CALCULATION
+  // Pass month's shoots — calculateOperatorEarnings filters by assigned_operators
   const { total, breakdown } = calculateOperatorEarnings(
-    myShootsForMonth, 
-    user?.email?.toLowerCase()?.trim(), 
-    baseRate, 
+    myShootsForMonth,
+    user?.email?.toLowerCase()?.trim(),
+    baseRate,
     additionalRate
   );
 

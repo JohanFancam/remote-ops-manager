@@ -11,7 +11,7 @@ const TRACKED_FIELDS = [
   { key: 'standby_admin', label: 'Standby Contact' },
 ];
 
-export default function ShootChangeNotifier({ userEmail }) {
+export default function ShootChangeNotifier({ userEmail, isAdmin = false }) {
   const shootsRef = useRef({});
 
   useEffect(() => {
@@ -19,11 +19,7 @@ export default function ShootChangeNotifier({ userEmail }) {
 
     // Seed initial state from current shoots
     base44.entities.Shoot.list('-date', 500).then(shoots => {
-      shoots.forEach(s => {
-        if (s.assigned_operators?.includes(userEmail)) {
-          shootsRef.current[s.id] = s;
-        }
-      });
+      shoots.forEach(s => { shootsRef.current[s.id] = s; });
     });
 
     const unsubscribe = base44.entities.Shoot.subscribe((event) => {
@@ -33,49 +29,25 @@ export default function ShootChangeNotifier({ userEmail }) {
       const isAssigned = shoot.assigned_operators?.includes(userEmail);
       const prev = shootsRef.current[shoot.id];
 
-      if (event.type === 'update' && isAssigned && prev) {
-        const changes = TRACKED_FIELDS.filter(f => {
-          const a = prev[f.key];
-          const b = shoot[f.key];
-          return String(a ?? '') !== String(b ?? '');
-        });
-
-        if (changes.length > 0) {
-          const changeText = changes.map(f => {
-            const oldVal = prev[f.key] || '—';
-            const newVal = shoot[f.key] || '—';
-            return `${f.label}: ${oldVal} → ${newVal}`;
-          }).join('\n');
-
-          toast.info(`📋 ${shoot.title} updated`, {
-            description: changeText,
+      // Admin: notify when pending operators added
+      if (isAdmin && event.type === 'update' && prev) {
+        const prevPending = prev.pending_operators || [];
+        const newPending = shoot.pending_operators || [];
+        const added = newPending.filter(e => !prevPending.includes(e));
+        if (added.length > 0) {
+          toast.info(`⏳ Approval needed: ${shoot.title}`, {
+            description: `${added.length} operator(s) requesting assignment`,
             duration: 10000,
             action: {
-              label: 'View',
+              label: 'Review',
               onClick: () => { window.location.href = `/Calendar?shootId=${shoot.id}`; },
             },
           });
         }
       }
 
-      if (event.type === 'update' && !isAssigned && prev) {
-        // Was assigned before, now removed
-        toast.warning(`You were removed from ${shoot.title || 'a shoot'}`, { duration: 8000 });
-      }
-
-      if (event.type === 'update' && isAssigned && !prev) {
-        // Newly assigned
-        toast.success(`You've been assigned to ${shoot.title}`, {
-          duration: 8000,
-          action: {
-            label: 'View',
-            onClick: () => { window.location.href = `/Calendar?shootId=${shoot.id}`; },
-          },
-        });
-      }
-
       // Update stored state
-      if (isAssigned) {
+      if (isAssigned || isAdmin) {
         shootsRef.current[shoot.id] = shoot;
       } else {
         delete shootsRef.current[shoot.id];
