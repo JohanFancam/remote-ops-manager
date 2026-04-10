@@ -135,7 +135,8 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2">
+          <div className="overflow-x-auto -mx-1 px-1">
+          <div className="grid gap-2" style={{gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))', minWidth: '770px'}}>
             {days.map(dateStr => {
               const isToday = dateStr === todayStr;
               const dayShoots = windowShoots
@@ -223,6 +224,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                 </div>
               );
             })}
+          </div>
           </div>
         </CardContent>
       )}

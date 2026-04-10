@@ -115,7 +115,8 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       {expanded && (
         <CardContent className="pt-4">
           {/* Day-by-day tile grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2 mb-4">
+          <div className="overflow-x-auto -mx-1 px-1 mb-4">
+          <div className="grid gap-2" style={{gridTemplateColumns: 'repeat(7, minmax(100px, 1fr))', minWidth: '700px'}}>
             {days.map(dateStr => {
               const isToday = dateStr === todayStr;
               const dayShoots = activeShoots
@@ -168,6 +169,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 </div>
               );
             })}
+          </div>
           </div>
 
           {/* Preview */}
