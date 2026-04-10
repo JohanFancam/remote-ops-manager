@@ -361,21 +361,35 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             {matchedRig && (
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Rig Config</p>
-                <div className="grid grid-cols-2 gap-1 text-xs mb-2">
-                  {matchedRig.sport && <span className="text-gray-400">Sport: <span className="text-gray-200">{matchedRig.sport}</span></span>}
-                  {matchedRig.venue_type && <span className="text-gray-400">Venue: <span className="text-gray-200">{matchedRig.venue_type}</span></span>}
-                  {matchedRig.shoot_plan && (
-                    <span className="col-span-2 text-gray-400">Plan: <span className="text-gray-200">{matchedRig.shoot_plan}</span></span>
+                {(matchedRig.sport || matchedRig.venue_type) && (
+                  <div className="flex gap-3 text-xs mb-2">
+                    {matchedRig.sport && <span className="text-gray-400">Sport: <span className="text-gray-200">{matchedRig.sport}</span></span>}
+                    {matchedRig.venue_type && <span className="text-gray-400">Venue: <span className="text-gray-200">{matchedRig.venue_type}</span></span>}
+                  </div>
+                )}
+                {matchedRig.remote_rigs?.length > 0 && (
+                  <p className="text-xs text-gray-400 mb-2">Remotes: <span className="text-gray-200">{matchedRig.remote_rigs.join(', ')}</span></p>
+                )}
+                {/* Camera settings */}
+                <div className="space-y-1 mb-2">
+                  {[
+                    { label: 'HD', enabled: matchedRig.hd_enabled !== false, cam: matchedRig.hd },
+                    { label: 'Wide', enabled: matchedRig.wide_enabled !== false, cam: matchedRig.wide },
+                    { label: 'Attention', enabled: !!matchedRig.attention_enabled, cam: matchedRig.attention },
+                  ].map(({ label, enabled, cam }) => enabled ? (
+                    <div key={label} className="flex items-center justify-between bg-gray-800/50 rounded px-2 py-1">
+                      <span className="text-xs text-gray-400 w-16">{label}</span>
+                      <span className="text-xs text-gray-300 font-mono">
+                        {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
+                      </span>
+                    </div>
+                  ) : null)}
+                  {matchedRig.sound && (
+                    <div className="flex items-center gap-1.5 bg-green-950/20 rounded px-2 py-1">
+                      <Volume2 className="h-3 w-3 text-green-400" />
+                      <span className="text-xs text-green-400">Sound Recording</span>
+                    </div>
                   )}
-                  {matchedRig.remote_rigs?.length > 0 && (
-                    <span className="col-span-2 text-gray-400">Remotes: <span className="text-gray-200">{matchedRig.remote_rigs.join(', ')}</span></span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {matchedRig.hd_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600">HD</span>}
-                  {matchedRig.wide_enabled !== false && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600">Wide</span>}
-                  {matchedRig.attention_enabled && <span className="text-xs px-2 py-0.5 rounded-full bg-orange-900/30 text-orange-400 border border-orange-700/40">Attention</span>}
-                  {matchedRig.sound && <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-700/40">Sound</span>}
                 </div>
               </div>
             )}
