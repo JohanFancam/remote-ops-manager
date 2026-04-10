@@ -33,7 +33,9 @@ export default function AssignmentNotifications({ shoots = [], user }) {
       .map(s => ({ key: `approved_${s.id}`, shoot: s, type: 'approved' })),
   ].sort((a, b) => a.shoot.date.localeCompare(b.shoot.date));
 
-  const active = notifications.filter(n => !dismissed.includes(n.key));
+  // Pending approvals always show (never hidden by dismissal)
+  const active = notifications.filter(n => n.type === 'pending' || !dismissed.includes(n.key));
+  const pendingCount = active.filter(n => n.type === 'pending').length;
   const count = active.length;
 
   const dismiss = (key) => {
@@ -59,7 +61,12 @@ export default function AssignmentNotifications({ shoots = [], user }) {
         <span className="flex items-center gap-2 text-sm">
           <UserCheck className="h-4 w-4" /> Assignments
         </span>
-        {count > 0 && (
+        {pendingCount > 0 && (
+          <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            {pendingCount > 9 ? '9+' : pendingCount}
+          </span>
+        )}
+        {pendingCount === 0 && count > 0 && (
           <span className="bg-purple-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {count > 9 ? '9+' : count}
           </span>
