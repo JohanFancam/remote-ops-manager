@@ -17,28 +17,17 @@ export default function AssignmentNotifications({ shoots = [], user }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  const email = user?.email?.toLowerCase()?.trim();
   const now = new Date();
   const todayStr = format(now, 'yyyy-MM-dd');
 
-  // Pending: user requested assignment, waiting for admin approval
+  // Shoots with pending operators awaiting admin approval
   const pendingShoots = shoots.filter(s =>
     s.status !== 'cancelled' &&
     s.date >= todayStr &&
-    s.pending_operators?.some(e => e?.toLowerCase()?.trim() === email)
+    s.pending_operators?.length > 0
   );
 
-  // Approved: user is in assigned_operators on a future/today shoot
-  const approvedShoots = shoots.filter(s =>
-    s.status !== 'cancelled' &&
-    s.date >= todayStr &&
-    s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === email)
-  );
-
-  const notifications = [
-    ...pendingShoots.map(s => ({ key: `pending_${s.id}`, shoot: s, type: 'pending' })),
-    ...approvedShoots.map(s => ({ key: `approved_${s.id}`, shoot: s, type: 'approved' })),
-  ];
+  const notifications = pendingShoots.map(s => ({ key: `pending_${s.id}`, shoot: s, type: 'pending' }));
 
   const active = notifications.filter(n => !dismissed.includes(n.key));
   const count = active.length;
