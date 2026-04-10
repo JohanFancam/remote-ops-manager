@@ -87,13 +87,16 @@ const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 
 function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClick }) {
   return (
-    <div
+    <button
+      type="button"
+      disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
+      className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
         done ? 'bg-green-950/40 border border-green-800/50' :
         active ? 'bg-blue-950/40 border border-blue-800/50' :
         'bg-transparent border border-transparent'
-      } ${canClick ? 'cursor-pointer hover:border-gray-600 hover:bg-gray-800/50' : ''}`}
+      } ${canClick ? 'cursor-pointer hover:border-gray-600 hover:bg-gray-800/50 active:opacity-70' : 'cursor-default'}`}
+      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
     >
       <span className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${done ? 'text-green-400' : active ? 'text-blue-400' : 'text-gray-600'}`} />
@@ -111,7 +114,7 @@ function PhaseRow({ label, time, Icon, done, active, countdown, onClick, canClic
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -120,6 +123,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [localPhaseStatus, setLocalPhaseStatus] = useState(null);
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -190,15 +194,18 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
 
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
+  const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
   const handlePhaseToggle = async (doneKey) => {
     if (!onUpdate || !doneKey) return;
-    const current = shoot.phase_status || {};
+    const current = localPhaseStatus || shoot.phase_status || {};
     const newPhaseStatus = {
       ...current,
       [doneKey]: current[doneKey] ? null : new Date().toISOString(),
     };
+    setLocalPhaseStatus(newPhaseStatus);
     await onUpdate(shoot.id, { phase_status: newPhaseStatus });
+    setLocalPhaseStatus(null);
   };
 
   const handleRigTypeChange = async (type) => {
@@ -325,7 +332,6 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Schedule</p>
                 {(() => {
-                  const phase = shoot.phase_status || {};
                   // Parse a schedule time string "HH:MM" into a Date on shoot day
                   const toDate = (timeStr) => {
                     if (!timeStr || !shoot.date) return null;
@@ -334,6 +340,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
                     d.setHours(h, m, 0, 0);
                     return d;
                   };
+                  const phase = effectivePhaseStatus;
                   const phases = [
                     { label: 'Setup', time: schedule.setup, Icon: Zap, doneKey: 'setup_complete', date: toDate(schedule.setup) },
                     { label: 'Pre-Shoot', time: schedule.pre_shoot, Icon: Camera, doneKey: 'pre_shoot_started', date: toDate(schedule.pre_shoot) },
