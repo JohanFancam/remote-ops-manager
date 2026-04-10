@@ -18,7 +18,19 @@ function getCalendarGrid(month) {
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
+function CamRow({ label, enabled, cam }) {
+  if (!enabled) return null;
+  return (
+    <div className="flex items-center justify-between text-xs py-0.5">
+      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-300 font-mono">
+        {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
+      </span>
+    </div>
+  );
+}
+
+export default function WeeklyTeamPanel({ shoots = [], allUsers = [], rigSettings = [] }) {
   const queryClient = useQueryClient();
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
@@ -165,65 +177,82 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                 const pending = s.pending_operators || [];
                 return (
                   <div key={s.id} className={`rounded-lg border px-3 py-2.5 ${
-                    pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-gray-800/60 border-gray-700/40'
+                  pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-gray-800/60 border-gray-700/40'
                   }`}>
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div>
-                        <p className="text-sm font-medium text-white">{s.title || s.client}</p>
-                        {s.game_time && <p className="text-xs text-gray-500 font-mono">{s.game_time}</p>}
-                      </div>
-                      {s.location && <span className="text-xs text-gray-500 text-right">{s.location}</span>}
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div>
+                      <p className="text-sm font-medium text-white">{s.title || s.client}</p>
+                      {s.game_time && <p className="text-xs text-gray-500 font-mono">{s.game_time}</p>}
                     </div>
-
-                    {assigned.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-1">
-                        {assigned.map(email => (
-                          <span key={email} className="flex items-center gap-0.5 text-xs bg-green-900/30 text-green-400 border border-green-700/30 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="h-2.5 w-2.5" />
-                            {getUserName(email).split(' ')[0]}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {assigned.length === 0 && pending.length === 0 && (
-                      <p className="text-xs text-gray-600 italic">Unassigned</p>
-                    )}
-
-                    {pending.length > 0 && (
-                      <div className="mt-1.5 space-y-1 border-t border-orange-800/20 pt-1.5">
-                        <p className="text-xs text-orange-400 font-medium mb-1">Pending approval:</p>
-                        {pending.map(email => {
-                          const ak = `${s.id}_${email}`;
-                          const dk = `decline_${s.id}_${email}`;
-                          return (
-                            <div key={email} className="flex items-center justify-between gap-1">
-                              <div className="flex items-center gap-1 min-w-0">
-                                <Clock className="h-3 w-3 text-orange-400 flex-shrink-0" />
-                                <span className="text-orange-200 truncate text-xs">{getUserName(email)}</span>
-                              </div>
-                              <div className="flex gap-1 flex-shrink-0">
-                                <Button size="sm" disabled={approvingId === ak} onClick={() => handleApprove(s, email)}
-                                  className="h-6 text-xs bg-green-700 hover:bg-green-600 px-2 gap-0.5">
-                                  <UserCheck className="h-3 w-3" />
-                                  {approvingId === ak ? '…' : '✓'}
-                                </Button>
-                                <Button size="sm" variant="ghost" disabled={approvingId === dk} onClick={() => handleDecline(s, email)}
-                                  className="h-6 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-2">
-                                  {approvingId === dk ? '…' : '✕'}
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {s.location && <span className="text-xs text-gray-500 text-right">{s.location}</span>}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+
+                  {/* Rig camera settings */}
+                  {(() => {
+                    const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
+                    if (!rig) return null;
+                    const hasAnyCam = rig.hd_enabled !== false || rig.wide_enabled !== false || rig.attention_enabled;
+                    if (!hasAnyCam) return null;
+                    return (
+                      <div className="mb-1.5 bg-gray-900/60 rounded-lg px-2.5 py-1.5 border border-gray-700/30">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Camera Settings</p>
+                        <CamRow label="HD" enabled={rig.hd_enabled !== false} cam={rig.hd} />
+                        <CamRow label="Wide" enabled={rig.wide_enabled !== false} cam={rig.wide} />
+                        <CamRow label="Attention" enabled={!!rig.attention_enabled} cam={rig.attention} />
+                        {rig.sound && <p className="text-xs text-green-400 mt-0.5">🔊 Sound</p>}
+                      </div>
+                    );
+                  })()}
+
+                  {assigned.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {assigned.map(email => (
+                        <span key={email} className="flex items-center gap-0.5 text-xs bg-green-900/30 text-green-400 border border-green-700/30 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          {getUserName(email).split(' ')[0]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {assigned.length === 0 && pending.length === 0 && (
+                    <p className="text-xs text-gray-600 italic">Unassigned</p>
+                  )}
+
+                  {pending.length > 0 && (
+                    <div className="mt-1.5 space-y-1 border-t border-orange-800/20 pt-1.5">
+                      <p className="text-xs text-orange-400 font-medium mb-1">Pending approval:</p>
+                      {pending.map(email => {
+                        const ak = `${s.id}_${email}`;
+                        const dk = `decline_${s.id}_${email}`;
+                        return (
+                          <div key={email} className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Clock className="h-3 w-3 text-orange-400 flex-shrink-0" />
+                              <span className="text-orange-200 truncate text-xs">{getUserName(email)}</span>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button size="sm" disabled={approvingId === ak} onClick={() => handleApprove(s, email)}
+                                className="h-6 text-xs bg-green-700 hover:bg-green-600 px-2 gap-0.5">
+                                <UserCheck className="h-3 w-3" />
+                                {approvingId === ak ? '…' : '✓'}
+                              </Button>
+                              <Button size="sm" variant="ghost" disabled={approvingId === dk} onClick={() => handleDecline(s, email)}
+                                className="h-6 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-2">
+                                {approvingId === dk ? '…' : '✕'}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  </div>
+                  );
+                  })}
+                  </div>
+                  )}
+                  </div>
+                  )}
+                  </div>
+                  );
+                  }

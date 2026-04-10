@@ -134,7 +134,13 @@ export default function Rigs() {
   const startEdit = (rig) => {
     setEditingId(rig.id);
     setForm({ ...emptyForm, ...rig });
-    setIsAdding(true);
+    setIsAdding(false);
+    setExpandedId(rig.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
     setExpandedId(null);
   };
 
@@ -162,112 +168,6 @@ export default function Rigs() {
             </Button>
           )}
         </div>
-
-        {/* Form */}
-        {isAdmin && isAdding && (
-          <Card className="bg-gray-900 border-blue-700 mb-8">
-            <CardHeader className="border-b border-gray-800 py-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-base">{editingId ? 'Edit Rig Setting' : 'New Rig Setting'}</CardTitle>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white"
-                  onClick={() => { setIsAdding(false); setEditingId(null); setForm(emptyForm); }}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Sport" /></SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
-                    {SPORTS.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={form.venue_type} onValueChange={v => setForm({ ...form, venue_type: v })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
-                    <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
-                    <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Rig Type" /></SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
-                    {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Shoot Plan</label>
-                <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
-                  placeholder="Describe the shoot plan..." rows={3}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400 mb-2 block">Remote Rigs (Google Remote Names)</label>
-                <div className="flex gap-2 mb-2">
-                  <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addRig()}
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                  <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
-                </div>
-                {form.remote_rigs?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {form.remote_rigs.map((r, i) => (
-                      <span key={i} className="flex items-center gap-1 bg-blue-900/40 text-blue-300 border border-blue-700/40 text-sm px-2 py-1 rounded-full">
-                        {r}
-                        <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
-                <div className="space-y-3">
-                  {CAMERAS.map(cam => (
-                    <CameraEditor
-                      key={cam.key}
-                      label={cam.label}
-                      enabled={form[`${cam.key}_enabled`] !== false}
-                      onToggle={() => setForm({ ...form, [`${cam.key}_enabled`]: !(form[`${cam.key}_enabled`] !== false) })}
-                      cam={form[cam.key] || DEFAULT_CAM}
-                      onChange={val => setForm({ ...form, [cam.key]: val })}
-                    />
-                  ))}
-
-                  <div className={`rounded-lg border p-3 flex items-center justify-between ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
-                    <div className="flex items-center gap-2">
-                      <Volume2 className={`h-4 w-4 ${form.sound ? 'text-green-400' : 'text-gray-600'}`} />
-                      <span className="text-sm font-medium text-gray-300">Sound Recording</span>
-                    </div>
-                    <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Any additional notes..." rows={2}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
-              </div>
-
-              <div className="flex gap-3">
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-                  {editingId ? 'Save Changes' : 'Create Rig Setting'}
-                </Button>
-                <Button variant="outline" onClick={() => { setIsAdding(false); setEditingId(null); setForm(emptyForm); }}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancel</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Tile grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -337,30 +237,111 @@ export default function Rigs() {
                 )}
               </div>
 
-              {/* Expandable details */}
+              {/* Expandable / Edit area */}
               {expandedId === rig.id && (
                 <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-4 bg-gray-900/50">
-                  {rig.shoot_plan && (
-                    <div>
-                      <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Shoot Plan</p>
-                      <p className="text-sm text-gray-300 bg-gray-800/50 p-2 rounded border border-gray-800">{rig.shoot_plan}</p>
-                    </div>
-                  )}
-                  
-                  <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
-                    <Volume2 className={`h-3.5 w-3.5 ${rig.sound ? 'text-green-400' : 'text-gray-600'}`} />
-                    <span className="text-xs font-medium text-gray-300">Sound Recording</span>
-                    <span className={`text-xs font-bold ml-auto ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
-                  </div>
-
-                  {/* Enhanced Notes Section */}
-                  {rig.notes && (
-                    <div>
-                      <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Additional Notes</p>
-                      <div className="text-sm text-blue-200/90 italic bg-blue-900/10 p-2.5 rounded border border-blue-900/20 leading-relaxed">
-                        {rig.notes}
+                  {editingId === rig.id ? (
+                    // Inline edit form
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })}
+                          className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                        <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })}>
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Sport" /></SelectTrigger>
+                          <SelectContent className="bg-gray-900 border-gray-700">
+                            {SPORTS.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Select value={form.venue_type} onValueChange={v => setForm({ ...form, venue_type: v })}>
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+                          <SelectContent className="bg-gray-900 border-gray-700">
+                            <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
+                            <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })}>
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Rig Type" /></SelectTrigger>
+                          <SelectContent className="bg-gray-900 border-gray-700">
+                            {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Shoot Plan</label>
+                        <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
+                          placeholder="Describe the shoot plan..." rows={2}
+                          className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Remote Rigs</label>
+                        <div className="flex gap-2 mb-2">
+                          <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && addRig()}
+                            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                          <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
+                        </div>
+                        {form.remote_rigs?.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {form.remote_rigs.map((r, i) => (
+                              <span key={i} className="flex items-center gap-1 bg-blue-900/40 text-blue-300 border border-blue-700/40 text-sm px-2 py-1 rounded-full">
+                                {r}
+                                <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block">Camera Settings</label>
+                        <div className="space-y-2">
+                          {CAMERAS.map(cam => (
+                            <CameraEditor key={cam.key} label={cam.label}
+                              enabled={form[`${cam.key}_enabled`] !== false}
+                              onToggle={() => setForm({ ...form, [`${cam.key}_enabled`]: !(form[`${cam.key}_enabled`] !== false) })}
+                              cam={form[cam.key] || DEFAULT_CAM}
+                              onChange={val => setForm({ ...form, [cam.key]: val })} />
+                          ))}
+                          <div className={`rounded-lg border p-3 flex items-center justify-between ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                            <div className="flex items-center gap-2">
+                              <Volume2 className={`h-4 w-4 ${form.sound ? 'text-green-400' : 'text-gray-600'}`} />
+                              <span className="text-sm font-medium text-gray-300">Sound Recording</span>
+                            </div>
+                            <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Notes</label>
+                        <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+                          placeholder="Any additional notes..." rows={2}
+                          className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
+                        <Button variant="outline" onClick={cancelEdit} className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancel</Button>
+                      </div>
+                    </>
+                  ) : (
+                    // View details
+                    <>
+                      {rig.shoot_plan && (
+                        <div>
+                          <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Shoot Plan</p>
+                          <p className="text-sm text-gray-300 bg-gray-800/50 p-2 rounded border border-gray-800">{rig.shoot_plan}</p>
+                        </div>
+                      )}
+                      <div className={`flex items-center gap-3 rounded p-2 ${rig.sound ? 'bg-green-950/20' : 'bg-gray-800/30'}`}>
+                        <Volume2 className={`h-3.5 w-3.5 ${rig.sound ? 'text-green-400' : 'text-gray-600'}`} />
+                        <span className="text-xs font-medium text-gray-300">Sound Recording</span>
+                        <span className={`text-xs font-bold ml-auto ${rig.sound ? 'text-green-400' : 'text-gray-600'}`}>{rig.sound ? 'YES' : 'NO'}</span>
+                      </div>
+                      {rig.notes && (
+                        <div>
+                          <p className="text-[10px] text-gray-500 mb-1 uppercase font-bold tracking-widest">Additional Notes</p>
+                          <div className="text-sm text-blue-200/90 italic bg-blue-900/10 p-2.5 rounded border border-blue-900/20 leading-relaxed">{rig.notes}</div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
