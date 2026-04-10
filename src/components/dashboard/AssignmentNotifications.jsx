@@ -20,14 +20,18 @@ export default function AssignmentNotifications({ shoots = [], user }) {
   const now = new Date();
   const todayStr = format(now, 'yyyy-MM-dd');
 
-  // Shoots with pending operators awaiting admin approval
-  const pendingShoots = shoots.filter(s =>
-    s.status !== 'cancelled' &&
-    s.date >= todayStr &&
-    s.pending_operators?.length > 0
+  const futureShoots = shoots.filter(s =>
+    s.status !== 'cancelled' && s.date >= todayStr
   );
 
-  const notifications = pendingShoots.map(s => ({ key: `pending_${s.id}`, shoot: s, type: 'pending' }));
+  const notifications = [
+    ...futureShoots
+      .filter(s => s.pending_operators?.length > 0)
+      .map(s => ({ key: `pending_${s.id}`, shoot: s, type: 'pending' })),
+    ...futureShoots
+      .filter(s => s.assigned_operators?.length > 0)
+      .map(s => ({ key: `approved_${s.id}`, shoot: s, type: 'approved' })),
+  ].sort((a, b) => a.shoot.date.localeCompare(b.shoot.date));
 
   const active = notifications.filter(n => !dismissed.includes(n.key));
   const count = active.length;
@@ -88,8 +92,8 @@ export default function AssignmentNotifications({ shoots = [], user }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         {n.type === 'pending'
-                          ? <><Clock className="h-3 w-3 text-yellow-400" /><span className="text-xs font-medium text-yellow-300">Pending Approval</span></>
-                          : <><CheckCircle2 className="h-3 w-3 text-green-400" /><span className="text-xs font-medium text-green-300">Approved ✓</span></>
+                          ? <><Clock className="h-3 w-3 text-yellow-400" /><span className="text-xs font-medium text-yellow-300">Needs Approval</span></>
+                          : <><CheckCircle2 className="h-3 w-3 text-green-400" /><span className="text-xs font-medium text-green-300">Approved</span></>
                         }
                       </div>
                       <p className="text-sm font-semibold text-white truncate">{n.shoot.title}</p>
@@ -98,6 +102,12 @@ export default function AssignmentNotifications({ shoots = [], user }) {
                         <span>{format(new Date(n.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
                         {n.shoot.game_time && <span>· {n.shoot.game_time}</span>}
                       </div>
+                      {n.type === 'pending' && n.shoot.pending_operators?.length > 0 && (
+                        <p className="text-xs text-yellow-400/80 mt-0.5">{n.shoot.pending_operators.length} operator(s) waiting</p>
+                      )}
+                      {n.type === 'approved' && n.shoot.assigned_operators?.length > 0 && (
+                        <p className="text-xs text-green-400/80 mt-0.5">{n.shoot.assigned_operators.length} operator(s) assigned</p>
+                      )}
                     </div>
                     <button onClick={() => dismiss(n.key)} className="text-gray-600 hover:text-gray-400 flex-shrink-0">
                       <X className="h-3.5 w-3.5" />
