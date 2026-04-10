@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone } from 'lucide-react';
+import { Camera, CalendarDays, Wrench, Phone, Users, CheckSquare, Clock, CalendarRange } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
@@ -16,10 +16,12 @@ import StandbyBanner from '../components/dashboard/StandbyBanner';
 import ShootTimingPanel from '../components/dashboard/ShootTimingPanel';
 import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
 import { AdminAvailabilityView, OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
+import AdminPanelDrawer from '../components/dashboard/AdminPanelDrawer';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
+  const [openDrawer, setOpenDrawer] = useState(null); // 'standby' | 'team' | 'availability' | 'rigs' | 'timing'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -60,6 +62,8 @@ export default function Dashboard() {
     queryFn: () => base44.entities.AppSettings.list(),
     enabled: isAdmin,
   });
+
+  const isFeatureOn = (key) => appSettings.find(s => s.key === `feature_${key}`)?.value !== 'false';
 
   // Merge User records with UserPresence so name lookups work for all admins
   const allUsers = useMemo(() => {
@@ -259,12 +263,48 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Admin schedule */}
-        {isAdmin && <StandbyManager user={user} allUsers={allUsers} />}
-        {isAdmin && <AdminAvailabilityView allUsers={allUsers} />}
-        {isAdmin && <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />}
-        {isAdmin && <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />}
-        {isAdmin && <ShootTimingPanel shoots={shoots} />}
+        {/* Admin quick-launch panel buttons */}
+        {isAdmin && (() => {
+          const panels = [
+            { key: 'standby', featureKey: 'standby_panel', label: 'Standby Schedule', icon: Phone, color: 'text-yellow-400', bg: 'hover:bg-yellow-950/30 hover:border-yellow-700/50' },
+            { key: 'team', featureKey: 'team_panel', label: 'Team Schedule', icon: CalendarRange, color: 'text-blue-400', bg: 'hover:bg-blue-950/30 hover:border-blue-700/50' },
+            { key: 'availability', featureKey: 'availability_panel', label: 'Operator Availability', icon: Users, color: 'text-green-400', bg: 'hover:bg-green-950/30 hover:border-green-700/50' },
+            { key: 'rigs', featureKey: 'rigs', label: 'Rigs Check', icon: CheckSquare, color: 'text-orange-400', bg: 'hover:bg-orange-950/30 hover:border-orange-700/50' },
+            { key: 'timing', featureKey: 'timing_panel', label: 'Shoot Duration Tracker', icon: Clock, color: 'text-purple-400', bg: 'hover:bg-purple-950/30 hover:border-purple-700/50' },
+          ].filter(p => isFeatureOn(p.featureKey));
+          if (panels.length === 0) return null;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              {panels.map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setOpenDrawer(item.key)}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-900 border border-gray-800 transition-all ${item.bg}`}
+                >
+                  <item.icon className={`h-6 w-6 ${item.color}`} />
+                  <span className="text-xs font-medium text-gray-300 text-center leading-tight">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Admin panel drawers */}
+        <AdminPanelDrawer title="Standby Schedule" open={openDrawer === 'standby'} onClose={() => setOpenDrawer(null)}>
+          <StandbyManager user={user} allUsers={allUsers} />
+        </AdminPanelDrawer>
+        <AdminPanelDrawer title="Team Schedule" open={openDrawer === 'team'} onClose={() => setOpenDrawer(null)} wide>
+          <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />
+        </AdminPanelDrawer>
+        <AdminPanelDrawer title="Operator Availability" open={openDrawer === 'availability'} onClose={() => setOpenDrawer(null)} wide>
+          <AdminAvailabilityView allUsers={allUsers} />
+        </AdminPanelDrawer>
+        <AdminPanelDrawer title="Rigs Check" open={openDrawer === 'rigs'} onClose={() => setOpenDrawer(null)}>
+          <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />
+        </AdminPanelDrawer>
+        <AdminPanelDrawer title="Shoot Duration Tracker" open={openDrawer === 'timing'} onClose={() => setOpenDrawer(null)}>
+          <ShootTimingPanel shoots={shoots} allUsers={allUsers} />
+        </AdminPanelDrawer>
 
 
         <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>

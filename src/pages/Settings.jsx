@@ -116,6 +116,10 @@ const FEATURE_TOGGLES = [
   { key: 'feature_reference', label: 'Reference Guide', description: 'Reference Guide page' },
   { key: 'feature_online_now', label: 'Online Now', description: 'Online users panel in sidebar' },
   { key: 'feature_tutorial', label: 'Tutorial', description: 'Tutorial overlay & reopen button' },
+  { key: 'feature_standby_panel', label: 'Standby Schedule Panel', description: 'Standby schedule quick-launch on Dashboard' },
+  { key: 'feature_team_panel', label: 'Team Schedule Panel', description: 'Team schedule quick-launch on Dashboard' },
+  { key: 'feature_availability_panel', label: 'Operator Availability Panel', description: 'Operator availability quick-launch on Dashboard' },
+  { key: 'feature_timing_panel', label: 'Shoot Duration Tracker', description: 'Shoot timing tracker quick-launch on Dashboard' },
 ];
 
 // Which features L2 admins can see — controlled by L1
