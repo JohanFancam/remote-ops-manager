@@ -483,7 +483,9 @@ export default function Accounts() {
                 key={op.email}
                 op={op}
                 shoots={monthShoots}
-                pendingShoots={monthPendingShoots.filter(s => s.pending_operators?.includes(op.email))}
+                pendingShoots={monthPendingShoots
+                  .filter(s => s.pending_operators?.includes(op.email))
+                  .sort((a, b) => a.date.localeCompare(b.date))}
                 paymentRecords={paymentRecords}
                 month={filterMonth}
                 onSaveFee={handleSaveFee}

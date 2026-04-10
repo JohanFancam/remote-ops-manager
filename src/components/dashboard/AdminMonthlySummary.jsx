@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Phone, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { Camera, Phone, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, eachDayOfInterval, parseISO } from 'date-fns';
 
-export default function AdminMonthlySummary({ shoots, user }) {
+export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) {
   const [expanded, setExpanded] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
+
+  const adminDayHours = parseFloat(appSettings.find(s => s.key === 'admin_day_hours')?.value) || 9.5;
 
   const goMonth = (delta) => {
     const d = new Date(currentMonth);
@@ -30,12 +32,47 @@ export default function AdminMonthlySummary({ shoots, user }) {
     enabled: !!user?.email,
   });
 
-  const myMonthStandby = standbyDays.filter(s =>
-    s.date?.startsWith(monthStr) &&
-    s.admin_email === user?.email
-  );
+  // Get standby entries for this admin this month (supports both legacy date and range start_date/end_date)
+  const myMonthStandby = standbyDays.filter(s => {
+    if (s.admin_email !== user?.email) return false;
+    const startDate = s.start_date || s.date;
+    const endDate = s.end_date || startDate;
+    if (!startDate) return false;
+    // Check overlap with current month
+    const monthStart = monthStr + '-01';
+    const monthEnd = monthStr + '-31';
+    return startDate <= monthEnd && endDate >= monthStart;
+  });
 
+  // Get all unique dates this admin worked (shoot OR standby), deduplicated
+  const activeDates = useMemo(() => {
+    const dates = new Set();
 
+    // Add shoot dates
+    myMonthShoots.forEach(s => { if (s.date) dates.add(s.date); });
+
+    // Add standby dates (enumerate range)
+    myMonthStandby.forEach(s => {
+      const startDate = s.start_date || s.date;
+      const endDate = s.end_date || startDate;
+      if (!startDate) return;
+      try {
+        const days = eachDayOfInterval({
+          start: parseISO(startDate),
+          end: parseISO(endDate),
+        });
+        days.forEach(d => {
+          const ds = format(d, 'yyyy-MM-dd');
+          if (ds.startsWith(monthStr)) dates.add(ds);
+        });
+      } catch (e) { /* ignore bad dates */ }
+    });
+
+    return dates;
+  }, [myMonthShoots, myMonthStandby, monthStr]);
+
+  const totalHours = activeDates.size * adminDayHours;
+  const standbyCount = myMonthStandby.length;
 
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">
@@ -67,10 +104,20 @@ export default function AdminMonthlySummary({ shoots, user }) {
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3 text-center">
             <Phone className="h-5 w-5 text-yellow-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-white">{myMonthStandby.length}</p>
+            <p className="text-2xl font-bold text-white">{standbyCount}</p>
             <p className="text-xs text-gray-400">Standby</p>
           </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+            <Clock className="h-5 w-5 text-green-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-white">{totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}</p>
+            <p className="text-xs text-gray-400">Est. Hours</p>
+          </div>
         </div>
+
+        <p className="text-xs text-gray-600 mb-3">
+          {activeDates.size} active day{activeDates.size !== 1 ? 's' : ''} × {adminDayHours}h = {totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}h
+          <span className="italic ml-1">(shoots & standby deduplicated per day)</span>
+        </p>
 
         {expanded && (
           <div className="space-y-4">
@@ -100,23 +147,28 @@ export default function AdminMonthlySummary({ shoots, user }) {
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Standby This Month</p>
                 <div className="space-y-1">
-                  {myMonthStandby.sort((a, b) => a.date.localeCompare(b.date)).map(s => (
-                    <div key={s.id} className="flex items-center justify-between bg-yellow-950/20 border border-yellow-900/30 rounded px-3 py-2">
-                      <div>
-                        <p className="text-sm text-white font-medium">{format(new Date(s.date + 'T12:00:00'), 'EEE, MMM d')}</p>
-                        {(s.start_time || s.end_time) && (
-                          <p className="text-xs text-gray-400">{s.start_time || ''}{s.start_time && s.end_time ? ' – ' : ''}{s.end_time || ''}</p>
-                        )}
-                        {s.notes && <p className="text-xs text-gray-500">{s.notes}</p>}
+                  {myMonthStandby.map(s => {
+                    const startDate = s.start_date || s.date;
+                    const endDate = s.end_date || startDate;
+                    return (
+                      <div key={s.id} className="flex items-center justify-between bg-yellow-950/20 border border-yellow-900/30 rounded px-3 py-2">
+                        <div>
+                          <p className="text-sm text-white font-medium">
+                            {format(new Date(startDate + 'T12:00:00'), 'EEE, MMM d')}
+                            {endDate !== startDate && ` → ${format(new Date(endDate + 'T12:00:00'), 'EEE, MMM d')}`}
+                          </p>
+                          {(s.start_time || s.end_time) && (
+                            <p className="text-xs text-gray-400">{s.start_time || ''}{s.start_time && s.end_time ? ' – ' : ''}{s.end_time || ''}</p>
+                          )}
+                          {s.notes && <p className="text-xs text-gray-500">{s.notes}</p>}
+                        </div>
+                        <Phone className="h-3.5 w-3.5 text-yellow-400" />
                       </div>
-                      <Phone className="h-3.5 w-3.5 text-yellow-400" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
-
-
 
             {myMonthShoots.length === 0 && myMonthStandby.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-4">Nothing logged for {format(currentMonth, 'MMMM yyyy')}.</p>

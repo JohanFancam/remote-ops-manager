@@ -292,7 +292,7 @@ export default function Dashboard() {
 
         <div className="mt-8" />
 
-        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} />}
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
         {!isAdmin && <OperatorAvailabilityPanel user={user} />}
         {!isAdmin && <div className="mt-6"><RemoteEarnings user={user} /></div>}
 

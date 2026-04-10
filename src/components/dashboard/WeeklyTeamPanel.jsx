@@ -3,28 +3,70 @@ import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, CheckCircle2, Clock, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock, ChevronDown, ChevronUp, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDisplayName } from '../utils/nameUtils';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 
 export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [approvingId, setApprovingId] = useState(null);
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  // Month + window navigation
+  const [viewMonth, setViewMonth] = useState(new Date());
+  const [windowStart, setWindowStart] = useState(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
 
-  // Build 7 day slots
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const monthStr = format(viewMonth, 'yyyy-MM');
+
+  // Build 7 days from windowStart, clamped within the view month
+  const monthStart = startOfMonth(viewMonth);
+  const monthEnd = endOfMonth(viewMonth);
+
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = addDays(new Date(), i);
+    const d = addDays(windowStart, i);
     return format(d, 'yyyy-MM-dd');
   });
 
-  const weekShoots = shoots.filter(s =>
-    s.date >= days[0] && s.date <= days[days.length - 1] && s.status !== 'cancelled'
+  const windowStartStr = format(windowStart, 'yyyy-MM-dd');
+  const windowEndStr = days[days.length - 1];
+
+  const windowShoots = shoots.filter(s =>
+    s.date >= windowStartStr && s.date <= windowEndStr && s.status !== 'cancelled'
   );
 
-  const totalPending = weekShoots.reduce((n, s) => n + (s.pending_operators?.length || 0), 0);
+  const totalPending = windowShoots.reduce((n, s) => n + (s.pending_operators?.length || 0), 0);
+
+  const handlePrevWeek = () => {
+    const prev = addDays(windowStart, -7);
+    setWindowStart(prev);
+    // If jumped to previous month, update view month
+    const prevStr = format(prev, 'yyyy-MM');
+    if (prevStr !== monthStr) setViewMonth(prev);
+  };
+
+  const handleNextWeek = () => {
+    const next = addDays(windowStart, 7);
+    setWindowStart(next);
+    const nextStr = format(next, 'yyyy-MM');
+    if (nextStr !== monthStr) setViewMonth(next);
+  };
+
+  const handlePrevMonth = () => {
+    const newMonth = subMonths(viewMonth, 1);
+    setViewMonth(newMonth);
+    setWindowStart(startOfMonth(newMonth));
+  };
+
+  const handleNextMonth = () => {
+    const newMonth = addMonths(viewMonth, 1);
+    setViewMonth(newMonth);
+    setWindowStart(startOfMonth(newMonth));
+  };
 
   const handleApprove = async (shoot, email) => {
     setApprovingId(`${shoot.id}_${email}`);
@@ -48,11 +90,11 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
   return (
     <Card className="bg-gray-900 border-gray-800 mb-6">
       <CardHeader className="border-b border-gray-800 pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <button onClick={() => setExpanded(!expanded)}
             className="flex items-center gap-2 text-white font-semibold text-base hover:text-blue-400 transition-colors">
             <CalendarDays className="h-4 w-4 text-blue-400" />
-            7-Day Team Schedule
+            Team Schedule
             {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
             {totalPending > 0 && (
               <span className="text-xs bg-orange-600/20 text-orange-400 border border-orange-700/40 px-2 py-0.5 rounded-full ml-1">
@@ -60,16 +102,43 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
               </span>
             )}
           </button>
-          <span className="text-xs text-gray-500">{weekShoots.length} shoots</span>
+          <span className="text-xs text-gray-500">{windowShoots.length} shoots</span>
         </div>
       </CardHeader>
 
       {expanded && (
         <CardContent className="pt-4 pb-4">
+          {/* Month + week navigation */}
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            {/* Month nav */}
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handlePrevMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-semibold text-gray-200 w-24 text-center">{format(viewMonth, 'MMMM yyyy')}</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handleNextMonth}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* 7-day window nav */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handlePrevWeek}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-gray-400 font-mono whitespace-nowrap">
+                {format(new Date(windowStartStr + 'T12:00:00'), 'd MMM')} – {format(new Date(windowEndStr + 'T12:00:00'), 'd MMM')}
+              </span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={handleNextWeek}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-2">
             {days.map(dateStr => {
               const isToday = dateStr === todayStr;
-              const dayShoots = weekShoots
+              const dayShoots = windowShoots
                 .filter(s => s.date === dateStr)
                 .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
               const dayPending = dayShoots.reduce((n, s) => n + (s.pending_operators?.length || 0), 0);
@@ -81,7 +150,6 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                   dayShoots.length > 0 ? 'border-gray-700/50 bg-gray-800/30' :
                   'border-gray-800/40 bg-gray-900/20'
                 }`}>
-                  {/* Day header */}
                   <div className="mb-2">
                     <p className={`text-xs font-semibold ${isToday ? 'text-blue-400' : 'text-gray-400'}`}>
                       {isToday ? 'Today' : format(new Date(dateStr + 'T12:00:00'), 'EEE')}

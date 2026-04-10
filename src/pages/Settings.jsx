@@ -291,6 +291,7 @@ export default function Settings() {
   const [slackSaved, setSlackSaved] = useState(false);
   const [standbyDone, setStandbyDone] = useState(false);
   const [rateBaseInput, setRateBaseInput] = useState('');
+  const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [ratesSaved, setRatesSaved] = useState(false);
   const [notifyHoursInput, setNotifyHoursInput] = useState('5');
@@ -339,6 +340,8 @@ export default function Settings() {
     const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
+    const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
+    if (adh) setAdminDayHoursInput(adh);
     const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
     if (nh) setNotifyHoursInput(nh);
     const wm = appSettings.find(s => s.key === 'whatsapp_reminder_msg')?.value;
@@ -398,6 +401,7 @@ export default function Settings() {
     const pairs = [
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
+      { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
       const existing = appSettings.find(s => s.key === pair.key);
@@ -613,6 +617,18 @@ export default function Settings() {
                     placeholder="250"
                     className="bg-gray-800 border-gray-700 text-white"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Admin Working Hours / Active Day</label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={adminDayHoursInput}
+                    onChange={e => setAdminDayHoursInput(e.target.value)}
+                    placeholder="9.5"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Hours counted per day with a shoot or standby (never doubled)</p>
                 </div>
               </div>
               <Button onClick={handleSaveRates} className="bg-green-700 hover:bg-green-600 gap-2">
