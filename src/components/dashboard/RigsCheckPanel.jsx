@@ -11,7 +11,13 @@ function getArchived() {
 }
 function saveArchived(ids) { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(ids)); }
 
-function getRigTypeLabel(rig) {
+function getRigTypeLabel(shoot, rig) {
+  // Shoot-level override takes priority
+  if (shoot?.rig_type_override) {
+    const parts = [shoot.rig_type_override];
+    if (rig?.sound) parts.push('Sound');
+    return parts.join('/');
+  }
   if (!rig) return null;
   const parts = [];
   if (rig.rig_type) parts.push(rig.rig_type);
@@ -49,7 +55,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     if (checkedShoots.length === 0) return '';
     const items = checkedShoots.map(s => {
       const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-      const label = getRigTypeLabel(rig);
+      const label = getRigTypeLabel(s, rig);
       const name = shortenTitle(s.title);
       return label ? `${name} (${label})` : name;
     });
@@ -137,7 +143,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                     <div className="space-y-1.5">
                       {dayShoots.map(s => {
                         const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-                        const label = getRigTypeLabel(rig);
+                        const label = getRigTypeLabel(s, rig);
                         return (
                           <label key={s.id} className="flex items-start gap-1.5 cursor-pointer group">
                             <input

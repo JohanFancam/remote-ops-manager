@@ -24,14 +24,14 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
-const isFancamShoot = (shoot, rigSettings) => {
-  if (shoot.rig_type_override === 'Fancam') return true;
+const isFancamOrMixed = (shoot, rigSettings) => {
+  if (shoot.rig_type_override === 'Fancam' || shoot.rig_type_override === 'Data/Fancam') return true;
   if (shoot.rig_type_override === 'Data') return false;
   const rs = rigSettings.find(r => r.team && (
     (shoot.client || '').toLowerCase().includes(r.team.toLowerCase()) ||
     (shoot.title || '').toLowerCase().includes(r.team.toLowerCase())
   ));
-  return rs?.rig_type === 'Fancam';
+  return rs?.rig_type === 'Fancam' || rs?.rig_type === 'Data/Fancam';
 };
 
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
@@ -290,7 +290,7 @@ export default function Calendar() {
                       <div className="space-y-0.5">
                         {dayShoots.slice(0, 3).map(s => {
                           const isMyAssigned = s.assigned_operators?.includes(user?.email);
-                          const fancam = isFancamShoot(s, rigSettings);
+                          const fancam = isFancamOrMixed(s, rigSettings);
                           const cellColor = isPast ? 'bg-gray-700 opacity-60' : isMyAssigned ? 'bg-purple-600' : fancam ? 'bg-orange-500' : (statusColors[s.status] || 'bg-blue-600');
                           return (
                             <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${cellColor}`}>
@@ -317,7 +317,7 @@ export default function Calendar() {
                 { label: 'In Progress', color: 'bg-yellow-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'My Assigned', color: 'bg-purple-600' },
-                { label: 'Fancam', color: 'bg-orange-500' },
+                { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Past', color: 'bg-gray-700 opacity-50' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
