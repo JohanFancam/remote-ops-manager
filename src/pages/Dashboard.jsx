@@ -203,6 +203,8 @@ export default function Dashboard() {
               userEmail={user?.email}
               rigSettings={rigSettings}
               standbyDays={standbyDays.filter(sd => sd.admin_email === user?.email)}
+              onUpdate={handleShootUpdate}
+              isAdmin={isAdmin}
             />
           </div>
         )}

@@ -1,153 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { getDisplayName } from '../utils/nameUtils';
-import { getSchedule, getGameDateTime } from '../utils/scheduleUtils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import CountdownCard from './CountdownCard';
 
 
 
-function formatMs(ms) {
-  if (ms <= 0) return 'NOW';
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  if (h > 23) {
-    const d = Math.floor(ms / 86400000);
-    const rh = Math.floor((ms % 86400000) / 3600000);
-    return `${d}d ${String(rh).padStart(2,'0')}h`;
-  }
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-function getNextPhaseInfo(shoot, now) {
-  const schedule = getSchedule(shoot);
-  const gameDate = getGameDateTime(shoot);
-  const phase = shoot.phase_status || {};
-
-  if (phase.shoot_complete) return { label: 'Complete', ms: null, done: true };
-
-  if (!schedule || !shoot.date) return null;
-
-  const toDate = (t) => {
-    if (!t) return null;
-    const [h, m] = t.split(':').map(Number);
-    const d = new Date(shoot.date + 'T00:00:00');
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-
-  const candidates = [
-    { label: 'Setup', key: 'setup_complete', time: toDate(schedule.setup) },
-    { label: 'Pre-Shoot', key: 'pre_shoot_started', time: toDate(schedule.pre_shoot) },
-    { label: 'Attention', key: 'attention_started', time: toDate(schedule.attention) },
-    { label: 'Sound Check', key: 'sound_started', time: toDate(schedule.sound) },
-    { label: 'Game Time', key: 'game_started', time: gameDate },
-  ];
-
-  for (const c of candidates) {
-    if (phase[c.key]) continue;
-    if (!c.time) continue;
-    return { label: c.label, ms: c.time - now, time: c.time };
-  }
-
-  if (gameDate) return { label: 'Game', ms: gameDate - now, time: gameDate };
-  return null;
-}
-
-function getLivePhaseLabel(shoot, now, matchedRig) {
-  const schedule = getSchedule(shoot);
-  const gameDate = getGameDateTime(shoot);
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound === true;
-  const phase = shoot.phase_status || {};
-  if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
-  if (!schedule || !shoot.date) return null;
-  const toDate = (t) => {
-    if (!t) return null;
-    const [h, m] = t.split(':').map(Number);
-    const d = new Date(shoot.date + 'T00:00:00');
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-  if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game In Progress', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
-  const soundTime = showSound ? toDate(schedule.sound) : null;
-  if (phase.sound_started || (soundTime && now >= soundTime)) return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
-  const attentionTime = showAttention ? toDate(schedule.attention) : null;
-  if (phase.attention_started || (attentionTime && now >= attentionTime)) return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
-  const preShootTime = toDate(schedule.pre_shoot);
-  if (phase.pre_shoot_started || (preShootTime && now >= preShootTime)) return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
-  const setupTime = toDate(schedule.setup);
-  if (phase.setup_complete || (setupTime && now >= setupTime)) return { label: 'Setup', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
-  return null;
-}
-
-function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
-  const phase = getNextPhaseInfo(shoot, now);
-  const matchedRig = rigSettings.find(r =>
-    r.team && shoot.client &&
-    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
-  );
-  const livePhase = getLivePhaseLabel(shoot, now, matchedRig);
-  const rigType = shoot.rig_type_override || matchedRig?.rig_type || null;
-  const operators = (shoot.assigned_operators || []).map(e => {
-    const u = allUsers.find(u => u.email === e);
-    return u?.full_name || e;
-  });
-  const fallbackStatusColors = {
-    upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
-    in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-    cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-  };
-  const badgeInfo = livePhase || { label: shoot.status, color: fallbackStatusColors[shoot.status] || fallbackStatusColors.upcoming };
-  const countdownColor = phase?.done ? 'text-green-400' :
-    phase?.ms != null && phase.ms <= 0 ? 'text-red-400' :
-    phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
-
-  return (
-    <div className="grid grid-cols-3 items-center gap-2 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
-      {/* Left: name + meta */}
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
-          {rigType && <span className="text-xs text-blue-400 font-medium">{rigType}</span>}
-        </div>
-        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 flex-wrap">
-          <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
-          {shoot.game_time && <span className="font-mono text-blue-300">{shoot.game_time}</span>}
-          {operators.length > 0 ? (
-            <span className="text-gray-400">{operators.join(', ')}</span>
-          ) : (
-            <span className="text-orange-400 italic">Unassigned</span>
-          )}
-        </div>
-      </div>
-
-      {/* Center: big countdown */}
-      <div className="flex flex-col items-center justify-center text-center">
-        {phase?.done ? (
-          <span className="text-sm text-green-400 font-semibold">✓ Complete</span>
-        ) : phase?.ms != null ? (
-          <>
-            <div className={`font-mono font-bold text-2xl tracking-tight ${countdownColor}`}>{formatMs(phase.ms)}</div>
-            <div className="text-xs text-gray-500 mt-0.5">until {phase.label}</div>
-          </>
-        ) : null}
-      </div>
-
-      {/* Right: status badge */}
-      <div className="flex justify-end">
-        <Badge className={`text-xs border ${badgeInfo.color}`}>
-          {badgeInfo.label}
-        </Badge>
-      </div>
-    </div>
-  );
-}
-
-export default function AdminStandbyShootList({ shoots = [], allUsers = [], userEmail, standbyDays = [], rigSettings = [] }) {
+export default function AdminStandbyShootList({ shoots = [], allUsers = [], userEmail, standbyDays = [], rigSettings = [], onUpdate, isAdmin = true }) {
   const [now, setNow] = useState(new Date());
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const PAGE_SIZE = 10;
@@ -257,7 +115,15 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
       ) : (
         <div className="space-y-2">
           {pagedShoots.map(shoot => (
-            <ShootRow key={shoot.id} shoot={shoot} allUsers={allUsers} userEmail={userEmail} now={now} rigSettings={rigSettings} />
+            <CountdownCard
+              key={shoot.id}
+              shoot={shoot}
+              isAdmin={isAdmin}
+              rigSettings={rigSettings}
+              onUpdate={onUpdate}
+              userEmail={userEmail}
+              allUsers={allUsers}
+            />
           ))}
           {filteredShoots.length > PAGE_SIZE && (
             <p className="text-xs text-gray-600 text-center pt-1">
