@@ -22,12 +22,7 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
     return () => clearInterval(iv);
   }, []);
 
-  // Shoots from previous days that are still in progress (not marked complete) — shown as alert above day nav
-  const inProgressPast = shoots.filter(s =>
-    s.date < todayStr &&
-    !s.phase_status?.shoot_complete &&
-    s.status !== 'completed'
-  );
+  // (past in-progress alert removed — user navigates back via day navigator if needed)
 
   // All dates from shoots (past + future) + always include today
   const allDates = [...new Set([...shoots.map(s => s.date), todayStr])].sort();
@@ -165,25 +160,7 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
       {/* DAY VIEW */}
       {viewMode === 'day' && (
         <div>
-          {/* In-progress shoots from previous days */}
-          {inProgressPast.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs text-yellow-400 font-semibold uppercase tracking-wider mb-2">⚡ Still In Progress (from previous day)</p>
-              <div className="space-y-2">
-                {inProgressPast.map(shoot => (
-                  <CountdownCard
-                    key={shoot.id}
-                    shoot={shoot}
-                    isAdmin={isAdmin}
-                    rigSettings={rigSettings}
-                    onUpdate={onUpdate}
-                    userEmail={userEmail}
-                    allUsers={allUsers}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Day navigator */}
           <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
