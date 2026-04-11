@@ -40,7 +40,10 @@ function getLivePhase(shoot, now, schedule, gameDate, showAttention, showSound) 
   const soundTime = showSound ? toDate(schedule.sound) : null;
 
   // Walk through phases newest-first to find current active phase
-  if (phase.game_started || (gameDate && now >= gameDate)) {
+  if (phase.game_started) {
+    return { label: 'Game In Progress', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  }
+  if (gameDate && now >= gameDate) {
     return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
   }
   if (phase.sound_started || (soundTime && now >= soundTime && showSound)) {
