@@ -84,11 +84,11 @@ function getLivePhaseLabel(shoot, now, matchedRig) {
 
 function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
-  const livePhase = getLivePhaseLabel(shoot, now, matchedRig);
   const matchedRig = rigSettings.find(r =>
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
   );
+  const livePhase = getLivePhaseLabel(shoot, now, matchedRig);
   const rigType = shoot.rig_type_override || matchedRig?.rig_type || null;
   const operators = (shoot.assigned_operators || []).map(e => {
     const u = allUsers.find(u => u.email === e);
