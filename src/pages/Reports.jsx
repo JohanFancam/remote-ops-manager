@@ -48,9 +48,11 @@ function downloadCSV(csv, filename) {
 }
 
 // Day detail slide-in panel
-function DayPanel({ date, reports, onClose, onDelete, onAdd }) {
+function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
   const [expanded, setExpanded] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [addForm, setAddForm] = useState({ shoot_title: '', operator_name: '', had_issues: false, notes: '' });
   const [saving, setSaving] = useState(false);
   const label = format(date, 'EEE, MMMM d yyyy');
@@ -111,60 +113,85 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd }) {
         <div className="flex-1 divide-y divide-gray-800">
           {reports.map(r => (
             <div key={r.id} className="px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  {r.had_issues
-                    ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    : <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
-                  }
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">{r.shoot_title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{r.operator_name || r.operator_email}</p>
+              {editingId === r.id ? (
+                // Inline edit form
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Editing Report</p>
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white" placeholder="Shoot Title" value={editForm.shoot_title || ''} onChange={e => setEditForm({...editForm, shoot_title: e.target.value})} />
+                  <input className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white" placeholder="Operator Name" value={editForm.operator_name || ''} onChange={e => setEditForm({...editForm, operator_name: e.target.value})} />
+                  <textarea className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white resize-none" placeholder="Notes" rows={3} value={editForm.notes || ''} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
+                  <textarea className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-sm text-white font-mono resize-none" placeholder="Slack Message (optional)" rows={3} value={editForm.slack_message || ''} onChange={e => setEditForm({...editForm, slack_message: e.target.value})} />
+                  <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                    <input type="checkbox" checked={!!editForm.had_issues} onChange={e => setEditForm({...editForm, had_issues: e.target.checked})} />
+                    Had Issues
+                  </label>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 gap-1" disabled={saving}
+                      onClick={async () => { setSaving(true); await onEdit(r.id, editForm); setEditingId(null); setSaving(false); }}>
+                      <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                <Badge className={r.had_issues
-                    ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs'
-                    : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'}>
-                    {r.had_issues ? 'Issues' : 'Clean'}
-                  </Badge>
-                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400" onClick={() => onDelete(r.id)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-              </div>
-
-              {/* Expandable details */}
-              {(r.notes || r.slack_message) && (
-                <button
-                  onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                  className="mt-2 ml-6 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  {expanded === r.id ? 'Hide details' : 'View details'}
-                </button>
-              )}
-
-              {expanded === r.id && (
-                <div className="ml-6 mt-2 space-y-3">
-                  {r.notes && (
-                    <div className="bg-gray-800/60 rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Notes:</p>
-                      <p className="text-sm text-gray-300">{r.notes}</p>
-                    </div>
-                  )}
-                  {r.slack_message && (
-                    <div className="bg-gray-800/60 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs text-gray-500">Slack Message:</p>
-                        <CopyBtn text={r.slack_message} />
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {r.had_issues
+                        ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                        : <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                      }
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{r.shoot_title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{r.operator_name || r.operator_email}</p>
                       </div>
-                      <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{r.slack_message}</pre>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Badge className={r.had_issues
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs'
+                        : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'}>
+                        {r.had_issues ? 'Issues' : 'Clean'}
+                      </Badge>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-500 hover:text-blue-400"
+                        onClick={() => { setEditingId(r.id); setEditForm({ shoot_title: r.shoot_title, operator_name: r.operator_name || '', notes: r.notes || '', slack_message: r.slack_message || '', had_issues: !!r.had_issues }); setExpanded(null); }}>
+                        <span className="text-xs">✏️</span>
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400" onClick={() => onDelete(r.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {(r.notes || r.slack_message) && (
+                    <button onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                      className="mt-2 ml-6 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                      {expanded === r.id ? 'Hide details' : 'View details'}
+                    </button>
+                  )}
+
+                  {expanded === r.id && (
+                    <div className="ml-6 mt-2 space-y-3">
+                      {r.notes && (
+                        <div className="bg-gray-800/60 rounded-lg p-3">
+                          <p className="text-xs text-gray-500 mb-1">Notes:</p>
+                          <p className="text-sm text-gray-300">{r.notes}</p>
+                        </div>
+                      )}
+                      {r.slack_message && (
+                        <div className="bg-gray-800/60 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs text-gray-500">Slack Message:</p>
+                            <CopyBtn text={r.slack_message} />
+                          </div>
+                          <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{r.slack_message}</pre>
+                        </div>
+                      )}
+                      {r.completed_at && (
+                        <p className="text-xs text-gray-500">Completed: {new Date(r.completed_at).toLocaleString()}</p>
+                      )}
                     </div>
                   )}
-                  {r.completed_at && (
-                    <p className="text-xs text-gray-500">Completed: {new Date(r.completed_at).toLocaleString()}</p>
-                  )}
-                </div>
+                </>
               )}
             </div>
           ))}
@@ -182,6 +209,11 @@ export default function Reports() {
 
   const handleDeleteReport = async (id) => {
     await base44.entities.ShootReport.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['shootReports'] });
+  };
+
+  const handleEditReport = async (id, data) => {
+    await base44.entities.ShootReport.update(id, data);
     queryClient.invalidateQueries({ queryKey: ['shootReports'] });
   };
 
@@ -371,6 +403,7 @@ export default function Reports() {
           onClose={() => setSelectedDay(null)}
           onDelete={handleDeleteReport}
           onAdd={handleAddReport}
+          onEdit={handleEditReport}
         />
       )}
     </div>

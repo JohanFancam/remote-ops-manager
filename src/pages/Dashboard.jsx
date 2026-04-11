@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
+import AdminDayShootView from '../components/dashboard/AdminDayShootView';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
@@ -179,23 +180,18 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ADMIN: Self-assigned shoots — compact expandable list */}
-        {isAdmin && selfAssignedUpcoming.length > 0 && (
+        {/* ADMIN: Self-assigned shoots — day navigator */}
+        {isAdmin && (
           <div className="mb-6">
             <h2 className="text-base font-semibold text-white mb-3">My Assigned Shoots — Live Countdown</h2>
-            <div className="space-y-2">
-              {selfAssignedUpcoming.map(shoot => (
-                <CountdownCard
-                  key={shoot.id}
-                  shoot={shoot}
-                  isAdmin={isAdmin}
-                  rigSettings={rigSettings}
-                  onUpdate={handleShootUpdate}
-                  userEmail={user?.email}
-                  allUsers={allUsers}
-                />
-              ))}
-            </div>
+            <AdminDayShootView
+              shoots={selfAssignedUpcoming}
+              isAdmin={isAdmin}
+              rigSettings={rigSettings}
+              onUpdate={handleShootUpdate}
+              userEmail={user?.email}
+              allUsers={allUsers}
+            />
           </div>
         )}
 

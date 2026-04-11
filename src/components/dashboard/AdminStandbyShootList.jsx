@@ -62,14 +62,13 @@ function getNextPhaseInfo(shoot, now) {
   return null;
 }
 
-function ShootRow({ shoot, allUsers, userEmail, now, rigSettings = [] }) {
+function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
   const operators = (shoot.assigned_operators || []).map(e => {
     const u = allUsers.find(u => u.email === e);
     return getDisplayName(u, e);
   });
 
-  // Derive rig type: shoot override first, then matched rig setting
   const matchedRig = rigSettings.find(r =>
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
@@ -81,34 +80,60 @@ function ShootRow({ shoot, allUsers, userEmail, now, rigSettings = [] }) {
     phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
-          {rigType && <span className="text-xs text-blue-400 font-medium">{rigType}</span>}
-        </div>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
-          <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
-          {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
-          {operators.length > 0 ? (
-            <span className="text-gray-400">{operators.join(', ')}</span>
-          ) : (
-            <span className="text-orange-400 italic">Unassigned</span>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        {phase && !phase.done && phase.ms != null && (
-          <div className="text-right">
-            <div className={`font-mono font-bold text-sm ${countdownColor}`}>{formatMs(phase.ms)}</div>
-            <div className="text-xs text-gray-600">until {phase.label}</div>
+    <div className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-3">
+      {/* Top row: title + countdown + status */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
+            {rigType && <span className="text-xs text-blue-400 font-medium">{rigType}</span>}
           </div>
-        )}
-        {phase?.done && <span className="text-xs text-green-400 font-semibold">✓ Complete</span>}
-        <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
-          {shoot.status}
-        </Badge>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {phase && !phase.done && phase.ms != null && (
+            <div className="text-right">
+              <div className={`font-mono font-bold text-sm ${countdownColor}`}>{formatMs(phase.ms)}</div>
+              <div className="text-xs text-gray-600">until {phase.label}</div>
+            </div>
+          )}
+          {phase?.done && <span className="text-xs text-green-400 font-semibold">✓ Complete</span>}
+          <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
+            {shoot.status}
+          </Badge>
+        </div>
       </div>
+
+      {/* Details row always visible */}
+      <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 flex-wrap">
+        <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
+        {shoot.game_time && <span className="font-mono text-blue-300">{shoot.game_time}</span>}
+        {operators.length > 0 ? (
+          <span className="text-gray-400">{operators.join(', ')}</span>
+        ) : (
+          <span className="text-orange-400 italic">Unassigned</span>
+        )}
+        {shoot.location && <span className="text-gray-600">{shoot.location}</span>}
+      </div>
+
+      {/* Notes / description */}
+      {(shoot.description || shoot.notes) && (
+        <p className="mt-1.5 text-xs text-gray-500 italic">{shoot.description || shoot.notes}</p>
+      )}
+
+      {/* Rig config inline */}
+      {matchedRig && (
+        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+          {matchedRig.sport && <span className="text-gray-500">Sport: <span className="text-gray-300">{matchedRig.sport}</span></span>}
+          {matchedRig.venue_type && <span className="text-gray-500">Venue: <span className="text-gray-300">{matchedRig.venue_type}</span></span>}
+          {matchedRig.remote_rigs?.length > 0 && <span className="text-gray-500">Remotes: <span className="text-gray-300">{matchedRig.remote_rigs.join(', ')}</span></span>}
+          {matchedRig.sound && <span className="text-green-400">🔊 Sound</span>}
+        </div>
+      )}
+      {matchedRig?.notes && (
+        <div className="mt-2 bg-blue-900/10 border border-blue-900/20 rounded px-2.5 py-1.5">
+          <p className="text-xs text-blue-200/80 italic">{matchedRig.notes}</p>
+        </div>
+      )}
     </div>
   );
 }
