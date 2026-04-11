@@ -155,7 +155,7 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     const selectedDate = standbyDates[selectedDateIdx];
     const dayShots = shoots.filter(s => s.date === selectedDate);
     if (!standbyDays.length) return dayShots;
-    // Only time-filter on boundary days; interior days show all shoots
+    // Only filter by start_time on the first day; all other days show all shoots
     return dayShots.filter(shoot => {
       const shootTime = shoot.game_time || '00:00';
       const shootDt = new Date(`${shoot.date}T${shootTime}`);
@@ -163,15 +163,12 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
         const start = sd.start_date || sd.date;
         const end = sd.end_date || start;
         if (selectedDate < start || selectedDate > end) return false;
-        const isStartDay = selectedDate === start;
-        const isEndDay = selectedDate === end;
-        // Interior day — show all shoots
-        if (!isStartDay && !isEndDay) return true;
-        const startDt = new Date(`${start}T${sd.start_time || '00:00'}`);
-        const endDt = new Date(`${end}T${sd.end_time || '23:59:59'}`);
-        if (isStartDay && isEndDay) return shootDt >= startDt && shootDt <= endDt;
-        if (isStartDay) return shootDt >= startDt;
-        return shootDt <= endDt;
+        // Only apply time restriction on the start day
+        if (selectedDate === start && sd.start_time) {
+          const startDt = new Date(`${start}T${sd.start_time}`);
+          return shootDt >= startDt;
+        }
+        return true;
       });
     });
   }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
