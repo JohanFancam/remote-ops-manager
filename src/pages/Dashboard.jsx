@@ -147,9 +147,7 @@ export default function Dashboard() {
     ? myUpcoming.filter(s => !s.assigned_operators?.includes(user?.email))
     : [];
 
-  const remoteUpcoming = !isAdmin
-    ? myUpcoming.slice(0, 10)
-    : [];
+  const remoteUpcoming = !isAdmin ? myUpcoming : [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
@@ -219,7 +217,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* REMOTE: collapsible shoot banners */}
+        {/* REMOTE: day-by-day navigator (same as admin) */}
         {!isAdmin && (
           <div>
             <h2 className="text-base font-semibold text-white mb-3">My Upcoming Shoots</h2>
@@ -231,18 +229,14 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
-                {remoteUpcoming.map(shoot => (
-                  <RemoteShootCard
-                    key={shoot.id}
-                    shoot={shoot}
-                    rigSettings={rigSettings}
-                    onUpdate={handleShootUpdate}
-                    userEmail={user?.email}
-                    allUsers={allUsers}
-                  />
-                ))}
-              </div>
+              <AdminDayShootView
+                shoots={remoteUpcoming}
+                isAdmin={false}
+                rigSettings={[]}
+                onUpdate={handleShootUpdate}
+                userEmail={user?.email}
+                allUsers={allUsers}
+              />
             )}
           </div>
         )}

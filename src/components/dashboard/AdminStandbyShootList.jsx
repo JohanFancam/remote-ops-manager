@@ -130,17 +130,37 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return () => clearInterval(iv);
   }, []);
 
-  // Build list of unique dates from standby days for this admin
+  // Build time windows from standby days — filter shoots to only those within the windows
+  const standbyWindows = React.useMemo(() => {
+    if (!standbyDays.length) return null;
+    return standbyDays.map(sd => ({
+      startDt: new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`),
+      endDt: new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`),
+    }));
+  }, [standbyDays]);
+
+  // Filter shoots to only those whose game time falls within a standby window
+  const windowFilteredShoots = React.useMemo(() => {
+    if (!standbyWindows) return shoots;
+    return shoots.filter(s => {
+      const shootDt = s.game_time
+        ? new Date(`${s.date}T${s.game_time}`)
+        : new Date(`${s.date}T12:00:00`);
+      return standbyWindows.some(w => shootDt >= w.startDt && shootDt <= w.endDt);
+    });
+  }, [shoots, standbyWindows]);
+
+  // Build list of unique dates from the window-filtered shoots
   const standbyDates = React.useMemo(() => {
-    if (!standbyDays.length) return null; // no standby day info — just show all
+    if (!standbyWindows) return null;
     const dates = new Set();
+    const todayStr = format(now, 'yyyy-MM-dd');
     standbyDays.forEach(sd => {
       const start = sd.start_date || sd.date;
       const end = sd.end_date || start;
       if (!start) return;
       const cur = new Date(start + 'T12:00:00');
-      const last = new Date((end || start) + 'T12:00:00');
-      const todayStr = format(now, 'yyyy-MM-dd');
+      const last = new Date(end + 'T12:00:00');
       while (cur <= last) {
         const ds = format(cur, 'yyyy-MM-dd');
         if (ds >= todayStr) dates.add(ds);
@@ -150,10 +170,10 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays, now]);
 
-  // Filter shoots by selected standby date if we have standby day info
+  // Filter by selected date within window-filtered shoots
   const filteredShoots = standbyDates && standbyDates.length > 0
-    ? shoots.filter(s => s.date === standbyDates[selectedDateIdx])
-    : shoots;
+    ? windowFilteredShoots.filter(s => s.date === standbyDates[selectedDateIdx])
+    : windowFilteredShoots;
 
   const pagedShoots = filteredShoots.slice(0, PAGE_SIZE);
 
