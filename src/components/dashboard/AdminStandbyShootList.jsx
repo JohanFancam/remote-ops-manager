@@ -68,28 +68,26 @@ function ShootRow({ shoot, allUsers, userEmail, now }) {
     const u = allUsers.find(u => u.email === e);
     return getDisplayName(u, e);
   });
-  const isSelfAssigned = shoot.assigned_operators?.includes(userEmail);
+
+  // Derive rig type from shoot override or client match
+  const rigType = shoot.rig_type_override || null;
 
   const countdownColor = phase?.done ? 'text-green-400' :
     phase?.ms != null && phase.ms <= 0 ? 'text-red-400' :
     phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
 
   return (
-    <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-colors ${
-      isSelfAssigned ? 'bg-blue-950/30 border-blue-800/50' : 'bg-gray-900 border-gray-800'
-    }`}>
+    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
-          {shoot.client && shoot.client !== shoot.title && (
-            <span className="text-xs text-gray-500 truncate">{shoot.client}</span>
-          )}
+          {rigType && <span className="text-xs text-blue-400 font-medium">{rigType}</span>}
         </div>
         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
           <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
           {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
           {operators.length > 0 ? (
-            <span className="text-gray-400">Op: {operators.join(', ')}</span>
+            <span className="text-gray-400">{operators.join(', ')}</span>
           ) : (
             <span className="text-orange-400 italic">Unassigned</span>
           )}
@@ -106,9 +104,6 @@ function ShootRow({ shoot, allUsers, userEmail, now }) {
         <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
           {shoot.status}
         </Badge>
-        {isSelfAssigned && (
-          <span className="text-xs text-blue-400 bg-blue-950/40 border border-blue-700/30 px-1.5 py-0.5 rounded">You</span>
-        )}
       </div>
     </div>
   );
