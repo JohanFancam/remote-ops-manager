@@ -80,14 +80,14 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
     phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
+    <div className="grid grid-cols-3 items-center gap-2 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
       {/* Left: name + meta */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
           {rigType && <span className="text-xs text-blue-400 font-medium">{rigType}</span>}
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 flex-wrap">
           <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
           {shoot.game_time && <span className="font-mono text-blue-300">{shoot.game_time}</span>}
           {operators.length > 0 ? (
@@ -99,7 +99,7 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
       </div>
 
       {/* Center: big countdown */}
-      <div className="flex flex-col items-center justify-center flex-shrink-0 w-36 text-center">
+      <div className="flex flex-col items-center justify-center text-center">
         {phase?.done ? (
           <span className="text-sm text-green-400 font-semibold">✓ Complete</span>
         ) : phase?.ms != null ? (
@@ -111,7 +111,7 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
       </div>
 
       {/* Right: status badge */}
-      <div className="flex-shrink-0">
+      <div className="flex justify-end">
         <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
           {shoot.status}
         </Badge>

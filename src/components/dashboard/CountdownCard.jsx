@@ -275,14 +275,14 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
       targetIsPast ? 'border-red-800/50 bg-red-950/10' : 'bg-gray-900 border-gray-800'
     } hover:border-gray-600`}>
       {/* Collapsed row */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="grid grid-cols-3 items-center gap-2 px-4 py-3">
         {/* Left: shoot info */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
             {rigLabel && <span className="text-xs text-blue-400 font-medium">{rigLabel}</span>}
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500 flex-wrap">
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500 flex-wrap">
             <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
             {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
             {shoot.assigned_operators?.length > 0 ? (
@@ -296,7 +296,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
         </div>
 
         {/* Center: big countdown */}
-        <div className="flex flex-col items-center justify-center flex-shrink-0 w-36 text-center">
+        <div className="flex flex-col items-center justify-center text-center">
           <div className={`font-mono font-bold text-2xl tracking-tight ${
             targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'
           }`}>{countdown}</div>
@@ -304,7 +304,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
         </div>
 
         {/* Right: status + expand */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+        <div className="flex flex-col items-end gap-2">
           {livePhase ? (
             <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
           ) : (
