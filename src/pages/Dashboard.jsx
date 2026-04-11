@@ -123,15 +123,9 @@ export default function Dashboard() {
     return false;
   });
 
-  const todayShoots = myUpcoming.filter(s => s.date === todayStr);
-  const futureShoots = myUpcoming.filter(s => s.date > todayStr);
-  const displayShoots = [...todayShoots, ...futureShoots].slice(0, 6);
 
-  const availableRigs = rigs.filter(r => r.status === 'available').length;
-  const thisMonthMyShoots = shoots.filter(s =>
-    s.date?.startsWith(format(today, 'yyyy-MM')) &&
-    s.assigned_operators?.includes(user?.email)
-  );
+
+
   // Standby shoots: shoots on dates the admin is covering (for the compact list)
   const myStandbyCount = standbyDays.filter(sd => {
     const startDate = sd.start_date || sd.date;
