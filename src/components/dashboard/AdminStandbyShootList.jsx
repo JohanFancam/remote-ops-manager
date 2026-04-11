@@ -149,26 +149,35 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays, now]);
 
-  // Filter shoots by selected date; on the start day, only show shoots after standby start_time
+  // Filter shoots by selected date; apply time bounds on start/end days
   const filteredShoots = React.useMemo(() => {
     if (!standbyDates || standbyDates.length === 0) return shoots;
     const selectedDate = standbyDates[selectedDateIdx];
     const dayShots = shoots.filter(s => s.date === selectedDate);
 
-    // Check if this date is a start day for any standby entry with a start_time
-    const startEntry = standbyDays.find(sd => {
-      const start = sd.start_date || sd.date;
-      return start === selectedDate && sd.start_time;
-    });
-
-    if (!startEntry) return dayShots;
-
-    // On the start day, only show shoots at or after the standby start time
-    const startDt = new Date(`${selectedDate}T${startEntry.start_time}`);
     return dayShots.filter(shoot => {
-      const shootTime = shoot.game_time || '23:59';
+      const shootTime = shoot.game_time || '12:00';
       const shootDt = new Date(`${shoot.date}T${shootTime}`);
-      return shootDt >= startDt;
+
+      return standbyDays.some(sd => {
+        const start = sd.start_date || sd.date;
+        const end = sd.end_date || start;
+        if (selectedDate < start || selectedDate > end) return false;
+
+        // On start day: shoot must be at or after start_time
+        if (selectedDate === start && sd.start_time) {
+          const startDt = new Date(`${start}T${sd.start_time}`);
+          if (shootDt < startDt) return false;
+        }
+
+        // On end day: shoot must be before end_time
+        if (selectedDate === end && sd.end_time) {
+          const endDt = new Date(`${end}T${sd.end_time}`);
+          if (shootDt >= endDt) return false;
+        }
+
+        return true;
+      });
     });
   }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
 
