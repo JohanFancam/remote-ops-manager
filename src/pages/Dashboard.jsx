@@ -198,7 +198,15 @@ export default function Dashboard() {
           <div className="mb-6">
             <h2 className="text-base font-semibold text-white mb-3">Standby Coverage — Upcoming Shoots</h2>
             <AdminStandbyShootList
-              shoots={standbyOnlyUpcoming}
+              shoots={shoots.filter(s => {
+                if (s.status === 'cancelled') return false;
+                const adminStandbyDays = standbyDays.filter(sd => sd.admin_email === user?.email);
+                return adminStandbyDays.some(sd => {
+                  const start = sd.start_date || sd.date;
+                  const end = sd.end_date || start;
+                  return s.date >= start && s.date <= (end || start);
+                });
+              })}
               allUsers={allUsers}
               userEmail={user?.email}
               rigSettings={rigSettings}

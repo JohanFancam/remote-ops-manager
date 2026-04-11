@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
 import CountdownCard from './CountdownCard';
-
-
 
 export default function AdminStandbyShootList({ shoots = [], allUsers = [], userEmail, standbyDays = [], rigSettings = [], onUpdate, isAdmin = true }) {
   const [now, setNow] = useState(new Date());
-  const [selectedDateIdx, setSelectedDateIdx] = useState(0);
-  const PAGE_SIZE = 10;
+  const [viewMode, setViewMode] = useState('day');
+  const [monthDate, setMonthDate] = useState(new Date());
+  const [monthSelectedDate, setMonthSelectedDate] = useState(null);
 
   useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 1000);
+    const iv = setInterval(() => setNow(new Date()), 10000);
     return () => clearInterval(iv);
   }, []);
 
-  // Build list of unique dates covered by the admin's standby entries
-  const standbyDates = React.useMemo(() => {
-    if (!standbyDays.length) return null;
+  const todayStr = format(now, 'yyyy-MM-dd');
+
+  // All dates covered by the admin's standby entries (past + future)
+  const standbyDates = useMemo(() => {
+    if (!standbyDays.length) return [];
     const dates = new Set();
-    const todayStr = format(now, 'yyyy-MM-dd');
     standbyDays.forEach(sd => {
       const start = sd.start_date || sd.date;
       const end = sd.end_date || start;
@@ -27,108 +27,222 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
       const cur = new Date(start + 'T12:00:00');
       const last = new Date(end + 'T12:00:00');
       while (cur <= last) {
-        const ds = format(cur, 'yyyy-MM-dd');
-        if (ds >= todayStr) dates.add(ds);
+        dates.add(format(cur, 'yyyy-MM-dd'));
         cur.setDate(cur.getDate() + 1);
       }
     });
     return Array.from(dates).sort();
-  }, [standbyDays, now]);
+  }, [standbyDays]);
 
-  // Filter shoots by selected date; apply time bounds on start/end days
-  const filteredShoots = React.useMemo(() => {
-    if (!standbyDates || standbyDates.length === 0) return shoots;
-    const selectedDate = standbyDates[selectedDateIdx];
-    const dayShots = shoots.filter(s => s.date === selectedDate);
+  // Day view: selected date index
+  const todayIdx = standbyDates.indexOf(todayStr);
+  const defaultIdx = todayIdx >= 0 ? todayIdx : standbyDates.findLastIndex(d => d <= todayStr);
+  const [selectedDateIdx, setSelectedDateIdx] = useState(Math.max(0, defaultIdx));
 
+  // Get shoots for a given date, respecting standby time windows
+  const getShootsForDate = (dateStr) => {
+    const dayShots = shoots.filter(s => s.date === dateStr);
     return dayShots.filter(shoot => {
       const shootTime = shoot.game_time || '12:00';
       const shootDt = new Date(`${shoot.date}T${shootTime}`);
-
       return standbyDays.some(sd => {
         const start = sd.start_date || sd.date;
         const end = sd.end_date || start;
-        if (selectedDate < start || selectedDate > end) return false;
-
-        // On start day: shoot must be at or after start_time
-        if (selectedDate === start && sd.start_time) {
-          const startDt = new Date(`${start}T${sd.start_time}`);
-          if (shootDt < startDt) return false;
+        if (dateStr < start || dateStr > end) return false;
+        if (dateStr === start && sd.start_time) {
+          if (shootDt < new Date(`${start}T${sd.start_time}`)) return false;
         }
-
-        // On end day: shoot must be before end_time
-        if (selectedDate === end && sd.end_time) {
-          const endDt = new Date(`${end}T${sd.end_time}`);
-          if (shootDt >= endDt) return false;
+        if (dateStr === end && sd.end_time) {
+          if (shootDt >= new Date(`${end}T${sd.end_time}`)) return false;
         }
-
         return true;
       });
     });
-  }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
+  };
 
-  const pagedShoots = filteredShoots.slice(0, PAGE_SIZE);
+  const selectedDate = standbyDates[selectedDateIdx];
+  const dayShootsList = selectedDate ? getShootsForDate(selectedDate) : [];
+  const isPastDay = selectedDate && selectedDate < todayStr;
 
-  if (shoots.length === 0) {
+  // Month view
+  const monthStart = startOfMonth(monthDate);
+  const monthEnd = endOfMonth(monthDate);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startPadding = getDay(monthStart);
+  const monthDayShootsList = monthSelectedDate ? getShootsForDate(monthSelectedDate) : [];
+
+  const isCompleted = (shoot) => !!shoot.phase_status?.shoot_complete || shoot.status === 'completed';
+
+  if (standbyDates.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500 text-sm italic">
-        No upcoming shoots on your standby shift.
+        No standby coverage assigned.
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {/* Date selector */}
-      {standbyDates && standbyDates.length > 0 && (
-        <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2">
+    <div>
+      {/* View toggle */}
+      <div className="flex justify-end mb-3">
+        <div className="flex bg-gray-800 rounded-lg p-0.5">
           <button
-            onClick={() => setSelectedDateIdx(i => Math.max(0, i - 1))}
-            disabled={selectedDateIdx === 0}
-            className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"
+            onClick={() => setViewMode('day')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'day' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <ChevronLeft className="h-4 w-4 text-gray-400" />
+            <List className="h-3.5 w-3.5" /> Day
           </button>
-          <div className="flex-1 text-center">
-            <span className="text-sm font-semibold text-white">
-              {format(new Date(standbyDates[selectedDateIdx] + 'T12:00:00'), 'EEEE, MMM d')}
-            </span>
-            <span className="text-xs text-gray-500 ml-2">
-              ({filteredShoots.length} shoot{filteredShoots.length !== 1 ? 's' : ''})
-            </span>
+          <button
+            onClick={() => setViewMode('month')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Month
+          </button>
+        </div>
+      </div>
+
+      {/* MONTH VIEW */}
+      {viewMode === 'month' && (
+        <div>
+          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
+            <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="p-1 rounded hover:bg-gray-700 transition-colors">
+              <ChevronLeft className="h-4 w-4 text-gray-400" />
+            </button>
+            <div className="flex-1 text-center text-sm font-semibold text-white">
+              {format(monthDate, 'MMMM yyyy')}
+            </div>
+            <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="p-1 rounded hover:bg-gray-700 transition-colors">
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
           </div>
-          <button
-            onClick={() => setSelectedDateIdx(i => Math.min(standbyDates.length - 1, i + 1))}
-            disabled={selectedDateIdx === standbyDates.length - 1}
-            className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"
-          >
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </button>
+
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+              <div key={d} className="text-center text-xs text-gray-600 font-medium py-1">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {Array.from({ length: startPadding }).map((_, i) => <div key={`pad-${i}`} />)}
+            {monthDays.map(day => {
+              const ds = format(day, 'yyyy-MM-dd');
+              const isStandby = standbyDates.includes(ds);
+              const dayShots = isStandby ? getShootsForDate(ds) : [];
+              const isToday = ds === todayStr;
+              const isSelected = ds === monthSelectedDate;
+              const isPast = ds < todayStr;
+              return (
+                <button
+                  key={ds}
+                  onClick={() => isStandby ? setMonthSelectedDate(isSelected ? null : ds) : null}
+                  className={`relative flex flex-col items-center py-1.5 rounded-lg transition-colors ${
+                    isSelected ? 'bg-blue-600' :
+                    isToday && isStandby ? 'bg-gray-700' :
+                    isStandby && dayShots.length > 0 ? 'bg-gray-800 hover:bg-gray-700' :
+                    isStandby ? 'bg-gray-800/40 hover:bg-gray-700/40' :
+                    'opacity-30'
+                  } ${!isStandby ? 'cursor-default' : 'cursor-pointer'}`}
+                >
+                  <span className={`text-xs font-medium ${
+                    isSelected ? 'text-white' :
+                    isToday ? 'text-blue-400' :
+                    isStandby && !isPast ? 'text-white' :
+                    isStandby ? 'text-gray-500' : 'text-gray-700'
+                  }`}>{format(day, 'd')}</span>
+                  {dayShots.length > 0 && (
+                    <span className={`text-xs mt-0.5 font-bold ${isSelected ? 'text-blue-200' : isPast ? 'text-gray-500' : 'text-blue-400'}`}>
+                      {dayShots.length}
+                    </span>
+                  )}
+                  {isStandby && dayShots.length === 0 && (
+                    <span className="text-xs mt-0.5 text-gray-700">•</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {monthSelectedDate && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-medium">
+                {format(new Date(monthSelectedDate + 'T12:00:00'), 'EEEE, MMM d')} — {monthDayShootsList.length} shoot{monthDayShootsList.length !== 1 ? 's' : ''}
+              </p>
+              {monthDayShootsList.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm italic">No shoots during your standby window.</div>
+              ) : (
+                <div className="space-y-2">
+                  {monthDayShootsList.map(shoot => (
+                    <div key={shoot.id} className={isCompleted(shoot) ? 'opacity-50' : ''}>
+                      <CountdownCard
+                        shoot={shoot}
+                        isAdmin={isAdmin}
+                        rigSettings={rigSettings}
+                        onUpdate={onUpdate}
+                        userEmail={userEmail}
+                        allUsers={allUsers}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Shoot list */}
-      {pagedShoots.length === 0 ? (
-        <div className="text-center py-6 text-gray-500 text-sm italic">
-          No shoots during your standby window on this day.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {pagedShoots.map(shoot => (
-            <CountdownCard
-              key={shoot.id}
-              shoot={shoot}
-              isAdmin={isAdmin}
-              rigSettings={rigSettings}
-              onUpdate={onUpdate}
-              userEmail={userEmail}
-              allUsers={allUsers}
-            />
-          ))}
-          {filteredShoots.length > PAGE_SIZE && (
-            <p className="text-xs text-gray-600 text-center pt-1">
-              Showing {PAGE_SIZE} of {filteredShoots.length} shoots
-            </p>
+      {/* DAY VIEW */}
+      {viewMode === 'day' && (
+        <div>
+          {/* Day navigator */}
+          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
+            <button
+              onClick={() => setSelectedDateIdx(i => Math.max(0, i - 1))}
+              disabled={selectedDateIdx === 0}
+              className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 text-gray-400" />
+            </button>
+            <div className="flex-1 text-center">
+              <span className="text-sm font-semibold text-white">
+                {selectedDate === todayStr ? 'Today — ' : ''}
+                {selectedDate ? format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d') : '—'}
+              </span>
+              <span className="text-xs text-gray-500 ml-2">
+                ({dayShootsList.length} shoot{dayShootsList.length !== 1 ? 's' : ''})
+              </span>
+              {isPastDay && <span className="ml-2 text-xs text-gray-600 italic">past</span>}
+            </div>
+            <button
+              onClick={() => setSelectedDateIdx(i => Math.min(standbyDates.length - 1, i + 1))}
+              disabled={selectedDateIdx === standbyDates.length - 1}
+              className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+          </div>
+
+          {dayShootsList.length === 0 ? (
+            <div className="text-center py-6 text-gray-500 text-sm italic">
+              No shoots during your standby window on this day.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dayShootsList.map(shoot => (
+                <div key={shoot.id} className={isCompleted(shoot) ? 'opacity-50' : ''}>
+                  <CountdownCard
+                    shoot={shoot}
+                    isAdmin={isAdmin}
+                    rigSettings={rigSettings}
+                    onUpdate={onUpdate}
+                    userEmail={userEmail}
+                    allUsers={allUsers}
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
