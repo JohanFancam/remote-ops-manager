@@ -167,8 +167,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   }, [now]);
 
   const gameDate = getGameDateTime(shoot);
-  const diff = gameDate ? gameDate - now : null;
-  const isPast = diff !== null && diff <= 0;
+  const schedule = getSchedule(shoot);
 
   const formatCountdown = (ms) => {
     if (ms <= 0) return 'NOW';
@@ -178,10 +177,6 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     const s = Math.floor((ms % 60000) / 1000);
     return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
-
-  const countdown = diff === null ? '—' : isPast ? 'LIVE / PAST' : formatCountdown(diff);
-
-  const schedule = getSchedule(shoot);
 
   const matchedRig = rigSettings.find(r =>
     r.team && shoot.client &&
@@ -193,6 +188,36 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
+
+  // Count down to next incomplete phase
+  const getNextPhaseTarget = () => {
+    if (!schedule || !shoot.date) return { label: 'Game Time', date: gameDate };
+    const phase = effectivePhaseStatus;
+    const toDate = (t) => {
+      if (!t) return null;
+      const [h, m] = t.split(':').map(Number);
+      const d = new Date(shoot.date + 'T00:00:00');
+      d.setHours(h, m, 0, 0);
+      return d;
+    };
+    const candidates = [
+      { label: 'Setup', key: 'setup_complete', date: toDate(schedule.setup) },
+      { label: 'Pre-Shoot', key: 'pre_shoot_started', date: toDate(schedule.pre_shoot) },
+      showAttention ? { label: 'Attention', key: 'attention_started', date: toDate(schedule.attention) } : null,
+      showSound ? { label: 'Sound Check', key: 'sound_started', date: toDate(schedule.sound) } : null,
+      { label: 'Game Time', key: 'game_started', date: gameDate },
+    ].filter(Boolean);
+    for (const c of candidates) {
+      if (!phase[c.key] && c.date) return c;
+    }
+    return { label: 'Game Time', date: gameDate };
+  };
+
+  const nextPhaseTarget = getNextPhaseTarget();
+  const targetDiff = nextPhaseTarget?.date ? nextPhaseTarget.date - now : null;
+  const targetIsPast = targetDiff !== null && targetDiff <= 0;
+  const countdown = targetDiff === null ? '—' : targetIsPast ? 'NOW' : formatCountdown(targetDiff);
+  const countdownLabel = nextPhaseTarget?.label || 'Game Time';
 
   const shootWithEffectivePhase = { ...shoot, phase_status: effectivePhaseStatus };
   const livePhase = getLivePhase(shootWithEffectivePhase, now, schedule, gameDate, showAttention, showSound);
@@ -283,19 +308,11 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
         </div>
 
         {/* Countdown */}
-        <div className={`text-center py-3 px-2 rounded-xl mb-4 ${isPast ? 'bg-red-950/40 border border-red-800' : 'bg-blue-950/40 border border-blue-800'}`}>
-          <div className={`font-mono font-bold text-2xl tracking-wider ${isPast ? 'text-red-400' : 'text-blue-300'}`}>
+        <div className={`text-center py-3 px-2 rounded-xl mb-4 ${targetIsPast ? 'bg-red-950/40 border border-red-800' : 'bg-blue-950/40 border border-blue-800'}`}>
+          <div className={`font-mono font-bold text-2xl tracking-wider ${targetIsPast ? 'text-red-400' : 'text-blue-300'}`}>
             {countdown}
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">until game time</div>
-          {nextPhase && nextCountdown > 0 && (
-            <div className="mt-1.5 text-xs text-gray-400">
-              <span className="text-gray-600">next: </span>
-              <span className="font-semibold text-gray-300">{nextPhase.label}</span>
-              <span className="text-gray-600"> in </span>
-              <span className="font-mono text-yellow-400">{formatCountdown(nextCountdown)}</span>
-            </div>
-          )}
+          <div className="text-xs text-gray-500 mt-0.5">until {countdownLabel}</div>
           {livePhase && livePhase.label !== 'Complete' && (
             <div className="mt-1 text-xs">
               <span className="text-gray-500">now: </span>

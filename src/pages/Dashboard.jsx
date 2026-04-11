@@ -207,6 +207,7 @@ export default function Dashboard() {
               shoots={standbyOnlyUpcoming}
               allUsers={allUsers}
               userEmail={user?.email}
+              standbyDays={standbyDays.filter(sd => sd.admin_email === user?.email)}
             />
           </div>
         )}
