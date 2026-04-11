@@ -80,7 +80,8 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
     phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900">
+      {/* Left: name + meta */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
@@ -96,14 +97,21 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        {phase && !phase.done && phase.ms != null && (
-          <div className="text-right">
+
+      {/* Center: countdown */}
+      <div className="text-center flex-shrink-0 w-28">
+        {phase?.done ? (
+          <span className="text-xs text-green-400 font-semibold">✓ Complete</span>
+        ) : phase?.ms != null ? (
+          <>
             <div className={`font-mono font-bold text-sm ${countdownColor}`}>{formatMs(phase.ms)}</div>
-            <div className="text-xs text-gray-600">until {phase.label}</div>
-          </div>
-        )}
-        {phase?.done && <span className="text-xs text-green-400 font-semibold">✓ Complete</span>}
+            <div className="text-xs text-gray-500">until {phase.label}</div>
+          </>
+        ) : null}
+      </div>
+
+      {/* Right: status badge */}
+      <div className="flex-shrink-0">
         <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
           {shoot.status}
         </Badge>

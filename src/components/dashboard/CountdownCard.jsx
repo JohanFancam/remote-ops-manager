@@ -294,17 +294,21 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="text-right">
+          {/* Center: countdown */}
+          <div className="text-center w-28">
             <div className={`font-mono font-bold text-sm ${
               targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'
             }`}>{countdown}</div>
-            <div className="text-xs text-gray-600">until {countdownLabel}</div>
+            <div className="text-xs text-gray-500">until {countdownLabel}</div>
           </div>
-          {livePhase ? (
-            <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
-          ) : (
-            <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>{shoot.status}</Badge>
-          )}
+          {/* Right: status badge */}
+          <div className="flex-shrink-0">
+            {livePhase ? (
+              <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
+            ) : (
+              <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>{shoot.status}</Badge>
+            )}
+          </div>
           <button onClick={() => setExpanded(!expanded)} className="p-1 text-gray-500 hover:text-gray-300 transition-colors">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
