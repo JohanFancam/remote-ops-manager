@@ -55,9 +55,11 @@ function getNextPhaseInfo(shoot, now) {
   return null;
 }
 
-function getLivePhaseLabel(shoot, now) {
+function getLivePhaseLabel(shoot, now, matchedRig) {
   const schedule = getSchedule(shoot);
   const gameDate = getGameDateTime(shoot);
+  const showAttention = matchedRig?.attention_enabled === true;
+  const showSound = matchedRig?.sound === true;
   const phase = shoot.phase_status || {};
   if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
   if (!schedule || !shoot.date) return null;
@@ -69,9 +71,9 @@ function getLivePhaseLabel(shoot, now) {
     return d;
   };
   if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game In Progress', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
-  const soundTime = toDate(schedule.sound);
+  const soundTime = showSound ? toDate(schedule.sound) : null;
   if (phase.sound_started || (soundTime && now >= soundTime)) return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
-  const attentionTime = toDate(schedule.attention);
+  const attentionTime = showAttention ? toDate(schedule.attention) : null;
   if (phase.attention_started || (attentionTime && now >= attentionTime)) return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
   const preShootTime = toDate(schedule.pre_shoot);
   if (phase.pre_shoot_started || (preShootTime && now >= preShootTime)) return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
@@ -82,7 +84,7 @@ function getLivePhaseLabel(shoot, now) {
 
 function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
-  const livePhase = getLivePhaseLabel(shoot, now);
+  const livePhase = getLivePhaseLabel(shoot, now, matchedRig);
   const matchedRig = rigSettings.find(r =>
     r.team && shoot.client &&
     r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
