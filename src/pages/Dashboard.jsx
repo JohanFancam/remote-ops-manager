@@ -23,6 +23,7 @@ export default function Dashboard() {
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 500),
+    staleTime: 60_000,
   });
 
 
@@ -31,11 +32,13 @@ export default function Dashboard() {
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
     enabled: isAdmin,
+    staleTime: 5 * 60_000,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60_000,
   });
 
   // UserPresence is written by every user themselves — readable by all.
@@ -43,17 +46,20 @@ export default function Dashboard() {
   const { data: presenceRecords = [] } = useQuery({
     queryKey: ['userPresence'],
     queryFn: () => base44.entities.UserPresence.list(),
+    staleTime: 2 * 60_000,
   });
 
   const { data: standbyDays = [] } = useQuery({
     queryKey: ['standbyDays'],
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+    staleTime: 2 * 60_000,
   });
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
     enabled: isAdmin,
+    staleTime: 5 * 60_000,
   });
 
 
