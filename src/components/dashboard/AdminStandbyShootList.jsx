@@ -62,15 +62,19 @@ function getNextPhaseInfo(shoot, now) {
   return null;
 }
 
-function ShootRow({ shoot, allUsers, userEmail, now }) {
+function ShootRow({ shoot, allUsers, userEmail, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
   const operators = (shoot.assigned_operators || []).map(e => {
     const u = allUsers.find(u => u.email === e);
     return getDisplayName(u, e);
   });
 
-  // Derive rig type from shoot override or client match
-  const rigType = shoot.rig_type_override || null;
+  // Derive rig type: shoot override first, then matched rig setting
+  const matchedRig = rigSettings.find(r =>
+    r.team && shoot.client &&
+    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
+  );
+  const rigType = shoot.rig_type_override || matchedRig?.rig_type || null;
 
   const countdownColor = phase?.done ? 'text-green-400' :
     phase?.ms != null && phase.ms <= 0 ? 'text-red-400' :
@@ -109,7 +113,7 @@ function ShootRow({ shoot, allUsers, userEmail, now }) {
   );
 }
 
-export default function AdminStandbyShootList({ shoots = [], allUsers = [], userEmail, standbyDays = [] }) {
+export default function AdminStandbyShootList({ shoots = [], allUsers = [], userEmail, standbyDays = [], rigSettings = [] }) {
   const [now, setNow] = useState(new Date());
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const PAGE_SIZE = 10;
@@ -192,7 +196,7 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
       ) : (
         <div className="space-y-2">
           {pagedShoots.map(shoot => (
-            <ShootRow key={shoot.id} shoot={shoot} allUsers={allUsers} userEmail={userEmail} now={now} />
+            <ShootRow key={shoot.id} shoot={shoot} allUsers={allUsers} userEmail={userEmail} now={now} rigSettings={rigSettings} />
           ))}
           {filteredShoots.length > PAGE_SIZE && (
             <p className="text-xs text-gray-600 text-center pt-1">

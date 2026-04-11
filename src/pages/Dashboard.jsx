@@ -179,11 +179,11 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ADMIN: Self-assigned shoots — full CountdownCard */}
+        {/* ADMIN: Self-assigned shoots — compact expandable list */}
         {isAdmin && selfAssignedUpcoming.length > 0 && (
           <div className="mb-6">
             <h2 className="text-base font-semibold text-white mb-3">My Assigned Shoots — Live Countdown</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               {selfAssignedUpcoming.map(shoot => (
                 <CountdownCard
                   key={shoot.id}
@@ -207,6 +207,7 @@ export default function Dashboard() {
               shoots={standbyOnlyUpcoming}
               allUsers={allUsers}
               userEmail={user?.email}
+              rigSettings={rigSettings}
               standbyDays={standbyDays.filter(sd => sd.admin_email === user?.email)}
             />
           </div>
