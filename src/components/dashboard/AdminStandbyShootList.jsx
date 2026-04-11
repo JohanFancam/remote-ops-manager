@@ -5,13 +5,7 @@ import { getDisplayName } from '../utils/nameUtils';
 import { getSchedule, getGameDateTime } from '../utils/scheduleUtils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const statusColors = {
-  upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
-  in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-};
+
 
 function formatMs(ms) {
   if (ms <= 0) return 'NOW';
@@ -61,19 +55,42 @@ function getNextPhaseInfo(shoot, now) {
   return null;
 }
 
+function getLivePhaseLabel(shoot, now) {
+  const schedule = getSchedule(shoot);
+  const gameDate = getGameDateTime(shoot);
+  const phase = shoot.phase_status || {};
+  if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+  if (!schedule || !shoot.date) return null;
+  const toDate = (t) => {
+    if (!t) return null;
+    const [h, m] = t.split(':').map(Number);
+    const d = new Date(shoot.date + 'T00:00:00');
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game In Progress', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  const soundTime = toDate(schedule.sound);
+  if (phase.sound_started || (soundTime && now >= soundTime)) return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+  const attentionTime = toDate(schedule.attention);
+  if (phase.attention_started || (attentionTime && now >= attentionTime)) return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+  const preShootTime = toDate(schedule.pre_shoot);
+  if (phase.pre_shoot_started || (preShootTime && now >= preShootTime)) return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+  const setupTime = toDate(schedule.setup);
+  if (phase.setup_complete || (setupTime && now >= setupTime)) return { label: 'Setup', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+  return null;
+}
+
 function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
-  const operators = (shoot.assigned_operators || []).map(e => {
-    const u = allUsers.find(u => u.email === e);
-    return getDisplayName(u, e);
-  });
-
-  const matchedRig = rigSettings.find(r =>
-    r.team && shoot.client &&
-    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
-  );
-  const rigType = shoot.rig_type_override || matchedRig?.rig_type || null;
-
+  const livePhase = getLivePhaseLabel(shoot, now);
+  const fallbackStatusColors = {
+    upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
+    in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+  };
+  const badgeInfo = livePhase || { label: shoot.status, color: fallbackStatusColors[shoot.status] || fallbackStatusColors.upcoming };
   const countdownColor = phase?.done ? 'text-green-400' :
     phase?.ms != null && phase.ms <= 0 ? 'text-red-400' :
     phase?.ms != null && phase.ms < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300';
@@ -111,8 +128,8 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
 
       {/* Right: status badge */}
       <div className="flex justify-end">
-        <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
-          {shoot.status}
+        <Badge className={`text-xs border ${badgeInfo.color}`}>
+          {badgeInfo.label}
         </Badge>
       </div>
     </div>
