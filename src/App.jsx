@@ -4,6 +4,10 @@ import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import Earnings from './pages/Earnings'
+import TeamSchedule from './pages/TeamSchedule'
+import OperatorAvailability from './pages/OperatorAvailability'
+import RigsCheck from './pages/RigsCheck'
+import ShootDuration from './pages/ShootDuration'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -60,6 +64,10 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/Earnings" element={<LayoutWrapper currentPageName="Earnings"><Earnings /></LayoutWrapper>} />
+      <Route path="/TeamSchedule" element={<LayoutWrapper currentPageName="TeamSchedule"><TeamSchedule /></LayoutWrapper>} />
+      <Route path="/OperatorAvailability" element={<LayoutWrapper currentPageName="OperatorAvailability"><OperatorAvailability /></LayoutWrapper>} />
+      <Route path="/RigsCheck" element={<LayoutWrapper currentPageName="RigsCheck"><RigsCheck /></LayoutWrapper>} />
+      <Route path="/ShootDuration" element={<LayoutWrapper currentPageName="ShootDuration"><ShootDuration /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

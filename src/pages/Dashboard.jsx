@@ -1,38 +1,30 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, CalendarDays, Wrench, Phone, Users, CheckSquare, Clock, CalendarRange } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import CountdownCard from '../components/dashboard/CountdownCard';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
-import RigsCheckPanel from '../components/dashboard/RigsCheckPanel';
-
 import StandbyManager from '../components/dashboard/StandbyManager';
-import StandbyBanner from '../components/dashboard/StandbyBanner';
-import ShootTimingPanel from '../components/dashboard/ShootTimingPanel';
-import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
-import { AdminAvailabilityView, OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
-import AdminPanelDrawer from '../components/dashboard/AdminPanelDrawer';
+import DashboardBanner from '../components/dashboard/DashboardBanner';
+import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
+import RemoteShootCard from '../components/dashboard/RemoteShootCard';
+import { OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
 
 export default function Dashboard() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [openDrawer, setOpenDrawer] = useState(null); // 'standby' | 'team' | 'availability' | 'rigs' | 'timing'
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 500),
   });
 
-  const { data: rigs = [] } = useQuery({
-    queryKey: ['rigs'],
-    queryFn: () => base44.entities.Rig.list(),
-    enabled: isAdmin,
-  });
+
 
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
@@ -63,7 +55,6 @@ export default function Dashboard() {
     enabled: isAdmin,
   });
 
-  const isFeatureOn = (key) => appSettings.find(s => s.key === `feature_${key}`)?.value !== 'false';
 
   // Merge User records with UserPresence so name lookups work for all admins
   const allUsers = useMemo(() => {
@@ -141,203 +132,133 @@ export default function Dashboard() {
     s.date?.startsWith(format(today, 'yyyy-MM')) &&
     s.assigned_operators?.includes(user?.email)
   );
-  const myStandbyCount = standbyDays.filter(s =>
-    s.admin_email === user?.email && s.date >= todayStr
-  ).length;
+  // Standby shoots: shoots on dates the admin is covering (for the compact list)
+  const myStandbyCount = standbyDays.filter(sd => {
+    const startDate = sd.start_date || sd.date;
+    return sd.admin_email === user?.email && startDate >= todayStr;
+  }).length;
 
   const handleShootUpdate = async (id, data) => {
     await base44.entities.Shoot.update(id, data);
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
   };
 
+  // For self-assigned admin shoots, use CountdownCard; standby-only uses compact list
+  const selfAssignedUpcoming = isAdmin
+    ? myUpcoming.filter(s => s.assigned_operators?.includes(user?.email))
+    : [];
+
+  const standbyOnlyUpcoming = isAdmin
+    ? myUpcoming.filter(s => !s.assigned_operators?.includes(user?.email))
+    : [];
+
+  const remoteUpcoming = !isAdmin
+    ? myUpcoming.slice(0, 10)
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white">
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold text-white">
             {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
           </h1>
-          <p className="text-gray-400 mt-1">{format(today, 'EEEE, MMMM d, yyyy')}</p>
         </div>
 
-        {/* Shoot change notifications */}
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
 
-        {/* Standby banner — visible to ALL users */}
-        <StandbyBanner todayStr={todayStr} currentUser={user} />
+        {/* Unified banner: clock + standby + stats */}
+        <DashboardBanner
+          user={user}
+          isAdmin={isAdmin}
+          shoots={shoots}
+          standbyDays={standbyDays}
+          allUsers={allUsers}
+          todayStr={todayStr}
+        />
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">My Upcoming</p>
-                  <p className="text-3xl font-bold text-white mt-1">{myUpcoming.length}</p>
-                </div>
-                <Camera className="h-10 w-10 text-blue-500 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* ADMIN: Standby calendar always open */}
+        {isAdmin && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+            <StandbyManager user={user} allUsers={allUsers} />
+          </div>
+        )}
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">This Month (Mine)</p>
-                  <p className="text-3xl font-bold text-white mt-1">{thisMonthMyShoots.length}</p>
-                </div>
-                <CalendarDays className="h-10 w-10 text-purple-500 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {isAdmin ? (
-            <>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">My Standby Days</p>
-                      <p className="text-3xl font-bold text-white mt-1">{myStandbyCount}</p>
-                    </div>
-                    <Phone className="h-10 w-10 text-yellow-500 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">Rigs Available</p>
-                      <p className="text-3xl font-bold text-white mt-1">{availableRigs}</p>
-                    </div>
-                    <Wrench className="h-10 w-10 text-green-500 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">Total Assigned</p>
-                      <p className="text-3xl font-bold text-white mt-1">
-                        {shoots.filter(s => s.assigned_operators?.includes(user?.email)).length}
-                      </p>
-                    </div>
-                    <Camera className="h-10 w-10 text-blue-500 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-gray-800 border-yellow-700/40">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-yellow-400 text-sm">Pending Approval</p>
-                      <p className="text-3xl font-bold text-yellow-400 mt-1">
-                        {shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length}
-                      </p>
-                    </div>
-                    <CalendarDays className="h-10 w-10 text-yellow-500 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">Today's Shoots</p>
-                      <p className="text-3xl font-bold text-white mt-1">
-                        {shoots.filter(s => s.date === todayStr && s.assigned_operators?.includes(user?.email)).length}
-                      </p>
-                    </div>
-                    <CalendarDays className="h-10 w-10 text-green-500 opacity-80" />
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-
-        {/* Admin quick-launch panel buttons */}
-        {isAdmin && (() => {
-          const panels = [
-            { key: 'standby', featureKey: 'standby_panel', label: 'Standby Schedule', icon: Phone, color: 'text-yellow-400', bg: 'hover:bg-yellow-950/30 hover:border-yellow-700/50' },
-            { key: 'team', featureKey: 'team_panel', label: 'Team Schedule', icon: CalendarRange, color: 'text-blue-400', bg: 'hover:bg-blue-950/30 hover:border-blue-700/50' },
-            { key: 'availability', featureKey: 'availability_panel', label: 'Operator Availability', icon: Users, color: 'text-green-400', bg: 'hover:bg-green-950/30 hover:border-green-700/50' },
-            { key: 'rigs', featureKey: 'rigs', label: 'Rigs Check', icon: CheckSquare, color: 'text-orange-400', bg: 'hover:bg-orange-950/30 hover:border-orange-700/50' },
-            { key: 'timing', featureKey: 'timing_panel', label: 'Shoot Duration Tracker', icon: Clock, color: 'text-purple-400', bg: 'hover:bg-purple-950/30 hover:border-purple-700/50' },
-          ].filter(p => isFeatureOn(p.featureKey));
-          if (panels.length === 0) return null;
-          return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              {panels.map(item => (
-                <button
-                  key={item.key}
-                  onClick={() => setOpenDrawer(item.key)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-900 border border-gray-800 transition-all ${item.bg}`}
-                >
-                  <item.icon className={`h-6 w-6 ${item.color}`} />
-                  <span className="text-xs font-medium text-gray-300 text-center leading-tight">{item.label}</span>
-                </button>
+        {/* ADMIN: Self-assigned shoots — full CountdownCard */}
+        {isAdmin && selfAssignedUpcoming.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-base font-semibold text-white mb-3">My Assigned Shoots — Live Countdown</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {selfAssignedUpcoming.map(shoot => (
+                <CountdownCard
+                  key={shoot.id}
+                  shoot={shoot}
+                  isAdmin={isAdmin}
+                  rigSettings={rigSettings}
+                  onUpdate={handleShootUpdate}
+                  userEmail={user?.email}
+                  allUsers={allUsers}
+                />
               ))}
             </div>
-          );
-        })()}
+          </div>
+        )}
 
-        {/* Admin panel drawers */}
-        <AdminPanelDrawer title="Standby Schedule" open={openDrawer === 'standby'} onClose={() => setOpenDrawer(null)}>
-          <StandbyManager user={user} allUsers={allUsers} />
-        </AdminPanelDrawer>
-        <AdminPanelDrawer title="Team Schedule" open={openDrawer === 'team'} onClose={() => setOpenDrawer(null)} wide>
-          <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />
-        </AdminPanelDrawer>
-        <AdminPanelDrawer title="Operator Availability" open={openDrawer === 'availability'} onClose={() => setOpenDrawer(null)} wide>
-          <AdminAvailabilityView allUsers={allUsers} />
-        </AdminPanelDrawer>
-        <AdminPanelDrawer title="Rigs Check" open={openDrawer === 'rigs'} onClose={() => setOpenDrawer(null)}>
-          <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} />
-        </AdminPanelDrawer>
-        <AdminPanelDrawer title="Shoot Duration Tracker" open={openDrawer === 'timing'} onClose={() => setOpenDrawer(null)}>
-          <ShootTimingPanel shoots={shoots} allUsers={allUsers} />
-        </AdminPanelDrawer>
+        {/* ADMIN: Standby coverage shoots — compact list */}
+        {isAdmin && (
+          <div className="mb-6">
+            <h2 className="text-base font-semibold text-white mb-3">Standby Coverage — Upcoming Shoots</h2>
+            <AdminStandbyShootList
+              shoots={standbyOnlyUpcoming}
+              allUsers={allUsers}
+              userEmail={user?.email}
+            />
+          </div>
+        )}
 
-
-        <h2 className="text-lg font-semibold text-white mb-4 mt-6">My Upcoming Games — Live Countdown</h2>
-
-        {displayShoots.length === 0 ? (
+        {/* ADMIN: empty state */}
+        {isAdmin && myUpcoming.length === 0 && (
           <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-12 text-center">
-              <Camera className="h-12 w-12 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">No upcoming shoots assigned to you.</p>
+            <CardContent className="p-10 text-center">
+              <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500">No upcoming shoots on your schedule or standby shifts.</p>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayShoots.map(shoot => (
-              <CountdownCard
-                key={shoot.id}
-                shoot={shoot}
-                isAdmin={isAdmin}
-                rigSettings={rigSettings}
-                onUpdate={handleShootUpdate}
-                userEmail={user?.email}
-                allUsers={allUsers}
-              />
-            ))}
+        )}
+
+        {/* REMOTE: collapsible shoot banners */}
+        {!isAdmin && (
+          <div>
+            <h2 className="text-base font-semibold text-white mb-3">My Upcoming Shoots</h2>
+            {remoteUpcoming.length === 0 ? (
+              <Card className="bg-gray-900 border-gray-800">
+                <CardContent className="p-10 text-center">
+                  <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500">No upcoming shoots assigned to you.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {remoteUpcoming.map(shoot => (
+                  <RemoteShootCard
+                    key={shoot.id}
+                    shoot={shoot}
+                    rigSettings={rigSettings}
+                    onUpdate={handleShootUpdate}
+                    userEmail={user?.email}
+                    allUsers={allUsers}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         <div className="mt-8" />
-
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
         {!isAdmin && <OperatorAvailabilityPanel user={user} />}
         {!isAdmin && <div className="mt-6"><RemoteEarnings user={user} /></div>}
-
       </div>
     </div>
   );
