@@ -272,7 +272,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
       />
     )}
     <div className={`rounded-xl border transition-colors ${
-      targetIsPast ? 'border-red-800/50 bg-red-950/10' : 'bg-gray-900 border-gray-800'
+      targetIsPast ? 'border-gray-700 bg-gray-800/40' : 'bg-gray-900 border-gray-800'
     } hover:border-gray-600`}>
       {/* Collapsed row */}
       <div className="grid grid-cols-3 items-center gap-2 px-4 py-3">

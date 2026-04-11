@@ -27,6 +27,23 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
   // All dates from shoots (past + future) + always include today
   const allDates = [...new Set([...shoots.map(s => s.date), todayStr])].sort();
 
+  // Auto-advance to next date with upcoming/in-progress shoots when selected date is all complete
+  useEffect(() => {
+    const idx = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
+    const currentShots = shoots.filter(s => s.date === (allDates[idx] || todayStr));
+    const allComplete = currentShots.length > 0 && currentShots.every(s => s.phase_status?.shoot_complete || s.status === 'completed');
+    if (allComplete) {
+      // Find next date with incomplete shoots
+      for (let i = idx + 1; i < allDates.length; i++) {
+        const nextShots = shoots.filter(s => s.date === allDates[i]);
+        if (nextShots.some(s => !s.phase_status?.shoot_complete && s.status !== 'completed')) {
+          setSelectedDate(allDates[i]);
+          break;
+        }
+      }
+    }
+  }, [shoots]);
+
   const safeIndex = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
   const currentDate = allDates[safeIndex] || todayStr;
 

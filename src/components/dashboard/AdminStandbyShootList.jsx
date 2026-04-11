@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
 import CountdownCard from './CountdownCard';
@@ -34,10 +34,27 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays]);
 
-  // Day view: selected date index
-  const todayIdx = standbyDates.indexOf(todayStr);
-  const defaultIdx = todayIdx >= 0 ? todayIdx : standbyDates.findLastIndex(d => d <= todayStr);
-  const [selectedDateIdx, setSelectedDateIdx] = useState(Math.max(0, defaultIdx));
+  // Day view: selected date index — find today or nearest future standby date
+  const getDefaultIdx = (dates) => {
+    if (!dates.length) return 0;
+    const todayIdx = dates.indexOf(todayStr);
+    if (todayIdx >= 0) return todayIdx;
+    // Find first future date
+    const futureIdx = dates.findIndex(d => d > todayStr);
+    if (futureIdx >= 0) return futureIdx;
+    // All past — go to last
+    return dates.length - 1;
+  };
+  const [selectedDateIdx, setSelectedDateIdx] = useState(() => getDefaultIdx(standbyDates));
+
+  // Re-sync when standbyDates loads async
+  const prevStandbyLenRef = React.useRef(0);
+  useEffect(() => {
+    if (standbyDates.length !== prevStandbyLenRef.current) {
+      prevStandbyLenRef.current = standbyDates.length;
+      setSelectedDateIdx(getDefaultIdx(standbyDates));
+    }
+  }, [standbyDates]);
 
   // Get shoots for a given date, respecting standby time windows
   const getShootsForDate = (dateStr) => {
