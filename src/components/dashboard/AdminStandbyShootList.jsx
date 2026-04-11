@@ -98,14 +98,14 @@ function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
         </div>
       </div>
 
-      {/* Center: countdown */}
-      <div className="text-center flex-shrink-0 w-28">
+      {/* Center: big countdown */}
+      <div className="flex flex-col items-center justify-center flex-shrink-0 w-36 text-center">
         {phase?.done ? (
-          <span className="text-xs text-green-400 font-semibold">✓ Complete</span>
+          <span className="text-sm text-green-400 font-semibold">✓ Complete</span>
         ) : phase?.ms != null ? (
           <>
-            <div className={`font-mono font-bold text-sm ${countdownColor}`}>{formatMs(phase.ms)}</div>
-            <div className="text-xs text-gray-500">until {phase.label}</div>
+            <div className={`font-mono font-bold text-2xl tracking-tight ${countdownColor}`}>{formatMs(phase.ms)}</div>
+            <div className="text-xs text-gray-500 mt-0.5">until {phase.label}</div>
           </>
         ) : null}
       </div>

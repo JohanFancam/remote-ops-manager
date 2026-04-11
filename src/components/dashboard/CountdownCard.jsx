@@ -275,7 +275,8 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
       targetIsPast ? 'border-red-800/50 bg-red-950/10' : 'bg-gray-900 border-gray-800'
     } hover:border-gray-600`}>
       {/* Collapsed row */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3">
+        {/* Left: shoot info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-white text-sm truncate">{shoot.title}</span>
@@ -293,22 +294,22 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Center: countdown */}
-          <div className="text-center w-28">
-            <div className={`font-mono font-bold text-sm ${
-              targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'
-            }`}>{countdown}</div>
-            <div className="text-xs text-gray-500">until {countdownLabel}</div>
-          </div>
-          {/* Right: status badge */}
-          <div className="flex-shrink-0">
-            {livePhase ? (
-              <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
-            ) : (
-              <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>{shoot.status}</Badge>
-            )}
-          </div>
+
+        {/* Center: big countdown */}
+        <div className="flex flex-col items-center justify-center flex-shrink-0 w-36 text-center">
+          <div className={`font-mono font-bold text-2xl tracking-tight ${
+            targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'
+          }`}>{countdown}</div>
+          <div className="text-xs text-gray-500 mt-0.5">until {countdownLabel}</div>
+        </div>
+
+        {/* Right: status + expand */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          {livePhase ? (
+            <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
+          ) : (
+            <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>{shoot.status}</Badge>
+          )}
           <button onClick={() => setExpanded(!expanded)} className="p-1 text-gray-500 hover:text-gray-300 transition-colors">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
