@@ -149,12 +149,28 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays, now]);
 
-  // Simply filter shoots by the selected date — parent already handles standby eligibility
+  // Filter shoots by selected date; on the start day, only show shoots after standby start_time
   const filteredShoots = React.useMemo(() => {
     if (!standbyDates || standbyDates.length === 0) return shoots;
     const selectedDate = standbyDates[selectedDateIdx];
-    return shoots.filter(s => s.date === selectedDate);
-  }, [shoots, standbyDates, selectedDateIdx]);
+    const dayShots = shoots.filter(s => s.date === selectedDate);
+
+    // Check if this date is a start day for any standby entry with a start_time
+    const startEntry = standbyDays.find(sd => {
+      const start = sd.start_date || sd.date;
+      return start === selectedDate && sd.start_time;
+    });
+
+    if (!startEntry) return dayShots;
+
+    // On the start day, only show shoots at or after the standby start time
+    const startDt = new Date(`${selectedDate}T${startEntry.start_time}`);
+    return dayShots.filter(shoot => {
+      const shootTime = shoot.game_time || '23:59';
+      const shootDt = new Date(`${shoot.date}T${shootTime}`);
+      return shootDt >= startDt;
+    });
+  }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
 
   const pagedShoots = filteredShoots.slice(0, PAGE_SIZE);
 
