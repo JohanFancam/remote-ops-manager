@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
@@ -155,16 +155,23 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     const selectedDate = standbyDates[selectedDateIdx];
     const dayShots = shoots.filter(s => s.date === selectedDate);
     if (!standbyDays.length) return dayShots;
-    // Filter by whether the shoot's game time falls within any standby window
+    // Only time-filter on boundary days; interior days show all shoots
     return dayShots.filter(shoot => {
       const shootTime = shoot.game_time || '00:00';
       const shootDt = new Date(`${shoot.date}T${shootTime}`);
       return standbyDays.some(sd => {
         const start = sd.start_date || sd.date;
         const end = sd.end_date || start;
+        if (selectedDate < start || selectedDate > end) return false;
+        const isStartDay = selectedDate === start;
+        const isEndDay = selectedDate === end;
+        // Interior day — show all shoots
+        if (!isStartDay && !isEndDay) return true;
         const startDt = new Date(`${start}T${sd.start_time || '00:00'}`);
         const endDt = new Date(`${end}T${sd.end_time || '23:59:59'}`);
-        return shootDt >= startDt && shootDt <= endDt;
+        if (isStartDay && isEndDay) return shootDt >= startDt && shootDt <= endDt;
+        if (isStartDay) return shootDt >= startDt;
+        return shootDt <= endDt;
       });
     });
   }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
