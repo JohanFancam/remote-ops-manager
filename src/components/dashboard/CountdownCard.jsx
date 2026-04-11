@@ -187,6 +187,10 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
 
+  const isAssigned = shoot.assigned_operators?.includes(userEmail);
+  const canMarkPhases = isAdmin || isAssigned;
+  const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
+
   const shootWithEffectivePhase = { ...shoot, phase_status: effectivePhaseStatus };
   const livePhase = getLivePhase(shootWithEffectivePhase, now, schedule, gameDate, showAttention, showSound);
   const nextPhase = getNextPhase(shootWithEffectivePhase, now, schedule, gameDate, showAttention, showSound);
@@ -196,11 +200,7 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
-  const isAssigned = shoot.assigned_operators?.includes(userEmail);
-  const canMarkPhases = isAdmin || isAssigned;
-  const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
-
-  // Clear optimistic state when the real data arrives from parent
+  // Clear optimistic state
   useEffect(() => {
     setLocalPhaseStatus(null);
   }, [shoot.phase_status]);
