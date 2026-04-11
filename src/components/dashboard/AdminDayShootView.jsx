@@ -22,13 +22,14 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
     return () => clearInterval(iv);
   }, []);
 
-  // Shoots from previous days that are still in progress (not marked complete)
+  // Shoots from previous days that are still in progress (not marked complete) — shown as alert above day nav
   const inProgressPast = shoots.filter(s =>
     s.date < todayStr &&
-    !s.phase_status?.shoot_complete
+    !s.phase_status?.shoot_complete &&
+    s.status !== 'completed'
   );
 
-  // Unique dates from upcoming shoots + always include today
+  // All dates from shoots (past + future) + always include today
   const allDates = [...new Set([...shoots.map(s => s.date), todayStr])].sort();
 
   const safeIndex = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);

@@ -138,16 +138,16 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
   };
 
-  // For self-assigned admin shoots, use CountdownCard; standby-only uses compact list
-  const selfAssignedUpcoming = isAdmin
-    ? myUpcoming.filter(s => s.assigned_operators?.includes(user?.email))
-    : [];
+  // All assigned shoots (past + future, excl. cancelled) for the day/month navigator
+  const allAssignedShoots = shoots.filter(s =>
+    s.status !== 'cancelled' && s.assigned_operators?.includes(user?.email)
+  ).sort((a, b) => {
+    const d = a.date.localeCompare(b.date);
+    return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
+  });
 
-  const standbyOnlyUpcoming = isAdmin
-    ? myUpcoming.filter(s => !s.assigned_operators?.includes(user?.email))
-    : [];
-
-  const remoteUpcoming = !isAdmin ? myUpcoming : [];
+  const selfAssignedUpcoming = isAdmin ? allAssignedShoots : [];
+  const remoteUpcoming = !isAdmin ? allAssignedShoots : [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
@@ -200,6 +200,8 @@ export default function Dashboard() {
             <AdminStandbyShootList
               shoots={shoots.filter(s => {
                 if (s.status === 'cancelled') return false;
+                // Exclude shoots where this admin is a direct operator
+                if (s.assigned_operators?.includes(user?.email)) return false;
                 const adminStandbyDays = standbyDays.filter(sd => sd.admin_email === user?.email);
                 return adminStandbyDays.some(sd => {
                   const start = sd.start_date || sd.date;
@@ -231,23 +233,14 @@ export default function Dashboard() {
         {!isAdmin && (
           <div>
             <h2 className="text-base font-semibold text-white mb-3">My Upcoming Shoots</h2>
-            {remoteUpcoming.length === 0 ? (
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-10 text-center">
-                  <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500">No upcoming shoots assigned to you.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <AdminDayShootView
-                shoots={remoteUpcoming}
-                isAdmin={false}
-                rigSettings={[]}
-                onUpdate={handleShootUpdate}
-                userEmail={user?.email}
-                allUsers={allUsers}
-              />
-            )}
+            <AdminDayShootView
+              shoots={remoteUpcoming}
+              isAdmin={false}
+              rigSettings={[]}
+              onUpdate={handleShootUpdate}
+              userEmail={user?.email}
+              allUsers={allUsers}
+            />
           </div>
         )}
 
