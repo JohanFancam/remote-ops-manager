@@ -130,29 +130,9 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return () => clearInterval(iv);
   }, []);
 
-  // Build time windows from standby days — filter shoots to only those within the windows
-  const standbyWindows = React.useMemo(() => {
-    if (!standbyDays.length) return null;
-    return standbyDays.map(sd => ({
-      startDt: new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`),
-      endDt: new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`),
-    }));
-  }, [standbyDays]);
-
-  // Filter shoots to only those whose game time falls within a standby window
-  const windowFilteredShoots = React.useMemo(() => {
-    if (!standbyWindows) return shoots;
-    return shoots.filter(s => {
-      const shootDt = s.game_time
-        ? new Date(`${s.date}T${s.game_time}`)
-        : new Date(`${s.date}T12:00:00`);
-      return standbyWindows.some(w => shootDt >= w.startDt && shootDt <= w.endDt);
-    });
-  }, [shoots, standbyWindows]);
-
-  // Build list of unique dates from the window-filtered shoots
+  // Build list of unique dates covered by the admin's standby entries
   const standbyDates = React.useMemo(() => {
-    if (!standbyWindows) return null;
+    if (!standbyDays.length) return null;
     const dates = new Set();
     const todayStr = format(now, 'yyyy-MM-dd');
     standbyDays.forEach(sd => {
@@ -170,10 +150,10 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays, now]);
 
-  // Filter by selected date within window-filtered shoots
+  // Filter shoots by the selected standby date (simple date match — Dashboard already filters by standby window)
   const filteredShoots = standbyDates && standbyDates.length > 0
-    ? windowFilteredShoots.filter(s => s.date === standbyDates[selectedDateIdx])
-    : windowFilteredShoots;
+    ? shoots.filter(s => s.date === standbyDates[selectedDateIdx])
+    : shoots;
 
   const pagedShoots = filteredShoots.slice(0, PAGE_SIZE);
 
