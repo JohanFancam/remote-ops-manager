@@ -83,6 +83,15 @@ function getLivePhaseLabel(shoot, now) {
 function ShootRow({ shoot, allUsers, now, rigSettings = [] }) {
   const phase = getNextPhaseInfo(shoot, now);
   const livePhase = getLivePhaseLabel(shoot, now);
+  const matchedRig = rigSettings.find(r =>
+    r.team && shoot.client &&
+    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
+  );
+  const rigType = shoot.rig_type_override || matchedRig?.rig_type || null;
+  const operators = (shoot.assigned_operators || []).map(e => {
+    const u = allUsers.find(u => u.email === e);
+    return u?.full_name || e;
+  });
   const fallbackStatusColors = {
     upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
