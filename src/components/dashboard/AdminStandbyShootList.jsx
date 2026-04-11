@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
@@ -57,7 +57,6 @@ function getNextPhaseInfo(shoot, now) {
     return { label: c.label, ms: c.time - now, time: c.time };
   }
 
-  // All done — show game as reference
   if (gameDate) return { label: 'Game', ms: gameDate - now, time: gameDate };
   return null;
 }
@@ -150,10 +149,25 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
     return Array.from(dates).sort();
   }, [standbyDays, now]);
 
-  // Filter shoots by the selected standby date (simple date match — Dashboard already filters by standby window)
-  const filteredShoots = standbyDates && standbyDates.length > 0
-    ? shoots.filter(s => s.date === standbyDates[selectedDateIdx])
-    : shoots;
+  // Filter shoots by selected date, respecting exact start/end times on boundary days
+  const filteredShoots = React.useMemo(() => {
+    if (!standbyDates || standbyDates.length === 0) return shoots;
+    const selectedDate = standbyDates[selectedDateIdx];
+    const dayShots = shoots.filter(s => s.date === selectedDate);
+    if (!standbyDays.length) return dayShots;
+    // Filter by whether the shoot's game time falls within any standby window
+    return dayShots.filter(shoot => {
+      const shootTime = shoot.game_time || '00:00';
+      const shootDt = new Date(`${shoot.date}T${shootTime}`);
+      return standbyDays.some(sd => {
+        const start = sd.start_date || sd.date;
+        const end = sd.end_date || start;
+        const startDt = new Date(`${start}T${sd.start_time || '00:00'}`);
+        const endDt = new Date(`${end}T${sd.end_time || '23:59:59'}`);
+        return shootDt >= startDt && shootDt <= endDt;
+      });
+    });
+  }, [shoots, standbyDates, standbyDays, selectedDateIdx]);
 
   const pagedShoots = filteredShoots.slice(0, PAGE_SIZE);
 
@@ -167,7 +181,7 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
 
   return (
     <div className="space-y-3">
-      {/* Date selector — only show if we have standby day info */}
+      {/* Date selector */}
       {standbyDates && standbyDates.length > 0 && (
         <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2">
           <button
@@ -198,7 +212,7 @@ export default function AdminStandbyShootList({ shoots = [], allUsers = [], user
       {/* Shoot list */}
       {pagedShoots.length === 0 ? (
         <div className="text-center py-6 text-gray-500 text-sm italic">
-          No shoots on this standby day.
+          No shoots during your standby window on this day.
         </div>
       ) : (
         <div className="space-y-2">
