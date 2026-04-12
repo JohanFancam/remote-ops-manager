@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
@@ -88,28 +88,7 @@ export default function RemoteEarnings({ user }) {
               onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown, month: format(currentMonth, 'MMMM yyyy') })}>
               <Download className="h-3 w-3" /> PDF
             </Button>
-            <Button size="sm" variant="outline" className="border-green-700/50 text-green-400 hover:bg-green-900/30 gap-1.5 text-xs h-7"
-              onClick={() => {
-                if (adjustedBreakdown.length === 0) return;
-                const monthLabel = format(currentMonth, 'MMMM yyyy');
-                const lines = [`📅 *My Schedule — ${monthLabel}*`, ''];
-                adjustedBreakdown
-                  .sort((a, b) => a.date.localeCompare(b.date))
-                  .forEach(item => {
-                    const title = item.shoot?.title || 'Game';
-                    const date = format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d');
-                    const time = item.shoot?.game_time ? ` @ ${item.shoot.game_time}` : '';
-                    const rigType = item.shoot?.rig_type_override || '';
-                    const typeLabel = rigType ? ` [${rigType}]` : '';
-                    lines.push(`• *${title}*${typeLabel}`);
-                    lines.push(`  📆 ${date}${time}`);
-                    lines.push('');
-                  });
-                lines.push(`💰 *Total: R${adjustedTotal.toLocaleString()}*`);
-                window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
-              }}>
-              <MessageCircle className="h-3 w-3" /> WhatsApp
-            </Button>
+
             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs ml-1"
               onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Less' : 'Details'}

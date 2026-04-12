@@ -138,7 +138,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
     : shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length;
 
-  // Current & next shoot for operators
+  // Current & next shoot — shown for ALL users
   const myTodayShoots = useMemo(() => {
     return shoots
       .filter(s => s.date === todayStr && s.status !== 'cancelled' && s.assigned_operators?.includes(user?.email))
@@ -245,40 +245,37 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
         <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
 
-        {/* Current / Next Shoot (operators only) */}
-        {!isAdmin && (
-          <>
-            <div className="flex-shrink-0 min-w-[180px]">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5">Current Shoot</p>
-              {currentShoot ? (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Play className="h-3 w-3 text-green-400 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-green-300 leading-tight">{shortenTitle(currentShoot.title)}</span>
-                  </div>
-                  {currentShoot.game_time && (
-                    <span className="text-xs text-green-600 pl-4 block">Game @ {currentShoot.game_time}</span>
-                  )}
-                </div>
-              ) : (
-                <span className="text-sm text-gray-500 italic">No active shoot</span>
-              )}
-              {nextShoot && (
-                <div className="mt-2 pt-2 border-t border-gray-700/50">
-                  <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Next Shoot</p>
-                  <p className="text-sm font-medium text-gray-300 leading-tight">{shortenTitle(nextShoot.title)}</p>
-                  {nextShoot.game_time && (
-                    <p className="text-xs text-gray-500">Game @ {nextShoot.game_time}</p>
-                  )}
-                  {getCountdownToSetup(nextShoot) && (
-                    <p className="text-xs text-orange-400 font-mono mt-0.5">Setup in {getCountdownToSetup(nextShoot)}</p>
-                  )}
-                </div>
+        {/* Current / Next Shoot — all users */}
+        <div className="flex-shrink-0 min-w-[180px]">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5">Current Shoot</p>
+          {currentShoot ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Play className="h-3 w-3 text-green-400 flex-shrink-0" />
+                <span className="text-sm font-semibold text-green-300 leading-tight">{shortenTitle(currentShoot.title)}</span>
+              </div>
+              {currentShoot.game_time && (
+                <span className="text-xs text-green-600 pl-4 block">Game @ {currentShoot.game_time}</span>
               )}
             </div>
-            <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
-          </>
-        )}
+          ) : (
+            <span className="text-sm text-gray-500 italic">No active shoot</span>
+          )}
+          {nextShoot && (
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Next Shoot</p>
+              <p className="text-sm font-medium text-gray-300 leading-tight">{shortenTitle(nextShoot.title)}</p>
+              {nextShoot.game_time && (
+                <p className="text-xs text-gray-500">Game @ {nextShoot.game_time}</p>
+              )}
+              {getCountdownToSetup(nextShoot) && (
+                <p className="text-xs text-orange-400 font-mono mt-0.5">Setup in {getCountdownToSetup(nextShoot)}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
 
         {/* Stats */}
         <div className="flex flex-wrap gap-2 flex-1">
