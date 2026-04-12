@@ -149,20 +149,20 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
             <div
               key={day.toISOString()}
               onClick={() => hasShoots ? setSelectedDay(isSameDay(day, selectedDay) ? null : day) : null}
-              className={`min-h-[56px] p-1 rounded-lg border transition-all ${
+              className={`min-h-[88px] p-1.5 rounded-lg border transition-all ${
                 isSelected ? 'border-purple-500 bg-purple-950/40' :
                 hasShoots ? 'border-gray-700 hover:border-gray-500 cursor-pointer hover:bg-gray-800/40' :
                 'border-gray-800/40'
               } ${today ? 'ring-1 ring-blue-500' : ''}`}
             >
-              <div className={`text-xs mb-1 font-medium ${today ? 'text-blue-400' : 'text-gray-500'}`}>
+              <div className={`text-xs mb-1.5 font-medium ${today ? 'text-blue-400' : 'text-gray-500'}`}>
                 {format(day, 'd')}
               </div>
               <div className="space-y-0.5">
                 {dayShoots.length > 0 && (
                   <div className="text-xs font-bold text-purple-300 px-1">{formatDuration(getDayTotalMs(dayShoots))}</div>
                 )}
-                <div className="text-xs text-gray-500 px-1">{dayShoots.length} shoot{dayShoots.length !== 1 ? 's' : ''}</div>
+                {dayShoots.length > 0 && <div className="text-xs text-gray-500 px-1">{dayShoots.length} shoot{dayShoots.length !== 1 ? 's' : ''}</div>}
               </div>
             </div>
           );

@@ -191,8 +191,8 @@ export default function Rigs() {
           )}
         </div>
 
-        {/* 4-column tile grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+        {/* 2x2 tile grid — scroll for more */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
           {filtered.map(rig => {
             const isActive = activeEditId === rig.id;
             return (

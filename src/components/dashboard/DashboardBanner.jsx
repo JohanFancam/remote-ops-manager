@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Phone, Clock, CalendarDays, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Phone, Clock, ChevronDown, CheckCircle2, Play } from 'lucide-react';
 import { format } from 'date-fns';
+import { shortenTitle } from '../utils/scheduleUtils';
 
 const TIMEZONES = [
   { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
@@ -35,6 +36,28 @@ function StatChip({ label, value, color = 'text-white', highlight = false }) {
   );
 }
 
+function getSetupTime(shoot) {
+  if (!shoot?.game_time) return null;
+  const [h, m] = shoot.game_time.split(':').map(Number);
+  const offset = shoot.setup_offset ?? -150;
+  const totalMins = h * 60 + m + offset;
+  const hh = Math.floor(((totalMins % 1440) + 1440) % 1440 / 60);
+  const mm = ((totalMins % 60) + 60) % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function getCountdownToSetup(shoot) {
+  if (!shoot?.game_time || !shoot?.date) return null;
+  const setupTime = getSetupTime(shoot);
+  if (!setupTime) return null;
+  const setupDt = new Date(`${shoot.date}T${setupTime}:00`);
+  const diff = setupDt - new Date();
+  if (diff <= 0) return null;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDays = [], allUsers = [], todayStr }) {
   const [tz, setTz] = useState(() => localStorage.getItem('dashboard_tz') || 'Africa/Johannesburg');
   const [showTzPicker, setShowTzPicker] = useState(false);
@@ -48,7 +71,6 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
   const now = new Date();
 
-  // Who's on standby right now?
   const currentStandby = standbyDays.filter(sd => {
     const startDate = sd.start_date || sd.date;
     const endDate = sd.end_date || startDate;
@@ -58,7 +80,6 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     return now >= startDt && now <= endDt;
   });
 
-  // Next standby person(s) — first entries that start after now
   const futureStandby = standbyDays
     .filter(sd => {
       const startDate = sd.start_date || sd.date;
@@ -82,18 +103,16 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     if (type === 'end') {
       const endDate = sd.end_date || sd.start_date || sd.date;
       if (!endDate) return null;
-      const label = sd.end_time ? `${format(new Date(endDate + 'T12:00:00'), 'MMM d')} ${sd.end_time}` : format(new Date(endDate + 'T12:00:00'), 'MMM d');
-      return label;
+      return sd.end_time ? `${format(new Date(endDate + 'T12:00:00'), 'MMM d')} ${sd.end_time}` : format(new Date(endDate + 'T12:00:00'), 'MMM d');
     } else {
       const startDate = sd.start_date || sd.date;
       if (!startDate) return null;
-      const label = sd.start_time ? `${format(new Date(startDate + 'T12:00:00'), 'MMM d')} ${sd.start_time}` : format(new Date(startDate + 'T12:00:00'), 'MMM d');
-      return label;
+      return sd.start_time ? `${format(new Date(startDate + 'T12:00:00'), 'MMM d')} ${sd.start_time}` : format(new Date(startDate + 'T12:00:00'), 'MMM d');
     }
   };
 
-  // Admin stats — this month
   const thisMonth = format(now, 'yyyy-MM');
+
   const myShootsThisMonth = shoots.filter(s =>
     s.date?.startsWith(thisMonth) && s.assigned_operators?.includes(user?.email)
   ).length;
@@ -118,6 +137,30 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
   const pendingApprovalsCount = isAdmin
     ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
     : shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length;
+
+  // Current & next shoot for operators
+  const myTodayShoots = useMemo(() => {
+    return shoots
+      .filter(s => s.date === todayStr && s.status !== 'cancelled' && s.assigned_operators?.includes(user?.email))
+      .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
+  }, [shoots, todayStr, user?.email]);
+
+  const currentShoot = useMemo(() => {
+    return myTodayShoots.find(s => s.phase_status?.setup_complete && !s.phase_status?.shoot_complete) || null;
+  }, [myTodayShoots]);
+
+  const nextShoot = useMemo(() => {
+    if (currentShoot) {
+      const idx = myTodayShoots.findIndex(s => s.id === currentShoot.id);
+      return myTodayShoots[idx + 1] || null;
+    }
+    const nowStr = new Date().toTimeString().slice(0, 5);
+    const upcoming = myTodayShoots.find(s => !s.phase_status?.shoot_complete && (s.game_time || '99:99') >= nowStr);
+    if (upcoming) return upcoming;
+    return shoots.find(s =>
+      s.date > todayStr && s.status !== 'cancelled' && s.assigned_operators?.includes(user?.email) && !s.phase_status?.shoot_complete
+    ) || null;
+  }, [myTodayShoots, currentShoot, shoots, todayStr, user?.email]);
 
   const myUpcomingCount = shoots.filter(s => {
     if (s.status === 'cancelled') return false;
@@ -165,7 +208,6 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
           </div>
         </div>
 
-        {/* Divider */}
         <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
 
         {/* Standby Status */}
@@ -180,7 +222,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
                     {getStandbyName(sd)}
                   </span>
                   {formatStandbyTime(sd, 'end') && (
-                    <span className="text-xs text-yellow-600 pl-4.5">until {formatStandbyTime(sd, 'end')}</span>
+                    <span className="text-xs text-yellow-600 pl-4">until {formatStandbyTime(sd, 'end')}</span>
                   )}
                 </div>
               ))}
@@ -201,8 +243,42 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
           )}
         </div>
 
-        {/* Divider */}
         <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
+
+        {/* Current / Next Shoot (operators only) */}
+        {!isAdmin && (
+          <>
+            <div className="flex-shrink-0 min-w-[180px]">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5">Current Shoot</p>
+              {currentShoot ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <Play className="h-3 w-3 text-green-400 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-green-300 leading-tight">{shortenTitle(currentShoot.title)}</span>
+                  </div>
+                  {currentShoot.game_time && (
+                    <span className="text-xs text-green-600 pl-4 block">Game @ {currentShoot.game_time}</span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-sm text-gray-500 italic">No active shoot</span>
+              )}
+              {nextShoot && (
+                <div className="mt-2 pt-2 border-t border-gray-700/50">
+                  <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Next Shoot</p>
+                  <p className="text-sm font-medium text-gray-300 leading-tight">{shortenTitle(nextShoot.title)}</p>
+                  {nextShoot.game_time && (
+                    <p className="text-xs text-gray-500">Game @ {nextShoot.game_time}</p>
+                  )}
+                  {getCountdownToSetup(nextShoot) && (
+                    <p className="text-xs text-orange-400 font-mono mt-0.5">Setup in {getCountdownToSetup(nextShoot)}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
+          </>
+        )}
 
         {/* Stats */}
         <div className="flex flex-wrap gap-2 flex-1">

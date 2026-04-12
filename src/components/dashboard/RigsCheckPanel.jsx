@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Wrench, Copy, Check, Archive, RotateCcw, ChevronLeft, ChevronRight, X, Calendar, Plus, Trash2, Pencil } from 'lucide-react';
+import { Wrench, Copy, Check, Archive, RotateCcw, ChevronLeft, ChevronRight, X, Calendar, Plus, Pencil } from 'lucide-react';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { base44 } from '@/api/base44Client';
@@ -25,8 +25,6 @@ function getRigTypeLabel(shoot, rig) {
   return parts.length > 0 ? parts.join('/') : null;
 }
 
-// Returns shoots for a "6am → 6am" operational day window
-// e.g. dateStr = "2026-04-13" returns shoots from Apr 13 06:00 to Apr 14 05:59
 function getShootsForOperationalDay(shoots, dateStr) {
   const nextDateStr = format(addDays(new Date(dateStr + 'T12:00:00'), 1), 'yyyy-MM-dd');
   const sameDay = shoots.filter(s =>
@@ -58,7 +56,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
   const queryClient = useQueryClient();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-  // Start week from today's Sunday
   const getWeekStart = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00');
     const dow = d.getDay();
@@ -75,7 +72,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
   const [messageHeading, setMessageHeading] = useState('Shoots ready for today:');
   const [editingHeading, setEditingHeading] = useState(false);
 
-  // Checklist
   const checklistSetting = appSettings.find(s => s.key === 'rigscheck_checklist');
   const [checklistItems, setChecklistItems] = useState(() => {
     try { return JSON.parse(checklistSetting?.value || '[]'); } catch { return []; }
@@ -93,12 +89,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
-  const template = appSettings.find(s => s.key === 'rigscheck_template')?.value || 'Rigs ready for today: {list}';
-
   const days7 = get7Days(weekStart);
   const prevWeek = () => setWeekStart(format(addDays(new Date(weekStart + 'T12:00:00'), -7), 'yyyy-MM-dd'));
   const nextWeek = () => setWeekStart(format(addDays(new Date(weekStart + 'T12:00:00'), 7), 'yyyy-MM-dd'));
-
   const toggle = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
 
   const checkedShoots = useMemo(() => {
@@ -111,10 +104,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
       const label = getRigTypeLabel(s, rig);
       const name = shortenTitle(s.title);
-      const timeStr = s.game_time ? ` @ ${s.game_time}` : '';
-      return `• ${name}${timeStr}${label ? ` (${label})` : ''}`;
+      return `• ${name}${label ? ` (${label})` : ''}`;
     });
-    return `${messageHeading}\n${items.join('\n')}`;
+    return `${messageHeading}\n\n${items.join('\n')}`;
   };
 
   const handleCopy = () => {
@@ -135,7 +127,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     setArchived(next); saveArchived(next);
   };
 
-  // Calendar for jumping to a week
   const calDays = eachDayOfInterval({
     start: startOfWeek(startOfMonth(calMonth), { weekStartsOn: 0 }),
     end: endOfWeek(endOfMonth(calMonth), { weekStartsOn: 0 })
@@ -157,7 +148,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
   })();
 
-  // Archived shoots within the visible window (any operational day in week)
   const allWeekShoots = days7.flatMap(d => getShootsForOperationalDay(shoots, d));
   const archivedWeekShoots = [...new Map(allWeekShoots.filter(s => archived.includes(s.id)).map(s => [s.id, s])).values()];
 
@@ -226,8 +216,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
         </div>
       )}
 
-
-
       {/* 7-Day Tile Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
         {days7.map(dateStr => {
@@ -235,8 +223,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
           const isToday = dateStr === todayStr;
           const isPast = dateStr < todayStr;
           const dayChecked = dayShoots.filter(s => checked[s.id]);
-
-          // Label the "6am → 6am" window
           const nextDateStr = format(addDays(new Date(dateStr + 'T12:00:00'), 1), 'yyyy-MM-dd');
           const hasEarlyNext = dayShoots.some(s => s.date === nextDateStr);
 
@@ -247,7 +233,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
               dayShoots.length > 0 ? 'border-orange-800/50 bg-orange-950/10' :
               'border-gray-800 bg-gray-900/30'
             }`}>
-              {/* Day header */}
               <div className={`flex items-center justify-between px-3 py-2.5 rounded-t-xl border-b ${
                 isToday ? 'border-blue-700/40 bg-blue-950/20' : 'border-gray-800'
               }`}>
@@ -269,7 +254,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 )}
               </div>
 
-              {/* Shoots list */}
               <div className="flex-1 p-2 space-y-1.5">
                 {dayShoots.length === 0 ? (
                   <p className="text-xs text-gray-700 italic text-center py-3">No shoots</p>
@@ -391,56 +375,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
         </div>
       </div>
 
-      {/* Reference Checklist */}
-      <div className="border border-gray-800 rounded-xl overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-800/40 border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-green-400" />
-            <span className="text-sm font-semibold text-white">Rig Check Reference List</span>
-            <span className="text-xs text-gray-500">({checklistItems.length} items)</span>
-          </div>
-          {isAdmin && (
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white gap-1"
-              onClick={() => setEditingChecklist(!editingChecklist)}>
-              <Pencil className="h-3 w-3" /> {editingChecklist ? 'Done' : 'Edit'}
-            </Button>
-          )}
-        </div>
-        <div className="p-3 space-y-1.5">
-          {checklistItems.length === 0 && !editingChecklist && (
-            <p className="text-xs text-gray-600 italic text-center py-2">
-              {isAdmin ? 'No items yet — click Edit to add check items.' : 'No checklist items configured.'}
-            </p>
-          )}
-          {checklistItems.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 group">
-              <input type="checkbox" checked={!!checklistChecked[idx]}
-                onChange={() => setChecklistChecked(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                className="w-3.5 h-3.5 rounded accent-green-500 flex-shrink-0" />
-              <span className={`text-sm flex-1 ${checklistChecked[idx] ? 'line-through text-gray-600' : 'text-gray-300'}`}>{item}</span>
-              {editingChecklist && isAdmin && (
-                <button onClick={async () => { const next = checklistItems.filter((_, i) => i !== idx); setChecklistItems(next); await saveChecklistItems(next); }}
-                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-          {editingChecklist && isAdmin && (
-            <div className="flex gap-2 mt-2 pt-2 border-t border-gray-800">
-              <input type="text" value={newChecklistItem} onChange={e => setNewChecklistItem(e.target.value)}
-                onKeyDown={async (e) => { if (e.key === 'Enter' && newChecklistItem.trim()) { const next = [...checklistItems, newChecklistItem.trim()]; setChecklistItems(next); setNewChecklistItem(''); await saveChecklistItems(next); } }}
-                placeholder="Add check item... (Enter to save)"
-                className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-green-600 outline-none" />
-              <Button size="sm" className="h-8 text-xs bg-green-700 hover:bg-green-600"
-                onClick={async () => { if (!newChecklistItem.trim()) return; const next = [...checklistItems, newChecklistItem.trim()]; setChecklistItems(next); setNewChecklistItem(''); await saveChecklistItems(next); }}>
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Message / Copy section */}
       <div className="border border-gray-800 rounded-xl overflow-hidden mb-4">
         <div className="flex items-center justify-between px-4 py-3 bg-gray-800/40 border-b border-gray-800">
@@ -475,7 +409,6 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                     <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
                     <span>
                       <span className="font-medium text-white">{shortenTitle(s.title)}</span>
-                      {s.game_time && <span className="text-gray-400"> @ {s.game_time}</span>}
                       {label && <span className="text-blue-400 ml-1">({label})</span>}
                     </span>
                   </div>
