@@ -67,9 +67,13 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
     if (!onUpdate) return;
     setSaving(true);
     const dateBase = s.date; // yyyy-MM-dd
-    const newStart = new Date(`${dateBase}T${editStart}:00`).toISOString();
-    const newEnd = new Date(`${dateBase}T${editEnd}:00`).toISOString();
-    await onUpdate(s.id, { phase_status: { ...s.phase_status, setup_complete: newStart, shoot_complete: newEnd } });
+    const newStart = new Date(`${dateBase}T${editStart}:00`);
+    let newEnd = new Date(`${dateBase}T${editEnd}:00`);
+    // If end is before start, the shoot crossed midnight — add one day to end
+    if (newEnd <= newStart) {
+      newEnd = new Date(newEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
+    await onUpdate(s.id, { phase_status: { ...s.phase_status, setup_complete: newStart.toISOString(), shoot_complete: newEnd.toISOString() } });
     setSaving(false);
     setEditingId(null);
   };
