@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, ChevronLeft, ChevronRight, X, Users } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, X, Edit2, Check, XCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
@@ -22,10 +22,14 @@ function getDurationColor(ms) {
   return 'bg-orange-600';
 }
 
-export default function ShootTimingPanel({ shoots = [], allUsers = [] }) {
+export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedShoot, setSelectedShoot] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const timedShoots = useMemo(() => {
     return shoots
@@ -49,6 +53,25 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [] }) {
   const getShootsForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return timedShoots.filter(s => s.date === dateStr);
+  };
+
+  const getDayTotalMs = (dayShoots) => dayShoots.reduce((sum, s) => sum + s.durationMs, 0);
+
+  const startEdit = (s) => {
+    setEditingId(s.id);
+    setEditStart(format(s.start, 'HH:mm'));
+    setEditEnd(format(s.end, 'HH:mm'));
+  };
+
+  const saveEdit = async (s) => {
+    if (!onUpdate) return;
+    setSaving(true);
+    const dateBase = s.date; // yyyy-MM-dd
+    const newStart = new Date(`${dateBase}T${editStart}:00`).toISOString();
+    const newEnd = new Date(`${dateBase}T${editEnd}:00`).toISOString();
+    await onUpdate(s.id, { phase_status: { ...s.phase_status, setup_complete: newStart, shoot_complete: newEnd } });
+    setSaving(false);
+    setEditingId(null);
   };
 
   const selectedDayShoots = selectedDay ? getShootsForDay(selectedDay) : [];
@@ -119,18 +142,10 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [] }) {
                 {format(day, 'd')}
               </div>
               <div className="space-y-0.5">
-                {dayShoots.slice(0, 2).map(s => (
-                  <div
-                    key={s.id}
-                    className={`text-white text-xs px-1 py-0.5 rounded truncate ${getDurationColor(s.durationMs)}`}
-                    title={`${shortenTitle(s.title)}: ${formatDuration(s.durationMs)}`}
-                  >
-                    {formatDuration(s.durationMs)}
-                  </div>
-                ))}
-                {dayShoots.length > 2 && (
-                  <div className="text-xs text-gray-500">+{dayShoots.length - 2}</div>
+                {dayShoots.length > 0 && (
+                  <div className="text-xs font-bold text-purple-300 px-1">{formatDuration(getDayTotalMs(dayShoots))}</div>
                 )}
+                <div className="text-xs text-gray-500 px-1">{dayShoots.length} shoot{dayShoots.length !== 1 ? 's' : ''}</div>
               </div>
             </div>
           );
@@ -161,14 +176,18 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [] }) {
               <X className="h-4 w-4" />
             </button>
           </div>
+          {/* Day total */}
+          <div className="mb-3 bg-purple-900/20 border border-purple-800/30 rounded-lg px-4 py-2 flex items-center justify-between">
+            <span className="text-xs text-purple-300">Total hours this day</span>
+            <span className="text-sm font-bold text-purple-200">{formatDuration(getDayTotalMs(selectedDayShoots))}</span>
+          </div>
           <div className="space-y-2">
             {selectedDayShoots.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedShoot(selectedShoot?.id === s.id ? null : s)}
-                className="w-full text-left bg-gray-800/60 rounded-lg px-4 py-3 hover:bg-gray-800 transition-colors"
-              >
-                <div className="flex items-center justify-between">
+              <div key={s.id} className="bg-gray-800/60 rounded-lg px-4 py-3">
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setSelectedShoot(selectedShoot?.id === s.id ? null : s)}
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-white truncate">{shortenTitle(s.title)}</p>
                     <p className="text-xs text-gray-500 font-mono mt-0.5">
@@ -181,45 +200,92 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [] }) {
                 </div>
                 {/* Expanded detail */}
                 {selectedShoot?.id === s.id && (
-                  <div className="mt-3 pt-3 border-t border-gray-700 space-y-2" onClick={e => e.stopPropagation()}>
-                    {s.game_time && (
-                      <div className="flex gap-2 text-xs">
-                        <span className="text-gray-500 w-20">Game Time</span>
-                        <span className="text-gray-300 font-mono">{s.game_time}</span>
-                      </div>
-                    )}
-                    {s.location && (
-                      <div className="flex gap-2 text-xs">
-                        <span className="text-gray-500 w-20">Location</span>
-                        <span className="text-gray-300">{s.location}</span>
-                      </div>
-                    )}
-                    <div className="flex gap-2 text-xs">
-                      <span className="text-gray-500 w-20">Setup</span>
-                      <span className="text-gray-300 font-mono">{format(s.start, 'HH:mm')}</span>
-                    </div>
-                    <div className="flex gap-2 text-xs">
-                      <span className="text-gray-500 w-20">Complete</span>
-                      <span className="text-gray-300 font-mono">{format(s.end, 'HH:mm')}</span>
-                    </div>
-                    {s.assigned_operators?.length > 0 && (
-                      <div className="flex gap-2 text-xs">
-                        <span className="text-gray-500 w-20 flex-shrink-0">Operators</span>
-                        <div className="flex flex-col gap-0.5">
-                          {s.assigned_operators.map(email => {
-                            const u = allUsers.find(u2 => u2.email === email);
-                            return (
-                              <span key={email} className="text-gray-300">
-                                {getDisplayName(u, email)}
-                              </span>
-                            );
-                          })}
+                  <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
+                    {editingId === s.id ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-400 font-medium">Edit Setup & Complete Times</p>
+                        <div className="flex gap-3 items-center">
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-500 block mb-1">Setup Start</label>
+                            <input
+                              type="time"
+                              value={editStart}
+                              onChange={e => setEditStart(e.target.value)}
+                              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white font-mono"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-500 block mb-1">Shoot End</label>
+                            <input
+                              type="time"
+                              value={editEnd}
+                              onChange={e => setEditEnd(e.target.value)}
+                              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white font-mono"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => saveEdit(s)}
+                            disabled={saving}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white text-xs rounded font-medium disabled:opacity-50"
+                          >
+                            <Check className="h-3 w-3" /> Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded"
+                          >
+                            <XCircle className="h-3 w-3" /> Cancel
+                          </button>
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        {s.game_time && (
+                          <div className="flex gap-2 text-xs">
+                            <span className="text-gray-500 w-20">Game Time</span>
+                            <span className="text-gray-300 font-mono">{s.game_time}</span>
+                          </div>
+                        )}
+                        {s.location && (
+                          <div className="flex gap-2 text-xs">
+                            <span className="text-gray-500 w-20">Location</span>
+                            <span className="text-gray-300">{s.location}</span>
+                          </div>
+                        )}
+                        <div className="flex gap-2 text-xs">
+                          <span className="text-gray-500 w-20">Setup</span>
+                          <span className="text-gray-300 font-mono">{format(s.start, 'HH:mm')}</span>
+                        </div>
+                        <div className="flex gap-2 text-xs">
+                          <span className="text-gray-500 w-20">Complete</span>
+                          <span className="text-gray-300 font-mono">{format(s.end, 'HH:mm')}</span>
+                        </div>
+                        {s.assigned_operators?.length > 0 && (
+                          <div className="flex gap-2 text-xs">
+                            <span className="text-gray-500 w-20 flex-shrink-0">Operators</span>
+                            <div className="flex flex-col gap-0.5">
+                              {s.assigned_operators.map(email => {
+                                const u = allUsers.find(u2 => u2.email === email);
+                                return <span key={email} className="text-gray-300">{getDisplayName(u, email)}</span>;
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {onUpdate && (
+                          <button
+                            onClick={() => startEdit(s)}
+                            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 pt-1"
+                          >
+                            <Edit2 className="h-3 w-3" /> Edit timing
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         </div>

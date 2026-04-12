@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import ShootTimingPanel from '../components/dashboard/ShootTimingPanel';
 import { Clock } from 'lucide-react';
 
 export default function ShootDuration() {
+  const queryClient = useQueryClient();
   const { data: shoots = [] } = useQuery({ queryKey: ['shoots'], queryFn: () => base44.entities.Shoot.list('-date', 500) });
   const { data: users = [] } = useQuery({ queryKey: ['allUsers'], queryFn: () => base44.entities.User.list() });
   const { data: presenceRecords = [] } = useQuery({ queryKey: ['userPresence'], queryFn: () => base44.entities.UserPresence.list() });
@@ -23,7 +24,14 @@ export default function ShootDuration() {
           <h1 className="text-2xl font-bold text-white">Shoot Duration Tracker</h1>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <ShootTimingPanel shoots={shoots} allUsers={allUsers} />
+          <ShootTimingPanel
+            shoots={shoots}
+            allUsers={allUsers}
+            onUpdate={async (id, data) => {
+              await base44.entities.Shoot.update(id, data);
+              queryClient.invalidateQueries({ queryKey: ['shoots'] });
+            }}
+          />
         </div>
       </div>
     </div>
