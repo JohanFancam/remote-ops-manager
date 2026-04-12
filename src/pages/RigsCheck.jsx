@@ -13,7 +13,7 @@ export default function RigsCheck() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <CheckSquare className="h-6 w-6 text-orange-400" />
           <h1 className="text-2xl font-bold text-white">Rigs Check</h1>

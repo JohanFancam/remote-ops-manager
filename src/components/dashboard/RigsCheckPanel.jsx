@@ -303,6 +303,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                           <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-gray-500' : 'text-white'}`}>
                             {shortenTitle(s.title)}
                           </p>
+                          {s.location && (
+                            <p className={`text-xs truncate mt-0.5 ${checked[s.id] ? 'text-gray-600' : 'text-gray-500'}`}>{s.location}</p>
+                          )}
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {s.game_time && (
                               <span className={`text-xs font-mono ${isEarly ? 'text-orange-400' : 'text-gray-500'}`}>
