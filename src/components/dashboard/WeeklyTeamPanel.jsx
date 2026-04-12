@@ -35,8 +35,6 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
     return format(addDays(d, -dow), 'yyyy-MM-dd');
   };
   const [weekStart, setWeekStart] = useState(() => getWeekStart(todayStr));
-  const [showCalJumper, setShowCalJumper] = useState(false);
-  const [calJumperMonth, setCalJumperMonth] = useState(new Date());
 
   // Month view state
   const [calMonth, setCalMonth] = useState(new Date());
@@ -75,10 +73,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
   })();
 
-  const calJumperDays = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(calJumperMonth), { weekStartsOn: 0 }),
-    end: endOfWeek(endOfMonth(calJumperMonth), { weekStartsOn: 0 })
-  });
+
 
   // ── Month view helpers ─────────────────────────────────────────────────────
   const monthStart = startOfMonth(calMonth);
@@ -174,12 +169,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
           )}
         </div>
         <div className="flex items-center gap-1">
-          {viewMode === '7day' && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-gray-400 hover:text-white gap-1"
-              onClick={() => setShowCalJumper(!showCalJumper)}>
-              <Calendar className="h-3.5 w-3.5" /> Jump
-            </Button>
-          )}
+
           <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
             onClick={() => {
               if (viewMode === '7day') setWeekStart(format(addDays(new Date(weekStart + 'T12:00:00'), -7), 'yyyy-MM-dd'));
@@ -197,42 +187,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
         </div>
       </div>
 
-      {/* Calendar jumper (7-day mode) */}
-      {viewMode === '7day' && showCalJumper && (
-        <div className="bg-gray-800/80 border border-gray-700 rounded-xl p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400"
-              onClick={() => setCalJumperMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold text-white">{format(calJumperMonth, 'MMMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400"
-              onClick={() => setCalJumperMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-            {DOW_SHORT.map(d => <div key={d} className="text-xs text-gray-600 py-1">{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {calJumperDays.map(day => {
-              const ds = format(day, 'yyyy-MM-dd');
-              const inMonth = isSameMonth(day, calJumperMonth);
-              const isToday = ds === todayStr;
-              const inCurWeek = ds >= weekStart && ds <= weekEndStr;
-              const cnt = getShootsForDay(ds).length;
-              return (
-                <button key={ds} onClick={() => { setWeekStart(getWeekStart(ds)); setShowCalJumper(false); }}
-                  className={`rounded p-1 min-h-[36px] transition-all ${inMonth ? 'hover:bg-gray-700' : 'opacity-30'} ${isToday ? 'ring-1 ring-blue-500' : ''} ${inCurWeek ? 'bg-blue-900/30 ring-1 ring-blue-600/50' : ''}`}>
-                  <span className={`text-xs block ${isToday ? 'text-blue-400 font-bold' : inMonth ? 'text-gray-300' : 'text-gray-600'}`}>{format(day, 'd')}</span>
-                  {cnt > 0 && <span className="text-xs text-blue-400 font-bold">{cnt}</span>}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">Click any date to jump to that week</p>
-        </div>
-      )}
+
 
       {/* 7-DAY TILE VIEW */}
       {viewMode === '7day' && (

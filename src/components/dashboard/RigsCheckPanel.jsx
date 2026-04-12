@@ -72,6 +72,8 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
   const [copied, setCopied] = useState(false);
   const [archived, setArchived] = useState(() => getArchived());
   const [showArchived, setShowArchived] = useState(false);
+  const [messageHeading, setMessageHeading] = useState('Shoots ready for today:');
+  const [editingHeading, setEditingHeading] = useState(false);
 
   // Checklist
   const checklistSetting = appSettings.find(s => s.key === 'rigscheck_checklist');
@@ -109,9 +111,10 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
       const label = getRigTypeLabel(s, rig);
       const name = shortenTitle(s.title);
-      return label ? `${name} (${label})` : name;
+      const timeStr = s.game_time ? ` @ ${s.game_time}` : '';
+      return `• ${name}${timeStr}${label ? ` (${label})` : ''}`;
     });
-    return template.replace('{list}', items.join(', '));
+    return `${messageHeading}\n${items.join('\n')}`;
   };
 
   const handleCopy = () => {
@@ -168,16 +171,10 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {checkedShoots.length > 0 && (
-            <>
-              <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
-                className="gap-1.5 text-xs h-7 text-gray-400 hover:text-yellow-400 hover:bg-gray-800">
-                <Archive className="h-3 w-3" /> Archive ({checkedShoots.length})
-              </Button>
-              <Button size="sm" onClick={handleCopy}
-                className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs h-7">
-                {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy Message</>}
-              </Button>
-            </>
+            <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
+              className="gap-1.5 text-xs h-7 text-gray-400 hover:text-yellow-400 hover:bg-gray-800">
+              <Archive className="h-3 w-3" /> Archive ({checkedShoots.length})
+            </Button>
           )}
           <Button variant="ghost" size="sm" className="h-7 text-xs text-gray-400 hover:text-white gap-1"
             onClick={() => setShowCalendar(!showCalendar)}>
@@ -229,13 +226,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
         </div>
       )}
 
-      {/* Message Preview */}
-      {checkedShoots.length > 0 && (
-        <div className="bg-gray-800/60 rounded-lg p-3 border border-gray-700 mb-4">
-          <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Message Preview</p>
-          <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{generateMessage()}</pre>
-        </div>
-      )}
+
 
       {/* 7-Day Tile Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
@@ -395,6 +386,101 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 }}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reference Checklist */}
+      <div className="border border-gray-800 rounded-xl overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-800/40 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-400" />
+            <span className="text-sm font-semibold text-white">Rig Check Reference List</span>
+            <span className="text-xs text-gray-500">({checklistItems.length} items)</span>
+          </div>
+          {isAdmin && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white gap-1"
+              onClick={() => setEditingChecklist(!editingChecklist)}>
+              <Pencil className="h-3 w-3" /> {editingChecklist ? 'Done' : 'Edit'}
+            </Button>
+          )}
+        </div>
+        <div className="p-3 space-y-1.5">
+          {checklistItems.length === 0 && !editingChecklist && (
+            <p className="text-xs text-gray-600 italic text-center py-2">
+              {isAdmin ? 'No items yet — click Edit to add check items.' : 'No checklist items configured.'}
+            </p>
+          )}
+          {checklistItems.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2 group">
+              <input type="checkbox" checked={!!checklistChecked[idx]}
+                onChange={() => setChecklistChecked(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                className="w-3.5 h-3.5 rounded accent-green-500 flex-shrink-0" />
+              <span className={`text-sm flex-1 ${checklistChecked[idx] ? 'line-through text-gray-600' : 'text-gray-300'}`}>{item}</span>
+              {editingChecklist && isAdmin && (
+                <button onClick={async () => { const next = checklistItems.filter((_, i) => i !== idx); setChecklistItems(next); await saveChecklistItems(next); }}
+                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {editingChecklist && isAdmin && (
+            <div className="flex gap-2 mt-2 pt-2 border-t border-gray-800">
+              <input type="text" value={newChecklistItem} onChange={e => setNewChecklistItem(e.target.value)}
+                onKeyDown={async (e) => { if (e.key === 'Enter' && newChecklistItem.trim()) { const next = [...checklistItems, newChecklistItem.trim()]; setChecklistItems(next); setNewChecklistItem(''); await saveChecklistItems(next); } }}
+                placeholder="Add check item... (Enter to save)"
+                className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-green-600 outline-none" />
+              <Button size="sm" className="h-8 text-xs bg-green-700 hover:bg-green-600"
+                onClick={async () => { if (!newChecklistItem.trim()) return; const next = [...checklistItems, newChecklistItem.trim()]; setChecklistItems(next); setNewChecklistItem(''); await saveChecklistItems(next); }}>
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Message / Copy section */}
+      <div className="border border-gray-800 rounded-xl overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-800/40 border-b border-gray-800">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Copy className="h-4 w-4 text-blue-400 flex-shrink-0" />
+            {editingHeading ? (
+              <input autoFocus type="text" value={messageHeading} onChange={e => setMessageHeading(e.target.value)}
+                onBlur={() => setEditingHeading(false)} onKeyDown={e => e.key === 'Enter' && setEditingHeading(false)}
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-sm text-white outline-none focus:border-blue-500" />
+            ) : (
+              <button onClick={() => setEditingHeading(true)} className="text-sm font-semibold text-white hover:text-blue-400 text-left truncate">
+                {messageHeading} <span className="text-gray-600 text-xs">(click to edit)</span>
+              </button>
+            )}
+          </div>
+          {checkedShoots.length > 0 && (
+            <Button size="sm" onClick={handleCopy} className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs h-7 ml-2">
+              {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy</>}
+            </Button>
+          )}
+        </div>
+        <div className="p-4">
+          {checkedShoots.length === 0 ? (
+            <p className="text-xs text-gray-600 italic">Tick shoots above to build your message here.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {checkedShoots.map(s => {
+                const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
+                const label = getRigTypeLabel(s, rig);
+                return (
+                  <div key={s.id} className="flex items-start gap-2 text-sm text-gray-300">
+                    <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
+                    <span>
+                      <span className="font-medium text-white">{shortenTitle(s.title)}</span>
+                      {s.game_time && <span className="text-gray-400"> @ {s.game_time}</span>}
+                      {label && <span className="text-blue-400 ml-1">({label})</span>}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

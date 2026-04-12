@@ -93,7 +93,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
 
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1 text-center mb-1">
-        {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1.5 font-medium">{d}</div>)}
+        {DOW.map(d => <div key={d} className="text-xs text-gray-400 py-2 font-semibold uppercase tracking-wider">{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1 mb-4">
         {calDays.map(day => {
@@ -104,49 +104,49 @@ export function AdminAvailabilityView({ allUsers = [] }) {
           const unavail = dayEntries.filter(e => e.type === 'unavailable');
           const avail = dayEntries.filter(e => e.type === 'available');
           const isSelected = selectedDay === dateStr;
-
-          const bg = unavail.length > 0 ? 'rgba(127,29,29,0.3)' : avail.length > 0 ? 'rgba(20,83,45,0.3)' : 'rgba(31,41,55,0.4)';
-
+          const bg = unavail.length > 0 ? 'rgba(127,29,29,0.35)' : avail.length > 0 ? 'rgba(20,83,45,0.35)' : inMonth ? 'rgba(31,41,55,0.5)' : 'rgba(17,24,39,0.3)';
           return (
             <button
               key={dateStr}
               onClick={() => inMonth && setSelectedDay(isSelected ? null : dateStr)}
-              className={`rounded-lg p-2 min-h-[80px] text-left transition-all
-                ${!inMonth ? 'opacity-25 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
-                ${isToday ? 'ring-1 ring-blue-500' : ''}
+              className={`rounded-lg p-2 min-h-[96px] text-left transition-all flex flex-col
+                ${!inMonth ? 'opacity-20 cursor-default' : 'cursor-pointer hover:ring-1 hover:ring-gray-500'}
+                ${isToday ? 'ring-2 ring-blue-500' : ''}
                 ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
               style={{ background: bg }}
             >
-              <span className={`text-sm font-medium block mb-1 ${isToday ? 'text-blue-400 font-bold' : unavail.length > 0 ? 'text-red-300' : avail.length > 0 ? 'text-green-300' : 'text-gray-500'}`}>
+              <span className={`text-sm font-bold block mb-1.5 ${isToday ? 'text-blue-400' : unavail.length > 0 ? 'text-red-300' : avail.length > 0 ? 'text-green-300' : 'text-gray-400'}`}>
                 {format(day, 'd')}
               </span>
-              {inMonth && unavail.length > 0 && (
-                <div className="space-y-0.5">
-                  {unavail.slice(0, 3).map(e => {
-                    const u = allUsers.find(u => u.email === e.operator_email);
-                    return (
-                      <div key={e.id} className="text-xs bg-red-700/50 text-red-200 rounded px-1 py-0.5 truncate">
-                        {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
-                      </div>
-                    );
-                  })}
-                  {unavail.length > 3 && <div className="text-xs text-red-400">+{unavail.length - 3}</div>}
-                </div>
-              )}
-              {inMonth && avail.length > 0 && unavail.length === 0 && (
-                <div className="space-y-0.5">
-                  {avail.slice(0, 3).map(e => {
-                    const u = allUsers.find(u => u.email === e.operator_email);
-                    return (
-                      <div key={e.id} className="text-xs bg-green-700/50 text-green-200 rounded px-1 py-0.5 truncate">
-                        {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
-                      </div>
-                    );
-                  })}
-                  {avail.length > 3 && <div className="text-xs text-green-400">+{avail.length - 3}</div>}
-                </div>
-              )}
-              {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+              <div className="flex-1 space-y-0.5">
+                {inMonth && unavail.length > 0 && (
+                  <>
+                    {unavail.slice(0, 3).map(e => {
+                      const u = allUsers.find(u => u.email === e.operator_email);
+                      return (
+                        <div key={e.id} className="text-xs bg-red-700/60 text-red-100 rounded px-1 py-0.5 truncate leading-tight">
+                          {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
+                        </div>
+                      );
+                    })}
+                    {unavail.length > 3 && <div className="text-xs text-red-400 font-medium">+{unavail.length - 3} more</div>}
+                  </>
+                )}
+                {inMonth && avail.length > 0 && unavail.length === 0 && (
+                  <>
+                    {avail.slice(0, 3).map(e => {
+                      const u = allUsers.find(u => u.email === e.operator_email);
+                      return (
+                        <div key={e.id} className="text-xs bg-green-700/60 text-green-100 rounded px-1 py-0.5 truncate leading-tight">
+                          {getDisplayName(u, e.operator_email, e.operator_name).split(' ')[0]}
+                        </div>
+                      );
+                    })}
+                    {avail.length > 3 && <div className="text-xs text-green-400 font-medium">+{avail.length - 3} more</div>}
+                  </>
+                )}
+              </div>
+              {isToday && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1" />}
             </button>
           );
         })}
