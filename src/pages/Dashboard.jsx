@@ -31,7 +31,6 @@ export default function Dashboard() {
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
-    enabled: isAdmin,
     staleTime: 5 * 60_000,
   });
 
@@ -242,7 +241,7 @@ export default function Dashboard() {
             <AdminDayShootView
               shoots={remoteUpcoming}
               isAdmin={false}
-              rigSettings={[]}
+              rigSettings={rigSettings}
               onUpdate={handleShootUpdate}
               userEmail={user?.email}
               allUsers={allUsers}
