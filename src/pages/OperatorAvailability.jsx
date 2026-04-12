@@ -16,7 +16,7 @@ export default function OperatorAvailability() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Users className="h-6 w-6 text-green-400" />
           <h1 className="text-2xl font-bold text-white">Operator Availability</h1>

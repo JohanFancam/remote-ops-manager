@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2, Timer, Aperture, Sun, Settings2, StickyNote } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Volume2, Timer, Aperture, Sun, Settings2, StickyNote, Copy, Search } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -105,6 +105,8 @@ export default function Rigs() {
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [rigInput, setRigInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
@@ -128,6 +130,13 @@ export default function Rigs() {
 
   const handleDelete = async (id) => {
     await base44.entities.RigSetting.delete(id);
+    setConfirmDeleteId(null);
+    refresh();
+  };
+
+  const handleDuplicate = async (rig) => {
+    const { id, created_date, updated_date, created_by, ...rest } = rig;
+    await base44.entities.RigSetting.create({ ...rest, team: `${rest.team} (Copy)` });
     refresh();
   };
 
@@ -169,9 +178,42 @@ export default function Rigs() {
           )}
         </div>
 
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by team name, sport, rig type…"
+            className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-blue-600 outline-none"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         {/* Tile grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {rigSettings.map(rig => (
+        {rigSettings.filter(r =>
+          !search ||
+          r.team?.toLowerCase().includes(search.toLowerCase()) ||
+          r.sport?.toLowerCase().includes(search.toLowerCase()) ||
+          r.rig_type?.toLowerCase().includes(search.toLowerCase())
+        ).length === 0 && search && (
+          <div className="col-span-full text-center py-10 text-gray-500">
+            <Search className="h-8 w-8 text-gray-700 mx-auto mb-2" />
+            <p>No rig settings match "{search}"</p>
+          </div>
+        )}
+          {rigSettings.filter(r =>
+            !search ||
+            r.team?.toLowerCase().includes(search.toLowerCase()) ||
+            r.sport?.toLowerCase().includes(search.toLowerCase()) ||
+            r.rig_type?.toLowerCase().includes(search.toLowerCase())
+          ).map(rig => (
             <Card key={rig.id} className="bg-gray-900 border-gray-800 flex flex-col">
               <div className="p-4 border-b border-gray-800 flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -226,13 +268,23 @@ export default function Rigs() {
                   {expandedId === rig.id ? <><ChevronUp className="h-3.5 w-3.5" /> Hide details</> : <><ChevronDown className="h-3.5 w-3.5" /> View details</>}
                 </button>
                 {isAdmin && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 items-center">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" title="Duplicate" onClick={() => handleDuplicate(rig)}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white hover:bg-gray-800" onClick={() => startEdit(rig)}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-red-400 hover:bg-gray-800" onClick={() => handleDelete(rig.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {confirmDeleteId === rig.id ? (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleDelete(rig.id)} className="text-xs px-2 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded">Yes</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-white rounded">No</button>
+                      </div>
+                    ) : (
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-red-400 hover:bg-gray-800" onClick={() => setConfirmDeleteId(rig.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

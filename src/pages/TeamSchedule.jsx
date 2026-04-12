@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel';
+import WeeklyTeamPanel from '../components/dashboard/WeeklyTeamPanel.jsx';
 import { CalendarRange } from 'lucide-react';
 
 export default function TeamSchedule() {
@@ -17,7 +17,7 @@ export default function TeamSchedule() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <CalendarRange className="h-6 w-6 text-blue-400" />
           <h1 className="text-2xl font-bold text-white">Team Schedule</h1>
