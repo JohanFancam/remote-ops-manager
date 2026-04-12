@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, ChevronLeft, ChevronRight, X, Edit2, Check, XCircle } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, X, Edit2, Check, XCircle, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
@@ -30,6 +30,19 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
   const [editStart, setEditStart] = useState('');
   const [editEnd, setEditEnd] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const deleteEntry = async (s) => {
+    if (!onUpdate) return;
+    setSaving(true);
+    const newPhaseStatus = { ...s.phase_status };
+    delete newPhaseStatus.setup_complete;
+    delete newPhaseStatus.shoot_complete;
+    await onUpdate(s.id, { phase_status: newPhaseStatus, status: 'upcoming' });
+    setSaving(false);
+    setConfirmDeleteId(null);
+    setSelectedShoot(null);
+  };
 
   const timedShoots = useMemo(() => {
     return shoots
@@ -278,12 +291,35 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                           </div>
                         )}
                         {onUpdate && (
-                          <button
-                            onClick={() => startEdit(s)}
-                            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 pt-1"
-                          >
-                            <Edit2 className="h-3 w-3" /> Edit timing
-                          </button>
+                          <div className="flex items-center gap-3 pt-1">
+                            <button
+                              onClick={() => startEdit(s)}
+                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                            >
+                              <Edit2 className="h-3 w-3" /> Edit timing
+                            </button>
+                            {confirmDeleteId === s.id ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-red-400">Delete entry?</span>
+                                <button
+                                  onClick={() => deleteEntry(s)}
+                                  disabled={saving}
+                                  className="text-xs px-2 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded disabled:opacity-50"
+                                >Yes</button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                                >No</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(s.id)}
+                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </button>
+                            )}
+                          </div>
                         )}
                       </>
                     )}
