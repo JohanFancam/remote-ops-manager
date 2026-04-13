@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Camera, Phone, Clock, ChevronDown, Timer, ArrowRight } from 'lucide-react';
-import { format, differenceInSeconds, intervalToDuration, isAfter, isValid } from 'date-fns';
+import { format, differenceInSeconds, intervalToDuration, isAfter, isValid, subMinutes } from 'date-fns';
 
 const TIMEZONES = [
   { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
@@ -73,30 +73,32 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
         const isNotCancelled = s.status !== 'cancelled';
         if (!isAssigned || !isNotComplete || !isNotCancelled) return false;
 
-        const sTime = s.setup_time || s.start_time || s.time || "00:00";
-        const shootDT = new Date(`${s.date}T${sTime}`);
-        return isValid(shootDT) && (isAfter(shootDT, now) || s.date === format(now, 'yyyy-MM-dd'));
+        // Combine date/time and subtract 150 minutes (2h 30m) for the True Setup Time
+        const gameTime = new Date(`${s.date}T${s.setup_time || s.start_time || "00:00"}`);
+        const setupStartTime = subMinutes(gameTime, 150); 
+        
+        return isValid(setupStartTime) && (isAfter(setupStartTime, now) || s.date === format(now, 'yyyy-MM-dd'));
       })
       .sort((a, b) => {
-        const tA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || "00:00"}`);
-        const tB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || "00:00"}`);
+        const tA = subMinutes(new Date(`${a.date}T${a.setup_time || a.start_time || "00:00"}`), 150);
+        const tB = subMinutes(new Date(`${b.date}T${b.setup_time || b.start_time || "00:00"}`), 150);
         return tA - tB;
       })[0];
   }, [shoots, now, user?.email]);
 
   const getCountdown = (s) => {
     if (!s) return "";
-    const targetTime = s.setup_time || s.start_time || s.time || "00:00";
-    // We parse as ISO to ensure the countdown matches the "My Upcoming Shoots" section exactly
-    const target = new Date(`${s.date}T${targetTime}`);
-    if (!isValid(target)) return "--:--:--";
+    // Calculate the setup target (Game Time minus 2h 30m)
+    const gameTime = new Date(`${s.date}T${s.setup_time || s.start_time || "00:00"}`);
+    const setupTarget = subMinutes(gameTime, 150);
     
-    const diff = differenceInSeconds(target, now);
+    if (!isValid(setupTarget)) return "--:--:--";
+    
+    const diff = differenceInSeconds(setupTarget, now);
     if (diff <= 0) return "LIVE";
     
-    const d = intervalToDuration({ start: now, end: target });
+    const d = intervalToDuration({ start: now, end: setupTarget });
     
-    // Formatting to be consistent with your upcoming shoots list
     const parts = [];
     if (d.days > 0) parts.push(`${d.days}d`);
     
@@ -111,25 +113,13 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 shadow-xl">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         
-        {/* SECTION 1: CLOCK */}
+        {/* CLOCK */}
         <div className="flex-shrink-0 min-w-[180px]">
           <div className="font-mono text-4xl font-bold text-white tracking-tighter tabular-nums">{time}</div>
           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{date}</div>
-          <button onClick={() => setShowTzPicker(!showTzPicker)} className="mt-3 flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-            <Clock className="h-3 w-3" /> {TIMEZONES.find(t => t.tz === tz)?.label} <ChevronDown className="h-3 w-3" />
-          </button>
-          {showTzPicker && (
-            <div className="absolute mt-2 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl py-1 min-w-[160px]">
-              {TIMEZONES.map(t => (
-                <button key={t.tz} onClick={() => handleTzChange(t.tz)} className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-700 ${tz === t.tz ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* SECTION 2: STANDBY */}
+        {/* STANDBY (Current & Next) */}
         <div className="flex flex-1 items-center gap-8 border-l border-gray-800 pl-8">
           <div className="flex-1">
             <p className="text-[10px] text-yellow-600 uppercase tracking-widest mb-2 font-bold">On Standby Now</p>
@@ -143,7 +133,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             ) : <div className="text-xs text-gray-600 italic">None Active</div>}
           </div>
 
-          <ArrowRight className="h-4 w-4 text-gray-800" />
+          <ArrowRight className="h-4 w-4 text-gray-700" />
 
           <div className="flex-1">
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Next Standby</p>
@@ -156,18 +146,20 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           </div>
         </div>
 
-        {/* SECTION 3: YOUR NEXT SHOOT */}
+        {/* YOUR NEXT SHOOT (2h 30m Adjusted) */}
         <div className="flex-shrink-0 min-w-[340px] border-l border-gray-800 pl-8">
           <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">Your Next Shoot</p>
           {myNextShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {myNextShoot.shoot_name || myNextShoot.event_name || 'Upcoming Shoot'}
+                {/* Check event_name first to ensure specific game titles appear */}
+                {myNextShoot.event_name || myNextShoot.shoot_name || 'Upcoming Shoot'}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded uppercase tracking-wider">
-                  {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')}
+                   {/* Correct setup day display */}
+                   {format(subMinutes(new Date(`${myNextShoot.date}T${myNextShoot.setup_time || myNextShoot.start_time || "00:00"}`), 150), 'MMM d')}
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20">
                   <Timer className="h-3.5 w-3.5 text-blue-400" />
