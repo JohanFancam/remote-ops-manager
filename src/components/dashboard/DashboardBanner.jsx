@@ -10,7 +10,6 @@ const TIMEZONES = [
   { label: 'US Pacific (PT)', tz: 'America/Los_Angeles' },
 ];
 
-// --- THE MISSING HOOK ---
 function useClock(tz) {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
@@ -46,13 +45,14 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
     setShowTzPicker(false);
   };
 
+  // --- HELPER: GET USER NAME FOR STANDBY ---
   const getStandbyName = (sd) => {
     if (!sd) return '';
     const u = allUsers?.find(u => u.email === sd.admin_email);
     return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || 'Unknown';
   };
 
-  // --- STANDBY LOGIC (Horizontal) ---
+  // --- STANDBY LOGIC ---
   const currentStandby = useMemo(() => {
     return standbyDays?.find(sd => {
       const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
@@ -70,20 +70,27 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
   }, [standbyDays, now]);
 
-  // --- INDIVIDUAL NEXT SHOOT LOGIC (Handling the 22:30/01:00 transition) ---
+  // --- NEW: USER UPCOMING SHOOTS LOGIC ---
   const myNextShoot = useMemo(() => {
     if (!user?.email || !shoots) return null;
-    
+
+    // Filter shoots assigned to this specific user that aren't finished or cancelled
     const upcoming = shoots.filter(s => {
       const isAssigned = s.assigned_operators?.includes(user.email);
-      if (!isAssigned || s.status === 'cancelled' || s.phase_status?.shoot_complete) return false;
+      const isNotComplete = !s.phase_status?.shoot_complete;
+      const isNotCancelled = s.status !== 'cancelled';
+      
+      if (!isAssigned || !isNotComplete || !isNotCancelled) return false;
 
-      // Extract setup time or start time
+      // Create timestamp for the setup
       const sTime = s.setup_time || s.start_time || "00:00";
       const shootTime = new Date(`${s.date}T${sTime}`);
-      return isValid(shootTime) && isAfter(shootTime, now);
+      
+      // We show the shoot until it is actually marked complete in the system
+      return isValid(shootTime) && (isAfter(shootTime, now) || s.date === format(now, 'yyyy-MM-dd'));
     });
 
+    // Sort by setup time so the absolute next one is at the top
     return upcoming.sort((a, b) => {
       const tA = new Date(`${a.date}T${a.setup_time || a.start_time || "00:00"}`);
       const tB = new Date(`${b.date}T${b.setup_time || b.start_time || "00:00"}`);
@@ -109,11 +116,11 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
         <div className="flex-shrink-0 min-w-[180px]">
           <div className="font-mono text-4xl font-bold text-white tracking-tighter tabular-nums">{time}</div>
           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{date}</div>
-          <button onClick={() => setShowTzPicker(!showTzPicker)} className="mt-3 flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:opacity-80 transition-opacity">
-            <Clock className="h-3 w-3" /> {TIMEZONES.find(t => t.tz === tz)?.label || 'SA Time'} <ChevronDown className="h-3 w-3" />
+          <button onClick={() => setShowTzPicker(!showTzPicker)} className="mt-3 flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:opacity-80">
+            <Clock className="h-3 w-3" /> {TIMEZONES.find(t => t.tz === tz)?.label} <ChevronDown className="h-3 w-3" />
           </button>
           {showTzPicker && (
-            <div className="absolute mt-2 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl py-1 min-w-[160px]">
+            <div className="absolute mt-2 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl py-1">
               {TIMEZONES.map(t => (
                 <button key={t.tz} onClick={() => handleTzChange(t.tz)} className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-700 ${tz === t.tz ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>
                   {t.label}
@@ -144,7 +151,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             {nextStandby ? (
               <div>
                 <div className="text-gray-300 font-bold text-sm">{getStandbyName(nextStandby)}</div>
-                <div className="text-[10px] text-gray-500 mt-1">{nextStandby.start_date ? format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d') : ''} @ {nextStandby.start_time || '00:00'}</div>
+                <div className="text-[10px] text-gray-500 mt-1">{format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d')} @ {nextStandby.start_time || '00:00'}</div>
               </div>
             ) : <div className="text-xs text-gray-600 italic">None Scheduled</div>}
           </div>
@@ -157,11 +164,12 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {myNextShoot.shoot_name || myNextShoot.event_name || 'Untitled Shoot'}
+                {/* Aggressive name check to avoid 'Untitled' */}
+                {myNextShoot.event_name || myNextShoot.shoot_name || myNextShoot.title || 'Untitled Shoot'}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded">
-                  {myNextShoot.date ? format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d') : ''} @ {myNextShoot.setup_time || myNextShoot.start_time || '00:00'}
+                  {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')} @ {myNextShoot.setup_time || myNextShoot.start_time || '00:00'}
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20">
                   <Timer className="h-3.5 w-3.5 text-blue-400" />
@@ -172,7 +180,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-600 italic">No assignments found</div>
+            <div className="text-xs text-gray-600 italic">No upcoming assignments</div>
           )}
         </div>
 
