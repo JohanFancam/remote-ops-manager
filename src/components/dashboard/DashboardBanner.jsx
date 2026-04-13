@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Camera, Phone, Clock, ChevronDown, Timer } from 'lucide-react';
-import { format, differenceInSeconds, intervalToDuration } from 'date-fns';
+import { format, differenceInSeconds, intervalToDuration, isAfter, parse } from 'date-fns';
 
 const TIMEZONES = [
   { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
@@ -19,6 +19,7 @@ function useClock(tz) {
     const tick = () => {
       const current = new Date();
       setNow(current);
+      // We use en-ZA to get the 24h format naturally
       setTime(current.toLocaleTimeString('en-ZA', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       setDate(current.toLocaleDateString('en-ZA', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     };
@@ -27,15 +28,6 @@ function useClock(tz) {
     return () => clearInterval(iv);
   }, [tz]);
   return { time, date, now };
-}
-
-function StatChip({ label, value, color = 'text-white', highlight = false }) {
-  return (
-    <div className={`flex flex-col items-center px-4 py-2 rounded-lg ${highlight ? 'bg-yellow-950/40 border border-yellow-700/40' : 'bg-gray-800/60 border border-gray-700/40'}`}>
-      <span className={`text-2xl font-bold ${color}`}>{value}</span>
-      <span className={`text-xs mt-0.5 ${highlight ? 'text-yellow-400' : 'text-gray-400'}`}>{label}</span>
-    </div>
-  );
 }
 
 export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDays = [], allUsers = [], todayStr }) {
@@ -49,35 +41,38 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     setShowTzPicker(false);
   };
 
-  // --- REFINED NEXT SHOOT LOGIC ---
+  // --- 1. ROBUST NEXT SHOOT CALCULATION ---
   const myNextShoot = useMemo(() => {
-    const filtered = shoots.filter(s => {
-      if (s.status === 'cancelled') return false;
+    const upcoming = shoots.filter(s => {
+      // Basic validation
+      if (!s.date || s.status === 'cancelled') return false;
       
-      // If not admin, only show shoots where user is assigned
+      // Permissions: Admin sees all, User sees assigned
       const isAssigned = s.assigned_operators?.includes(user?.email);
       if (!isAdmin && !isAssigned) return false;
 
-      // Robust Date Parsing: Combine date and time
-      // We use a space instead of 'T' to help some browser engines parse as local time
-      const shootDateStr = `${s.date} ${s.setup_time || '00:00'}:00`;
-      const shootTime = new Date(shootDateStr);
-
-      // Return true if the shoot setup is in the future
-      return shootTime > now;
+      // Parse the shoot time safely (combining date and time)
+      // We use "YYYY-MM-DD HH:mm" format
+      const shootDateTime = new Date(`${s.date}T${s.setup_time || '00:00'}:00`);
+      
+      // Return true only if the shoot setup is actually in the future
+      return isAfter(shootDateTime, now);
     });
 
-    // Sort by soonest first
-    return filtered.sort((a, b) => {
-      return new Date(`${a.date} ${a.setup_time}`) - new Date(`${b.date} ${b.setup_time}`);
+    // Sort by chronological order
+    return upcoming.sort((a, b) => {
+      const dateA = new Date(`${a.date}T${a.setup_time || '00:00'}`);
+      const dateB = new Date(`${b.date}T${b.setup_time || '00:00'}`);
+      return dateA - dateB;
     })[0];
   }, [shoots, now, user?.email, isAdmin]);
 
+  // --- 2. COUNTDOWN FORMATTER ---
   const getCountdown = (targetDate, targetTime) => {
-    const target = new Date(`${targetDate} ${targetTime || '00:00'}:00`);
+    const target = new Date(`${targetDate}T${targetTime || '00:00'}:00`);
     const diff = differenceInSeconds(target, now);
     
-    if (diff <= 0) return "In Progress";
+    if (diff <= 0) return "Live Now";
     
     const d = intervalToDuration({ start: now, end: target });
     
@@ -86,10 +81,10 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     return `${d.minutes}m ${d.seconds}s`;
   };
 
-  // --- STANDBY LOGIC ---
+  // --- 3. STANDBY LOGIC ---
   const currentStandby = standbyDays.filter(sd => {
-    const startDt = new Date(`${sd.start_date || sd.date} ${sd.start_time || '00:00'}`);
-    const endDt = new Date(`${sd.end_date || sd.start_date || sd.date} ${sd.end_time || '23:59:59'}`);
+    const startDt = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
+    const endDt = new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`);
     return now >= startDt && now <= endDt;
   });
 
@@ -98,18 +93,13 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || '?';
   };
 
-  const thisMonth = format(now, 'yyyy-MM');
-  const pendingApprovalsCount = isAdmin
-    ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
-    : shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length;
-
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
       <div className="flex flex-col lg:flex-row lg:items-center gap-6">
         
-        {/* CLOCK */}
+        {/* TIME SECTION */}
         <div className="flex-shrink-0">
-          <div className="font-mono text-3xl font-bold text-white tracking-wider">{time}</div>
+          <div className="font-mono text-3xl font-bold text-white tracking-wider tabular-nums">{time}</div>
           <div className="text-xs text-gray-400 mt-0.5">{date}</div>
           <div className="relative mt-2">
             <button onClick={() => setShowTzPicker(!showTzPicker)} className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 bg-blue-950/30 border border-blue-800/40 px-2.5 py-1 rounded-lg">
@@ -129,9 +119,9 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
         <div className="hidden lg:block w-px h-12 bg-gray-800" />
 
-        {/* STANDBY */}
+        {/* STANDBY SECTION */}
         <div className="flex-shrink-0 min-w-[140px]">
-          <p className="text-[10px] text-gray-500 uppercase tracking-[0.1em] mb-2 font-semibold">Standby</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Standby</p>
           {currentStandby.length > 0 ? (
             currentStandby.map((sd, i) => (
               <div key={i} className="mb-1">
@@ -142,54 +132,59 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
               </div>
             ))
           ) : (
-            <span className="text-sm text-gray-600 italic">None Active</span>
+            <span className="text-sm text-gray-600 italic">No Standby</span>
           )}
         </div>
 
         <div className="hidden lg:block w-px h-12 bg-gray-800" />
 
         {/* NEXT SHOOT SECTION */}
-        <div className="flex-shrink-0 min-w-[240px]">
-          <p className="text-[10px] text-gray-500 uppercase tracking-[0.1em] mb-2 font-semibold">
+        <div className="flex-shrink-0 min-w-[260px]">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">
             {isAdmin ? "Next Company Shoot" : "My Next Shoot"}
           </p>
           {myNextShoot ? (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm truncate max-w-[220px]">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm truncate max-w-[240px]">
                 <Camera className="h-3.5 w-3.5" />
-                {myNextShoot.shoot_name || myNextShoot.event_name || 'Untitled Shoot'}
+                {/* Check for all possible naming conventions from your DB */}
+                {myNextShoot.shoot_name || myNextShoot.event_name || myNextShoot.title || 'Untitled Shoot'}
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono text-gray-400">{myNextShoot.setup_time || '00:00'}</span>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20">
+                <span className="text-xs font-mono text-gray-300">{myNextShoot.setup_time || '00:00'}</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
                   <Timer className="h-3 w-3 text-blue-400" />
-                  <span className="text-[11px] font-mono font-bold text-blue-400 uppercase">
+                  <span className="text-[11px] font-mono font-bold text-blue-400 tabular-nums">
                     {getCountdown(myNextShoot.date, myNextShoot.setup_time)}
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <span className="text-sm text-gray-600 italic">No upcoming shoots</span>
+            <span className="text-sm text-gray-500 italic">No shoots found</span>
           )}
         </div>
 
-        <div className="hidden lg:block w-px h-12 bg-gray-800" />
+        <div className="hidden lg:block w-px h-12 bg-gray-800 flex-1" />
 
-        {/* STATS */}
-        <div className="flex gap-3 flex-1 justify-end">
-          <StatChip 
-            label={isAdmin ? "Total Pending" : "My Pending"} 
-            value={pendingApprovalsCount} 
-            color={pendingApprovalsCount > 0 ? 'text-orange-400' : 'text-gray-400'} 
-            highlight={pendingApprovalsCount > 0} 
-          />
-          <StatChip 
-            label="Monthly" 
-            value={shoots.filter(s => s.date?.startsWith(thisMonth) && s.assigned_operators?.includes(user?.email)).length} 
-            color="text-white" 
-          />
+        {/* COMPACT STATS */}
+        <div className="flex gap-4">
+          <div className="text-right">
+            <div className="text-xl font-bold text-white leading-none">
+              {shoots.filter(s => s.date?.startsWith(format(now, 'yyyy-MM')) && s.assigned_operators?.includes(user?.email)).length}
+            </div>
+            <div className="text-[10px] text-gray-500 uppercase mt-1">Monthly</div>
+          </div>
+          <div className="text-right">
+            <div className={`text-xl font-bold leading-none ${shoots.filter(s => s.pending_operators?.length > 0).length > 0 ? 'text-orange-400' : 'text-white'}`}>
+              {isAdmin 
+                ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
+                : shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length}
+            </div>
+            <div className="text-[10px] text-gray-500 uppercase mt-1">Pending</div>
+          </div>
         </div>
+
       </div>
     </div>
   );
