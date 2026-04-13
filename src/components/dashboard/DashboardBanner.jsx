@@ -10,10 +10,6 @@ const TIMEZONES = [
   { label: 'US Pacific (PT)', tz: 'America/Los_Angeles' },
 ];
 
-/**
- * Custom Hook: useClock
- * This must be defined BEFORE the DashboardBanner component
- */
 function useClock(tz) {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
@@ -49,50 +45,47 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
     setShowTzPicker(false);
   };
 
-  // --- STANDBY LOGIC ---
+  // --- STANDBY HELPERS ---
+  const currentStandby = standbyDays?.find(sd => {
+    const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
+    const end = new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`);
+    return isValid(start) && isValid(end) && now >= start && now <= end;
+  });
+
+  const nextStandby = (standbyDays || [])
+    .filter(sd => isAfter(new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`), now))
+    .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
+
   const getStandbyName = (sd) => {
     if (!sd) return '';
     const u = allUsers?.find(u => u.email === sd.admin_email);
     return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || 'Unknown User';
   };
 
-  const currentStandby = useMemo(() => {
-    return standbyDays?.find(sd => {
-      const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
-      const end = new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`);
-      return isValid(start) && isValid(end) && now >= start && now <= end;
-    });
-  }, [standbyDays, now]);
-
-  const nextStandby = useMemo(() => {
-    return (standbyDays || [])
-      .filter(sd => {
-        const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
-        return isValid(start) && isAfter(start, now);
-      })
-      .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
-  }, [standbyDays, now]);
-
-  // --- NEXT SHOOT LOGIC (MIRRORING COUNTDOWNCARD) ---
+  // --- NEXT SHOOT ENGINE ---
   const myNextShoot = useMemo(() => {
     if (!user?.email || !shoots?.length) return null;
-    const upcoming = shoots.filter(s => {
-      const isAssigned = s.assigned_operators?.includes(user.email);
-      const isNotComplete = !s.phase_status?.shoot_complete;
-      const isNotCancelled = s.status !== 'cancelled';
-      return isAssigned && isNotComplete && isNotCancelled;
-    });
-
-    return upcoming.sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.setup_time || a.start_time || "00:00"}`);
-      const tB = new Date(`${b.date}T${b.setup_time || b.start_time || "00:00"}`);
-      return tA - tB;
-    })[0];
+    return shoots
+      .filter(s => {
+        const isAssigned = s.assigned_operators?.includes(user.email);
+        const isNotComplete = !s.phase_status?.shoot_complete;
+        const isNotCancelled = s.status !== 'cancelled';
+        if (!isAssigned || !isNotComplete || !isNotCancelled) return false;
+        const sTime = s.setup_time || s.start_time || s.time || "00:00";
+        const shootDT = new Date(`${s.date}T${sTime}`);
+        return isValid(shootDT) && (isAfter(shootDT, now) || s.date === format(now, 'yyyy-MM-dd'));
+      })
+      .sort((a, b) => {
+        const tA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || "00:00"}`);
+        const tB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || "00:00"}`);
+        return tA - tB;
+      })[0];
   }, [shoots, now, user?.email]);
 
   const getCountdown = (s) => {
     if (!s) return "";
-    const target = new Date(`${s.date}T${s.setup_time || s.start_time || "00:00"}`);
+    const targetTime = s.setup_time || s.start_time || s.time || "00:00";
+    const target = new Date(`${s.date}T${targetTime}`);
     if (!isValid(target)) return "--:--:--";
     const diff = differenceInSeconds(target, now);
     if (diff <= 0) return "LIVE";
@@ -115,8 +108,9 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{date}</div>
         </div>
 
-        {/* SECTION 2: STANDBY (Uniform Box Style) */}
+        {/* SECTION 2: UNIFORM STANDBY SECTION */}
         <div className="flex flex-1 items-center gap-8 border-l border-gray-800 pl-8">
+          {/* Current Standby */}
           <div className="flex-1 min-w-[150px]">
             <p className="text-[10px] text-yellow-500 uppercase tracking-widest mb-2 font-bold">On Standby Now</p>
             {currentStandby ? (
@@ -125,8 +119,8 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                   <Phone className="h-3.5 w-3.5 text-yellow-500" /> {getStandbyName(currentStandby)}
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="text-[10px] font-mono font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded uppercase">
-                      {format(new Date(`${currentStandby.end_date || currentStandby.date}T12:00:00`), 'MMM d')}
+                   <div className="text-[10px] font-mono font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded uppercase tracking-wider">
+                      Ends {format(new Date(`${currentStandby.end_date || currentStandby.date}T12:00:00`), 'MMM d')}
                    </div>
                    <div className="text-[10px] font-mono font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded uppercase">
                       {currentStandby.end_time || '06:30'}
@@ -138,13 +132,14 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
 
           <ArrowRight className="h-4 w-4 text-gray-800" />
 
+          {/* Next Standby */}
           <div className="flex-1 min-w-[150px]">
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Next Standby</p>
             {nextStandby ? (
               <div className="space-y-2">
                 <div className="text-gray-300 font-bold text-sm truncate">{getStandbyName(nextStandby)}</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-[10px] font-mono font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded uppercase">
+                  <div className="text-[10px] font-mono font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded uppercase tracking-wider">
                     {format(new Date(`${nextStandby.start_date || nextStandby.date}T12:00:00`), 'MMM d')}
                   </div>
                   <div className="text-[10px] font-mono font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded uppercase">
@@ -156,14 +151,14 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           </div>
         </div>
 
-        {/* SECTION 3: YOUR NEXT SHOOT */}
+        {/* SECTION 3: UNIFORM NEXT SHOOT SECTION */}
         <div className="flex-shrink-0 min-w-[340px] border-l border-gray-800 pl-8">
           <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">Your Next Shoot</p>
           {myNextShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {myNextShoot.shoot_name || myNextShoot.event_name || 'Untitled Shoot'}
+                {myNextShoot.shoot_name || myNextShoot.event_name || myNextShoot.title || myNextShoot.client_name || 'Upcoming Shoot'}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded uppercase tracking-wider">
