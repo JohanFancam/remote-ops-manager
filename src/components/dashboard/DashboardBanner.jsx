@@ -58,30 +58,33 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
   }, [standbyDays, now]);
 
-  // --- SHOOT LOGIC (Current or Next) ---
-  const activeShoot = useMemo(() => {
-    const userShoots = shoots.filter(s => 
-      s.assigned_operators?.includes(user?.email) && 
-      s.status !== 'cancelled' && 
-      !s.phase_status?.shoot_complete // Assuming your DB uses this flag
-    );
+  // --- SHOOT LOGIC (Per User Individual Next Shoot) ---
+  const myNextShoot = useMemo(() => {
+    const filtered = shoots.filter(s => {
+      // 1. Check assignment
+      const isAssigned = s.assigned_operators?.includes(user?.email);
+      if (!isAssigned || s.status === 'cancelled' || s.phase_status?.shoot_complete) return false;
 
-    return userShoots.sort((a, b) => {
-      return new Date(`${a.date}T${a.setup_time}`) - new Date(`${b.date}T${b.setup_time}`);
+      // 2. Create precise timestamp for comparison
+      const shootTime = new Date(`${s.date}T${s.setup_time || '00:00'}:00`);
+      
+      // 3. Keep if the setup time hasn't passed yet
+      return isAfter(shootTime, now);
+    });
+
+    // 4. Sort to find the absolute closest one next
+    return filtered.sort((a, b) => {
+      const timeA = new Date(`${a.date}T${a.setup_time || '00:00'}`);
+      const timeB = new Date(`${b.date}T${b.setup_time || '00:00'}`);
+      return timeA - timeB;
     })[0];
-  }, [shoots, user?.email]);
+  }, [shoots, now, user?.email]);
 
-  const getShootStatus = (shoot) => {
-    const shootTime = new Date(`${shoot.date}T${shoot.setup_time || '00:00'}:00`);
-    const isLive = now >= shootTime;
-    
-    if (isLive) return { label: "Live Now", color: "text-red-500", icon: <PlayCircle className="h-3 w-3 animate-pulse" /> };
-    
-    const diff = differenceInSeconds(shootTime, now);
-    const d = intervalToDuration({ start: now, end: shootTime });
-    let countdown = d.days > 0 ? `${d.days}d ${d.hours}h ${d.minutes}m` : `${d.hours}h ${d.minutes}m ${d.seconds}s`;
-    
-    return { label: countdown, color: "text-blue-400", icon: <Timer className="h-3 w-3" /> };
+  const getCountdown = (targetDate, targetTime) => {
+    const target = new Date(`${targetDate}T${targetTime || '00:00'}:00`);
+    const d = intervalToDuration({ start: now, end: target });
+    if (d.days > 0) return `${d.days}d ${d.hours}h ${d.minutes}m`;
+    return `${d.hours}h ${d.minutes}m ${d.seconds}s`;
   };
 
   return (
@@ -106,7 +109,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           )}
         </div>
 
-        {/* SECTION 2: STANDBY (Horizontal) */}
+        {/* SECTION 2: STANDBY STATUS (Horizontal) */}
         <div className="flex flex-1 items-center gap-8 border-l border-gray-800 pl-8">
           <div className="flex-1">
             <p className="text-[10px] text-yellow-600 uppercase tracking-widest mb-2 font-bold">On Standby Now</p>
@@ -115,9 +118,9 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                 <div className="text-white font-bold text-sm flex items-center gap-2">
                   <Phone className="h-3.5 w-3.5 text-yellow-500" /> {getStandbyName(currentStandby)}
                 </div>
-                <div className="text-[10px] text-gray-500 mt-1">{format(new Date(currentStandby.end_date || currentStandby.date), 'MMM d')} @ {currentStandby.end_time || '23:59'}</div>
+                <div className="text-[10px] text-gray-500 mt-1">Until {currentStandby.end_time || '23:59'}</div>
               </div>
-            ) : <div className="text-xs text-gray-600 italic">None Active</div>}
+            ) : <div className="text-xs text-gray-600 italic font-medium">None Active</div>}
           </div>
 
           <ArrowRight className="h-4 w-4 text-gray-800" />
@@ -133,34 +136,29 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           </div>
         </div>
 
-        {/* SECTION 3: CURRENT / NEXT SHOOT */}
+        {/* SECTION 3: YOUR NEXT SHOOT */}
         <div className="flex-shrink-0 min-w-[320px] border-l border-gray-800 pl-8">
-          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">
-            {activeShoot && now >= new Date(`${activeShoot.date}T${activeShoot.setup_time}`) ? "Active Shoot" : "Next Shoot"}
-          </p>
-          
-          {activeShoot ? (
+          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">Your Next Shoot</p>
+          {myNextShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[300px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {activeShoot.event_name || activeShoot.shoot_name || activeShoot.name || 'Untitled Shoot'}
+                {myNextShoot.event_name || myNextShoot.shoot_name || myNextShoot.name || 'Untitled Shoot'}
               </div>
-              
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono text-gray-400 bg-gray-800 px-2 py-0.5 rounded">
-                  {format(new Date(activeShoot.date + 'T12:00:00'), 'MMM d')} @ {activeShoot.setup_time}
+                  {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')} @ {myNextShoot.setup_time}
                 </div>
-                
-                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-opacity-10 border border-opacity-20 ${now >= new Date(`${activeShoot.date}T${activeShoot.setup_time}`) ? 'bg-red-500 border-red-500' : 'bg-blue-500 border-blue-500'}`}>
-                  {getShootStatus(activeShoot).icon}
-                  <span className={`text-[11px] font-mono font-bold uppercase tabular-nums ${getShootStatus(activeShoot).color}`}>
-                    {getShootStatus(activeShoot).label}
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20">
+                  <Timer className="h-3.5 w-3.5 text-blue-400" />
+                  <span className="text-[11px] font-mono font-bold text-blue-400 uppercase tabular-nums">
+                    {getCountdown(myNextShoot.date, myNextShoot.setup_time)}
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-gray-600 italic">No shoots scheduled</div>
+            <div className="text-xs text-gray-600 italic">No upcoming assignments</div>
           )}
         </div>
 
