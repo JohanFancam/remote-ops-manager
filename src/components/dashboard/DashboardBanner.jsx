@@ -45,7 +45,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
     setShowTzPicker(false);
   };
 
-  // --- STANDBY ---
+  // --- STANDBY LOGIC ---
   const getStandbyName = (sd) => {
     if (!sd) return '';
     const u = allUsers?.find(u => u.email === sd.admin_email);
@@ -73,21 +73,22 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
         const isNotCancelled = s.status !== 'cancelled';
         if (!isAssigned || !isNotComplete || !isNotCancelled) return false;
 
-        // Create timestamp from the database date and time directly
-        const shootTime = new Date(`${s.date}T${s.setup_time || s.start_time || "00:00"}`);
+        const sTime = s.setup_time || s.start_time || s.time || "00:00";
+        const shootTime = new Date(`${s.date}T${sTime}`);
+        // We show it if it's today or in the future
         return isValid(shootTime) && (isAfter(shootTime, now) || s.date === format(now, 'yyyy-MM-dd'));
       })
       .sort((a, b) => {
-        const tA = new Date(`${a.date}T${a.setup_time || a.start_time || "00:00"}`);
-        const tB = new Date(`${b.date}T${b.setup_time || b.start_time || "00:00"}`);
+        const tA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || "00:00"}`);
+        const tB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || "00:00"}`);
         return tA - tB;
       })[0];
   }, [shoots, now, user?.email]);
 
   const getCountdown = (s) => {
     if (!s) return "";
-    const target = new Date(`${s.date}T${s.setup_time || s.start_time || "00:00"}`);
-    if (!isValid(target)) return "Invalid Time";
+    const target = new Date(`${s.date}T${s.setup_time || s.start_time || s.time || "00:00"}`);
+    if (!isValid(target)) return "--:--:--";
     
     const diff = differenceInSeconds(target, now);
     if (diff <= 0) return "LIVE";
@@ -122,7 +123,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                 <div className="text-white font-bold text-sm flex items-center gap-2">
                   <Phone className="h-3.5 w-3.5 text-yellow-500" /> {getStandbyName(currentStandby)}
                 </div>
-                <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-mono">Until {currentStandby.end_time || '06:30'}</div>
+                <div className="text-[10px] text-gray-500 mt-1 font-mono">Until {currentStandby.end_time || '06:30'}</div>
               </div>
             ) : <div className="text-xs text-gray-600 italic">None Active</div>}
           </div>
@@ -134,7 +135,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             {nextStandby ? (
               <div>
                 <div className="text-gray-300 font-bold text-sm">{getStandbyName(nextStandby)}</div>
-                <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-mono">{format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d')} @ {nextStandby.start_time || '07:00'}</div>
+                <div className="text-[10px] text-gray-500 mt-1 font-mono">{format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d')} @ {nextStandby.start_time || '07:00'}</div>
               </div>
             ) : <div className="text-xs text-gray-600 italic">None Scheduled</div>}
           </div>
@@ -147,8 +148,18 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {/* Fixed the name by checking event_name, shoot_name and client_name */}
-                {myNextShoot.shoot_name || myNextShoot.event_name || myNextShoot.client_name || 'Upcoming Shoot'}
+                {/* AGGRESSIVE KEY CHECK: 
+                  Looks through every possible property name to find the game title.
+                */}
+                {
+                  myNextShoot.shoot_name || 
+                  myNextShoot.event_name || 
+                  myNextShoot.title || 
+                  myNextShoot.label || 
+                  myNextShoot.description || 
+                  myNextShoot.client_name || 
+                  'Next Shoot'
+                }
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded uppercase tracking-wider">
