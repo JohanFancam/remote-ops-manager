@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Camera, Phone, Clock, ChevronDown, Timer, ArrowRight } from 'lucide-react';
-import { format, differenceInSeconds, intervalToDuration, isAfter, parseISO } from 'date-fns';
+import { format, differenceInSeconds, intervalToDuration, isAfter } from 'date-fns';
 
 const TIMEZONES = [
   { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
@@ -61,29 +61,30 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   // --- INDIVIDUAL NEXT SHOOT LOGIC ---
   const myNextShoot = useMemo(() => {
     const upcoming = shoots.filter(s => {
+      // 1. Must be assigned to current user
       const isAssigned = s.assigned_operators?.includes(user?.email);
-      // We check if it is assigned, not cancelled, and not already complete
       if (!isAssigned || s.status === 'cancelled' || s.phase_status?.shoot_complete) return false;
 
-      // Extract time from whatever field your DB uses
-      const sTime = s.setup_time || s.start_time || s.time || '00:00';
-      const shootTime = new Date(`${s.date}T${sTime}:00`);
+      // 2. Extract Time Safely (Check all possible field names)
+      const sTime = s.setup_time || s.start_time || s.time || "00:00";
+      const shootTime = new Date(`${s.date}T${sTime}`);
       
-      // Keep shoots that are either happening now or in the future
+      // 3. Logic: Keep it if it's in the future OR if it started in the last few hours but isn't finished
       return isAfter(shootTime, now) || (s.date === format(now, 'yyyy-MM-dd') && !s.phase_status?.shoot_complete);
     });
 
+    // 4. Sort strictly by date and time
     return upcoming.sort((a, b) => {
-      const timeA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || '00:00'}`);
-      const timeB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || '00:00'}`);
+      const timeA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || "00:00"}`);
+      const timeB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || "00:00"}`);
       return timeA - timeB;
     })[0];
   }, [shoots, now, user?.email]);
 
   const getCountdown = (targetDate, targetTime) => {
-    const target = new Date(`${targetDate}T${targetTime || '00:00'}:00`);
+    const target = new Date(`${targetDate}T${targetTime || '00:00'}`);
     const diff = differenceInSeconds(target, now);
-    if (diff <= 0) return "Starting Now";
+    if (diff <= 0) return "LIVE";
     const d = intervalToDuration({ start: now, end: target });
     if (d.days > 0) return `${d.days}d ${d.hours}h ${d.minutes}m`;
     return `${d.hours}h ${d.minutes}m ${d.seconds}s`;
@@ -125,7 +126,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             ) : <div className="text-xs text-gray-600 italic">None Active</div>}
           </div>
 
-          <ArrowRight className="h-4 w-4 text-gray-700" />
+          <ArrowRight className="h-4 w-4 text-gray-800" />
 
           <div className="flex-1">
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Next Standby</p>
@@ -138,17 +139,19 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           </div>
         </div>
 
-        {/* SECTION 3: YOUR NEXT SHOOT */}
+        {/* SECTION 3: YOUR NEXT SHOOT (Matches "My Assigned Shoots") */}
         <div className="flex-shrink-0 min-w-[340px] border-l border-gray-800 pl-8">
-          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">Your Next Shoot</p>
+          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold font-sans">Your Next Shoot</p>
           {myNextShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {myNextShoot.event_name || myNextShoot.shoot_name || myNextShoot.name || 'Untitled Shoot'}
+                {/* Check every possible field name to avoid "Untitled Shoot" */}
+                {myNextShoot.shoot_name || myNextShoot.event_name || myNextShoot.name || myNextShoot.title || 'Untitled Shoot'}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded">
+                   {/* Grab Setup Time from whatever field your list uses */}
                   {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')} @ {myNextShoot.setup_time || myNextShoot.start_time || myNextShoot.time || '00:00'}
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20">
@@ -160,7 +163,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-600 italic">No upcoming assignments</div>
+            <div className="text-xs text-gray-600 italic">No upcoming shoots found</div>
           )}
         </div>
 
