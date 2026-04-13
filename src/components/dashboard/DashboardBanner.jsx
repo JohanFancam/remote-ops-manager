@@ -45,58 +45,56 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
     setShowTzPicker(false);
   };
 
+  // --- STANDBY HELPERS ---
+  const currentStandby = standbyDays?.find(sd => {
+    const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
+    const end = new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`);
+    return isValid(start) && isValid(end) && now >= start && now <= end;
+  });
+
+  const nextStandby = (standbyDays || [])
+    .filter(sd => isAfter(new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`), now))
+    .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
+
   const getStandbyName = (sd) => {
     if (!sd) return '';
     const u = allUsers?.find(u => u.email === sd.admin_email);
     return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || 'Unknown';
   };
 
-  // --- STANDBY LOGIC ---
-  const currentStandby = useMemo(() => {
-    return standbyDays?.find(sd => {
-      const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
-      const end = new Date(`${sd.end_date || sd.start_date || sd.date}T${sd.end_time || '23:59:59'}`);
-      return isValid(start) && isValid(end) && now >= start && now <= end;
-    });
-  }, [standbyDays, now]);
-
-  const nextStandby = useMemo(() => {
-    return (standbyDays || [])
-      .filter(sd => {
-        const start = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
-        return isValid(start) && isAfter(start, now);
-      })
-      .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
-  }, [standbyDays, now]);
-
-  // --- NEXT SHOOT LOGIC ---
+  // --- THE "NEXT SHOOT" ENGINE ---
   const myNextShoot = useMemo(() => {
-    if (!user?.email || !shoots) return null;
+    if (!user?.email || !shoots?.length) return null;
 
-    const upcoming = shoots.filter(s => {
-      const isAssigned = s.assigned_operators?.includes(user.email);
-      if (!isAssigned || s.status === 'cancelled' || s.phase_status?.shoot_complete) return false;
+    return shoots
+      .filter(s => {
+        // Must be assigned and not finished/cancelled
+        const isAssigned = s.assigned_operators?.includes(user.email);
+        const isNotComplete = !s.phase_status?.shoot_complete;
+        const isNotCancelled = s.status !== 'cancelled';
+        if (!isAssigned || !isNotComplete || !isNotCancelled) return false;
 
-      // FIX: Use setup_time specifically. If setup_time doesn't exist, we look for start_time.
-      const sTime = s.setup_time || s.start_time || "00:00";
-      const shootDateTime = new Date(`${s.date}T${sTime}`);
-      
-      // Keep if it is today (regardless of time) or in the future
-      return isValid(shootDateTime) && (isAfter(shootDateTime, now) || s.date === format(now, 'yyyy-MM-dd'));
-    });
-
-    return upcoming.sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.setup_time || a.start_time || "00:00"}`);
-      const tB = new Date(`${b.date}T${b.setup_time || b.start_time || "00:00"}`);
-      return tA - tB;
-    })[0];
+        // Create timestamp. Check setup_time, start_time, or time field.
+        const sTime = s.setup_time || s.start_time || s.time || "00:00";
+        const shootDT = new Date(`${s.date}T${sTime}`);
+        
+        // Show if today or in the future
+        return isValid(shootDT) && (isAfter(shootDT, now) || s.date === format(now, 'yyyy-MM-dd'));
+      })
+      .sort((a, b) => {
+        const tA = new Date(`${a.date}T${a.setup_time || a.start_time || a.time || "00:00"}`);
+        const tB = new Date(`${b.date}T${b.setup_time || b.start_time || b.time || "00:00"}`);
+        return tA - tB;
+      })[0];
   }, [shoots, now, user?.email]);
 
-  const getCountdown = (targetDate, targetTime) => {
-    const target = new Date(`${targetDate}T${targetTime || '00:00'}`);
+  const getCountdown = (s) => {
+    if (!s) return "";
+    const targetTime = s.setup_time || s.start_time || s.time || "00:00";
+    const target = new Date(`${s.date}T${targetTime}`);
     if (!isValid(target)) return "--:--:--";
-    const diff = differenceInSeconds(target, now);
     
+    const diff = differenceInSeconds(target, now);
     if (diff <= 0) return "LIVE";
     
     const d = intervalToDuration({ start: now, end: target });
@@ -112,8 +110,8 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
         <div className="flex-shrink-0 min-w-[180px]">
           <div className="font-mono text-4xl font-bold text-white tracking-tighter tabular-nums">{time}</div>
           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{date}</div>
-          <button onClick={() => setShowTzPicker(!showTzPicker)} className="mt-3 flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:opacity-80 transition-opacity">
-            <Clock className="h-3 w-3" /> {TIMEZONES.find(t => t.tz === tz)?.label || 'SA Time'} <ChevronDown className="h-3 w-3" />
+          <button onClick={() => setShowTzPicker(!showTzPicker)} className="mt-3 flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+            <Clock className="h-3 w-3" /> {TIMEZONES.find(t => t.tz === tz)?.label} <ChevronDown className="h-3 w-3" />
           </button>
           {showTzPicker && (
             <div className="absolute mt-2 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl py-1 min-w-[160px]">
@@ -147,7 +145,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
             {nextStandby ? (
               <div>
                 <div className="text-gray-300 font-bold text-sm">{getStandbyName(nextStandby)}</div>
-                <div className="text-[10px] text-gray-500 mt-1">{nextStandby.start_date ? format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d') : ''} @ {nextStandby.start_time || '07:00'}</div>
+                <div className="text-[10px] text-gray-500 mt-1">{format(new Date(nextStandby.start_date + 'T12:00:00'), 'MMM d')} @ {nextStandby.start_time || '07:00'}</div>
               </div>
             ) : <div className="text-xs text-gray-600 italic">None Scheduled</div>}
           </div>
@@ -155,32 +153,31 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
 
         {/* SECTION 3: YOUR NEXT SHOOT */}
         <div className="flex-shrink-0 min-w-[340px] border-l border-gray-800 pl-8">
-          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold font-sans">Your Next Shoot</p>
+          <p className="text-[10px] text-blue-500 uppercase tracking-widest mb-2 font-bold">Your Next Shoot</p>
           {myNextShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-white font-bold text-base truncate max-w-[320px]">
                 <Camera className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                {myNextShoot.shoot_name || myNextShoot.event_name || 'Untitled Shoot'}
+                {/* Fallback chain for Name */}
+                {myNextShoot.shoot_name || myNextShoot.event_name || myNextShoot.name || myNextShoot.title || 'Unknown Shoot'}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-[10px] font-mono font-bold text-gray-300 bg-gray-800 px-2.5 py-1 rounded">
-                  {/* FIX: Explicitly displaying setup_time/start_time instead of defaulting to 00:00 */}
-                  {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')} @ {myNextShoot.setup_time || myNextShoot.start_time || '00:00'}
+                  {/* Fallback chain for Time Display */}
+                  {format(new Date(myNextShoot.date + 'T12:00:00'), 'MMM d')} @ {myNextShoot.setup_time || myNextShoot.start_time || myNextShoot.time || '00:00'}
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20">
                   <Timer className="h-3.5 w-3.5 text-blue-400" />
                   <span className="text-[11px] font-mono font-bold text-blue-400 uppercase tabular-nums">
-                    {/* FIX: Passing the correct time field to the countdown generator */}
-                    {getCountdown(myNextShoot.date, myNextShoot.setup_time || myNextShoot.start_time)}
+                    {getCountdown(myNextShoot)}
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-600 italic">No assignments found</div>
+            <div className="text-xs text-gray-600 italic">No upcoming assignments</div>
           )}
         </div>
-
       </div>
     </div>
   );
