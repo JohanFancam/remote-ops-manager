@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Phone, Clock, CalendarDays, ChevronDown, Timer } from 'lucide-react';
-import { format, differenceInSeconds, intervalToDuration, parseISO } from 'date-fns';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Camera, Phone, Clock, ChevronDown, Timer } from 'lucide-react';
+import { format, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 const TIMEZONES = [
   { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
@@ -49,56 +49,55 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     setShowTzPicker(false);
   };
 
-  // --- LOGIC FOR STANDBY ---
-  const currentStandby = standbyDays.filter(sd => {
-    const startDate = sd.start_date || sd.date;
-    const endDate = sd.end_date || startDate;
-    if (!startDate) return false;
-    const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-    const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
-    return now >= startDt && now <= endDt;
-  });
-
-  const nextStandby = standbyDays
-    .filter(sd => {
-      const startDt = new Date(`${sd.start_date || sd.date}T${sd.start_time || '00:00'}`);
-      return startDt > now;
-    })
-    .sort((a, b) => new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`) - new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`))[0];
-
-  // --- LOGIC FOR NEXT SHOOT ---
-  const myNextShoot = shoots
-    .filter(s => {
-      // 1. Skip cancelled
+  // --- REFINED NEXT SHOOT LOGIC ---
+  const myNextShoot = useMemo(() => {
+    const filtered = shoots.filter(s => {
       if (s.status === 'cancelled') return false;
       
-      // 2. Filter by user (If Admin, show next shoot overall; if User, show assigned only)
+      // If not admin, only show shoots where user is assigned
       const isAssigned = s.assigned_operators?.includes(user?.email);
       if (!isAdmin && !isAssigned) return false;
 
-      // 3. Must be in the future
-      const shootTime = new Date(`${s.date}T${s.setup_time || '00:00'}`);
+      // Robust Date Parsing: Combine date and time
+      // We use a space instead of 'T' to help some browser engines parse as local time
+      const shootDateStr = `${s.date} ${s.setup_time || '00:00'}:00`;
+      const shootTime = new Date(shootDateStr);
+
+      // Return true if the shoot setup is in the future
       return shootTime > now;
-    })
-    .sort((a, b) => new Date(`${a.date}T${a.setup_time || '00:00'}`) - new Date(`${b.date}T${b.setup_time || '00:00'}`))[0];
+    });
+
+    // Sort by soonest first
+    return filtered.sort((a, b) => {
+      return new Date(`${a.date} ${a.setup_time}`) - new Date(`${b.date} ${b.setup_time}`);
+    })[0];
+  }, [shoots, now, user?.email, isAdmin]);
 
   const getCountdown = (targetDate, targetTime) => {
-    const target = new Date(`${targetDate}T${targetTime || '00:00'}`);
+    const target = new Date(`${targetDate} ${targetTime || '00:00'}:00`);
     const diff = differenceInSeconds(target, now);
-    if (diff <= 0) return "Starting...";
+    
+    if (diff <= 0) return "In Progress";
     
     const d = intervalToDuration({ start: now, end: target });
+    
     if (d.days > 0) return `${d.days}d ${d.hours}h ${d.minutes}m`;
     if (d.hours > 0) return `${d.hours}h ${d.minutes}m ${d.seconds}s`;
     return `${d.minutes}m ${d.seconds}s`;
   };
+
+  // --- STANDBY LOGIC ---
+  const currentStandby = standbyDays.filter(sd => {
+    const startDt = new Date(`${sd.start_date || sd.date} ${sd.start_time || '00:00'}`);
+    const endDt = new Date(`${sd.end_date || sd.start_date || sd.date} ${sd.end_time || '23:59:59'}`);
+    return now >= startDt && now <= endDt;
+  });
 
   const getStandbyName = (sd) => {
     const u = allUsers.find(u => u.email === sd.admin_email);
     return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || '?';
   };
 
-  // --- STATS ---
   const thisMonth = format(now, 'yyyy-MM');
   const pendingApprovalsCount = isAdmin
     ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
@@ -108,7 +107,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
       <div className="flex flex-col lg:flex-row lg:items-center gap-6">
         
-        {/* SECTION 1: CLOCK */}
+        {/* CLOCK */}
         <div className="flex-shrink-0">
           <div className="font-mono text-3xl font-bold text-white tracking-wider">{time}</div>
           <div className="text-xs text-gray-400 mt-0.5">{date}</div>
@@ -130,7 +129,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
         <div className="hidden lg:block w-px h-12 bg-gray-800" />
 
-        {/* SECTION 2: STANDBY */}
+        {/* STANDBY */}
         <div className="flex-shrink-0 min-w-[140px]">
           <p className="text-[10px] text-gray-500 uppercase tracking-[0.1em] mb-2 font-semibold">Standby</p>
           {currentStandby.length > 0 ? (
@@ -139,7 +138,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
                 <span className="flex items-center gap-1.5 text-sm font-bold text-yellow-500">
                   <Phone className="h-3 w-3" /> {getStandbyName(sd)}
                 </span>
-                <span className="text-[10px] text-gray-500 block ml-4.5">until {sd.end_time || 'End of Day'}</span>
+                <span className="text-[10px] text-gray-500 block ml-4.5">until {sd.end_time || '23:59'}</span>
               </div>
             ))
           ) : (
@@ -149,14 +148,14 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
         <div className="hidden lg:block w-px h-12 bg-gray-800" />
 
-        {/* SECTION 3: NEXT SHOOT (The part you requested) */}
-        <div className="flex-shrink-0 min-w-[220px]">
+        {/* NEXT SHOOT SECTION */}
+        <div className="flex-shrink-0 min-w-[240px]">
           <p className="text-[10px] text-gray-500 uppercase tracking-[0.1em] mb-2 font-semibold">
             {isAdmin ? "Next Company Shoot" : "My Next Shoot"}
           </p>
           {myNextShoot ? (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm truncate max-w-[200px]">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm truncate max-w-[220px]">
                 <Camera className="h-3.5 w-3.5" />
                 {myNextShoot.shoot_name || myNextShoot.event_name || 'Untitled Shoot'}
               </div>
@@ -177,7 +176,7 @@ export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDay
 
         <div className="hidden lg:block w-px h-12 bg-gray-800" />
 
-        {/* SECTION 4: STATS */}
+        {/* STATS */}
         <div className="flex gap-3 flex-1 justify-end">
           <StatChip 
             label={isAdmin ? "Total Pending" : "My Pending"} 
