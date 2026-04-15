@@ -163,7 +163,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     setShowAssignUser(false);
   };
 
-   const assignableUsers = Array.from(
+  const assignableUsers = Array.from(
     new Map(
       (allUsers || [])
         .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
@@ -174,6 +174,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       !shoot.assigned_operators?.includes(u.email) &&
       !shoot.pending_operators?.includes(u.email)
   );
+  const approvedCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
+  const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - approvedCount);
 
   return (
     <div className="space-y-4">
@@ -373,16 +375,28 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           {showAssignUser ? (
             <div className="bg-gray-800/60 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-2">Assign a user:</p>
-              <Select onValueChange={handleAdminAssignUser}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full mb-2">
-                  <SelectValue placeholder="Select user…" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  {assignableUsers.map(u => (
-                    <SelectItem key={u.email} value={u.email} className="text-white">{getDisplayName(u, u.email)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {assignableUsers.length > 0 ? (
+                <Select onValueChange={handleAdminAssignUser}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full mb-2">
+                    <SelectValue placeholder="Select user…" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700">
+                    {assignableUsers.map((u) => (
+                      <SelectItem
+                        key={u.email}
+                        value={u.email}
+                        className="text-white"
+                      >
+                        {getDisplayName(u, u.email)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="bg-gray-700 border border-gray-600 text-gray-400 rounded-md px-3 py-2 text-sm mb-2">
+                  No assignable users available
+                </div>
+              )}
               <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-white" onClick={() => setShowAssignUser(false)}>Cancel</Button>
             </div>
           ) : (
