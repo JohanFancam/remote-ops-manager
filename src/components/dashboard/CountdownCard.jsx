@@ -467,4 +467,4 @@ export default function CountdownCard({ shoot, standbyAdmins = [], isAdmin = fal
     </div>
     </>
   );
-}
+} 
