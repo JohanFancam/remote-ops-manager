@@ -78,11 +78,32 @@ export default function Calendar() {
   // Merge User records with UserPresence so name lookups work for all admins
   const allUsers = useMemo(() => {
     const map = new Map();
-    presenceRecords.forEach(p => {
-      if (p.user_email) map.set(p.user_email, { email: p.user_email, full_name: p.user_name, role: p.user_role });
+
+    (presenceRecords || []).forEach((p) => {
+      const email = typeof p?.user_email === 'string' ? p.user_email.trim() : '';
+      if (!email) return;
+
+      map.set(email, {
+        email,
+        full_name: p?.user_name || '',
+        role: p?.user_role || '',
+        standby: !!p?.standby,
+      });
     });
-    rawUsers.forEach(u => { if (u.email) map.set(u.email, u); });
-    return Array.from(map.values());
+
+    (rawUsers || []).forEach((u) => {
+      const email = typeof u?.email === 'string' ? u.email.trim() : '';
+      if (!email) return;
+
+      map.set(email, {
+        ...u,
+        email,
+      });
+    });
+
+    return Array.from(map.values()).filter(
+      (u) => u && typeof u.email === 'string' && u.email.trim() !== ''
+    );
   }, [rawUsers, presenceRecords]);
 
   const { data: appSettings = [] } = useQuery({
