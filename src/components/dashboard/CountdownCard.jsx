@@ -63,13 +63,21 @@ function PhaseRow({ label, displayTime, Icon, done, active, countdown, onClick, 
         <span className={`text-xs ${done ? 'text-green-300 line-through' : active ? 'text-blue-200 font-semibold' : 'text-gray-500'}`}>{label}</span>
         {done && <span className="text-xs text-green-500">✓</span>}
       </span>
+
       <div className="text-right flex items-center gap-2">
         <div>
-          <span className={`font-mono text-xs ${done ? 'text-green-400' : active ? 'text-blue-300 font-bold' : 'text-gray-600'}`}>{displayTime}</span>
+          <span className={`font-mono text-xs ${done ? 'text-green-400' : active ? 'text-blue-300 font-bold' : 'text-gray-600'}`}>
+            {displayTime}
+          </span>
           {!done && countdown && <p className="text-xs text-gray-600 font-mono">{countdown}</p>}
         </div>
+
         {canClick && (
-          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-green-950/50' : 'border-gray-700 text-gray-500 bg-gray-800/50'}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded border ${
+            done
+              ? 'border-green-700 text-green-500 bg-green-950/50'
+              : 'border-gray-700 text-gray-500 bg-gray-800/50'
+          }`}>
             {done ? 'undo' : 'mark done'}
           </span>
         )}
@@ -78,7 +86,14 @@ function PhaseRow({ label, displayTime, Icon, done, active, countdown, onClick, 
   );
 }
 
-export default function CountdownCard({ shoot, isAdmin = false, rigSettings = [], onUpdate, userEmail, allUsers = [] }) {
+export default function CountdownCard({
+  shoot,
+  isAdmin = false,
+  rigSettings = [],
+  onUpdate,
+  userEmail,
+  allUsers = []
+}) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
@@ -90,7 +105,10 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
     return () => clearInterval(iv);
   }, []);
 
-  const matchedRig = rigSettings.find((r) => r.team && shoot.client && r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim());
+  const matchedRig = rigSettings.find(
+    (r) => r.team && shoot.client && r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
+  );
+
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
 
@@ -112,6 +130,7 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
 
   useEffect(() => {
     if (!onUpdate || !canMarkPhases || !shoot.date) return;
+
     const GRACE_MS = 5 * 60 * 1000;
     const candidates = [
       { key: 'setup_complete', date: phaseDates.setup },
@@ -130,7 +149,20 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
     if (Object.keys(updates).length > 0) {
       onUpdate(shoot.id, { phase_status: { ...effectivePhaseStatus, ...updates } });
     }
-  }, [now]);
+  }, [
+    now,
+    onUpdate,
+    canMarkPhases,
+    shoot.date,
+    shoot.id,
+    phaseDates.setup,
+    phaseDates.pre_shoot,
+    phaseDates.attention,
+    phaseDates.sound,
+    showAttention,
+    showSound,
+    effectivePhaseStatus,
+  ]);
 
   const nextPhaseTarget = (() => {
     const candidates = [
@@ -144,6 +176,7 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
     for (const c of candidates) {
       if (!effectivePhaseStatus[c.key] && c.date) return c;
     }
+
     return { label: 'Game Time', date: gameDate };
   })();
 
@@ -157,9 +190,12 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
 
   const handleRigTypeChange = async (type) => {
     if (!onUpdate) return;
+
     try {
       setUpdatingRig(true);
-      await onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type });
+      await onUpdate(shoot.id, {
+        rig_type_override: shoot.rig_type_override === type ? null : type
+      });
     } finally {
       setUpdatingRig(false);
     }
@@ -167,9 +203,15 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
 
   const handlePhaseToggle = async (phaseKey) => {
     if (!onUpdate) return;
+
     const current = effectivePhaseStatus[phaseKey];
-    const nextStatus = { ...effectivePhaseStatus, [phaseKey]: current ? null : new Date().toISOString() };
+    const nextStatus = {
+      ...effectivePhaseStatus,
+      [phaseKey]: current ? null : new Date().toISOString()
+    };
+
     setLocalPhaseStatus(nextStatus);
+
     try {
       await onUpdate(shoot.id, { phase_status: nextStatus });
     } catch (e) {
@@ -179,20 +221,28 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
 
   return (
     <>
-      <ShootCompleteModal
-        open={showCompleteModal}
-        onClose={() => setShowCompleteModal(false)}
-        shoot={shoot}
-        onComplete={() =>
-          onUpdate?.(shoot.id, {
-            status: 'completed',
-            phase_status: {
-              ...effectivePhaseStatus,
-              shoot_complete: new Date().toISOString()
+      {showCompleteModal && (
+        <ShootCompleteModal
+          shoot={shoot}
+          user={{
+            email: userEmail,
+            full_name: allUsers.find((u) => u.email === userEmail)?.full_name || ''
+          }}
+          onClose={(completed) => {
+            setShowCompleteModal(false);
+
+            if (completed) {
+              onUpdate?.(shoot.id, {
+                status: 'completed',
+                phase_status: {
+                  ...effectivePhaseStatus,
+                  shoot_complete: new Date().toISOString()
+                }
+              });
             }
-          })
-        }
-      />
+          }}
+        />
+      )}
 
       <div className={`rounded-xl border bg-gray-900/95 transition-all ${expanded ? 'border-gray-700' : 'border-gray-800'} hover:border-gray-600`}>
         <div className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[1.2fr_0.9fr_auto] md:items-center">
@@ -223,7 +273,13 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
           </div>
 
           <div className="flex flex-col items-center justify-center text-center">
-            <div className={`font-mono text-2xl font-bold tracking-tight ${targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'}`}>
+            <div className={`font-mono text-2xl font-bold tracking-tight ${
+              targetIsPast
+                ? 'text-red-400'
+                : targetDiff !== null && targetDiff < 30 * 60000
+                  ? 'text-yellow-400'
+                  : 'text-blue-300'
+            }`}>
               {countdown}
             </div>
             <div className="mt-0.5 text-xs text-gray-500">until {countdownLabel}</div>
@@ -237,6 +293,7 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
                 {shoot.status}
               </Badge>
             )}
+
             <button
               onClick={() => setExpanded((v) => !v)}
               className="p-1 text-gray-500 transition-colors hover:text-gray-300"
