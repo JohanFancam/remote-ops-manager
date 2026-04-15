@@ -7,134 +7,50 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [viewMode, setViewMode] = useState('day'); 
-  const [monthDate, setMonthDate] = useState(new Date());
-
-  // Pagination Logic
   const [shootPage, setShootPage] = useState(0);
   const itemsPerPage = 4;
 
-  useEffect(() => {
-    setShootPage(0);
-  }, [selectedDate]);
-
-  // Auto-advance selectedDate at midnight
-  useEffect(() => {
-    let lastDate = format(new Date(), 'yyyy-MM-dd');
-    const iv = setInterval(() => {
-      const nowDate = format(new Date(), 'yyyy-MM-dd');
-      if (nowDate !== lastDate) {
-        lastDate = nowDate;
-        setSelectedDate(nowDate);
-      }
-    }, 10000);
-    return () => clearInterval(iv);
-  }, []);
+  useEffect(() => { setShootPage(0); }, [selectedDate]);
 
   const allDates = [...new Set([...shoots.map(s => s.date), todayStr])].sort();
-
-  // Auto-advance logic
-  useEffect(() => {
-    const idx = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
-    const currentShots = shoots.filter(s => s.date === (allDates[idx] || todayStr));
-    const allComplete = currentShots.length > 0 && currentShots.every(s => s.phase_status?.shoot_complete || s.status === 'completed');
-    if (allComplete) {
-      for (let i = idx + 1; i < allDates.length; i++) {
-        const nextShots = shoots.filter(s => s.date === allDates[i]);
-        if (nextShots.some(s => !s.phase_status?.shoot_complete && s.status !== 'completed')) {
-          setSelectedDate(allDates[i]);
-          break;
-        }
-      }
-    }
-  }, [shoots]);
-
   const safeIndex = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
   const currentDate = allDates[safeIndex] || todayStr;
-
   const dayShootsList = shoots.filter(s => s && s.date === currentDate);
   
-  // Slice for Pagination
   const totalShootPages = Math.ceil(dayShootsList.length / itemsPerPage);
   const visibleShoots = dayShootsList.slice(shootPage * itemsPerPage, (shootPage + 1) * itemsPerPage);
 
   const goBack = () => { if (safeIndex > 0) setSelectedDate(allDates[safeIndex - 1]); };
   const goForward = () => { if (safeIndex < allDates.length - 1) setSelectedDate(allDates[safeIndex + 1]); };
 
-  const monthStart = startOfMonth(monthDate);
-  const monthEnd = endOfMonth(monthDate);
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startPadding = getDay(monthStart);
-  const shootsByDate = shoots.reduce((acc, s) => {
-    if (s?.date) {
-      acc[s.date] = acc[s.date] || [];
-      acc[s.date].push(s);
-    }
-    return acc;
-  }, {});
-
-  const [monthSelectedDate, setMonthSelectedDate] = useState(null);
-  const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
-
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <div className="flex bg-gray-800 rounded-lg p-0.5">
-          <button onClick={() => setViewMode('day')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}><List className="h-3.5 w-3.5" /> Day</button>
-          <button onClick={() => setViewMode('month')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}><CalendarDays className="h-3.5 w-3.5" /> Month</button>
+    <div className="p-4">
+      <div className="flex justify-end mb-4">
+        <div className="flex bg-gray-800 rounded-lg p-1">
+          <button onClick={() => setViewMode('day')} className={`px-4 py-1.5 rounded-md text-xs font-bold ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Day</button>
+          <button onClick={() => setViewMode('month')} className={`px-4 py-1.5 rounded-md text-xs font-bold ${viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Month</button>
         </div>
       </div>
 
-      {viewMode === 'month' && (
-        <div>
-          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
-            <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="p-1 rounded hover:bg-gray-700 transition-colors"><ChevronLeft className="h-4 w-4 text-gray-400" /></button>
-            <div className="flex-1 text-center text-sm font-semibold text-white">{format(monthDate, 'MMMM yyyy')}</div>
-            <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="p-1 rounded hover:bg-gray-700 transition-colors"><ChevronRight className="h-4 w-4 text-gray-400" /></button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (<div key={d} className="text-center text-xs text-gray-600 font-medium py-1">{d}</div>))}
-          </div>
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {Array.from({ length: startPadding }).map((_, i) => <div key={i} />)}
-            {monthDays.map(day => {
-              const ds = format(day, 'yyyy-MM-dd');
-              const dShots = shootsByDate[ds] || [];
-              return (
-                <button key={ds} onClick={() => setMonthSelectedDate(ds === monthSelectedDate ? null : ds)} className={`relative flex flex-col items-center py-1.5 rounded-lg transition-colors ${ds === monthSelectedDate ? 'bg-blue-600' : ds === todayStr ? 'bg-gray-700' : dShots.length > 0 ? 'bg-gray-800 hover:bg-gray-700' : 'hover:bg-gray-800/50'}`}>
-                  <span className="text-xs font-medium text-white">{format(day, 'd')}</span>
-                  {dShots.length > 0 && <span className="text-xs mt-0.5 font-bold text-blue-400">{dShots.length}</span>}
-                </button>
-              );
-            })}
-          </div>
-          {monthSelectedDate && (
-             <div className="space-y-2">
-                {monthDayShootsList.map(shoot => <CountdownCard key={shoot.id} shoot={shoot} isAdmin={isAdmin} rigSettings={rigSettings} onUpdate={onUpdate} userEmail={userEmail} allUsers={allUsers} />)}
-             </div>
-          )}
-        </div>
-      )}
-
       {viewMode === 'day' && (
-        <div>
-          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
-            <button onClick={goBack} disabled={safeIndex === 0} className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"><ChevronLeft className="h-4 w-4 text-gray-400" /></button>
-            <div className="flex-1 text-center">
-              <span className="text-sm font-semibold text-white">{currentDate === todayStr ? 'Today — ' : ''}{format(new Date(currentDate + 'T12:00:00'), 'EEEE, MMM d')}</span>
-              <span className="text-xs text-gray-500 ml-2">({dayShootsList.length} total)</span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-gray-800/50 p-3 rounded-xl border border-gray-700">
+            <button onClick={goBack} disabled={safeIndex === 0} className="p-1 disabled:opacity-20"><ChevronLeft className="text-white"/></button>
+            <div className="text-center">
+              <span className="block text-sm font-bold text-white uppercase">{format(new Date(currentDate + 'T12:00:00'), 'EEEE, MMM d')}</span>
             </div>
-            <button onClick={goForward} disabled={safeIndex === allDates.length - 1} className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 transition-colors"><ChevronRight className="h-4 w-4 text-gray-400" /></button>
+            <button onClick={goForward} disabled={safeIndex === allDates.length - 1} className="p-1 disabled:opacity-20"><ChevronRight className="text-white"/></button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {visibleShoots.map(shoot => shoot && (
               <CountdownCard key={shoot.id} shoot={shoot} isAdmin={isAdmin} rigSettings={rigSettings} onUpdate={onUpdate} userEmail={userEmail} allUsers={allUsers} />
             ))}
             {totalShootPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <button onClick={() => setShootPage(p => Math.max(0, p - 1))} disabled={shootPage === 0} className="text-xs font-bold text-gray-500 disabled:opacity-0 flex items-center gap-1"><ChevronLeft className="h-3 w-3" /> Prev</button>
-                <span className="text-[10px] text-blue-500 font-bold">PAGE {shootPage + 1} OF {totalShootPages}</span>
-                <button onClick={() => setShootPage(p => Math.min(totalShootPages - 1, p + 1))} disabled={shootPage >= totalShootPages - 1} className="text-xs font-bold text-blue-500 disabled:opacity-0 flex items-center gap-1">Next <ChevronRight className="h-3 w-3" /></button>
+              <div className="flex items-center justify-between mt-4 bg-gray-900/50 p-2 rounded-lg">
+                <button onClick={() => setShootPage(p => Math.max(0, p - 1))} disabled={shootPage === 0} className="text-xs font-bold text-gray-500 disabled:opacity-0">Prev</button>
+                <span className="text-[10px] text-blue-500 font-bold uppercase">Page {shootPage + 1} of {totalShootPages}</span>
+                <button onClick={() => setShootPage(p => Math.min(totalShootPages - 1, p + 1))} disabled={shootPage >= totalShootPages - 1} className="text-xs font-bold text-blue-500 disabled:opacity-0">Next 4</button>
               </div>
             )}
           </div>
