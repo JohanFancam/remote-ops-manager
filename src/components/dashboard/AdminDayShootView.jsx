@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
-// IMPORT FIX: Based on your screenshot, they are in the same directory
-import CountdownCard from './CountdownCard'; 
+import CountdownCard from './CountdownCard';
 
 export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, onUpdate, userEmail, allUsers }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [viewMode, setViewMode] = useState('day'); 
+  const [viewMode, setViewMode] = useState('day'); // 'day' | 'month'
   const [monthDate, setMonthDate] = useState(new Date());
+  
+  // NEW: Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const SHOOTS_PER_PAGE = 4;
 
-  // --- PAGINATION STATE ---
-  const [shootPage, setShootPage] = useState(0);
-  const itemsPerPage = 4;
-
-  // Reset pagination whenever the date changes
+  // Reset pagination when date changes
   useEffect(() => {
-    setShootPage(0);
+    setCurrentPage(0);
   }, [selectedDate]);
 
   // Auto-advance selectedDate at midnight
@@ -33,17 +32,42 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
   }, []);
 
   const allDates = [...new Set([...shoots.map(s => s.date), todayStr])].sort();
+
+  // Auto-advance logic
+  useEffect(() => {
+    const idx = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
+    const currentShots = shoots.filter(s => s.date === (allDates[idx] || todayStr));
+    const allComplete = currentShots.length > 0 && currentShots.every(s => s.phase_status?.shoot_complete || s.status === 'completed');
+    if (allComplete) {
+      for (let i = idx + 1; i < allDates.length; i++) {
+        const nextShots = shoots.filter(s => s.date === allDates[i]);
+        if (nextShots.some(s => !s.phase_status?.shoot_complete && s.status !== 'completed')) {
+          setSelectedDate(allDates[i]);
+          break;
+        }
+      }
+    }
+  }, [shoots]);
+
   const safeIndex = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
   const currentDate = allDates[safeIndex] || todayStr;
 
-  // Filter and Paginate Shoots
+  // Filter shoots for the current day
   const dayShootsList = shoots.filter(s => s.date === currentDate);
-  const startIndex = shootPage * itemsPerPage;
-  const visibleShoots = dayShootsList.slice(startIndex, startIndex + itemsPerPage);
-  const totalShootPages = Math.ceil(dayShootsList.length / itemsPerPage);
 
-  const goBackDay = () => { if (safeIndex > 0) setSelectedDate(allDates[safeIndex - 1]); };
-  const goForwardDay = () => { if (safeIndex < allDates.length - 1) setSelectedDate(allDates[safeIndex + 1]); };
+  // PAGINATION LOGIC
+  const totalPages = Math.ceil(dayShootsList.length / SHOOTS_PER_PAGE);
+  const paginatedShoots = dayShootsList.slice(
+    currentPage * SHOOTS_PER_PAGE,
+    (currentPage + 1) * SHOOTS_PER_PAGE
+  );
+
+  const goBackDay = () => {
+    if (safeIndex > 0) setSelectedDate(allDates[safeIndex - 1]);
+  };
+  const goForwardDay = () => {
+    if (safeIndex < allDates.length - 1) setSelectedDate(allDates[safeIndex + 1]);
+  };
 
   // Month view helpers
   const monthStart = startOfMonth(monthDate);
@@ -60,8 +84,8 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
 
   return (
-    <div className="w-full">
-      {/* View Toggle */}
+    <div>
+      {/* View toggle */}
       <div className="flex justify-end mb-3">
         <div className="flex bg-gray-800 rounded-lg p-0.5">
           <button
@@ -83,19 +107,21 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
         </div>
       </div>
 
-      {/* MONTH VIEW */}
+      {/* MONTH VIEW (Unchanged logic) */}
       {viewMode === 'month' && (
         <div>
           <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
             <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="p-1 rounded hover:bg-gray-700">
               <ChevronLeft className="h-4 w-4 text-gray-400" />
             </button>
-            <div className="flex-1 text-center text-sm font-semibold text-white">{format(monthDate, 'MMMM yyyy')}</div>
+            <div className="flex-1 text-center text-sm font-semibold text-white">
+              {format(monthDate, 'MMMM yyyy')}
+            </div>
             <button onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="p-1 rounded hover:bg-gray-700">
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
           </div>
-          {/* Calendar Grid */}
+
           <div className="grid grid-cols-7 gap-1 mb-1">
             {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
               <div key={d} className="text-center text-xs text-gray-600 font-medium py-1">{d}</div>
@@ -122,21 +148,22 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
               );
             })}
           </div>
+
           {monthSelectedDate && (
-            <div className="space-y-2">
-              {monthDayShootsList.map(shoot => (
-                <CountdownCard key={shoot.id} shoot={shoot} isAdmin={isAdmin} rigSettings={rigSettings} onUpdate={onUpdate} userEmail={userEmail} allUsers={allUsers} />
-              ))}
-            </div>
+             <div className="space-y-2">
+                {monthDayShootsList.map(shoot => (
+                  <CountdownCard key={shoot.id} shoot={shoot} isAdmin={isAdmin} rigSettings={rigSettings} onUpdate={onUpdate} userEmail={userEmail} allUsers={allUsers} />
+                ))}
+             </div>
           )}
         </div>
       )}
 
-      {/* DAY VIEW */}
+      {/* DAY VIEW (With 4-at-a-time pagination) */}
       {viewMode === 'day' && (
-        <div className="space-y-4">
-          {/* Calendar Navigator */}
-          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2">
+        <div>
+          {/* Day navigator (Calendar) */}
+          <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl px-3 py-2 mb-3">
             <button onClick={goBackDay} disabled={safeIndex === 0} className="p-1 rounded hover:bg-gray-700 disabled:opacity-30">
               <ChevronLeft className="h-4 w-4 text-gray-400" />
             </button>
@@ -144,42 +171,52 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
               <span className="text-sm font-semibold text-white">
                 {currentDate === todayStr ? 'Today — ' : ''}{format(new Date(currentDate + 'T12:00:00'), 'EEEE, MMM d')}
               </span>
-              <span className="text-[10px] block text-gray-500 font-bold uppercase tracking-widest">Calendar Nav</span>
+              <span className="text-xs text-gray-500 ml-2">({dayShootsList.length} total)</span>
             </div>
             <button onClick={goForwardDay} disabled={safeIndex === allDates.length - 1} className="p-1 rounded hover:bg-gray-700 disabled:opacity-30">
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
           </div>
 
-          {/* Shoots List (Max 4) */}
+          {/* Shoots Display */}
           {dayShootsList.length === 0 ? (
-            <div className="text-center py-6 text-gray-500 text-sm italic">No shoots on this day.</div>
+            <div className="text-center py-6 text-gray-500 text-sm italic">No assigned shoots on this day.</div>
           ) : (
-            <div className="space-y-2">
-              {visibleShoots.map(shoot => (
-                <CountdownCard key={shoot.id} shoot={shoot} isAdmin={isAdmin} rigSettings={rigSettings} onUpdate={onUpdate} userEmail={userEmail} allUsers={allUsers} />
+            <div className="space-y-3">
+              {paginatedShoots.map(shoot => (
+                <CountdownCard
+                  key={shoot.id}
+                  shoot={shoot}
+                  isAdmin={isAdmin}
+                  rigSettings={rigSettings}
+                  onUpdate={onUpdate}
+                  userEmail={userEmail}
+                  allUsers={allUsers}
+                />
               ))}
 
-              {/* Shoot Paging Controls */}
-              {dayShootsList.length > itemsPerPage && (
-                <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-                  <button
-                    onClick={() => setShootPage(p => Math.max(0, p - 1))}
-                    disabled={shootPage === 0}
-                    className="flex items-center gap-1 text-xs text-gray-400 disabled:opacity-0"
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </button>
-                  <span className="text-[10px] text-blue-500 font-bold uppercase">
-                    Page {shootPage + 1} of {totalShootPages}
+              {/* Shoot Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 pt-2 border-t border-gray-800">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">
+                    Page {currentPage + 1} of {totalPages}
                   </span>
-                  <button
-                    onClick={() => setShootPage(p => Math.min(totalShootPages - 1, p + 1))}
-                    disabled={shootPage >= totalShootPages - 1}
-                    className="flex items-center gap-1 text-xs text-blue-500 font-bold disabled:opacity-0"
-                  >
-                    Next <ChevronRight className="h-4 w-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                      disabled={currentPage === 0}
+                      className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-gray-300 rounded text-xs hover:bg-gray-700 disabled:opacity-30 transition-all"
+                    >
+                      <ChevronLeft className="h-3 w-3" /> Prev
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-gray-300 rounded text-xs hover:bg-gray-700 disabled:opacity-30 transition-all"
+                    >
+                      Next <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
