@@ -3,8 +3,7 @@
  */
 import Accounts from './pages/Accounts.jsx';
 import Calendar from './pages/Calendar';
-// FIX: Pointing to the correct folder and component for the Dashboard
-import AdminDayShootView from './components/dashboard/AdminDayShootView.jsx'; 
+import AdminDayShootView from './components/dashboard/AdminDayShootView.jsx';
 import ReferenceGuide from './pages/ReferenceGuide.jsx';
 import Reports from './pages/Reports';
 import Rigs from './pages/Rigs';
@@ -16,7 +15,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "Accounts": Accounts,
     "Calendar": Calendar,
-    "Dashboard": AdminDayShootView, // Use the component we've been editing
+    "Dashboard": AdminDayShootView,
     "ReferenceGuide": ReferenceGuide,
     "Reports": Reports,
     "Rigs": Rigs,
