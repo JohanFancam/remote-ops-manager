@@ -163,9 +163,17 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     setShowAssignUser(false);
   };
 
-  const assignableUsers = allUsers.filter(u => !shoot.assigned_operators?.includes(u.email) && !shoot.pending_operators?.includes(u.email));
-  const approvedCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
-  const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - approvedCount);
+   const assignableUsers = Array.from(
+    new Map(
+      (allUsers || [])
+        .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
+        .map((u) => [u.email.trim(), { ...u, email: u.email.trim() }])
+    ).values()
+  ).filter(
+    (u) =>
+      !shoot.assigned_operators?.includes(u.email) &&
+      !shoot.pending_operators?.includes(u.email)
+  );
 
   return (
     <div className="space-y-4">
