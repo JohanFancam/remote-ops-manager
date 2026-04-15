@@ -11,23 +11,55 @@ export function minutesToTime(totalMinutes) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+export function getGameDateTime(shoot) {
+  const gameTime = shoot?.game_time || shoot?.start_time;
+  if (!shoot?.date || !gameTime) return null;
+  const [year, month, day] = shoot.date.split('-').map(Number);
+  const [h, m] = gameTime.split(':').map(Number);
+  return new Date(year, month - 1, day, h, m, 0, 0);
+}
+
+export function getScheduleDateTimes(shoot) {
+  const gameDate = getGameDateTime(shoot);
+  if (!gameDate) {
+    return {
+      setup: null,
+      pre_shoot: null,
+      attention: null,
+      sound: null,
+      game: null,
+    };
+  }
+
+  const withOffset = (offsetMinutes) => {
+    const d = new Date(gameDate);
+    d.setMinutes(d.getMinutes() + offsetMinutes);
+    return d;
+  };
+
+  return {
+    setup: withOffset(shoot?.setup_offset ?? -150),
+    pre_shoot: withOffset(shoot?.pre_shoot_offset ?? -120),
+    attention: withOffset(shoot?.attention_offset ?? -30),
+    sound: withOffset(shoot?.sound_offset ?? -30),
+    game: gameDate,
+  };
+}
+
 export function getSchedule(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
-  const base = timeToMinutes(gameTime);
+  const dates = getScheduleDateTimes(shoot);
   return {
-    setup: minutesToTime(base + (shoot?.setup_offset ?? -150)),
-    pre_shoot: minutesToTime(base + (shoot?.pre_shoot_offset ?? -120)),
-    attention: minutesToTime(base + (shoot?.attention_offset ?? -30)),
-    sound: minutesToTime(base + (shoot?.sound_offset ?? -30)),
+    setup: dates.setup ? minutesToTime(dates.setup.getHours() * 60 + dates.setup.getMinutes()) : null,
+    pre_shoot: dates.pre_shoot ? minutesToTime(dates.pre_shoot.getHours() * 60 + dates.pre_shoot.getMinutes()) : null,
+    attention: dates.attention ? minutesToTime(dates.attention.getHours() * 60 + dates.attention.getMinutes()) : null,
+    sound: dates.sound ? minutesToTime(dates.sound.getHours() * 60 + dates.sound.getMinutes()) : null,
     game: gameTime,
   };
 }
 
-// Teams that must never have their city stripped — keep full name as-is
 const KEEP_FULL_TEAMS = ['Charlotte FC', 'KC Current', 'Kansas City Current'];
-
-// Known 2-word team nicknames
 const TWO_WORD_NICKNAMES = [
   'Blue Jackets', 'Red Wings', 'Maple Leafs', 'Golden Knights',
   'Trail Blazers', 'Red Sox', 'Blue Jays', 'White Sox',
@@ -35,7 +67,7 @@ const TWO_WORD_NICKNAMES = [
 ];
 
 function isExempt(team) {
-  return KEEP_FULL_TEAMS.some(e => e.toLowerCase() === team.trim().toLowerCase());
+  return KEEP_FULL_TEAMS.some((e) => e.toLowerCase() === team.trim().toLowerCase());
 }
 
 function stripCityFromTeam(team) {
@@ -44,28 +76,18 @@ function stripCityFromTeam(team) {
   const words = trimmed.split(/\s+/);
   if (words.length <= 2) return trimmed;
   const lastTwo = words.slice(-2).join(' ');
-  if (TWO_WORD_NICKNAMES.some(n => n.toLowerCase() === lastTwo.toLowerCase())) return lastTwo;
+  if (TWO_WORD_NICKNAMES.some((n) => n.toLowerCase() === lastTwo.toLowerCase())) return lastTwo;
   return words[words.length - 1];
 }
 
 export function shortenTitle(title) {
   if (!title) return title;
   if (isExempt(title)) return title;
-  // Handle "Team A vs Team B" patterns
   const match = title.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
   if (match) {
     return `${stripCityFromTeam(match[1])} vs ${stripCityFromTeam(match[2])}`;
   }
-  // Single team name: strip city
   const words = title.trim().split(/\s+/);
   if (words.length <= 2) return title;
   return stripCityFromTeam(title);
-}
-
-export function getGameDateTime(shoot) {
-  const gameTime = shoot?.game_time || shoot?.start_time;
-  if (!shoot?.date || !gameTime) return null;
-  const [year, month, day] = shoot.date.split('-').map(Number);
-  const [h, m] = gameTime.split(':').map(Number);
-  return new Date(year, month - 1, day, h, m, 0, 0);
 }
