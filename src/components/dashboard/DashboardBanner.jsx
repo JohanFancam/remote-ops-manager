@@ -1,226 +1,180 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Phone, Clock, CalendarDays, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Phone, Clock3, ArrowRight, Camera } from 'lucide-react';
 import { format } from 'date-fns';
+import { getDisplayName } from '../utils/nameUtils';
+import { getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 
-const TIMEZONES = [
-  { label: 'SA Time (SAST)', tz: 'Africa/Johannesburg' },
-  { label: 'US Eastern (ET)', tz: 'America/New_York' },
-  { label: 'US Central (CT)', tz: 'America/Chicago' },
-  { label: 'US Mountain (MT)', tz: 'America/Denver' },
-  { label: 'US Pacific (PT)', tz: 'America/Los_Angeles' },
-];
-
-function useClock(tz) {
-  const [time, setTime] = useState('');
-  const [date, setDate] = useState('');
+function useClock() {
+  const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setTime(now.toLocaleTimeString('en-ZA', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      setDate(now.toLocaleDateString('en-ZA', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
+    const iv = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(iv);
-  }, [tz]);
-  return { time, date };
+  }, []);
+  return now;
 }
 
-function StatChip({ label, value, color = 'text-white', highlight = false }) {
+function formatCountdown(ms) {
+  if (ms == null) return '—';
+  if (ms <= 0) return 'NOW';
+  const days = Math.floor(ms / 86400000);
+  const h = Math.floor((ms % 86400000) / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function InfoPill({ children, tone = 'default' }) {
+  const toneClasses = {
+    default: 'bg-gray-800 text-gray-300 border-gray-700/70',
+    blue: 'bg-blue-950/40 text-blue-300 border-blue-800/50',
+    yellow: 'bg-yellow-950/30 text-yellow-300 border-yellow-800/40',
+  };
   return (
-    <div className={`flex flex-col items-center px-4 py-2 rounded-lg ${highlight ? 'bg-yellow-950/40 border border-yellow-700/40' : 'bg-gray-800/60 border border-gray-700/40'}`}>
-      <span className={`text-2xl font-bold ${color}`}>{value}</span>
-      <span className={`text-xs mt-0.5 ${highlight ? 'text-yellow-400' : 'text-gray-400'}`}>{label}</span>
+    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${toneClasses[tone] || toneClasses.default}`}>
+      {children}
+    </span>
+  );
+}
+
+function Section({ label, accent = 'text-gray-400', children, withDivider = true }) {
+  return (
+    <div className="flex min-w-0 flex-1 items-stretch">
+      <div className="min-w-0 flex-1 px-1 sm:px-3">
+        <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${accent}`}>{label}</p>
+        {children}
+      </div>
+      {withDivider && <div className="hidden lg:block w-px bg-gray-800/80" />}
     </div>
   );
 }
 
-export default function DashboardBanner({ user, isAdmin, shoots = [], standbyDays = [], allUsers = [], todayStr }) {
-  const [tz, setTz] = useState(() => localStorage.getItem('dashboard_tz') || 'Africa/Johannesburg');
-  const [showTzPicker, setShowTzPicker] = useState(false);
-  const { time, date } = useClock(tz);
-
-  const handleTzChange = (newTz) => {
-    setTz(newTz);
-    localStorage.setItem('dashboard_tz', newTz);
-    setShowTzPicker(false);
-  };
-
-  const now = new Date();
-
-  // Who's on standby right now?
-  const currentStandby = standbyDays.filter(sd => {
-    const startDate = sd.start_date || sd.date;
-    const endDate = sd.end_date || startDate;
-    if (!startDate) return false;
-    const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-    const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
-    return now >= startDt && now <= endDt;
-  });
-
-  // Next standby person(s) — first entries that start after now
-  const futureStandby = standbyDays
-    .filter(sd => {
-      const startDate = sd.start_date || sd.date;
-      if (!startDate) return false;
-      const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-      return startDt > now;
-    })
-    .sort((a, b) => {
-      const aStart = new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`);
-      const bStart = new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`);
-      return aStart - bStart;
-    });
-  const nextStandby = futureStandby[0] || null;
+export default function DashboardBanner({ user, shoots = [], standbyDays = [], allUsers = [] }) {
+  const now = useClock();
+  const todayStr = format(now, 'yyyy-MM-dd');
 
   const getStandbyName = (sd) => {
-    const u = allUsers.find(u => u.email === sd.admin_email);
-    return u?.full_name || sd.admin_name || sd.admin_email?.split('@')[0] || '?';
+    const u = allUsers.find((x) => x.email === sd.admin_email);
+    return getDisplayName(u, sd.admin_email, sd.admin_name);
   };
 
-  const formatStandbyTime = (sd, type) => {
-    if (type === 'end') {
-      const endDate = sd.end_date || sd.start_date || sd.date;
-      if (!endDate) return null;
-      const label = sd.end_time ? `${format(new Date(endDate + 'T12:00:00'), 'MMM d')} ${sd.end_time}` : format(new Date(endDate + 'T12:00:00'), 'MMM d');
-      return label;
-    } else {
+  const currentStandby = useMemo(() => {
+    return standbyDays.filter((sd) => {
       const startDate = sd.start_date || sd.date;
-      if (!startDate) return null;
-      const label = sd.start_time ? `${format(new Date(startDate + 'T12:00:00'), 'MMM d')} ${sd.start_time}` : format(new Date(startDate + 'T12:00:00'), 'MMM d');
-      return label;
-    }
-  };
-
-  // Admin stats — this month
-  const thisMonth = format(now, 'yyyy-MM');
-  const myShootsThisMonth = shoots.filter(s =>
-    s.date?.startsWith(thisMonth) && s.assigned_operators?.includes(user?.email)
-  ).length;
-
-  const myStandbyDaysThisMonth = (() => {
-    const dates = new Set();
-    standbyDays.filter(sd => sd.admin_email === user?.email).forEach(sd => {
-      const start = sd.start_date || sd.date;
-      const end = sd.end_date || start;
-      if (!start) return;
-      const cur = new Date(start + 'T12:00:00');
-      const last = new Date(end + 'T12:00:00');
-      while (cur <= last) {
-        const ds = format(cur, 'yyyy-MM-dd');
-        if (ds.startsWith(thisMonth)) dates.add(ds);
-        cur.setDate(cur.getDate() + 1);
-      }
+      const endDate = sd.end_date || startDate;
+      if (!startDate) return false;
+      const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
+      const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
+      return now >= startDt && now <= endDt;
     });
-    return dates.size;
-  })();
+  }, [standbyDays, now]);
 
-  const pendingApprovalsCount = isAdmin
-    ? shoots.filter(s => (s.pending_operators?.length || 0) > 0 && s.date >= todayStr).length
-    : shoots.filter(s => s.pending_operators?.includes(user?.email) && s.date >= todayStr).length;
+  const nextStandby = useMemo(() => {
+    return standbyDays
+      .filter((sd) => {
+        const startDate = sd.start_date || sd.date;
+        if (!startDate) return false;
+        const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
+        return startDt > now;
+      })
+      .sort((a, b) => {
+        const aStart = new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`);
+        const bStart = new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`);
+        return aStart - bStart;
+      })[0] || null;
+  }, [standbyDays, now]);
 
-  const myUpcomingCount = shoots.filter(s => {
-    if (s.status === 'cancelled') return false;
-    if (s.date === todayStr) return s.assigned_operators?.includes(user?.email) && !s.phase_status?.shoot_complete;
-    return s.date > todayStr && s.assigned_operators?.includes(user?.email);
-  }).length;
+  const nextShoot = useMemo(() => {
+    return shoots
+      .filter((shoot) => {
+        if (shoot.status === 'cancelled' || shoot.phase_status?.shoot_complete) return false;
+        if (!shoot.assigned_operators?.includes(user?.email)) return false;
+        const scheduleDates = getScheduleDateTimes(shoot);
+        const target = scheduleDates.setup || scheduleDates.game;
+        return target && target >= now;
+      })
+      .sort((a, b) => {
+        const aTarget = getScheduleDateTimes(a).setup || getScheduleDateTimes(a).game;
+        const bTarget = getScheduleDateTimes(b).setup || getScheduleDateTimes(b).game;
+        return aTarget - bTarget;
+      })[0] || null;
+  }, [shoots, user?.email, now]);
 
-  const thisMonthCount = shoots.filter(s =>
-    s.date?.startsWith(thisMonth) && s.assigned_operators?.includes(user?.email)
-  ).length;
-
-  const totalAssignedCount = shoots.filter(s => s.assigned_operators?.includes(user?.email)).length;
-
-  const selectedTzLabel = TIMEZONES.find(t => t.tz === tz)?.label || 'SA Time';
+  const nextShootSchedule = nextShoot ? getScheduleDateTimes(nextShoot) : null;
+  const nextShootTarget = nextShootSchedule?.setup || nextShootSchedule?.game || null;
+  const nextShootCountdown = nextShootTarget ? formatCountdown(nextShootTarget - now) : '—';
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-        {/* Clock + Timezone */}
-        <div className="flex-shrink-0">
-          <div className="font-mono text-3xl font-bold text-white tracking-wider">{time}</div>
-          <div className="text-xs text-gray-400 mt-0.5">{date}</div>
-          <div className="relative mt-2">
-            <button
-              onClick={() => setShowTzPicker(!showTzPicker)}
-              className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 bg-blue-950/30 border border-blue-800/40 px-2.5 py-1 rounded-lg"
-            >
-              <Clock className="h-3 w-3" />
-              {selectedTzLabel}
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            {showTzPicker && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[180px]">
-                {TIMEZONES.map(t => (
-                  <button
-                    key={t.tz}
-                    onClick={() => handleTzChange(t.tz)}
-                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-800 transition-colors ${tz === t.tz ? 'text-blue-400 font-semibold' : 'text-gray-300'}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            )}
+    <div className="mb-6 rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-900/80 px-4 py-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:px-5">
+      <div className="grid gap-4 lg:grid-cols-4">
+        <Section label="Realtime / Date" accent="text-white">
+          <div className="font-mono text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-        </div>
+          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
+            {format(now, 'EEEE, d MMMM yyyy')}
+          </div>
+        </Section>
 
-        {/* Divider */}
-        <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
-
-        {/* Standby Status */}
-        <div className="flex-shrink-0 min-w-[180px]">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5">On Standby Now</p>
+        <Section label="On Standby Now" accent="text-yellow-400">
           {currentStandby.length > 0 ? (
-            <div className="space-y-1">
-              {currentStandby.map((sd, i) => (
-                <div key={i} className="flex flex-col gap-0">
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-yellow-300">
-                    <Phone className="h-3 w-3 flex-shrink-0" />
-                    {getStandbyName(sd)}
-                  </span>
-                  {formatStandbyTime(sd, 'end') && (
-                    <span className="text-xs text-yellow-600 pl-4.5">until {formatStandbyTime(sd, 'end')}</span>
-                  )}
-                </div>
-              ))}
+            <div className="space-y-2">
+              {currentStandby.map((sd) => {
+                const startDate = sd.start_date || sd.date;
+                const endDate = sd.end_date || startDate;
+                return (
+                  <div key={`${sd.admin_email}-${startDate}-${sd.start_time || ''}`} className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                      <Phone className="h-3.5 w-3.5 text-yellow-400" />
+                      <span className="truncate">{getStandbyName(sd)}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pl-5">
+                      <InfoPill>{format(new Date(`${startDate}T12:00:00`), 'MMM d')}</InfoPill>
+                      {endDate && endDate !== startDate && <InfoPill>{format(new Date(`${endDate}T12:00:00`), 'MMM d')}</InfoPill>}
+                      {sd.end_time && <InfoPill tone="yellow">ends {sd.end_time}</InfoPill>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <span className="text-sm text-gray-500 italic">No one assigned</span>
+            <div className="pt-1 text-sm italic text-gray-500">No one on standby right now</div>
           )}
-          {nextStandby && (
-            <div className="mt-2 pt-2 border-t border-gray-700/50">
-              <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Next Up</p>
-              <div className="flex flex-col gap-0">
-                <span className="text-sm font-medium text-gray-300">{getStandbyName(nextStandby)}</span>
-                {formatStandbyTime(nextStandby, 'start') && (
-                  <span className="text-xs text-gray-500">from {formatStandbyTime(nextStandby, 'start')}</span>
-                )}
+        </Section>
+
+        <Section label="Next On Standby" accent="text-gray-400">
+          {nextStandby ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <ArrowRight className="h-3.5 w-3.5 text-gray-500" />
+                <span className="truncate">{getStandbyName(nextStandby)}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pl-5">
+                <InfoPill>{format(new Date(`${(nextStandby.start_date || nextStandby.date)}T12:00:00`), 'MMM d')}</InfoPill>
+                {nextStandby.start_time && <InfoPill>{nextStandby.start_time}</InfoPill>}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="hidden lg:block w-px h-16 bg-gray-700 flex-shrink-0" />
-
-        {/* Stats */}
-        <div className="flex flex-wrap gap-2 flex-1">
-          {isAdmin ? (
-            <>
-              <StatChip label="My Shoots (Month)" value={myShootsThisMonth} color="text-blue-300" />
-              <StatChip label="My Standby (Month)" value={myStandbyDaysThisMonth} color="text-yellow-300" />
-              <StatChip label="Pending Approvals" value={pendingApprovalsCount} color={pendingApprovalsCount > 0 ? 'text-orange-300' : 'text-white'} highlight={pendingApprovalsCount > 0} />
-            </>
           ) : (
-            <>
-              <StatChip label="My Upcoming" value={myUpcomingCount} color="text-blue-300" />
-              <StatChip label="This Month" value={thisMonthCount} color="text-purple-300" />
-              <StatChip label="Total Assigned" value={totalAssignedCount} color="text-white" />
-              <StatChip label="Pending Approval" value={pendingApprovalsCount} color={pendingApprovalsCount > 0 ? 'text-orange-300' : 'text-white'} highlight={pendingApprovalsCount > 0} />
-            </>
+            <div className="pt-1 text-sm italic text-gray-500">No upcoming standby scheduled</div>
           )}
-        </div>
+        </Section>
+
+        <Section label="Your Next Shoot" accent="text-blue-400" withDivider={false}>
+          {nextShoot ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Camera className="h-3.5 w-3.5 text-blue-400" />
+                <span className="truncate">{shortenTitle(nextShoot.title)}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pl-5">
+                <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'MMM d')}</InfoPill>
+                {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
+              </div>
+              <div className="pl-5 font-mono text-lg font-bold text-blue-400">{nextShootCountdown}</div>
+            </div>
+          ) : (
+            <div className="pt-1 text-sm italic text-gray-500">No upcoming assigned shoot</div>
+          )}
+        </Section>
       </div>
     </div>
   );
