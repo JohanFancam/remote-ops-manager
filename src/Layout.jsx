@@ -241,4 +241,4 @@ export default function Layout({ children, currentPageName }) {
       </LayoutContent>
     </AppProvider>
   );
-}
+} 
