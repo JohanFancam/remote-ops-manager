@@ -517,11 +517,22 @@ export default function Calendar() {
                     <Input placeholder="Venue / Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
                     <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
                     <input type="time" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 h-9 text-sm w-full" />
-                    <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+                    <Select
+                      value={form.status || 'upcoming'}
+                      onValueChange={(v) => setForm({ ...form, status: v })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
                       <SelectContent className="bg-gray-900 border-gray-700">
-                        {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map(s => (
-                          <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
+                        {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
+                          <SelectItem
+                            key={s}
+                            value={s}
+                            className="text-white capitalize"
+                          >
+                            {s.replace('_', ' ')}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
