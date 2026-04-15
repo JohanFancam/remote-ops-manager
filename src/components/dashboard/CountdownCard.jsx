@@ -99,6 +99,15 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
   const phaseDates = getScheduleDateTimes(shoot);
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
+
+  const COMPLETE_DELAY_MS = 2 * 60 * 60 * 1000;
+  const canMarkShootComplete =
+    canMarkPhases &&
+    shoot.status !== 'completed' &&
+    shoot.status !== 'cancelled' &&
+    gameDate &&
+    now >= new Date(gameDate.getTime() + COMPLETE_DELAY_MS);
+
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
   useEffect(() => {
@@ -110,12 +119,14 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
       showAttention ? { key: 'attention_started', date: phaseDates.attention } : null,
       showSound ? { key: 'sound_started', date: phaseDates.sound } : null,
     ].filter(Boolean);
+
     const updates = {};
     candidates.forEach((c) => {
       if (!effectivePhaseStatus[c.key] && c.date && (now - c.date) >= GRACE_MS) {
         updates[c.key] = c.date.toISOString();
       }
     });
+
     if (Object.keys(updates).length > 0) {
       onUpdate(shoot.id, { phase_status: { ...effectivePhaseStatus, ...updates } });
     }
@@ -129,6 +140,7 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
       showSound ? { label: 'Sound Check', key: 'sound_started', date: phaseDates.sound } : null,
       { label: 'Game Time', key: 'game_started', date: gameDate },
     ].filter(Boolean);
+
     for (const c of candidates) {
       if (!effectivePhaseStatus[c.key] && c.date) return c;
     }
@@ -167,7 +179,21 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
 
   return (
     <>
-      <ShootCompleteModal open={showCompleteModal} onClose={() => setShowCompleteModal(false)} shoot={shoot} onComplete={() => onUpdate?.(shoot.id, { status: 'completed', phase_status: { ...effectivePhaseStatus, shoot_complete: new Date().toISOString() } })} />
+      <ShootCompleteModal
+        open={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        shoot={shoot}
+        onComplete={() =>
+          onUpdate?.(shoot.id, {
+            status: 'completed',
+            phase_status: {
+              ...effectivePhaseStatus,
+              shoot_complete: new Date().toISOString()
+            }
+          })
+        }
+      />
+
       <div className={`rounded-xl border bg-gray-900/95 transition-all ${expanded ? 'border-gray-700' : 'border-gray-800'} hover:border-gray-600`}>
         <div className="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[1.2fr_0.9fr_auto] md:items-center">
           <div className="min-w-0">
@@ -175,14 +201,21 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
               <span className="truncate text-sm font-semibold text-white">{shortenTitle(shoot.title)}</span>
               {rigLabel && <span className="text-xs font-medium text-blue-400">{rigLabel}</span>}
             </div>
+
             <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <span>{format(new Date(`${shoot.date}T12:00:00`), 'EEE, MMM d')}</span>
               {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
               {phaseDates.setup && format(phaseDates.setup, 'yyyy-MM-dd') !== shoot.date && (
-                <span className="rounded bg-purple-950/30 px-1.5 py-0.5 font-mono text-purple-300">setup {format(phaseDates.setup, 'EEE HH:mm')}</span>
+                <span className="rounded bg-purple-950/30 px-1.5 py-0.5 font-mono text-purple-300">
+                  setup {format(phaseDates.setup, 'EEE HH:mm')}
+                </span>
               )}
               {shoot.assigned_operators?.length > 0 ? (
-                <span className="text-gray-400">{shoot.assigned_operators.map((e) => getDisplayName(allUsers.find((u) => u.email === e), e)).join(', ')}</span>
+                <span className="text-gray-400">
+                  {shoot.assigned_operators
+                    .map((e) => getDisplayName(allUsers.find((u) => u.email === e), e))
+                    .join(', ')}
+                </span>
               ) : (
                 <span className="italic text-orange-400">Unassigned</span>
               )}
@@ -190,13 +223,26 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
           </div>
 
           <div className="flex flex-col items-center justify-center text-center">
-            <div className={`font-mono text-2xl font-bold tracking-tight ${targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'}`}>{countdown}</div>
+            <div className={`font-mono text-2xl font-bold tracking-tight ${targetIsPast ? 'text-red-400' : targetDiff !== null && targetDiff < 30 * 60000 ? 'text-yellow-400' : 'text-blue-300'}`}>
+              {countdown}
+            </div>
             <div className="mt-0.5 text-xs text-gray-500">until {countdownLabel}</div>
           </div>
 
           <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
-            {livePhase ? <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge> : <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>{shoot.status}</Badge>}
-            <button onClick={() => setExpanded((v) => !v)} className="p-1 text-gray-500 transition-colors hover:text-gray-300">{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+            {livePhase ? (
+              <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
+            ) : (
+              <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
+                {shoot.status}
+              </Badge>
+            )}
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="p-1 text-gray-500 transition-colors hover:text-gray-300"
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
           </div>
         </div>
 
@@ -207,7 +253,18 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
                 <p className="mb-1.5 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>
                 <div className="flex gap-1">
                   {RIG_TYPES.map((type) => (
-                    <button key={type} disabled={updatingRig} onClick={() => handleRigTypeChange(type)} className={`flex-1 rounded border px-2 py-1.5 text-xs transition-colors ${shoot.rig_type_override === type ? 'bg-orange-600 border-orange-500 text-white font-medium' : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'}`}>{type}</button>
+                    <button
+                      key={type}
+                      disabled={updatingRig}
+                      onClick={() => handleRigTypeChange(type)}
+                      className={`flex-1 rounded border px-2 py-1.5 text-xs transition-colors ${
+                        shoot.rig_type_override === type
+                          ? 'bg-orange-600 border-orange-500 text-white font-medium'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                      }`}
+                    >
+                      {type}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -229,6 +286,7 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
                     const active = !done && p.date && now >= prevDate && now < p.date;
                     const msTo = p.date ? p.date - now : null;
                     const cdLabel = msTo != null && msTo > 0 ? `in ${formatCountdown(msTo)}` : null;
+
                     return (
                       <PhaseRow
                         key={p.label}
@@ -267,7 +325,11 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
                 <div className="flex flex-wrap gap-1">
                   {shoot.assigned_operators.map((e) => {
                     const u = allUsers.find((x) => x.email === e);
-                    return <span key={e} className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-300">{getDisplayName(u, e)}</span>;
+                    return (
+                      <span key={e} className="rounded-full bg-gray-800 px-2 py-0.5 text-xs text-gray-300">
+                        {getDisplayName(u, e)}
+                      </span>
+                    );
                   })}
                 </div>
               </div>
@@ -280,17 +342,27 @@ export default function CountdownCard({ shoot, isAdmin = false, rigSettings = []
               </div>
             )}
 
-            {canMarkPhases && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
-              <button onClick={() => setShowCompleteModal(true)} className="mt-1 w-full rounded-lg border border-green-700 bg-green-950/30 py-2 text-xs font-semibold text-green-400 transition-colors hover:bg-green-950/60">
+            {canMarkShootComplete && (
+              <button
+                onClick={() => setShowCompleteModal(true)}
+                className="mt-1 w-full rounded-lg border border-green-700 bg-green-950/30 py-2 text-xs font-semibold text-green-400 transition-colors hover:bg-green-950/60"
+              >
                 ✓ Mark Shoot Complete
               </button>
             )}
 
             {shoot.status === 'completed' && (
-              <div className="mt-1 w-full rounded-lg border border-green-800 bg-green-950/20 py-2 text-center text-xs font-semibold text-green-500">✓ Shoot Complete</div>
+              <div className="mt-1 w-full rounded-lg border border-green-800 bg-green-950/20 py-2 text-center text-xs font-semibold text-green-500">
+                ✓ Shoot Complete
+              </div>
             )}
 
-            <a href={`/Calendar?shootId=${shoot.id}`} className="block pt-1 text-center text-xs text-blue-500 hover:text-blue-400">Open full detail in Calendar →</a>
+            <a
+              href={`/Calendar?shootId=${shoot.id}`}
+              className="block pt-1 text-center text-xs text-blue-500 hover:text-blue-400"
+            >
+              Open full detail in Calendar →
+            </a>
           </div>
         )}
       </div>
