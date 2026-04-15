@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
-import CountdownCard from './CountdownCard';
+import CountdownCard from '../components/dashboard/CountdownCard';
 
 export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, onUpdate, userEmail, allUsers }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
