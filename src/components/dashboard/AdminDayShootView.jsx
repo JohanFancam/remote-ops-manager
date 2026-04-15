@@ -8,15 +8,15 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [viewMode, setViewMode] = useState('day');
 
-  // 1. Safety Guard: Ensure shoots is always an array
+  // Safety: Ensure shoots is always an array
   const safeShoots = Array.isArray(shoots) ? shoots : [];
 
-  // 2. Calendar logic: filter out any null/undefined shoots before processing
+  // Calendar logic
   const allDates = [...new Set([...safeShoots.filter(s => s && s.date).map(s => s.date), todayStr])].sort();
-  const safeIndex = allDates.includes(selectedDate) ? allDates.indexOf(selectedDate) : allDates.indexOf(todayStr);
+  const safeIndex = allDates.indexOf(selectedDate) === -1 ? allDates.indexOf(todayStr) : allDates.indexOf(selectedDate);
   const currentDate = allDates[safeIndex] || todayStr;
 
-  // 3. Filter for the specific day
+  // Filter for the day
   const dayShootsList = safeShoots.filter(s => s && s.date === currentDate);
 
   const goBack = () => { if (safeIndex > 0) setSelectedDate(allDates[safeIndex - 1]); };
@@ -24,7 +24,7 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4">
-      {/* View Toggle */}
+      {/* 1. View Toggles */}
       <div className="flex justify-end mb-4">
         <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
           <button onClick={() => setViewMode('day')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Day</button>
@@ -34,33 +34,32 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
 
       {viewMode === 'day' && (
         <div className="space-y-6">
-          {/* THE CALENDAR NAVIGATOR (The header with arrows) */}
+          {/* 2. THE CALENDAR NAVIGATOR (This will now be visible and clickable) */}
           <div className="flex items-center justify-between bg-gray-800/80 p-4 rounded-2xl border border-gray-700 shadow-xl">
-            <button onClick={goBack} disabled={safeIndex === 0} className="p-2 hover:bg-gray-700 rounded-xl disabled:opacity-10 transition-colors">
+            <button onClick={goBack} disabled={safeIndex === 0} className="p-2 hover:bg-gray-700 rounded-xl disabled:opacity-10">
               <ChevronLeft className="text-white h-6 w-6"/>
             </button>
             <div className="text-center">
               <h2 className="text-lg font-bold text-white uppercase">
                 {currentDate === todayStr ? "Today — " : ""}{format(new Date(currentDate + 'T12:00:00'), 'EEEE, MMM d')}
               </h2>
-              <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Navigation Control</span>
+              <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Calendar Navigation</span>
             </div>
-            <button onClick={goForward} disabled={safeIndex === allDates.length - 1} className="p-2 hover:bg-gray-700 rounded-xl disabled:opacity-10 transition-colors">
+            <button onClick={goForward} disabled={safeIndex === allDates.length - 1} className="p-2 hover:bg-gray-700 rounded-xl disabled:opacity-10">
               <ChevronRight className="text-white h-6 w-6"/>
             </button>
           </div>
 
-          {/* THE SHOOTS */}
+          {/* 3. THE SHOOT LIST */}
           <div className="grid gap-4">
             {dayShootsList.length === 0 ? (
-              <div className="text-center py-20 text-gray-500 italic bg-gray-900/20 rounded-2xl border border-dashed border-gray-800">
-                No assigned shoots on this day.
-              </div>
+              <div className="text-center py-20 text-gray-500 italic">No assigned shoots on this day.</div>
             ) : (
-              dayShootsList.map((shoot) => {
-                // THE CRITICAL FIX: Explicit check for null/undefined before rendering the card
+              dayShootsList.map(shoot => {
+                // THE "SAFETY SHIELD": This stops the 'null' crash 
+                // and allows your Sidebar to work again.
                 if (!shoot || !shoot.id) return null;
-                
+
                 return (
                   <CountdownCard 
                     key={shoot.id} 
@@ -76,11 +75,6 @@ export default function AdminDayShootView({ shoots = [], isAdmin, rigSettings, o
             )}
           </div>
         </div>
-      )}
-
-      {/* Basic placeholder for Month mode to prevent logic crashes */}
-      {viewMode === 'month' && (
-        <div className="text-center py-20 text-gray-500">Switching to Month View...</div>
       )}
     </div>
   );
