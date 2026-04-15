@@ -1,6 +1,9 @@
+/**
+ * pages.config.js - Page routing configuration
+ */
 import Accounts from './pages/Accounts.jsx';
 import Calendar from './pages/Calendar';
-import AdminDayShootView from './components/dashboard/AdminDayShootView.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 import ReferenceGuide from './pages/ReferenceGuide.jsx';
 import Reports from './pages/Reports';
 import Rigs from './pages/Rigs';
@@ -9,10 +12,11 @@ import Shoots from './pages/Shoots';
 import Timesheets from './pages/Timesheets';
 import __Layout from './Layout.jsx';
 
+
 export const PAGES = {
     "Accounts": Accounts,
     "Calendar": Calendar,
-    "Dashboard": AdminDayShootView, // This sets AdminDayShootView as the Dashboard
+    "Dashboard": Dashboard,
     "ReferenceGuide": ReferenceGuide,
     "Reports": Reports,
     "Rigs": Rigs,
