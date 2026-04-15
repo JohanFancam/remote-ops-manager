@@ -3,7 +3,6 @@
  */
 import Accounts from './pages/Accounts.jsx';
 import Calendar from './pages/Calendar';
-import Dashboard from './pages/Dashboard.jsx';
 import ReferenceGuide from './pages/ReferenceGuide.jsx';
 import Reports from './pages/Reports';
 import Rigs from './pages/Rigs';
