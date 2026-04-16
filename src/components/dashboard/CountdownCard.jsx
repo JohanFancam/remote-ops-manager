@@ -67,13 +67,15 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
   );
 }
 
-function RigConfigRow({ label, value }) {
+function RigConfigRow({ label, value, accent = false }) {
   if (!value) return null;
 
   return (
-    <div className="flex items-center justify-between rounded-md bg-gray-800/70 px-3 py-2 text-xs">
-      <span className="text-gray-300">{label}</span>
-      <span className="font-mono text-gray-100">{value}</span>
+    <div className={`flex items-center justify-between rounded-md px-3 py-2 text-xs ${
+      accent ? 'bg-emerald-950/30 text-emerald-300' : 'bg-gray-800/70'
+    }`}>
+      <span className={accent ? 'text-emerald-300' : 'text-gray-300'}>{label}</span>
+      <span className={`font-mono ${accent ? 'text-emerald-200' : 'text-gray-100'}`}>{value}</span>
     </div>
   );
 }
@@ -109,13 +111,11 @@ export default function CountdownCard({
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
 
-  const COMPLETE_DELAY_MS = 2 * 60 * 60 * 1000;
-  const canMarkShootComplete =
+  // Shoot complete button should open the modal for assigned users/admins
+  const canOpenShootComplete =
     canMarkPhases &&
     shoot.status !== 'completed' &&
-    shoot.status !== 'cancelled' &&
-    gameDate &&
-    now >= new Date(gameDate.getTime() + COMPLETE_DELAY_MS);
+    shoot.status !== 'cancelled';
 
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
@@ -236,10 +236,6 @@ export default function CountdownCard({
     }
   };
 
-  const openShootComplete = () => {
-    setShowCompleteModal(true);
-  };
-
   return (
     <>
       {showCompleteModal && (
@@ -249,7 +245,7 @@ export default function CountdownCard({
             email: userEmail,
             full_name: allUsers.find((u) => u.email === userEmail)?.full_name || ''
           }}
-          onClose={(completed) => {
+          onClose={(completed, reportData) => {
             setShowCompleteModal(false);
 
             if (completed) {
@@ -258,7 +254,8 @@ export default function CountdownCard({
                 phase_status: {
                   ...effectivePhaseStatus,
                   shoot_complete: new Date().toISOString()
-                }
+                },
+                ...(reportData || {})
               });
             }
           }}
@@ -343,10 +340,10 @@ export default function CountdownCard({
 
             {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
               <button
-                onClick={openShootComplete}
-                disabled={!canMarkShootComplete}
+                onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
+                disabled={!canOpenShootComplete}
                 className={`inline-flex items-center justify-center rounded-lg border px-6 py-2 text-sm font-medium transition-colors ${
-                  canMarkShootComplete
+                  canOpenShootComplete
                     ? 'border-blue-600 bg-blue-600/80 text-white hover:bg-blue-500'
                     : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
                 }`}
@@ -453,6 +450,7 @@ export default function CountdownCard({
                     shoot.sound_settings ||
                     (showSound ? 'Enabled' : null)
                   }
+                  accent={showSound}
                 />
               </div>
             </div>
