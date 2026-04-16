@@ -32,7 +32,9 @@ function getLivePhase(shoot, phase, now, phaseDates, gameDate, showAttention, sh
   if (shoot.status === 'completed') {
     return { label: 'Complete', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
   }
-  if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  if (phase.game_started || (gameDate && now >= gameDate)) {
+    return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  }
   if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
     return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
   }
@@ -320,13 +322,13 @@ export default function CountdownCard({
                     setup {format(phaseDates.setup, 'EEE HH:mm')}
                   </span>
                 )}
-                {isAdmin && shoot.assigned_operators?.length > 0 ? (
+                {isAdmin && !isAssigned && shoot.assigned_operators?.length > 0 ? (
                   <span className="text-gray-400">
                     {shoot.assigned_operators
                       .map((e) => getDisplayName(allUsers.find((u) => u.email === e), e))
                       .join(', ')}
                   </span>
-                ) : !isAdmin && !shoot.assigned_operators?.length ? (
+                ) : !shoot.assigned_operators?.length ? (
                   <span className="italic text-orange-400">Unassigned</span>
                 ) : null}
               </div>
