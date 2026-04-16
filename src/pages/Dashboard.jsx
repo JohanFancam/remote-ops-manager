@@ -77,73 +77,117 @@ export default function Dashboard() {
 
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
+  const now = new Date();
 
   const handleShootUpdate = async (id, data) => {
     await base44.entities.Shoot.update(id, data);
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
   };
 
-  const visibleShoots = shoots
-    .filter((s) => s.status !== 'cancelled')
-    .sort((a, b) => {
-      const d = a.date.localeCompare(b.date);
-      return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
-    });
+  const visibleShoots = useMemo(() => {
+    return shoots
+      .filter((s) => s.status !== 'cancelled')
+      .sort((a, b) => {
+        const d = a.date.localeCompare(b.date);
+        return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
+      });
+  }, [shoots]);
 
-  const allAssignedShoots = visibleShoots.filter(
-    (s) => s.assigned_operators?.includes(user?.email)
-  );
+  const allAssignedShoots = useMemo(() => {
+    return visibleShoots.filter((s) => s.assigned_operators?.includes(user?.email));
+  }, [visibleShoots, user?.email]);
 
+  // For the history/day-month navigator:
+  // keep all assigned shoots, including past/completed.
   const selfAssignedShoots = isAdmin ? allAssignedShoots : [];
   const remoteShoots = !isAdmin ? allAssignedShoots : [];
 
-  const activeStandbyDates = isAdmin
-    ? (() => {
-        const dates = new Set();
-        const now = new Date();
+  // Only current/next assigned shoots for the main "upcoming" admin logic.
+  const currentOrNextAssignedShoots = useMemo(() => {
+    return allAssignedShoots.filter((s) => s.date >= todayStr || s.status === 'completed');
+  }, [allAssignedShoots, todayStr]);
 
-        standbyDays
-          .filter((sd) => sd.admin_email === user?.email)
-          .forEach((sd) => {
-            const startDate = sd.start_date || sd.date;
-            const endDate = sd.end_date || startDate;
-            if (!startDate) return;
+  // Helper: convert standby record to start/end datetimes.
+  const standbyWindows = useMemo(() => {
+    return standbyDays
+      .filter((sd) => sd.admin_email === user?.email)
+      .map((sd) => {
+        const startDate = sd.start_date || sd.date;
+        const endDate = sd.end_date || startDate;
+        if (!startDate) return null;
 
-            const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-            const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
+        const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
+        const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
 
-            if (endDt < now) return;
-
-            const cur = new Date(`${startDate}T12:00:00`);
-            const last = new Date(`${endDate}T12:00:00`);
-
-            while (cur <= last) {
-              dates.add(format(cur, 'yyyy-MM-dd'));
-              cur.setDate(cur.getDate() + 1);
-            }
-          });
-
-        return dates;
-      })()
-    : new Set();
-
-  const myUpcoming = visibleShoots.filter((s) => {
-    if (s.assigned_operators?.includes(user?.email)) return true;
-    if (isAdmin && activeStandbyDates.has(s.date)) return true;
-    return false;
-  });
-
-  const allStandbyCoveredShoots = isAdmin
-    ? visibleShoots.filter((s) => {
-        if (s.assigned_operators?.includes(user?.email)) return false;
-
-        return standbyDays.some((sd) => {
-          const start = sd.start_date || sd.date;
-          const end = sd.end_date || start;
-          return s.date >= start && s.date <= end;
-        });
+        return {
+          ...sd,
+          startDate,
+          endDate,
+          startDt,
+          endDt,
+        };
       })
-    : [];
+      .filter(Boolean)
+      .sort((a, b) => a.startDt - b.startDt);
+  }, [standbyDays, user?.email]);
+
+  const currentStandbyWindow = useMemo(() => {
+    return standbyWindows.find((w) => w.startDt <= now && w.endDt >= now) || null;
+  }, [standbyWindows, now]);
+
+  const nextStandbyWindow = useMemo(() => {
+    return standbyWindows.find((w) => w.startDt > now) || null;
+  }, [standbyWindows, now]);
+
+  const buildDateRangeSet = (windowObj) => {
+    const dates = new Set();
+    if (!windowObj?.startDate || !windowObj?.endDate) return dates;
+
+    const cur = new Date(`${windowObj.startDate}T12:00:00`);
+    const last = new Date(`${windowObj.endDate}T12:00:00`);
+
+    while (cur <= last) {
+      dates.add(format(cur, 'yyyy-MM-dd'));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    return dates;
+  };
+
+  const currentStandbyDates = useMemo(
+    () => buildDateRangeSet(currentStandbyWindow),
+    [currentStandbyWindow]
+  );
+
+  const nextStandbyDates = useMemo(
+    () => buildDateRangeSet(nextStandbyWindow),
+    [nextStandbyWindow]
+  );
+
+  // Show only the shoots the admin is covering RIGHT NOW while on standby.
+  const currentStandbyShoots = useMemo(() => {
+    if (!isAdmin || !currentStandbyWindow) return [];
+
+    return visibleShoots.filter((s) => {
+      if (s.assigned_operators?.includes(user?.email)) return false;
+      return currentStandbyDates.has(s.date);
+    });
+  }, [isAdmin, currentStandbyWindow, visibleShoots, user?.email, currentStandbyDates]);
+
+  // If not currently on standby, show the shoots for the NEXT standby period.
+  const upcomingStandbyShoots = useMemo(() => {
+    if (!isAdmin || currentStandbyWindow || !nextStandbyWindow) return [];
+
+    return visibleShoots.filter((s) => {
+      if (s.assigned_operators?.includes(user?.email)) return false;
+      return nextStandbyDates.has(s.date);
+    });
+  }, [isAdmin, currentStandbyWindow, nextStandbyWindow, visibleShoots, user?.email, nextStandbyDates]);
+
+  const hasAnyCurrentOrNextCoverage =
+    currentOrNextAssignedShoots.length > 0 ||
+    currentStandbyShoots.length > 0 ||
+    upcomingStandbyShoots.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
@@ -173,7 +217,9 @@ export default function Dashboard() {
 
         {isAdmin && (
           <div className="mb-6">
-            <h2 className="text-base font-semibold text-white mb-3">My Assigned Shoots — Live Countdown</h2>
+            <h2 className="text-base font-semibold text-white mb-3">
+              My Assigned Shoots — Current / Next
+            </h2>
             <AdminDayShootView
               shoots={selfAssignedShoots}
               isAdmin={isAdmin}
@@ -185,26 +231,47 @@ export default function Dashboard() {
           </div>
         )}
 
-        {isAdmin && (
+        {isAdmin && currentStandbyWindow && (
           <div className="mb-6">
-            <h2 className="text-base font-semibold text-white mb-3">Standby Coverage — All Covered Shoots</h2>
+            <h2 className="text-base font-semibold text-white mb-3">
+              Standby Coverage — Current Standby Shoots
+            </h2>
             <AdminStandbyShootList
-              shoots={allStandbyCoveredShoots}
+              shoots={currentStandbyShoots}
               allUsers={allUsers}
               userEmail={user?.email}
               rigSettings={rigSettings}
-              standbyDays={standbyDays}
+              standbyDays={[currentStandbyWindow]}
               onUpdate={handleShootUpdate}
               isAdmin={isAdmin}
             />
           </div>
         )}
 
-        {isAdmin && myUpcoming.length === 0 && (
+        {isAdmin && !currentStandbyWindow && nextStandbyWindow && (
+          <div className="mb-6">
+            <h2 className="text-base font-semibold text-white mb-3">
+              Upcoming Standby Shoots
+            </h2>
+            <AdminStandbyShootList
+              shoots={upcomingStandbyShoots}
+              allUsers={allUsers}
+              userEmail={user?.email}
+              rigSettings={rigSettings}
+              standbyDays={[nextStandbyWindow]}
+              onUpdate={handleShootUpdate}
+              isAdmin={isAdmin}
+            />
+          </div>
+        )}
+
+        {isAdmin && !hasAnyCurrentOrNextCoverage && (
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-10 text-center">
               <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">No shoots on your assigned schedule or standby coverage.</p>
+              <p className="text-gray-500">
+                No current or upcoming assigned shoots or standby coverage.
+              </p>
             </CardContent>
           </Card>
         )}
