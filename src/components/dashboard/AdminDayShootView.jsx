@@ -24,6 +24,11 @@ function isShootCancelled(shoot) {
   return shoot?.status === 'cancelled';
 }
 
+function isPastShoot(shoot) {
+  const now = new Date();
+  return getPrimaryDateTime(shoot) < now;
+}
+
 export default function AdminDayShootView({
   shoots = [],
   isAdmin,
@@ -43,15 +48,30 @@ export default function AdminDayShootView({
   }, [viewMode, monthSelectedDate]);
 
   const sortedShoots = useMemo(() => {
-    return [...shoots]
-      .filter((shoot) => !isShootCancelled(shoot))
-      .sort((a, b) => {
-        const aComplete = isShootComplete(a);
-        const bComplete = isShootComplete(b);
+    const now = new Date();
 
-        if (aComplete !== bComplete) return aComplete ? 1 : -1;
-        return getPrimaryDateTime(a) - getPrimaryDateTime(b);
+    const activeOrUpcoming = [];
+    const completedOrPast = [];
+
+    [...shoots]
+      .filter((shoot) => !isShootCancelled(shoot))
+      .forEach((shoot) => {
+        const primaryDate = getPrimaryDateTime(shoot);
+        const complete = isShootComplete(shoot);
+        const past = primaryDate < now;
+
+        if (!complete && !past) {
+          activeOrUpcoming.push(shoot);
+        } else {
+          completedOrPast.push(shoot);
+        }
       });
+
+    activeOrUpcoming.sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
+
+    completedOrPast.sort((a, b) => getPrimaryDateTime(b) - getPrimaryDateTime(a));
+
+    return [...activeOrUpcoming, ...completedOrPast];
   }, [shoots]);
 
   const assignedShoots = useMemo(() => {
