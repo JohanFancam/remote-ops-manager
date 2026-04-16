@@ -31,10 +31,18 @@ function formatCountdown(ms) {
 function getLivePhase(phase, now, phaseDates, gameDate, showAttention, showSound) {
   if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
   if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
-  if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
-  if (showAttention && (phase.attention_started || (phaseDates.attention && now >= phaseDates.attention))) return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
-  if (phase.pre_shoot_started || (phaseDates.pre_shoot && now >= phaseDates.pre_shoot)) return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
-  if (phase.setup_complete || (phaseDates.setup && now >= phaseDates.setup)) return { label: 'Setup', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+  if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
+    return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+  }
+  if (showAttention && (phase.attention_started || (phaseDates.attention && now >= phaseDates.attention))) {
+    return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+  }
+  if (phase.pre_shoot_started || (phaseDates.pre_shoot && now >= phaseDates.pre_shoot)) {
+    return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+  }
+  if (phase.setup_complete || (phaseDates.setup && now >= phaseDates.setup)) {
+    return { label: 'Setup', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+  }
   return null;
 }
 
@@ -44,10 +52,10 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       type="button"
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`inline-flex items-center gap-3 rounded-lg border px-5 py-2 text-sm transition-colors ${
+      className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
         done
           ? 'border-green-700 bg-green-950/30 text-green-300'
-          : 'border-blue-900/60 bg-gray-900/60 text-gray-200 hover:border-blue-600 hover:bg-gray-800/80'
+          : 'border-blue-900/60 bg-gray-900/60 text-gray-100 hover:border-blue-600 hover:bg-gray-800/80'
       } ${canClick ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
     >
@@ -56,6 +64,17 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
         {time || '—'}
       </span>
     </button>
+  );
+}
+
+function RigConfigRow({ label, value }) {
+  if (!value) return null;
+
+  return (
+    <div className="flex items-center justify-between rounded-md bg-gray-800/70 px-3 py-2 text-xs">
+      <span className="text-gray-300">{label}</span>
+      <span className="font-mono text-gray-100">{value}</span>
+    </div>
   );
 }
 
@@ -217,6 +236,10 @@ export default function CountdownCard({
     }
   };
 
+  const openShootComplete = () => {
+    setShowCompleteModal(true);
+  };
+
   return (
     <>
       {showCompleteModal && (
@@ -244,7 +267,7 @@ export default function CountdownCard({
 
       <div className={`rounded-xl border bg-gray-900/95 transition-all ${expanded ? 'border-gray-700' : 'border-gray-800'} hover:border-gray-600`}>
         <div className="px-4 py-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-semibold text-white">
@@ -256,7 +279,7 @@ export default function CountdownCard({
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                 <span>{format(new Date(`${shoot.date}T12:00:00`), 'EEE, MMM d')}</span>
                 {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
-                {phaseDates.setup && format(phaseDates.setup, 'yyyy-MM-dd') !== shoot.date && (
+                {phaseDates.setup && (
                   <span className="rounded bg-purple-950/30 px-1.5 py-0.5 font-mono text-purple-300">
                     setup {format(phaseDates.setup, 'EEE HH:mm')}
                   </span>
@@ -318,12 +341,17 @@ export default function CountdownCard({
               />
             ))}
 
-            {canMarkShootComplete && (
+            {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
               <button
-                onClick={() => setShowCompleteModal(true)}
-                className="inline-flex items-center justify-center rounded-lg border border-blue-600 bg-blue-600/80 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                onClick={openShootComplete}
+                disabled={!canMarkShootComplete}
+                className={`inline-flex items-center justify-center rounded-lg border px-6 py-2 text-sm font-medium transition-colors ${
+                  canMarkShootComplete
+                    ? 'border-blue-600 bg-blue-600/80 text-white hover:bg-blue-500'
+                    : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                Mark Complete
+                Shoot Complete
               </button>
             )}
 
@@ -336,17 +364,17 @@ export default function CountdownCard({
         </div>
 
         {expanded && (
-          <div className="space-y-3 border-t border-gray-800 px-4 py-4">
+          <div className="space-y-4 border-t border-gray-800 px-4 py-4">
             {isAdmin && onUpdate && (
               <div>
-                <p className="mb-1.5 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>
-                <div className="flex gap-1">
+                <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>
+                <div className="flex gap-2">
                   {RIG_TYPES.map((type) => (
                     <button
                       key={type}
                       disabled={updatingRig}
                       onClick={() => handleRigTypeChange(type)}
-                      className={`flex-1 rounded border px-2 py-1.5 text-xs transition-colors ${
+                      className={`flex-1 rounded border px-2 py-2 text-xs transition-colors ${
                         shoot.rig_type_override === type
                           ? 'bg-orange-600 border-orange-500 text-white font-medium'
                           : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
@@ -358,6 +386,76 @@ export default function CountdownCard({
                 </div>
               </div>
             )}
+
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Config</p>
+
+              <div className="space-y-2 text-xs text-gray-300">
+                {(matchedRig?.sport || shoot.sport || matchedRig?.venue_type || shoot.venue_type) && (
+                  <div className="flex flex-wrap gap-4">
+                    {(matchedRig?.sport || shoot.sport) && (
+                      <span>
+                        Sport: <span className="font-medium text-white">{matchedRig?.sport || shoot.sport}</span>
+                      </span>
+                    )}
+                    {(matchedRig?.venue_type || shoot.venue_type) && (
+                      <span>
+                        Venue: <span className="font-medium text-white">{matchedRig?.venue_type || shoot.venue_type}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {(matchedRig?.remotes || shoot.remotes) && (
+                  <div>
+                    Remotes:{' '}
+                    <span className="text-white">
+                      {Array.isArray(matchedRig?.remotes)
+                        ? matchedRig.remotes.join(', ')
+                        : matchedRig?.remotes || shoot.remotes}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <RigConfigRow
+                  label="HD"
+                  value={
+                    matchedRig?.hd_settings ||
+                    shoot.hd_settings ||
+                    shoot.hd ||
+                    null
+                  }
+                />
+                <RigConfigRow
+                  label="Wide"
+                  value={
+                    matchedRig?.wide_settings ||
+                    shoot.wide_settings ||
+                    shoot.wide ||
+                    null
+                  }
+                />
+                <RigConfigRow
+                  label="Attention"
+                  value={
+                    matchedRig?.attention_settings ||
+                    shoot.attention_settings ||
+                    shoot.attention ||
+                    null
+                  }
+                />
+                <RigConfigRow
+                  label="Sound Recording"
+                  value={
+                    matchedRig?.sound_settings ||
+                    shoot.sound_settings ||
+                    (showSound ? 'Enabled' : null)
+                  }
+                />
+              </div>
+            </div>
 
             {matchedRig?.notes && (
               <div className="rounded-lg border border-blue-900/20 bg-blue-900/10 p-2.5">
