@@ -43,23 +43,23 @@ export default function AdminDayShootView({
   }, [viewMode, monthSelectedDate]);
 
   const sortedShoots = useMemo(() => {
-    return [...shoots].sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
+    return [...shoots]
+      .filter((shoot) => !isShootCancelled(shoot))
+      .sort((a, b) => {
+        const aComplete = isShootComplete(a);
+        const bComplete = isShootComplete(b);
+
+        if (aComplete !== bComplete) return aComplete ? 1 : -1;
+        return getPrimaryDateTime(a) - getPrimaryDateTime(b);
+      });
   }, [shoots]);
 
-  const upcomingShoots = useMemo(() => {
-    const now = new Date();
+  const assignedShoots = useMemo(() => {
+    return sortedShoots;
+  }, [sortedShoots]);
 
-    return sortedShoots.filter((shoot) => {
-      if (isShootCancelled(shoot)) return false;
-      if (isShootComplete(shoot)) return false;
-
-      const primaryDate = getPrimaryDateTime(shoot);
-      return primaryDate >= now || shoot.date >= todayStr;
-    });
-  }, [sortedShoots, todayStr]);
-
-  const totalPages = Math.max(1, Math.ceil(upcomingShoots.length / ITEMS_PER_PAGE));
-  const visibleShoots = upcomingShoots.slice(
+  const totalPages = Math.max(1, Math.ceil(assignedShoots.length / ITEMS_PER_PAGE));
+  const visibleShoots = assignedShoots.slice(
     page * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE + ITEMS_PER_PAGE
   );
@@ -69,7 +69,7 @@ export default function AdminDayShootView({
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPadding = getDay(monthStart);
 
-  const shootsByDate = sortedShoots.reduce((acc, shoot) => {
+  const shootsByDate = assignedShoots.reduce((acc, shoot) => {
     acc[shoot.date] = acc[shoot.date] || [];
     acc[shoot.date].push(shoot);
     return acc;
@@ -236,8 +236,8 @@ export default function AdminDayShootView({
             </button>
 
             <div className="flex-1 text-center">
-              <span className="text-sm font-semibold text-white">Next Assigned Shoots</span>
-              <span className="ml-2 text-xs text-gray-500">({upcomingShoots.length} total)</span>
+              <span className="text-sm font-semibold text-white">Assigned Shoots</span>
+              <span className="ml-2 text-xs text-gray-500">({assignedShoots.length} total)</span>
             </div>
 
             <button
@@ -249,9 +249,9 @@ export default function AdminDayShootView({
             </button>
           </div>
 
-          {upcomingShoots.length === 0 ? (
+          {assignedShoots.length === 0 ? (
             <div className="py-6 text-center text-sm italic text-gray-500">
-              No upcoming assigned shoots.
+              No assigned shoots.
             </div>
           ) : (
             <>
@@ -269,7 +269,7 @@ export default function AdminDayShootView({
                 ))}
               </div>
 
-              {upcomingShoots.length > ITEMS_PER_PAGE && (
+              {assignedShoots.length > ITEMS_PER_PAGE && (
                 <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                   <button
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -280,7 +280,7 @@ export default function AdminDayShootView({
                   </button>
 
                   <span className="text-[10px] font-bold text-gray-600">
-                    SHOWING {page * ITEMS_PER_PAGE + 1}-{Math.min((page + 1) * ITEMS_PER_PAGE, upcomingShoots.length)} OF {upcomingShoots.length}
+                    SHOWING {page * ITEMS_PER_PAGE + 1}-{Math.min((page + 1) * ITEMS_PER_PAGE, assignedShoots.length)} OF {assignedShoots.length}
                   </span>
 
                   <button
