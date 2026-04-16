@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Phone } from 'lucide-react';
 import { format } from 'date-fns';
@@ -28,8 +28,10 @@ function formatCountdown(ms) {
   return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function getLivePhase(phase, now, phaseDates, gameDate, showAttention, showSound) {
-  if (phase.shoot_complete) return { label: 'Complete', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+function getLivePhase(shoot, phase, now, phaseDates, gameDate, showAttention, showSound) {
+  if (shoot.status === 'completed') {
+    return { label: 'Complete', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
+  }
   if (phase.game_started || (gameDate && now >= gameDate)) return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
   if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
     return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
@@ -67,6 +69,14 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
   );
 }
 
+function formatCameraValue(cam) {
+  if (!cam || typeof cam !== 'object') return null;
+  const shutter = cam.shutter || '—';
+  const aperture = cam.aperture || '—';
+  const iso = cam.iso || '—';
+  return `${shutter} · ${aperture} · ISO ${iso}`;
+}
+
 function RigConfigRow({ label, value, accent = false }) {
   if (!value) return null;
 
@@ -99,9 +109,16 @@ export default function CountdownCard({
     return () => clearInterval(iv);
   }, []);
 
-  const matchedRig = rigSettings.find(
-    (r) => r.team && shoot.client && r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
-  );
+  const matchedRig = useMemo(() => {
+    const client = shoot.client?.toLowerCase().trim();
+    const title = shoot.title?.toLowerCase().trim();
+
+    return rigSettings.find((r) => {
+      const team = r.team?.toLowerCase().trim();
+      if (!team) return false;
+      return team === client || team === title;
+    });
+  }, [rigSettings, shoot.client, shoot.title]);
 
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound === true;
@@ -111,7 +128,6 @@ export default function CountdownCard({
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
 
-  // Shoot complete button should open the modal for assigned users/admins
   const canOpenShootComplete =
     canMarkPhases &&
     shoot.status !== 'completed' &&
@@ -120,7 +136,7 @@ export default function CountdownCard({
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
   useEffect(() => {
-    if (!onUpdate || !canMarkPhases || !shoot.date) return;
+    if (!onUpdate || !canMarkPhases || !shoot.date || shoot.status === 'completed') return;
 
     const GRACE_MS = 5 * 60 * 1000;
     const candidates = [
@@ -146,6 +162,7 @@ export default function CountdownCard({
     canMarkPhases,
     shoot.date,
     shoot.id,
+    shoot.status,
     phaseDates.setup,
     phaseDates.pre_shoot,
     phaseDates.attention,
@@ -156,6 +173,8 @@ export default function CountdownCard({
   ]);
 
   const nextPhaseTarget = (() => {
+    if (shoot.status === 'completed') return { label: 'Complete', date: null };
+
     const candidates = [
       { label: 'Setup', key: 'setup_complete', date: phaseDates.setup },
       { label: 'Pre-Shoot', key: 'pre_shoot_started', date: phaseDates.pre_shoot },
@@ -173,9 +192,17 @@ export default function CountdownCard({
 
   const targetDiff = nextPhaseTarget?.date ? nextPhaseTarget.date - now : null;
   const targetIsPast = targetDiff !== null && targetDiff <= 0;
-  const countdown = targetDiff == null ? '—' : targetIsPast ? 'NOW' : formatCountdown(targetDiff);
-  const countdownLabel = nextPhaseTarget?.label || 'Game Time';
-  const livePhase = getLivePhase(effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
+  const countdown =
+    shoot.status === 'completed'
+      ? 'Completed'
+      : targetDiff == null
+        ? '—'
+        : targetIsPast
+          ? 'NOW'
+          : formatCountdown(targetDiff);
+
+  const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
+  const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
   const rigLabel = matchedRig?.rig_type || shoot.rig_type_override || shoot.rig_type || null;
 
   const quickPhases = [
@@ -219,7 +246,7 @@ export default function CountdownCard({
   };
 
   const handlePhaseToggle = async (phaseKey) => {
-    if (!onUpdate) return;
+    if (!onUpdate || shoot.status === 'completed') return;
 
     const current = effectivePhaseStatus[phaseKey];
     const nextStatus = {
@@ -236,6 +263,11 @@ export default function CountdownCard({
     }
   };
 
+  const hdValue = matchedRig?.hd_enabled === false ? null : formatCameraValue(matchedRig?.hd || shoot.hd);
+  const wideValue = matchedRig?.wide_enabled === false ? null : formatCameraValue(matchedRig?.wide || shoot.wide);
+  const attentionValue = showAttention ? formatCameraValue(matchedRig?.attention || shoot.attention) : null;
+  const soundValue = showSound ? 'Enabled' : null;
+
   return (
     <>
       {showCompleteModal && (
@@ -245,7 +277,7 @@ export default function CountdownCard({
             email: userEmail,
             full_name: allUsers.find((u) => u.email === userEmail)?.full_name || ''
           }}
-          onClose={(completed, reportData) => {
+          onClose={(completed) => {
             setShowCompleteModal(false);
 
             if (completed) {
@@ -254,15 +286,22 @@ export default function CountdownCard({
                 phase_status: {
                   ...effectivePhaseStatus,
                   shoot_complete: new Date().toISOString()
-                },
-                ...(reportData || {})
+                }
               });
             }
           }}
         />
       )}
 
-      <div className={`rounded-xl border bg-gray-900/95 transition-all ${expanded ? 'border-gray-700' : 'border-gray-800'} hover:border-gray-600`}>
+      <div
+        className={`rounded-xl border transition-all ${
+          shoot.status === 'completed'
+            ? 'border-gray-700 bg-gray-900/60 opacity-70'
+            : expanded
+              ? 'border-gray-700 bg-gray-900/95'
+              : 'border-gray-800 bg-gray-900/95'
+        } hover:border-gray-600`}
+      >
         <div className="px-4 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
@@ -296,16 +335,18 @@ export default function CountdownCard({
             <div className="flex flex-col items-center justify-center text-center">
               <div
                 className={`font-mono text-2xl font-bold tracking-tight ${
-                  targetIsPast
-                    ? 'text-red-400'
-                    : targetDiff !== null && targetDiff < 30 * 60000
-                      ? 'text-yellow-400'
-                      : 'text-blue-300'
+                  shoot.status === 'completed'
+                    ? 'text-gray-400'
+                    : targetIsPast
+                      ? 'text-red-400'
+                      : targetDiff !== null && targetDiff < 30 * 60000
+                        ? 'text-yellow-400'
+                        : 'text-blue-300'
                 }`}
               >
                 {countdown}
               </div>
-              <div className="mt-0.5 text-xs text-gray-500">until {countdownLabel}</div>
+              <div className="mt-0.5 text-xs text-gray-500">{countdownLabel}</div>
             </div>
 
             <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
@@ -333,7 +374,7 @@ export default function CountdownCard({
                 label={phase.label}
                 time={phase.time}
                 done={!!effectivePhaseStatus[phase.doneKey]}
-                canClick={canMarkPhases}
+                canClick={canMarkPhases && shoot.status !== 'completed'}
                 onClick={() => handlePhaseToggle(phase.doneKey)}
               />
             ))}
@@ -353,7 +394,7 @@ export default function CountdownCard({
             )}
 
             {shoot.status === 'completed' && (
-              <div className="inline-flex items-center justify-center rounded-lg border border-green-700 bg-green-950/20 px-6 py-2 text-sm font-medium text-green-400">
+              <div className="inline-flex items-center justify-center rounded-lg border border-gray-600 bg-gray-800 px-6 py-2 text-sm font-medium text-gray-300">
                 ✓ Shoot Complete
               </div>
             )}
@@ -388,70 +429,33 @@ export default function CountdownCard({
               <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Config</p>
 
               <div className="space-y-2 text-xs text-gray-300">
-                {(matchedRig?.sport || shoot.sport || matchedRig?.venue_type || shoot.venue_type) && (
+                {(matchedRig?.sport || matchedRig?.venue_type) && (
                   <div className="flex flex-wrap gap-4">
-                    {(matchedRig?.sport || shoot.sport) && (
+                    {matchedRig?.sport && (
                       <span>
-                        Sport: <span className="font-medium text-white">{matchedRig?.sport || shoot.sport}</span>
+                        Sport: <span className="font-medium text-white">{matchedRig.sport}</span>
                       </span>
                     )}
-                    {(matchedRig?.venue_type || shoot.venue_type) && (
+                    {matchedRig?.venue_type && (
                       <span>
-                        Venue: <span className="font-medium text-white">{matchedRig?.venue_type || shoot.venue_type}</span>
+                        Venue: <span className="font-medium text-white">{matchedRig.venue_type}</span>
                       </span>
                     )}
                   </div>
                 )}
 
-                {(matchedRig?.remotes || shoot.remotes) && (
+                {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 && (
                   <div>
-                    Remotes:{' '}
-                    <span className="text-white">
-                      {Array.isArray(matchedRig?.remotes)
-                        ? matchedRig.remotes.join(', ')
-                        : matchedRig?.remotes || shoot.remotes}
-                    </span>
+                    Remotes: <span className="text-white">{matchedRig.remote_rigs.join(', ')}</span>
                   </div>
                 )}
               </div>
 
               <div className="mt-3 space-y-2">
-                <RigConfigRow
-                  label="HD"
-                  value={
-                    matchedRig?.hd_settings ||
-                    shoot.hd_settings ||
-                    shoot.hd ||
-                    null
-                  }
-                />
-                <RigConfigRow
-                  label="Wide"
-                  value={
-                    matchedRig?.wide_settings ||
-                    shoot.wide_settings ||
-                    shoot.wide ||
-                    null
-                  }
-                />
-                <RigConfigRow
-                  label="Attention"
-                  value={
-                    matchedRig?.attention_settings ||
-                    shoot.attention_settings ||
-                    shoot.attention ||
-                    null
-                  }
-                />
-                <RigConfigRow
-                  label="Sound Recording"
-                  value={
-                    matchedRig?.sound_settings ||
-                    shoot.sound_settings ||
-                    (showSound ? 'Enabled' : null)
-                  }
-                  accent={showSound}
-                />
+                <RigConfigRow label="HD" value={hdValue} />
+                <RigConfigRow label="Wide" value={wideValue} />
+                <RigConfigRow label="Attention" value={attentionValue} />
+                <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound} />
               </div>
             </div>
 
