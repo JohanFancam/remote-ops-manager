@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 export function timeToMinutes(timeStr) {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
@@ -46,6 +48,79 @@ export function getScheduleDateTimes(shoot) {
   };
 }
 
+export function getPrimaryDateTime(shoot) {
+  const phaseDates = getScheduleDateTimes(shoot);
+  return (
+    phaseDates.setup ||
+    phaseDates.pre_shoot ||
+    phaseDates.game ||
+    (shoot?.date ? new Date(`${shoot.date}T${shoot.game_time || shoot.start_time || '23:59'}`) : null)
+  );
+}
+
+export function isShootComplete(shoot) {
+  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
+}
+
+export function isShootCancelled(shoot) {
+  return shoot?.status === 'cancelled';
+}
+
+export function isShootStarted(shoot, now = new Date()) {
+  if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
+  const phase = shoot?.phase_status || {};
+  if (shoot?.status === 'in_progress') return true;
+  if (
+    phase.setup_complete ||
+    phase.pre_shoot_started ||
+    phase.attention_started ||
+    phase.sound_started ||
+    phase.game_started
+  ) {
+    return true;
+  }
+  const primaryDate = getPrimaryDateTime(shoot);
+  return !!primaryDate && primaryDate <= now;
+}
+
+export function isShootCurrent(shoot, now = new Date()) {
+  if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
+  if (!shoot?.date) return false;
+  return shoot.date === format(now, 'yyyy-MM-dd') && isShootStarted(shoot, now);
+}
+
+export function getCurrentOrNextShootIndex(shoots = [], now = new Date()) {
+  const currentIndex = shoots.findIndex((shoot) => isShootCurrent(shoot, now));
+  if (currentIndex >= 0) return currentIndex;
+
+  const upcomingIndex = shoots.findIndex((shoot) => {
+    if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
+    const primaryDate = getPrimaryDateTime(shoot);
+    return primaryDate && primaryDate >= now;
+  });
+
+  if (upcomingIndex >= 0) return upcomingIndex;
+  return Math.max(0, shoots.length - 1);
+}
+
+export function getStandbyWindowDateTimes(standbyDay) {
+  const startDate = standbyDay?.start_date || standbyDay?.date;
+  const endDate = standbyDay?.end_date || startDate;
+  if (!startDate) return null;
+
+  return {
+    start: new Date(`${startDate}T${standbyDay?.start_time || '00:00'}`),
+    end: new Date(`${endDate}T${standbyDay?.end_time || '23:59:59'}`),
+  };
+}
+
+export function isShootWithinStandbyWindow(shoot, standbyDay) {
+  const windowRange = getStandbyWindowDateTimes(standbyDay);
+  const primaryDate = getPrimaryDateTime(shoot);
+  if (!windowRange || !primaryDate) return false;
+  return primaryDate >= windowRange.start && primaryDate <= windowRange.end;
+}
+
 export function getSchedule(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
@@ -56,134 +131,6 @@ export function getSchedule(shoot) {
     attention: dates.attention ? minutesToTime(dates.attention.getHours() * 60 + dates.attention.getMinutes()) : null,
     sound: dates.sound ? minutesToTime(dates.sound.getHours() * 60 + dates.sound.getMinutes()) : null,
     game: gameTime,
-  };
-}
-
-export function getPrimaryShootDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
-  return (
-    phaseDates.setup ||
-    phaseDates.pre_shoot ||
-    phaseDates.game ||
-    (shoot?.date ? new Date(`${shoot.date}T${shoot.game_time || shoot.start_time || '23:59'}`) : null)
-  );
-}
-
-export function isShootCancelled(shoot) {
-  return shoot?.status === 'cancelled';
-}
-
-export function isShootCompleted(shoot) {
-  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
-}
-
-export function hasShootStarted(shoot, now = new Date()) {
-  if (isShootCancelled(shoot) || isShootCompleted(shoot)) return false;
-
-  const phase = shoot?.phase_status || {};
-  if (
-    phase.setup_complete ||
-    phase.pre_shoot_started ||
-    phase.attention_started ||
-    phase.sound_started ||
-    phase.game_started ||
-    shoot?.status === 'in_progress'
-  ) {
-    return true;
-  }
-
-  const primary = getPrimaryShootDateTime(shoot);
-  return !!primary && primary <= now;
-}
-
-export function isShootCurrent(shoot, now = new Date()) {
-  if (isShootCancelled(shoot) || isShootCompleted(shoot) || !shoot?.date) return false;
-
-  const todayStr = new Date(now).toISOString().slice(0, 10);
-  if (shoot.date !== todayStr) return false;
-
-  return hasShootStarted(shoot, now);
-}
-
-export function isShootUpcoming(shoot, now = new Date()) {
-  if (isShootCancelled(shoot) || isShootCompleted(shoot)) return false;
-  if (isShootCurrent(shoot, now)) return false;
-
-  const primary = getPrimaryShootDateTime(shoot);
-  if (!primary) return false;
-
-  return primary > now;
-}
-
-export function sortShootsAroundNow(shoots = [], now = new Date()) {
-  const current = [];
-  const upcoming = [];
-  const past = [];
-
-  shoots.forEach((shoot) => {
-    if (isShootCancelled(shoot)) return;
-
-    if (isShootCurrent(shoot, now)) {
-      current.push(shoot);
-      return;
-    }
-
-    if (isShootUpcoming(shoot, now)) {
-      upcoming.push(shoot);
-      return;
-    }
-
-    past.push(shoot);
-  });
-
-  current.sort((a, b) => getPrimaryShootDateTime(a) - getPrimaryShootDateTime(b));
-  upcoming.sort((a, b) => getPrimaryShootDateTime(a) - getPrimaryShootDateTime(b));
-  past.sort((a, b) => getPrimaryShootDateTime(b) - getPrimaryShootDateTime(a));
-
-  return { current, upcoming, past, ordered: [...current, ...upcoming, ...past] };
-}
-
-export function buildRelativeShootPager(shoots = [], itemsPerPage = 3, now = new Date()) {
-  const { current, upcoming, past } = sortShootsAroundNow(shoots, now);
-
-  const makeChunks = (items) => {
-    const chunks = [];
-    for (let i = 0; i < items.length; i += itemsPerPage) {
-      chunks.push(items.slice(i, i + itemsPerPage));
-    }
-    return chunks;
-  };
-
-  const anchorItems = [...current, ...upcoming].slice(0, itemsPerPage);
-  const remainingFuture = [...current, ...upcoming].slice(itemsPerPage);
-
-  const futurePages = anchorItems.length > 0
-    ? [anchorItems, ...makeChunks(remainingFuture)]
-    : [];
-
-  const pastPages = makeChunks(past);
-
-  const getVisibleShoots = (offset = 0) => {
-    if (offset < 0) return pastPages[Math.abs(offset) - 1] || [];
-    if (futurePages.length > 0) return futurePages[offset] || [];
-    return pastPages[offset] || [];
-  };
-
-  const minOffset = pastPages.length > 0 ? -pastPages.length : 0;
-  const maxOffset = futurePages.length > 0
-    ? futurePages.length - 1
-    : Math.max(0, pastPages.length - 1);
-
-  return {
-    current,
-    upcoming,
-    past,
-    pastPages,
-    futurePages,
-    minOffset,
-    maxOffset,
-    hasAnchorPage: futurePages.length > 0,
-    getVisibleShoots,
   };
 }
 
