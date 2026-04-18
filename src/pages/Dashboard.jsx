@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Camera } from 'lucide-react';
-import { format } from 'date-fns';
 import AdminDayShootView from '../components/dashboard/AdminDayShootView';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
@@ -13,6 +13,7 @@ import StandbyManager from '../components/dashboard/StandbyManager';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import { OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
+import { getPrimaryShootDateTime, isShootCancelled, sortShootsAroundNow } from '../components/utils/scheduleUtils';
 
 export default function Dashboard() {
   const { user, isAdmin } = useApp();
@@ -75,8 +76,6 @@ export default function Dashboard() {
     return Array.from(map.values());
   }, [users, presenceRecords]);
 
-  const today = new Date();
-  const todayStr = format(today, 'yyyy-MM-dd');
   const now = new Date();
 
   const handleShootUpdate = async (id, data) => {
@@ -102,10 +101,10 @@ export default function Dashboard() {
   const selfAssignedShoots = isAdmin ? allAssignedShoots : [];
   const remoteShoots = !isAdmin ? allAssignedShoots : [];
 
-  // Only current/next assigned shoots for the main "upcoming" admin logic.
   const currentOrNextAssignedShoots = useMemo(() => {
-    return allAssignedShoots.filter((s) => s.date >= todayStr || s.status === 'completed');
-  }, [allAssignedShoots, todayStr]);
+    const sorted = sortShootsAroundNow(allAssignedShoots, now);
+    return [...sorted.current, ...sorted.upcoming];
+  }, [allAssignedShoots, now]);
 
   // Helper: convert standby record to start/end datetimes.
   const standbyWindows = useMemo(() => {
@@ -139,50 +138,31 @@ export default function Dashboard() {
     return standbyWindows.find((w) => w.startDt > now) || null;
   }, [standbyWindows, now]);
 
-  const buildDateRangeSet = (windowObj) => {
-    const dates = new Set();
-    if (!windowObj?.startDate || !windowObj?.endDate) return dates;
+  const filterShootsForStandbyWindow = (windowObj) => {
+    if (!windowObj) return [];
 
-    const cur = new Date(`${windowObj.startDate}T12:00:00`);
-    const last = new Date(`${windowObj.endDate}T12:00:00`);
+    return visibleShoots.filter((s) => {
+      if (isShootCancelled(s)) return false;
+      if (s.assigned_operators?.includes(user?.email)) return false;
 
-    while (cur <= last) {
-      dates.add(format(cur, 'yyyy-MM-dd'));
-      cur.setDate(cur.getDate() + 1);
-    }
+      const primaryDateTime = getPrimaryShootDateTime(s);
+      if (!primaryDateTime) return false;
 
-    return dates;
+      return primaryDateTime >= windowObj.startDt && primaryDateTime <= windowObj.endDt;
+    });
   };
-
-  const currentStandbyDates = useMemo(
-    () => buildDateRangeSet(currentStandbyWindow),
-    [currentStandbyWindow]
-  );
-
-  const nextStandbyDates = useMemo(
-    () => buildDateRangeSet(nextStandbyWindow),
-    [nextStandbyWindow]
-  );
 
   // Show only the shoots the admin is covering RIGHT NOW while on standby.
   const currentStandbyShoots = useMemo(() => {
     if (!isAdmin || !currentStandbyWindow) return [];
-
-    return visibleShoots.filter((s) => {
-      if (s.assigned_operators?.includes(user?.email)) return false;
-      return currentStandbyDates.has(s.date);
-    });
-  }, [isAdmin, currentStandbyWindow, visibleShoots, user?.email, currentStandbyDates]);
+    return filterShootsForStandbyWindow(currentStandbyWindow);
+  }, [isAdmin, currentStandbyWindow, visibleShoots, user?.email]);
 
   // If not currently on standby, show the shoots for the NEXT standby period.
   const upcomingStandbyShoots = useMemo(() => {
     if (!isAdmin || currentStandbyWindow || !nextStandbyWindow) return [];
-
-    return visibleShoots.filter((s) => {
-      if (s.assigned_operators?.includes(user?.email)) return false;
-      return nextStandbyDates.has(s.date);
-    });
-  }, [isAdmin, currentStandbyWindow, nextStandbyWindow, visibleShoots, user?.email, nextStandbyDates]);
+    return filterShootsForStandbyWindow(nextStandbyWindow);
+  }, [isAdmin, currentStandbyWindow, nextStandbyWindow, visibleShoots, user?.email]);
 
   const hasAnyCurrentOrNextCoverage =
     currentOrNextAssignedShoots.length > 0 ||
@@ -206,7 +186,6 @@ export default function Dashboard() {
           shoots={shoots}
           standbyDays={standbyDays}
           allUsers={allUsers}
-          todayStr={todayStr}
         />
 
         {isAdmin && (
