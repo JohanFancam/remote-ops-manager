@@ -1,5 +1,3 @@
-import { format } from 'date-fns';
-
 export function timeToMinutes(timeStr) {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
@@ -46,79 +44,6 @@ export function getScheduleDateTimes(shoot) {
     sound: withOffset(shoot?.sound_offset ?? -30),
     game: gameDate,
   };
-}
-
-export function getPrimaryDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
-  return (
-    phaseDates.setup ||
-    phaseDates.pre_shoot ||
-    phaseDates.game ||
-    (shoot?.date ? new Date(`${shoot.date}T${shoot.game_time || shoot.start_time || '23:59'}`) : null)
-  );
-}
-
-export function isShootComplete(shoot) {
-  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
-}
-
-export function isShootCancelled(shoot) {
-  return shoot?.status === 'cancelled';
-}
-
-export function isShootStarted(shoot, now = new Date()) {
-  if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
-  const phase = shoot?.phase_status || {};
-  if (shoot?.status === 'in_progress') return true;
-  if (
-    phase.setup_complete ||
-    phase.pre_shoot_started ||
-    phase.attention_started ||
-    phase.sound_started ||
-    phase.game_started
-  ) {
-    return true;
-  }
-  const primaryDate = getPrimaryDateTime(shoot);
-  return !!primaryDate && primaryDate <= now;
-}
-
-export function isShootCurrent(shoot, now = new Date()) {
-  if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
-  if (!shoot?.date) return false;
-  return shoot.date === format(now, 'yyyy-MM-dd') && isShootStarted(shoot, now);
-}
-
-export function getCurrentOrNextShootIndex(shoots = [], now = new Date()) {
-  const currentIndex = shoots.findIndex((shoot) => isShootCurrent(shoot, now));
-  if (currentIndex >= 0) return currentIndex;
-
-  const upcomingIndex = shoots.findIndex((shoot) => {
-    if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
-    const primaryDate = getPrimaryDateTime(shoot);
-    return primaryDate && primaryDate >= now;
-  });
-
-  if (upcomingIndex >= 0) return upcomingIndex;
-  return Math.max(0, shoots.length - 1);
-}
-
-export function getStandbyWindowDateTimes(standbyDay) {
-  const startDate = standbyDay?.start_date || standbyDay?.date;
-  const endDate = standbyDay?.end_date || startDate;
-  if (!startDate) return null;
-
-  return {
-    start: new Date(`${startDate}T${standbyDay?.start_time || '00:00'}`),
-    end: new Date(`${endDate}T${standbyDay?.end_time || '23:59:59'}`),
-  };
-}
-
-export function isShootWithinStandbyWindow(shoot, standbyDay) {
-  const windowRange = getStandbyWindowDateTimes(standbyDay);
-  const primaryDate = getPrimaryDateTime(shoot);
-  if (!windowRange || !primaryDate) return false;
-  return primaryDate >= windowRange.start && primaryDate <= windowRange.end;
 }
 
 export function getSchedule(shoot) {
