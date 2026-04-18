@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -13,7 +12,7 @@ import StandbyManager from '../components/dashboard/StandbyManager';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import { OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
-import { getPrimaryShootDateTime, isShootCancelled, sortShootsAroundNow } from '../components/utils/scheduleUtils';
+import { isShootWithinStandbyWindow, isShootCancelled, isShootComplete, getPrimaryDateTime, isShootCurrent } from '../components/utils/scheduleUtils';
 
 export default function Dashboard() {
   const { user, isAdmin } = useApp();
@@ -85,11 +84,8 @@ export default function Dashboard() {
 
   const visibleShoots = useMemo(() => {
     return shoots
-      .filter((s) => s.status !== 'cancelled')
-      .sort((a, b) => {
-        const d = a.date.localeCompare(b.date);
-        return d !== 0 ? d : (a.game_time || '').localeCompare(b.game_time || '');
-      });
+      .filter((s) => !isShootCancelled(s))
+      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots]);
 
   const allAssignedShoots = useMemo(() => {
@@ -102,8 +98,11 @@ export default function Dashboard() {
   const remoteShoots = !isAdmin ? allAssignedShoots : [];
 
   const currentOrNextAssignedShoots = useMemo(() => {
-    const sorted = sortShootsAroundNow(allAssignedShoots, now);
-    return [...sorted.current, ...sorted.upcoming];
+    return allAssignedShoots.filter((s) => {
+      if (isShootCancelled(s) || isShootComplete(s)) return false;
+      const primaryDate = getPrimaryDateTime(s);
+      return isShootCurrent(s, now) || (primaryDate && primaryDate >= now);
+    });
   }, [allAssignedShoots, now]);
 
   // Helper: convert standby record to start/end datetimes.
@@ -138,30 +137,25 @@ export default function Dashboard() {
     return standbyWindows.find((w) => w.startDt > now) || null;
   }, [standbyWindows, now]);
 
-  const filterShootsForStandbyWindow = (windowObj) => {
-    if (!windowObj) return [];
 
-    return visibleShoots.filter((s) => {
-      if (isShootCancelled(s)) return false;
-      if (s.assigned_operators?.includes(user?.email)) return false;
-
-      const primaryDateTime = getPrimaryShootDateTime(s);
-      if (!primaryDateTime) return false;
-
-      return primaryDateTime >= windowObj.startDt && primaryDateTime <= windowObj.endDt;
-    });
-  };
-
-  // Show only the shoots the admin is covering RIGHT NOW while on standby.
+  // Show only the shoots the admin is covering during the exact standby window.
   const currentStandbyShoots = useMemo(() => {
     if (!isAdmin || !currentStandbyWindow) return [];
-    return filterShootsForStandbyWindow(currentStandbyWindow);
+
+    return visibleShoots.filter((s) => {
+      if (s.assigned_operators?.includes(user?.email)) return false;
+      return isShootWithinStandbyWindow(s, currentStandbyWindow);
+    });
   }, [isAdmin, currentStandbyWindow, visibleShoots, user?.email]);
 
   // If not currently on standby, show the shoots for the NEXT standby period.
   const upcomingStandbyShoots = useMemo(() => {
     if (!isAdmin || currentStandbyWindow || !nextStandbyWindow) return [];
-    return filterShootsForStandbyWindow(nextStandbyWindow);
+
+    return visibleShoots.filter((s) => {
+      if (s.assigned_operators?.includes(user?.email)) return false;
+      return isShootWithinStandbyWindow(s, nextStandbyWindow);
+    });
   }, [isAdmin, currentStandbyWindow, nextStandbyWindow, visibleShoots, user?.email]);
 
   const hasAnyCurrentOrNextCoverage =
