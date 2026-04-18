@@ -509,4 +509,4 @@ export default function CountdownCard({
       </div>
     </>
   );
-}
+} 
