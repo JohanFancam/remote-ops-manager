@@ -1,24 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
 import CountdownCard from './CountdownCard';
-import { getScheduleDateTimes } from '../utils/scheduleUtils';
+import {
+  buildRelativeShootPager,
+  getPrimaryShootDateTime,
+  isShootCancelled,
+} from '../utils/scheduleUtils';
 
 const ITEMS_PER_PAGE = 3;
-
-function getPrimaryDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
-  return (
-    phaseDates.setup ||
-    phaseDates.pre_shoot ||
-    phaseDates.game ||
-    new Date(`${shoot.date}T${shoot.game_time || '23:59'}`)
-  );
-}
-
-function isCompleted(shoot) {
-  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
-}
 
 export default function AdminStandbyShootList({
   shoots = [],
@@ -29,69 +18,62 @@ export default function AdminStandbyShootList({
   onUpdate,
   isAdmin = false
 }) {
-  const [page, setPage] = useState(0);
+  const [offset, setOffset] = useState(0);
 
-  const standbyDates = useMemo(() => {
-    const allDates = new Set();
+  const standbyWindows = useMemo(() => {
+    return standbyDays
+      .map((sd) => {
+        const startDate = sd.start_date || sd.date;
+        const endDate = sd.end_date || startDate;
 
-    standbyDays.forEach((sd) => {
-      const start = sd.start_date || sd.date;
-      const end = sd.end_date || start;
+        if (!startDate || !endDate) return null;
 
-      if (!start || !end) return;
-
-      let cursor = new Date(`${start}T12:00:00`);
-      const endDate = new Date(`${end}T12:00:00`);
-
-      while (cursor <= endDate) {
-        allDates.add(format(cursor, 'yyyy-MM-dd'));
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    });
-
-    return Array.from(allDates).sort();
+        return {
+          ...sd,
+          startDt: new Date(`${startDate}T${sd.start_time || '00:00'}`),
+          endDt: new Date(`${endDate}T${sd.end_time || '23:59:59'}`),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.startDt - b.startDt);
   }, [standbyDays]);
-
-  const getShootsForDate = (dateStr) => {
-    return shoots.filter((shoot) => shoot.date === dateStr);
-  };
 
   const allStandbyShoots = useMemo(() => {
     const seen = new Map();
 
-    standbyDates.forEach((dateStr) => {
-      getShootsForDate(dateStr).forEach((shoot) => {
-        if (!seen.has(shoot.id)) {
+    shoots
+      .filter((shoot) => !isShootCancelled(shoot))
+      .forEach((shoot) => {
+        const primaryDateTime = getPrimaryShootDateTime(shoot);
+        if (!primaryDateTime) return;
+
+        const isCovered = standbyWindows.some((windowObj) => {
+          return primaryDateTime >= windowObj.startDt && primaryDateTime <= windowObj.endDt;
+        });
+
+        if (isCovered && !seen.has(shoot.id)) {
           seen.set(shoot.id, shoot);
         }
       });
-    });
 
-    return Array.from(seen.values()).sort((a, b) => {
-      const aComplete = isCompleted(a);
-      const bComplete = isCompleted(b);
-
-      if (aComplete !== bComplete) return aComplete ? 1 : -1;
-      return getPrimaryDateTime(a) - getPrimaryDateTime(b);
-    });
-  }, [standbyDates, shoots]);
+    return Array.from(seen.values());
+  }, [shoots, standbyWindows]);
 
   useEffect(() => {
-    setPage(0);
+    setOffset(0);
   }, [shoots, standbyDays]);
 
-  const totalPages = Math.max(1, Math.ceil(allStandbyShoots.length / ITEMS_PER_PAGE));
-  const visibleShoots = allStandbyShoots.slice(
-    page * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE + ITEMS_PER_PAGE
-  );
+  const pager = useMemo(() => buildRelativeShootPager(allStandbyShoots, ITEMS_PER_PAGE, new Date()), [allStandbyShoots]);
+  const visibleShoots = useMemo(() => pager.getVisibleShoots(offset), [pager, offset]);
+  const canGoPrevious = offset > pager.minOffset;
+  const canGoNext = offset < pager.maxOffset;
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 rounded-xl bg-gray-800/50 px-3 py-2">
         <button
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-          disabled={page === 0}
+          onClick={() => setOffset((p) => Math.max(pager.minOffset, p - 1))}
+          disabled={!canGoPrevious}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
         >
           <ChevronLeft className="h-4 w-4 text-gray-400" />
@@ -103,8 +85,8 @@ export default function AdminStandbyShootList({
         </div>
 
         <button
-          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-          disabled={page >= totalPages - 1}
+          onClick={() => setOffset((p) => Math.min(pager.maxOffset, p + 1))}
+          disabled={!canGoNext}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
         >
           <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -131,29 +113,27 @@ export default function AdminStandbyShootList({
             ))}
           </div>
 
-          {allStandbyShoots.length > ITEMS_PER_PAGE && (
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="text-xs text-gray-400 disabled:opacity-30"
-              >
-                Previous 3
-              </button>
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
+            <button
+              onClick={() => setOffset((p) => Math.max(pager.minOffset, p - 1))}
+              disabled={!canGoPrevious}
+              className="text-xs text-gray-400 disabled:opacity-30"
+            >
+              Previous Shoots
+            </button>
 
-              <span className="text-[10px] font-bold text-gray-600">
-                SHOWING {page * ITEMS_PER_PAGE + 1}-{Math.min((page + 1) * ITEMS_PER_PAGE, allStandbyShoots.length)} OF {allStandbyShoots.length}
-              </span>
+            <span className="text-[10px] font-bold text-gray-600">
+              {offset < 0 ? 'OLDER SHOOTS' : offset === 0 ? 'CURRENT / NEXT' : 'UPCOMING SHOOTS'}
+            </span>
 
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                className="text-xs font-semibold text-blue-500 disabled:opacity-30"
-              >
-                Next 3
-              </button>
-            </div>
-          )}
+            <button
+              onClick={() => setOffset((p) => Math.min(pager.maxOffset, p + 1))}
+              disabled={!canGoNext}
+              className="text-xs font-semibold text-blue-500 disabled:opacity-30"
+            >
+              Next Shoots
+            </button>
+          </div>
         </>
       )}
     </div>
