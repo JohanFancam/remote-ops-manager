@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CountdownCard from './CountdownCard';
 import {
-  buildRelativeShootPager,
-  getPrimaryShootDateTime,
+  getPrimaryDateTime,
+  getCurrentOrNextShootIndex,
   isShootCancelled,
+  isShootWithinStandbyWindow,
 } from '../utils/scheduleUtils';
 
 const ITEMS_PER_PAGE = 3;
@@ -16,27 +17,9 @@ export default function AdminStandbyShootList({
   rigSettings = [],
   standbyDays = [],
   onUpdate,
-  isAdmin = false
+  isAdmin = false,
 }) {
-  const [offset, setOffset] = useState(0);
-
-  const standbyWindows = useMemo(() => {
-    return standbyDays
-      .map((sd) => {
-        const startDate = sd.start_date || sd.date;
-        const endDate = sd.end_date || startDate;
-
-        if (!startDate || !endDate) return null;
-
-        return {
-          ...sd,
-          startDt: new Date(`${startDate}T${sd.start_time || '00:00'}`),
-          endDt: new Date(`${endDate}T${sd.end_time || '23:59:59'}`),
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.startDt - b.startDt);
-  }, [standbyDays]);
+  const [startIndex, setStartIndex] = useState(0);
 
   const allStandbyShoots = useMemo(() => {
     const seen = new Map();
@@ -44,37 +27,44 @@ export default function AdminStandbyShootList({
     shoots
       .filter((shoot) => !isShootCancelled(shoot))
       .forEach((shoot) => {
-        const primaryDateTime = getPrimaryShootDateTime(shoot);
-        if (!primaryDateTime) return;
+        const inAnyStandbyWindow = standbyDays.some((standbyDay) =>
+          isShootWithinStandbyWindow(shoot, standbyDay)
+        );
 
-        const isCovered = standbyWindows.some((windowObj) => {
-          return primaryDateTime >= windowObj.startDt && primaryDateTime <= windowObj.endDt;
-        });
-
-        if (isCovered && !seen.has(shoot.id)) {
+        if (inAnyStandbyWindow && !seen.has(shoot.id)) {
           seen.set(shoot.id, shoot);
         }
       });
 
-    return Array.from(seen.values());
-  }, [shoots, standbyWindows]);
-
-  useEffect(() => {
-    setOffset(0);
+    return Array.from(seen.values()).sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots, standbyDays]);
 
-  const pager = useMemo(() => buildRelativeShootPager(allStandbyShoots, ITEMS_PER_PAGE, new Date()), [allStandbyShoots]);
-  const visibleShoots = useMemo(() => pager.getVisibleShoots(offset), [pager, offset]);
-  const canGoPrevious = offset > pager.minOffset;
-  const canGoNext = offset < pager.maxOffset;
+  const anchorIndex = useMemo(() => {
+    if (allStandbyShoots.length === 0) return 0;
+    return getCurrentOrNextShootIndex(allStandbyShoots, new Date());
+  }, [allStandbyShoots]);
+
+  useEffect(() => {
+    setStartIndex(anchorIndex);
+  }, [anchorIndex, shoots, standbyDays]);
+
+  const maxStartIndex = Math.max(0, allStandbyShoots.length - ITEMS_PER_PAGE);
+  const safeStartIndex = Math.min(startIndex, maxStartIndex);
+  const visibleShoots = allStandbyShoots.slice(
+    safeStartIndex,
+    safeStartIndex + ITEMS_PER_PAGE
+  );
+  const hasPreviousShoots = safeStartIndex > 0;
+  const hasNextShoots = safeStartIndex + ITEMS_PER_PAGE < allStandbyShoots.length;
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 rounded-xl bg-gray-800/50 px-3 py-2">
         <button
-          onClick={() => setOffset((p) => Math.max(pager.minOffset, p - 1))}
-          disabled={!canGoPrevious}
+          onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
+          disabled={!hasPreviousShoots}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
+          title="Previous shoots"
         >
           <ChevronLeft className="h-4 w-4 text-gray-400" />
         </button>
@@ -85,9 +75,10 @@ export default function AdminStandbyShootList({
         </div>
 
         <button
-          onClick={() => setOffset((p) => Math.min(pager.maxOffset, p + 1))}
-          disabled={!canGoNext}
+          onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
+          disabled={!hasNextShoots}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
+          title="Next shoots"
         >
           <ChevronRight className="h-4 w-4 text-gray-400" />
         </button>
@@ -113,27 +104,29 @@ export default function AdminStandbyShootList({
             ))}
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
-            <button
-              onClick={() => setOffset((p) => Math.max(pager.minOffset, p - 1))}
-              disabled={!canGoPrevious}
-              className="text-xs text-gray-400 disabled:opacity-30"
-            >
-              Previous Shoots
-            </button>
+          {allStandbyShoots.length > ITEMS_PER_PAGE && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
+              <button
+                onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
+                disabled={!hasPreviousShoots}
+                className="text-xs text-gray-400 disabled:opacity-30"
+              >
+                Previous 3
+              </button>
 
-            <span className="text-[10px] font-bold text-gray-600">
-              {offset < 0 ? 'OLDER SHOOTS' : offset === 0 ? 'CURRENT / NEXT' : 'UPCOMING SHOOTS'}
-            </span>
+              <span className="text-[10px] font-bold text-gray-600">
+                SHOWING {safeStartIndex + 1}-{Math.min(safeStartIndex + ITEMS_PER_PAGE, allStandbyShoots.length)} OF {allStandbyShoots.length}
+              </span>
 
-            <button
-              onClick={() => setOffset((p) => Math.min(pager.maxOffset, p + 1))}
-              disabled={!canGoNext}
-              className="text-xs font-semibold text-blue-500 disabled:opacity-30"
-            >
-              Next Shoots
-            </button>
-          </div>
+              <button
+                onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
+                disabled={!hasNextShoots}
+                className="text-xs font-semibold text-blue-500 disabled:opacity-30"
+              >
+                Next 3
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
