@@ -2,32 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react';
 import CountdownCard from './CountdownCard';
-import { getScheduleDateTimes } from '../utils/scheduleUtils';
+import {
+  getPrimaryDateTime,
+  getCurrentOrNextShootIndex,
+  isShootCancelled,
+} from '../utils/scheduleUtils';
 
 const ITEMS_PER_PAGE = 3;
-
-function getPrimaryDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
-  return (
-    phaseDates.setup ||
-    phaseDates.pre_shoot ||
-    phaseDates.game ||
-    new Date(`${shoot.date}T${shoot.game_time || '23:59'}`)
-  );
-}
-
-function isShootComplete(shoot) {
-  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
-}
-
-function isShootCancelled(shoot) {
-  return shoot?.status === 'cancelled';
-}
-
-function isPastShoot(shoot) {
-  const now = new Date();
-  return getPrimaryDateTime(shoot) < now;
-}
 
 export default function AdminDayShootView({
   shoots = [],
@@ -35,53 +16,35 @@ export default function AdminDayShootView({
   rigSettings,
   onUpdate,
   userEmail,
-  allUsers
+  allUsers,
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [viewMode, setViewMode] = useState('day');
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
-  const [page, setPage] = useState(0);
-
-  useEffect(() => {
-    setPage(0);
-  }, [viewMode, monthSelectedDate]);
-
-  const sortedShoots = useMemo(() => {
-    const now = new Date();
-
-    const activeOrUpcoming = [];
-    const completedOrPast = [];
-
-    [...shoots]
-      .filter((shoot) => !isShootCancelled(shoot))
-      .forEach((shoot) => {
-        const primaryDate = getPrimaryDateTime(shoot);
-        const complete = isShootComplete(shoot);
-        const past = primaryDate < now;
-
-        if (!complete && !past) {
-          activeOrUpcoming.push(shoot);
-        } else {
-          completedOrPast.push(shoot);
-        }
-      });
-
-    activeOrUpcoming.sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-
-    completedOrPast.sort((a, b) => getPrimaryDateTime(b) - getPrimaryDateTime(a));
-
-    return [...activeOrUpcoming, ...completedOrPast];
-  }, [shoots]);
+  const [startIndex, setStartIndex] = useState(0);
 
   const assignedShoots = useMemo(() => {
-    return sortedShoots;
-  }, [sortedShoots]);
+    return [...shoots]
+      .filter((shoot) => !isShootCancelled(shoot))
+      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
+  }, [shoots]);
 
-  const totalPages = Math.max(1, Math.ceil(assignedShoots.length / ITEMS_PER_PAGE));
+  const dayViewAnchorIndex = useMemo(() => {
+    if (assignedShoots.length === 0) return 0;
+    return getCurrentOrNextShootIndex(assignedShoots, new Date());
+  }, [assignedShoots]);
+
+  useEffect(() => {
+    if (viewMode !== 'day') return;
+    setStartIndex(dayViewAnchorIndex);
+  }, [viewMode, dayViewAnchorIndex, assignedShoots.length]);
+
+  const maxStartIndex = Math.max(0, assignedShoots.length - ITEMS_PER_PAGE);
+  const safeStartIndex = Math.min(startIndex, maxStartIndex);
   const visibleShoots = assignedShoots.slice(
-    page * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+    safeStartIndex,
+    safeStartIndex + ITEMS_PER_PAGE
   );
 
   const monthStart = startOfMonth(monthDate);
@@ -100,6 +63,8 @@ export default function AdminDayShootView({
     : [];
 
   const monthVisibleShoots = monthDayShootsList.slice(0, ITEMS_PER_PAGE);
+  const hasPreviousShoots = safeStartIndex > 0;
+  const hasNextShoots = safeStartIndex + ITEMS_PER_PAGE < assignedShoots.length;
 
   return (
     <div>
@@ -248,9 +213,10 @@ export default function AdminDayShootView({
         <div>
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-gray-800/50 px-3 py-2">
             <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
+              onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
+              disabled={!hasPreviousShoots}
               className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
+              title="Previous shoots"
             >
               <ChevronLeft className="h-4 w-4 text-gray-400" />
             </button>
@@ -261,9 +227,10 @@ export default function AdminDayShootView({
             </div>
 
             <button
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
+              onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
+              disabled={!hasNextShoots}
               className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
+              title="Next shoots"
             >
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
@@ -292,20 +259,20 @@ export default function AdminDayShootView({
               {assignedShoots.length > ITEMS_PER_PAGE && (
                 <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                   <button
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
+                    onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
+                    disabled={!hasPreviousShoots}
                     className="text-xs text-gray-400 disabled:opacity-30"
                   >
                     Previous 3
                   </button>
 
                   <span className="text-[10px] font-bold text-gray-600">
-                    SHOWING {page * ITEMS_PER_PAGE + 1}-{Math.min((page + 1) * ITEMS_PER_PAGE, assignedShoots.length)} OF {assignedShoots.length}
+                    SHOWING {safeStartIndex + 1}-{Math.min(safeStartIndex + ITEMS_PER_PAGE, assignedShoots.length)} OF {assignedShoots.length}
                   </span>
 
                   <button
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={page >= totalPages - 1}
+                    onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
+                    disabled={!hasNextShoots}
                     className="text-xs font-semibold text-blue-500 disabled:opacity-30"
                   >
                     Next 3
