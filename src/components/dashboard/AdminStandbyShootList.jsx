@@ -1,14 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format } from 'date-fns';
 import CountdownCard from './CountdownCard';
-import {
-  getPrimaryDateTime,
-  getCurrentOrNextShootIndex,
-  isShootCancelled,
-  isShootWithinStandbyWindow,
-} from '../utils/scheduleUtils';
+import { getScheduleDateTimes } from '../utils/scheduleUtils';
 
 const ITEMS_PER_PAGE = 3;
+
+function getPrimaryDateTime(shoot) {
+  const phaseDates = getScheduleDateTimes(shoot);
+  return (
+    phaseDates.setup ||
+    phaseDates.pre_shoot ||
+    phaseDates.game ||
+    new Date(`${shoot.date}T${shoot.game_time || '23:59'}`)
+  );
+}
+
+function isCompleted(shoot) {
+  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
+}
 
 export default function AdminStandbyShootList({
   shoots = [],
@@ -17,54 +27,72 @@ export default function AdminStandbyShootList({
   rigSettings = [],
   standbyDays = [],
   onUpdate,
-  isAdmin = false,
+  isAdmin = false
 }) {
-  const [startIndex, setStartIndex] = useState(0);
+  const [page, setPage] = useState(0);
+
+  const standbyDates = useMemo(() => {
+    const allDates = new Set();
+
+    standbyDays.forEach((sd) => {
+      const start = sd.start_date || sd.date;
+      const end = sd.end_date || start;
+
+      if (!start || !end) return;
+
+      let cursor = new Date(`${start}T12:00:00`);
+      const endDate = new Date(`${end}T12:00:00`);
+
+      while (cursor <= endDate) {
+        allDates.add(format(cursor, 'yyyy-MM-dd'));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    });
+
+    return Array.from(allDates).sort();
+  }, [standbyDays]);
+
+  const getShootsForDate = (dateStr) => {
+    return shoots.filter((shoot) => shoot.date === dateStr);
+  };
 
   const allStandbyShoots = useMemo(() => {
     const seen = new Map();
 
-    shoots
-      .filter((shoot) => !isShootCancelled(shoot))
-      .forEach((shoot) => {
-        const inAnyStandbyWindow = standbyDays.some((standbyDay) =>
-          isShootWithinStandbyWindow(shoot, standbyDay)
-        );
-
-        if (inAnyStandbyWindow && !seen.has(shoot.id)) {
+    standbyDates.forEach((dateStr) => {
+      getShootsForDate(dateStr).forEach((shoot) => {
+        if (!seen.has(shoot.id)) {
           seen.set(shoot.id, shoot);
         }
       });
+    });
 
-    return Array.from(seen.values()).sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-  }, [shoots, standbyDays]);
+    return Array.from(seen.values()).sort((a, b) => {
+      const aComplete = isCompleted(a);
+      const bComplete = isCompleted(b);
 
-  const anchorIndex = useMemo(() => {
-    if (allStandbyShoots.length === 0) return 0;
-    return getCurrentOrNextShootIndex(allStandbyShoots, new Date());
-  }, [allStandbyShoots]);
+      if (aComplete !== bComplete) return aComplete ? 1 : -1;
+      return getPrimaryDateTime(a) - getPrimaryDateTime(b);
+    });
+  }, [standbyDates, shoots]);
 
   useEffect(() => {
-    setStartIndex(anchorIndex);
-  }, [anchorIndex, shoots, standbyDays]);
+    setPage(0);
+  }, [shoots, standbyDays]);
 
-  const maxStartIndex = Math.max(0, allStandbyShoots.length - ITEMS_PER_PAGE);
-  const safeStartIndex = Math.min(startIndex, maxStartIndex);
+  const totalPages = Math.max(1, Math.ceil(allStandbyShoots.length / ITEMS_PER_PAGE));
   const visibleShoots = allStandbyShoots.slice(
-    safeStartIndex,
-    safeStartIndex + ITEMS_PER_PAGE
+    page * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE + ITEMS_PER_PAGE
   );
-  const hasPreviousShoots = safeStartIndex > 0;
-  const hasNextShoots = safeStartIndex + ITEMS_PER_PAGE < allStandbyShoots.length;
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 rounded-xl bg-gray-800/50 px-3 py-2">
         <button
-          onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
-          disabled={!hasPreviousShoots}
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
-          title="Previous shoots"
         >
           <ChevronLeft className="h-4 w-4 text-gray-400" />
         </button>
@@ -75,10 +103,9 @@ export default function AdminStandbyShootList({
         </div>
 
         <button
-          onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
-          disabled={!hasNextShoots}
+          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+          disabled={page >= totalPages - 1}
           className="rounded p-1 hover:bg-gray-700 disabled:opacity-30 transition-colors"
-          title="Next shoots"
         >
           <ChevronRight className="h-4 w-4 text-gray-400" />
         </button>
@@ -107,20 +134,20 @@ export default function AdminStandbyShootList({
           {allStandbyShoots.length > ITEMS_PER_PAGE && (
             <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
               <button
-                onClick={() => setStartIndex((idx) => Math.max(0, idx - ITEMS_PER_PAGE))}
-                disabled={!hasPreviousShoots}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
                 className="text-xs text-gray-400 disabled:opacity-30"
               >
                 Previous 3
               </button>
 
               <span className="text-[10px] font-bold text-gray-600">
-                SHOWING {safeStartIndex + 1}-{Math.min(safeStartIndex + ITEMS_PER_PAGE, allStandbyShoots.length)} OF {allStandbyShoots.length}
+                SHOWING {page * ITEMS_PER_PAGE + 1}-{Math.min((page + 1) * ITEMS_PER_PAGE, allStandbyShoots.length)} OF {allStandbyShoots.length}
               </span>
 
               <button
-                onClick={() => setStartIndex((idx) => Math.min(maxStartIndex, idx + ITEMS_PER_PAGE))}
-                disabled={!hasNextShoots}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
                 className="text-xs font-semibold text-blue-500 disabled:opacity-30"
               >
                 Next 3
