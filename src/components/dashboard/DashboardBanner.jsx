@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Phone, ArrowRight, Camera } from 'lucide-react';
+import { Phone, Clock3, ArrowRight, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
 import {
   getScheduleDateTimes,
   shortenTitle,
-  isShootCurrent,
-  isShootCompleted,
+  getPrimaryDateTime,
+  isShootComplete,
   isShootCancelled,
+  isShootCurrent,
+  getStandbyWindowDateTimes,
 } from '../utils/scheduleUtils';
 
 function useClock() {
@@ -29,36 +31,12 @@ function formatCountdown(ms) {
   return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function getShootBannerStatus(shoot, now, scheduleDates) {
-  const phase = shoot?.phase_status || {};
-
-  if (isShootCompleted(shoot)) return { label: 'Complete', tone: 'default' };
-  if (phase.game_started || (scheduleDates?.game && now >= scheduleDates.game)) {
-    return { label: 'Game Time', tone: 'red' };
-  }
-  if (phase.sound_started || (scheduleDates?.sound && now >= scheduleDates.sound)) {
-    return { label: 'Sound Check', tone: 'purple' };
-  }
-  if (phase.attention_started || (scheduleDates?.attention && now >= scheduleDates.attention)) {
-    return { label: 'Attention', tone: 'orange' };
-  }
-  if (phase.pre_shoot_started || (scheduleDates?.pre_shoot && now >= scheduleDates.pre_shoot)) {
-    return { label: 'Pre-Shoot', tone: 'yellow' };
-  }
-  if (phase.setup_complete || (scheduleDates?.setup && now >= scheduleDates.setup)) {
-    return { label: 'Setup', tone: 'blue' };
-  }
-  return { label: shoot?.status || 'Upcoming', tone: 'blue' };
-}
-
 function InfoPill({ children, tone = 'default' }) {
   const toneClasses = {
     default: 'bg-gray-800 text-gray-300 border-gray-700/70',
     blue: 'bg-blue-950/40 text-blue-300 border-blue-800/50',
     yellow: 'bg-yellow-950/30 text-yellow-300 border-yellow-800/40',
-    orange: 'bg-orange-950/30 text-orange-300 border-orange-800/40',
-    purple: 'bg-purple-950/30 text-purple-300 border-purple-800/40',
-    red: 'bg-red-950/30 text-red-300 border-red-800/40',
+    green: 'bg-emerald-950/30 text-emerald-300 border-emerald-800/40',
   };
   return (
     <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${toneClasses[tone] || toneClasses.default}`}>
@@ -79,6 +57,12 @@ function Section({ label, accent = 'text-gray-400', children, withDivider = true
   );
 }
 
+function getShootStatusLabel(shoot, now) {
+  if (isShootComplete(shoot)) return 'Complete';
+  if (shoot?.status === 'in_progress' || isShootCurrent(shoot, now)) return 'Current';
+  return 'Next Up';
+}
+
 export default function DashboardBanner({ user, shoots = [], standbyDays = [], allUsers = [] }) {
   const now = useClock();
 
@@ -89,72 +73,53 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
 
   const currentStandby = useMemo(() => {
     return standbyDays.filter((sd) => {
-      const startDate = sd.start_date || sd.date;
-      const endDate = sd.end_date || startDate;
-      if (!startDate) return false;
-      const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-      const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
-      return now >= startDt && now <= endDt;
+      const windowRange = getStandbyWindowDateTimes(sd);
+      return windowRange && now >= windowRange.start && now <= windowRange.end;
     });
   }, [standbyDays, now]);
 
   const nextStandby = useMemo(() => {
     return standbyDays
       .filter((sd) => {
-        const startDate = sd.start_date || sd.date;
-        if (!startDate) return false;
-        const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-        return startDt > now;
+        const windowRange = getStandbyWindowDateTimes(sd);
+        return windowRange && windowRange.start > now;
       })
       .sort((a, b) => {
-        const aStart = new Date(`${a.start_date || a.date}T${a.start_time || '00:00'}`);
-        const bStart = new Date(`${b.start_date || b.date}T${b.start_time || '00:00'}`);
+        const aStart = getStandbyWindowDateTimes(a)?.start;
+        const bStart = getStandbyWindowDateTimes(b)?.start;
         return aStart - bStart;
       })[0] || null;
   }, [standbyDays, now]);
 
-  const activeShoot = useMemo(() => {
+  const myActiveOrUpcomingShoots = useMemo(() => {
     return shoots
       .filter((shoot) => {
+        if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
         if (!shoot.assigned_operators?.includes(user?.email)) return false;
-        if (isShootCancelled(shoot) || isShootCompleted(shoot)) return false;
-        return isShootCurrent(shoot, now);
+        return !!getPrimaryDateTime(shoot);
       })
-      .sort((a, b) => {
-        const aTarget = getScheduleDateTimes(a).setup || getScheduleDateTimes(a).game;
-        const bTarget = getScheduleDateTimes(b).setup || getScheduleDateTimes(b).game;
-        return aTarget - bTarget;
-      })[0] || null;
-  }, [shoots, user?.email, now]);
+      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
+  }, [shoots, user?.email]);
 
-  const nextAssignedShoot = useMemo(() => {
-    return shoots
-      .filter((shoot) => {
-        if (!shoot.assigned_operators?.includes(user?.email)) return false;
-        if (isShootCancelled(shoot) || isShootCompleted(shoot)) return false;
-        if (activeShoot?.id === shoot.id) return false;
-        const scheduleDates = getScheduleDateTimes(shoot);
-        const target = scheduleDates.setup || scheduleDates.game;
-        return target && target >= now;
-      })
-      .sort((a, b) => {
-        const aTarget = getScheduleDateTimes(a).setup || getScheduleDateTimes(a).game;
-        const bTarget = getScheduleDateTimes(b).setup || getScheduleDateTimes(b).game;
-        return aTarget - bTarget;
-      })[0] || null;
-  }, [shoots, user?.email, now, activeShoot]);
+  const currentShoot = useMemo(() => {
+    const currentTodayShoots = myActiveOrUpcomingShoots
+      .filter((shoot) => isShootCurrent(shoot, now))
+      .sort((a, b) => getPrimaryDateTime(b) - getPrimaryDateTime(a));
+    return currentTodayShoots[0] || null;
+  }, [myActiveOrUpcomingShoots, now]);
 
-  const featuredShoot = activeShoot || nextAssignedShoot;
+  const upcomingShoot = useMemo(() => {
+    return myActiveOrUpcomingShoots.find((shoot) => {
+      const primaryDate = getPrimaryDateTime(shoot);
+      return primaryDate && primaryDate >= now;
+    }) || null;
+  }, [myActiveOrUpcomingShoots, now]);
+
+  const featuredShoot = currentShoot || upcomingShoot;
   const featuredShootSchedule = featuredShoot ? getScheduleDateTimes(featuredShoot) : null;
-  const featuredShootStatus = featuredShoot
-    ? getShootBannerStatus(featuredShoot, now, featuredShootSchedule)
-    : null;
-  const featuredShootTarget = activeShoot
-    ? null
-    : (featuredShootSchedule?.setup || featuredShootSchedule?.game || null);
-  const featuredShootCountdown = featuredShootTarget
-    ? formatCountdown(featuredShootTarget - now)
-    : null;
+  const featuredShootTarget = featuredShoot ? getPrimaryDateTime(featuredShoot) : null;
+  const featuredShootCountdown = featuredShootTarget ? formatCountdown(featuredShootTarget - now) : '—';
+  const featuredShootStatus = featuredShoot ? getShootStatusLabel(featuredShoot, now) : null;
 
   return (
     <div className="mb-6 rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-900/80 px-4 py-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:px-5">
@@ -172,6 +137,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           {currentStandby.length > 0 ? (
             <div className="space-y-2">
               {currentStandby.map((sd) => {
+                const windowRange = getStandbyWindowDateTimes(sd);
                 const startDate = sd.start_date || sd.date;
                 const endDate = sd.end_date || startDate;
                 return (
@@ -183,7 +149,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                     <div className="flex flex-wrap gap-1.5 pl-5">
                       <InfoPill>{format(new Date(`${startDate}T12:00:00`), 'MMM d')}</InfoPill>
                       {endDate && endDate !== startDate && <InfoPill>{format(new Date(`${endDate}T12:00:00`), 'MMM d')}</InfoPill>}
-                      {sd.end_time && <InfoPill tone="yellow">ends {sd.end_time}</InfoPill>}
+                      {windowRange?.end && <InfoPill tone="yellow">ends {format(windowRange.end, 'HH:mm')}</InfoPill>}
                     </div>
                   </div>
                 );
@@ -211,7 +177,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           )}
         </Section>
 
-        <Section label={activeShoot ? 'Your Current Shoot' : 'Your Next Shoot'} accent="text-blue-400" withDivider={false}>
+        <Section label={currentShoot ? 'Your Current Shoot' : 'Your Next Shoot'} accent="text-blue-400" withDivider={false}>
           {featuredShoot ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-white">
@@ -221,10 +187,13 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               <div className="flex flex-wrap gap-1.5 pl-5">
                 <InfoPill>{format(new Date(`${featuredShoot.date}T12:00:00`), 'MMM d')}</InfoPill>
                 {featuredShootSchedule?.setup && <InfoPill tone="blue">setup {format(featuredShootSchedule.setup, 'HH:mm')}</InfoPill>}
-                {featuredShootStatus && <InfoPill tone={featuredShootStatus.tone}>{featuredShootStatus.label}</InfoPill>}
+                {featuredShootStatus && <InfoPill tone={currentShoot ? 'green' : 'blue'}>{featuredShootStatus}</InfoPill>}
               </div>
-              <div className="pl-5 font-mono text-lg font-bold text-blue-400">
-                {activeShoot ? featuredShootStatus?.label || 'Live' : featuredShootCountdown || '—'}
+              <div className="pl-5 flex items-center gap-2">
+                <Clock3 className="h-4 w-4 text-blue-400" />
+                <span className="font-mono text-lg font-bold text-blue-400">
+                  {currentShoot ? 'Active today' : featuredShootCountdown}
+                </span>
               </div>
             </div>
           ) : (
