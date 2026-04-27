@@ -109,12 +109,21 @@ function ShootCalendarEntry({
   onSelect,
   onUpdate,
   onDuplicate,
+  getStandbyCoverageForShoot,
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const hasPending = (shoot.pending_operators || []).length > 0;
   const fancam = isFancamOrMixed(shoot, rigSettings);
+  const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
+  const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
+  const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
+  const standbyCoverageClass = isMyStandbyCoverage
+    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+    : isOtherStandbyCoverage
+      ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
+      : '';
 
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
     const u = allUsers.find(u2 => u2.email === email);
@@ -208,7 +217,7 @@ function ShootCalendarEntry({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(shoot, day); }}
       onClick={() => onSelect(shoot, day)}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60 border-gray-800' : 'bg-gray-900/80 border-gray-800 hover:bg-gray-800/90 hover:border-gray-700'} ${shootFull ? 'opacity-45' : ''}`}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${standbyCoverageClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -225,6 +234,11 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
+              {standbyCoverage && (
+                <p className={`text-[10px] mt-0.5 truncate ${isMyStandbyCoverage ? 'text-blue-300' : 'text-green-300'}`}>
+                  Standby cover: {standbyCoverage.admin_name || standbyCoverage.admin_email}
+                </p>
+              )}
             </div>
             {!compact && (
               <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize flex-shrink-0 ${
@@ -403,6 +417,29 @@ export default function Calendar() {
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
   });
 
+  const getStandbyCoverageForShoot = (shoot) => {
+    if (!shoot?.date) return null;
+
+    const shootTime = shoot.game_time || shoot.start_time || '12:00';
+    const shootDateTime = new Date(`${shoot.date}T00:00:00`);
+    shootDateTime.setMinutes(timeToMinutes(shootTime));
+
+    return (standbyDays || []).find((standby) => {
+      const startDateStr = standby.start_date || standby.date;
+      if (!startDateStr) return false;
+
+      const fallbackEndDate = format(addDays(new Date(`${startDateStr}T00:00:00`), 1), 'yyyy-MM-dd');
+      const endDateStr = standby.end_date || fallbackEndDate;
+      const startTime = standby.start_time || '18:00';
+      const endTime = standby.end_time || '06:00';
+
+      const startDateTime = new Date(`${startDateStr}T${startTime}:00`);
+      const endDateTime = new Date(`${endDateStr}T${endTime}:00`);
+
+      return shootDateTime >= startDateTime && shootDateTime <= endDateTime;
+    }) || null;
+  };
+
   const getStandbyForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
@@ -570,6 +607,7 @@ export default function Calendar() {
       onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
       onDuplicate={duplicateShoot}
+      getStandbyCoverageForShoot={getStandbyCoverageForShoot}
     />
   );
 
@@ -801,6 +839,8 @@ export default function Calendar() {
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
+                { label: 'My Standby Coverage', color: 'bg-blue-500' },
+                { label: 'Other Standby Coverage', color: 'bg-green-500' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
