@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, Calendar as CalendarIcon, UserCheck, UserX, Check, XCircle } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, addMonths, subMonths, isToday
+  isSameDay, addMonths, subMonths, isToday, startOfWeek,
+  endOfWeek, addWeeks, subWeeks, addDays
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
@@ -24,6 +25,10 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
+const AUTO_APPROVE_LIMIT = 5;
+const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
+const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
+
 const isFancamOrMixed = (shoot, rigSettings) => {
   if (shoot.rig_type_override === 'Fancam' || shoot.rig_type_override === 'Data/Fancam') return true;
   if (shoot.rig_type_override === 'Data') return false;
@@ -34,14 +39,277 @@ const isFancamOrMixed = (shoot, rigSettings) => {
   return rs?.rig_type === 'Fancam' || rs?.rig_type === 'Data/Fancam';
 };
 
-const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
-const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
+const timeToMinutes = (time) => {
+  if (!time || typeof time !== 'string' || !time.includes(':')) return 12 * 60;
+  const [h, m] = time.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return 12 * 60;
+  return h * 60 + m;
+};
+
+const minutesToTime = (minutes) => {
+  const safeMinutes = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  const h = Math.floor(safeMinutes / 60).toString().padStart(2, '0');
+  const m = (safeMinutes % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+};
+
+async function createShootTimeEntry(shoot, email, name, notes) {
+  const { setup_offset = -150 } = shoot;
+  const gameMinutes = timeToMinutes(shoot.game_time || '19:00');
+  const setupMinutes = gameMinutes + setup_offset - 60;
+  const endMinutes = gameMinutes + 300 + 60;
+  const totalHours = (endMinutes - setupMinutes) / 60;
+
+  await base44.entities.TimeEntry.create({
+    operator_email: email,
+    operator_name: name,
+    shoot_id: shoot.id,
+    date: shoot.date,
+    hours: Math.max(1, parseFloat(totalHours.toFixed(2))),
+    rate: 0,
+    total: 0,
+    notes: notes || shoot.title,
+    entry_type: 'manual',
+    status: 'approved',
+  });
+}
+
+function ViewToggle({ viewMode, setViewMode }) {
+  const items = [
+    { key: 'week', label: 'Week', icon: CalendarRange },
+    { key: 'month', label: 'Month', icon: CalendarDays },
+    { key: 'day', label: 'Day', icon: CalendarIcon },
+  ];
+
+  return (
+    <div className="flex gap-1 bg-gray-950 border border-gray-800 rounded-lg p-1">
+      {items.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          onClick={() => setViewMode(key)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${viewMode === key ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+        >
+          <Icon className="h-4 w-4" />
+          <span className="hidden sm:inline">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ShootCalendarEntry({
+  shoot,
+  day,
+  user,
+  isAdmin,
+  allUsers,
+  allShoots,
+  rigSettings,
+  todayStr,
+  compact = false,
+  onSelect,
+  onUpdate,
+}) {
+  const isPast = shoot.date < todayStr;
+  const isAssigned = shoot.assigned_operators?.includes(user?.email);
+  const isPending = shoot.pending_operators?.includes(user?.email);
+  const hasPending = (shoot.pending_operators || []).length > 0;
+  const fancam = isFancamOrMixed(shoot, rigSettings);
+
+  const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
+    const u = allUsers.find(u2 => u2.email === email);
+    return !u || u.role !== 'admin';
+  });
+  const shootFull = !isAdmin && nonAdminAssigned.length > 0 && !isAssigned;
+
+  const dotColor = isPast
+    ? 'bg-gray-600'
+    : isAssigned
+      ? 'bg-purple-500'
+      : fancam
+        ? 'bg-orange-500'
+        : statusColors[shoot.status] || 'bg-blue-600';
+
+  const assignedNames = (shoot.assigned_operators || [])
+    .map(email => {
+      const assignedUser = allUsers.find(u => u.email === email);
+      return getDisplayName(assignedUser, email);
+    })
+    .join(', ');
+
+  const assignmentLabel = assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
+
+  const getApprovedCount = (email) =>
+    allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(email)).length;
+
+  const handleSelfAssign = async (e) => {
+    e.stopPropagation();
+    if (!user?.email || isPast) return;
+
+    if (isPending) {
+      await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(email => email !== user.email) });
+    } else if (isAssigned) {
+      await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(email => email !== user.email) });
+    } else if (isAdmin) {
+      await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
+    } else {
+      if (shootFull) return;
+      const approvedCount = getApprovedCount(user.email);
+      if (approvedCount < AUTO_APPROVE_LIMIT) {
+        await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      } else if (!(shoot.pending_operators || []).includes(user.email)) {
+        await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
+      }
+    }
+  };
+
+  const handleApprove = async (e, email) => {
+    e.stopPropagation();
+    await onUpdate(shoot.id, {
+      pending_operators: (shoot.pending_operators || []).filter(item => item !== email),
+      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
+    });
+  };
+
+  const handleReject = async (e, email) => {
+    e.stopPropagation();
+    await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(item => item !== email) });
+  };
+
+  const handleAdminAssignUser = async (email) => {
+    if (!email || email === '__placeholder__') return;
+    await onUpdate(shoot.id, {
+      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
+      pending_operators: (shoot.pending_operators || []).filter(item => item !== email),
+    });
+  };
+
+  const handleRemoveOperator = async (e, email) => {
+    e.stopPropagation();
+    await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(item => item !== email) });
+  };
+
+  const assignableUsers = Array.from(
+    new Map(
+      (allUsers || [])
+        .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
+        .map((u) => [u.email.trim(), { ...u, email: u.email.trim() }])
+    ).values()
+  ).filter(
+    (u) =>
+      !shoot.assigned_operators?.includes(u.email) &&
+      !shoot.pending_operators?.includes(u.email)
+  );
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(shoot, day); }}
+      onClick={() => onSelect(shoot, day)}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60 border-gray-800' : 'bg-gray-900/80 border-gray-800 hover:bg-gray-800/90 hover:border-gray-700'} ${shootFull ? 'opacity-45' : ''}`}
+    >
+      <div className="flex items-start gap-2">
+        <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-white truncate`}>
+                {shoot.game_time ? `${shoot.game_time} ` : ''}{shortenTitle(shoot.title)}
+              </p>
+              {(shoot.client || shoot.location) && !compact && (
+                <p className="text-xs text-gray-500 truncate">{shoot.client || shoot.location}</p>
+              )}
+              <p className={`${compact ? 'text-[11px]' : 'text-xs'} ${hasPending && !assignedNames ? 'text-yellow-400' : 'text-gray-400'} truncate`}>
+                {assignmentLabel}
+                {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
+              </p>
+            </div>
+            {!compact && (
+              <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize flex-shrink-0 ${
+                shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
+                shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
+                shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                'bg-blue-500/15 text-blue-400 border-blue-500/25'
+              }`}>
+                {(shoot.status || 'upcoming').replace('_', ' ')}
+              </span>
+            )}
+          </div>
+
+          {!compact && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isPast || shootFull}
+                onClick={handleSelfAssign}
+                className={`h-7 text-xs border-gray-700 ${isAssigned ? 'text-green-400 hover:bg-green-950/30' : isPending ? 'text-yellow-400 hover:bg-yellow-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+              >
+                {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
+              </Button>
+
+              {isAdmin && assignableUsers.length > 0 && (
+                <Select onValueChange={handleAdminAssignUser} value="__placeholder__">
+                  <SelectTrigger className="h-7 w-[170px] bg-gray-950 border-gray-700 text-gray-300 text-xs" onClick={(e) => e.stopPropagation()}>
+                    <SelectValue placeholder="Assign operator" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700">
+                    <SelectItem value="__placeholder__" disabled className="text-gray-500">Assign operator</SelectItem>
+                    {assignableUsers.map(u => (
+                      <SelectItem key={u.email} value={u.email} className="text-white">
+                        {getDisplayName(u, u.email)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+
+          {!compact && isAdmin && shoot.pending_operators?.length > 0 && (
+            <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
+              {shoot.pending_operators.map(email => {
+                const pendingUser = allUsers.find(u => u.email === email);
+                return (
+                  <div key={email} className="flex items-center justify-between gap-2 rounded-md bg-yellow-950/25 border border-yellow-800/35 px-2 py-1">
+                    <span className="text-xs text-yellow-200 truncate">Pending: {getDisplayName(pendingUser, email)}</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button size="icon" variant="ghost" className="h-6 w-6 text-green-400 hover:bg-green-950/40" onClick={(e) => handleApprove(e, email)}><Check className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6 text-red-400 hover:bg-red-950/40" onClick={(e) => handleReject(e, email)}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!compact && isAdmin && shoot.assigned_operators?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {shoot.assigned_operators.map(email => {
+                const assignedUser = allUsers.find(u => u.email === email);
+                return (
+                  <span key={email} className="inline-flex items-center gap-1 text-xs rounded-full bg-gray-800 border border-gray-700 text-gray-300 px-2 py-1">
+                    {getDisplayName(assignedUser, email)}
+                    <button type="button" className="text-gray-500 hover:text-red-400" onClick={(e) => handleRemoveOperator(e, email)}>×</button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Calendar() {
   const { user, isAdmin, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState('week');
   const [showCSV, setShowCSV] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingShoot, setEditingShoot] = useState(null);
@@ -75,7 +343,6 @@ export default function Calendar() {
     queryFn: () => base44.entities.UserPresence.list(),
   });
 
-  // Merge User records with UserPresence so name lookups work for all admins
   const allUsers = useMemo(() => {
     const map = new Map();
 
@@ -131,18 +398,17 @@ export default function Calendar() {
       const found = shoots.find(s => s.id === selectedShoot.id);
       if (found) {
         setSelectedShoot(found);
-        setSelectedDate(new Date(found.date + 'T12:00:00'));
+        const foundDate = new Date(found.date + 'T12:00:00');
+        setSelectedDate(foundDate);
+        setCurrentDate(foundDate);
       }
     }
-  }, [shoots]);
+  }, [shoots, selectedShoot]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startPadding = monthStart.getDay();
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
 
   const getShootsForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
@@ -150,10 +416,6 @@ export default function Calendar() {
       .filter(s => s.date === dateStr)
       .sort((a, b) => (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || ''));
   };
-
-  const selectedShoots = getShootsForDay(selectedDate);
-  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const isSelectedPast = selectedDateStr < todayStr;
 
   const handleAddShoot = async () => {
     if (!form.title || !form.date) return;
@@ -185,7 +447,6 @@ export default function Calendar() {
     setEditingShoot(shoot);
     setForm({ ...emptyForm, ...shoot });
     setShowAddForm(true);
-    // Don't close the selected shoot, just show edit form below
     setTimeout(() => {
       document.getElementById('edit-form-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -197,21 +458,206 @@ export default function Calendar() {
     refresh();
   };
 
+  const handleSelectShoot = (shoot, day) => {
+    setSelectedShoot(shoot);
+    setSelectedDate(day);
+    setCurrentDate(day);
+  };
+
+  const goPrevious = () => {
+    setCurrentDate(prev => {
+      if (viewMode === 'month') return subMonths(prev, 1);
+      if (viewMode === 'week') return subWeeks(prev, 1);
+      return addDays(prev, -1);
+    });
+  };
+
+  const goNext = () => {
+    setCurrentDate(prev => {
+      if (viewMode === 'month') return addMonths(prev, 1);
+      if (viewMode === 'week') return addWeeks(prev, 1);
+      return addDays(prev, 1);
+    });
+  };
+
+  const titleText = useMemo(() => {
+    if (viewMode === 'month') return format(currentDate, 'MMMM yyyy');
+    if (viewMode === 'day') return format(currentDate, 'EEEE, MMMM d yyyy');
+    const start = startOfWeek(currentDate, { weekStartsOn: 0 });
+    const end = endOfWeek(currentDate, { weekStartsOn: 0 });
+    return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+  }, [currentDate, viewMode]);
+
   const liveSelectedShoot = selectedShoot
     ? (shoots.find(s => s.id === selectedShoot.id) || selectedShoot)
     : null;
 
+  const renderEntry = (shoot, day, compact = false) => (
+    <ShootCalendarEntry
+      key={shoot.id}
+      shoot={shoot}
+      day={day}
+      user={user}
+      isAdmin={isAdmin}
+      allUsers={allUsers}
+      allShoots={shoots}
+      rigSettings={rigSettings}
+      todayStr={todayStr}
+      compact={compact}
+      onSelect={handleSelectShoot}
+      onUpdate={handleShootUpdate}
+    />
+  );
+
+  const renderMonthView = () => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const startPadding = monthStart.getDay();
+
+    return (
+      <CardContent className="p-3 md:p-4">
+        <div className="grid grid-cols-7 mb-2 min-w-[1100px] xl:min-w-0">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+            <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1.5 min-w-[1100px] xl:min-w-0">
+          {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
+          {calendarDays.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            const isPast = dateStr < todayStr;
+            const dayShoots = getShootsForDay(day);
+            const isSelected = isSameDay(day, selectedDate);
+            const today = isToday(day);
+            return (
+              <div
+                key={day.toISOString()}
+                onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
+                className={`min-h-[210px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
+                  ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
+                  ${today ? 'ring-2 ring-blue-500' : ''}
+                  ${isPast ? 'opacity-55' : ''}
+                `}
+              >
+                <div className={`text-xs font-semibold mb-1.5 ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
+                  {format(day, 'd')}
+                </div>
+                <div className="space-y-1">
+                  {dayShoots.map(s => renderEntry(s, day, true))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    );
+  };
+
+  const renderWeekView = () => {
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const hours = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 - 23:00
+
+    return (
+      <CardContent className="p-3 md:p-4 overflow-x-auto">
+        <div className="min-w-[1180px]">
+          <div className="grid grid-cols-[72px_repeat(7,minmax(150px,1fr))] border-b border-gray-800 pb-2 mb-2">
+            <div />
+            {weekDays.map(day => {
+              const shootsForDay = getShootsForDay(day);
+              return (
+                <div
+                  key={day.toISOString()}
+                  onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
+                  className={`px-2 py-2 rounded-lg cursor-pointer ${isToday(day) ? 'bg-blue-950/50 text-blue-300' : 'text-gray-300 hover:bg-gray-800/60'}`}
+                >
+                  <p className="text-xs uppercase tracking-wider text-gray-500">{format(day, 'EEE')}</p>
+                  <p className="text-lg font-bold">{format(day, 'd')}</p>
+                  <p className="text-[11px] text-gray-500">{shootsForDay.length} shoot{shootsForDay.length === 1 ? '' : 's'}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-[72px_repeat(7,minmax(150px,1fr))]">
+            {hours.map(hour => (
+              <React.Fragment key={hour}>
+                <div className="h-24 border-t border-gray-800 pr-2 pt-2 text-right text-xs font-mono text-gray-500">
+                  {`${hour.toString().padStart(2, '0')}:00`}
+                </div>
+                {weekDays.map(day => {
+                  const dayShoots = getShootsForDay(day).filter(shoot => {
+                    const minutes = timeToMinutes(shoot.game_time || shoot.start_time || '12:00');
+                    return Math.floor(minutes / 60) === hour;
+                  });
+                  return (
+                    <div key={`${day.toISOString()}-${hour}`} className="h-24 border-t border-l border-gray-800 p-1.5 overflow-y-auto">
+                      <div className="space-y-1.5">
+                        {dayShoots.map(shoot => renderEntry(shoot, day, false))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    );
+  };
+
+  const renderDayView = () => {
+    const dayShoots = getShootsForDay(currentDate);
+    const hours = Array.from({ length: 18 }, (_, i) => i + 6);
+
+    return (
+      <CardContent className="p-3 md:p-4">
+        <div className="space-y-0">
+          {hours.map(hour => {
+            const hourShoots = dayShoots.filter(shoot => {
+              const minutes = timeToMinutes(shoot.game_time || shoot.start_time || '12:00');
+              return Math.floor(minutes / 60) === hour;
+            });
+            return (
+              <div key={hour} className="grid grid-cols-[72px_1fr] min-h-[92px]">
+                <div className="border-t border-gray-800 pr-3 pt-3 text-right text-xs font-mono text-gray-500">
+                  {`${hour.toString().padStart(2, '0')}:00`}
+                </div>
+                <div className="border-t border-l border-gray-800 p-2">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                    {hourShoots.map(shoot => renderEntry(shoot, currentDate, false))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {dayShoots.length === 0 && (
+            <div className="p-8 text-center text-gray-500 text-sm">Nothing scheduled for this day.</div>
+          )}
+        </div>
+      </CardContent>
+    );
+  };
+
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h1 className="text-3xl font-bold">Calendar</h1>
-          <div className="flex gap-2 flex-wrap">
+    <div className="min-h-screen bg-gray-950 text-white p-3 md:p-5">
+      <div className="w-full max-w-[1800px] mx-auto">
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Calendar</h1>
+            <p className="text-sm text-gray-500 mt-1">Week view is now the default scheduling board.</p>
+          </div>
+          <div className="flex gap-2 flex-wrap items-center">
             <div className="flex md:hidden gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
               <button onClick={() => setMobileView('calendar')} className={`p-1.5 rounded ${mobileView === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><Grid3x3 className="h-4 w-4" /></button>
               <button onClick={() => setMobileView('list')} className={`p-1.5 rounded ${mobileView === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><List className="h-4 w-4" /></button>
             </div>
+            <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
               <>
                 <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
@@ -225,15 +671,14 @@ export default function Calendar() {
           </div>
         </div>
 
-        {/* Mobile List View */}
         {mobileView === 'list' && (
           <div className="md:hidden mb-6">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <Button variant="ghost" size="icon" onClick={goPrevious} className="text-gray-400 hover:text-white hover:bg-gray-800">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <span className="text-white font-semibold">{format(currentMonth, 'MMMM yyyy')}</span>
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <span className="text-white font-semibold">{titleText}</span>
+              <Button variant="ghost" size="icon" onClick={goNext} className="text-gray-400 hover:text-white hover:bg-gray-800">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
@@ -248,19 +693,9 @@ export default function Calendar() {
                     <p className={`text-xs font-semibold uppercase tracking-wider mb-1 px-1 ${isToday(day) ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
                       {format(day, 'EEE, MMM d')}
                     </p>
-                    {dayShoots.map(s => {
-                      const isMyAssigned = s.assigned_operators?.includes(user?.email);
-                      return (
-                        <button key={s.id} onClick={() => { setSelectedShoot(s); setSelectedDate(day); setMobileView('calendar'); }}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg mb-1 flex items-center justify-between ${isPast ? 'bg-gray-800/40 opacity-60' : isMyAssigned ? 'bg-purple-900/40 border border-purple-700/50' : 'bg-gray-800'} hover:opacity-90 transition-opacity`}>
-                          <div>
-                            <p className="text-white text-sm font-medium">{shortenTitle(s.title)}</p>
-                            {s.client && <p className="text-xs text-gray-400">{s.client}</p>}
-                          </div>
-                          {s.game_time && <span className="text-xs font-mono text-blue-300 flex-shrink-0 ml-2">{s.game_time}</span>}
-                        </button>
-                      );
-                    })}
+                    <div className="space-y-1.5">
+                      {dayShoots.map(s => renderEntry(s, day, false))}
+                    </div>
                   </div>
                 );
               })}
@@ -268,100 +703,33 @@ export default function Calendar() {
           </div>
         )}
 
-        {/* Desktop: Full Width Calendar + Panel Below */}
         <div className={mobileView === 'list' ? 'hidden md:block' : ''}>
-          {/* Full Width Calendar */}
-          <Card className="bg-gray-900 border-gray-800 mb-4">
-            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-800">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+          <Card className="bg-gray-900 border-gray-800 mb-4 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-800 gap-3">
+              <Button variant="ghost" size="icon" onClick={goPrevious} className="text-gray-400 hover:text-white hover:bg-gray-800 flex-shrink-0">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <CardTitle className="text-white text-xl">{format(currentMonth, 'MMMM yyyy')}</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <div className="text-center min-w-0">
+                <CardTitle className="text-white text-xl truncate">{titleText}</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => { const now = new Date(); setCurrentDate(now); setSelectedDate(now); }}
+                  className="text-xs text-blue-400 hover:text-blue-300 mt-1"
+                >
+                  Jump to today
+                </button>
+              </div>
+              <Button variant="ghost" size="icon" onClick={goNext} className="text-gray-400 hover:text-white hover:bg-gray-800 flex-shrink-0">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </CardHeader>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-7 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
-                {calendarDays.map(day => {
-                  const dateStr = format(day, 'yyyy-MM-dd');
-                  const isPast = dateStr < todayStr;
-                  const dayShoots = getShootsForDay(day);
-                  const isSelected = isSameDay(day, selectedDate);
-                  const today = isToday(day);
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      onClick={() => { setSelectedDate(day); setSelectedShoot(null); }}
-                      className={`min-h-[150px] p-2 rounded-lg cursor-pointer border transition-all
-                        ${isSelected ? 'border-blue-500 bg-blue-950/60' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/50'}
-                        ${today ? 'ring-2 ring-blue-500' : ''}
-                        ${isPast ? 'opacity-50' : ''}
-                      `}
-                    >
-                      <div className={`text-xs font-semibold mb-1 ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
-                        {format(day, 'd')}
-                      </div>
-                      <div className="space-y-1">
-                        {dayShoots.map(s => {
-                          const isMyAssigned = s.assigned_operators?.includes(user?.email);
-                          const fancam = isFancamOrMixed(s, rigSettings);
-
-                          const dotColor = isPast
-                            ? 'bg-gray-600'
-                            : isMyAssigned
-                              ? 'bg-purple-500'
-                              : fancam
-                                ? 'bg-orange-500'
-                                : statusColors[s.status] || 'bg-blue-600';
-
-                          const assignedNames = (s.assigned_operators || [])
-                            .map(email => {
-                              const assignedUser = allUsers.find(u => u.email === email);
-                              return getDisplayName(assignedUser, email);
-                            })
-                            .join(', ');
-
-                          return (
-                            <button
-                              key={s.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedDate(day);
-                                setSelectedShoot(s);
-                              }}
-                              className="w-full text-left rounded-md px-1.5 py-1 hover:bg-gray-800/80 transition-colors"
-                            >
-                              <div className="flex items-start gap-1.5">
-                                <span className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${dotColor}`} />
-                                <div className="min-w-0">
-                                  <p className="text-xs text-white truncate">
-                                    {s.game_time ? `${s.game_time} ` : ''}
-                                    {shortenTitle(s.title)}
-                                  </p>
-                                  <p className="text-[11px] text-gray-500 truncate">
-                                    {assignedNames || 'Unassigned'}
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
+            <div className="overflow-x-auto">
+              {viewMode === 'month' && renderMonthView()}
+              {viewMode === 'week' && renderWeekView()}
+              {viewMode === 'day' && renderDayView()}
+            </div>
           </Card>
 
-          {/* Legend */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-4">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Legend</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5">
@@ -372,7 +740,7 @@ export default function Calendar() {
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
-                { label: 'Past', color: 'bg-gray-700 opacity-50' },
+                { label: 'Pending Approval', color: 'bg-yellow-400' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
@@ -382,14 +750,13 @@ export default function Calendar() {
             </div>
           </div>
 
-          {/* Panel below calendar */}
-          {liveSelectedShoot ? (
+          {liveSelectedShoot && (
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="border-b border-gray-800 pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-white text-base truncate">{liveSelectedShoot.title}</CardTitle>
-                    <p className="text-xs text-gray-400 mt-0.5">{format(selectedDate, 'EEE, MMM d yyyy')}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{format(new Date(liveSelectedShoot.date + 'T12:00:00'), 'EEE, MMM d yyyy')}</p>
                   </div>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white ml-2" onClick={() => setSelectedShoot(null)}>
                     <X className="h-4 w-4" />
@@ -416,122 +783,8 @@ export default function Calendar() {
                 />
               </CardContent>
             </Card>
-          ) : (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-3">
-                <CardTitle className="text-white text-base">
-                  {format(selectedDate, 'EEEE, MMMM d')}
-                  {isSelectedPast && <span className="text-xs text-gray-500 ml-2 font-normal">(past)</span>}
-                </CardTitle>
-                <p className="text-xs text-gray-500">{selectedShoots.length} shoot(s) — click to view details</p>
-                {/* Standby for this day — show all entries */}
-                {(() => {
-                  const dayStandbys = standbyDays.filter(s => {
-                    const sd = s.start_date || s.date;
-                    const ed = s.end_date || sd;
-                    return sd && sd <= selectedDateStr && selectedDateStr <= ed;
-                  });
-                  if (dayStandbys.length === 0) return null;
-                  return (
-                    <div className="mt-2 bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2 space-y-1">
-                      <span className="text-yellow-500 text-xs font-medium">📞 Standby</span>
-                      {dayStandbys.map((sd, i) => {
-                        const sdUser = allUsers.find(u => u.email === sd.admin_email);
-                        return (
-                          <div key={sd.id || i} className="flex items-center gap-2 flex-wrap">
-                            <span className="text-yellow-200 text-xs font-medium">{getDisplayName(sdUser, sd.admin_email, sd.admin_name)}</span>
-                            {(sd.start_time || sd.end_time) && (
-                              <span className="text-yellow-600 text-xs">
-                                {sd.start_time && `from ${sd.start_time}`}{sd.start_time && sd.end_time && ' → '}{sd.end_time && `until ${sd.end_time}`}
-                              </span>
-                            )}
-                            {dayStandbys.length > 1 && i < dayStandbys.length - 1 && (
-                              <span className="text-yellow-800 text-xs">then →</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </CardHeader>
-              <CardContent className="p-0">
-                {selectedShoots.length === 0 ? (
-                  <p className="text-gray-500 text-sm p-6">Nothing scheduled for this day.</p>
-                ) : (
-                  <div className="divide-y divide-gray-800">
-                    {selectedShoots.map(shoot => {
-                      const isPast = shoot.date < todayStr;
-                      const isAssigned = shoot.assigned_operators?.includes(user?.email);
-                      const isPending = shoot.pending_operators?.includes(user?.email);
-                      // Shoot is "taken" when a non-admin operator is already assigned and current user is not assigned
-                      const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
-                        const u = allUsers.find(u2 => u2.email === e);
-                        return !u || u.role !== 'admin';
-                      });
-                      const isTaken = !isAdmin && nonAdminAssigned.length > 0 && !isAssigned;
-
-                      if (isTaken && !isAdmin) {
-                        // Grayed out — show info but not clickable for remote users
-                        return (
-                          <div key={shoot.id} className="p-4 opacity-40 cursor-not-allowed">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-400 text-sm truncate">{shortenTitle(shoot.title)}</p>
-                                {shoot.game_time && <p className="text-xs font-mono text-gray-500 mt-0.5">{shoot.game_time}</p>}
-                                {shoot.location && <p className="text-xs text-gray-600 mt-0.5">{shoot.location}</p>}
-                              </div>
-                              <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-700/50 text-gray-500 border-gray-700 flex-shrink-0 ml-2">Taken</span>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <button
-                          key={shoot.id}
-                          onClick={() => setSelectedShoot(shoot)}
-                          className={`w-full text-left p-4 hover:bg-gray-800/60 transition-colors ${isPast ? 'opacity-60' : ''}`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-white text-sm truncate">{shortenTitle(shoot.title)}</p>
-                              {shoot.game_time && <p className="text-xs font-mono text-blue-300 mt-0.5">{shoot.game_time}</p>}
-                              {shoot.location && <p className="text-xs text-gray-500 mt-0.5">{shoot.location}</p>}
-                            </div>
-                            <div className="flex flex-col items-end gap-1 ml-2">
-                              <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                                isPast ? 'bg-gray-700/50 text-gray-500 border-gray-700' :
-                                shoot.status === 'confirmed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                              }`}>{shoot.status}</span>
-                              {isAssigned && <span className="text-xs text-green-400">✓ Assigned</span>}
-                              {isPending && <span className="text-xs text-yellow-400">Pending</span>}
-                                      {shoot.assigned_operators?.length > 0 && (
-                                <div className="flex flex-col items-end gap-0.5">
-                                  {shoot.assigned_operators.map(email => {
-                                    const u = allUsers.find(u2 => u2.email === email);
-                                    return (
-                                      <span key={email} className="text-xs text-gray-400">
-                                        {getDisplayName(u, email)}
-                                        {u?.role === 'admin' ? ' (admin)' : ''}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           )}
 
-          {/* Edit form — anchored below panel */}
           {isAdmin && showAddForm && (
             <div id="edit-form-anchor" className="mt-4">
               <Card className="bg-gray-900 border-blue-700">
