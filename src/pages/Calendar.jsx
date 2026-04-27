@@ -299,7 +299,7 @@ export default function Calendar() {
                     <div
                       key={day.toISOString()}
                       onClick={() => { setSelectedDate(day); setSelectedShoot(null); }}
-                      className={`min-h-[88px] p-1.5 rounded-lg cursor-pointer border transition-all
+                      className={`min-h-[150px] p-2 rounded-lg cursor-pointer border transition-all
                         ${isSelected ? 'border-blue-500 bg-blue-950/60' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/50'}
                         ${today ? 'ring-2 ring-blue-500' : ''}
                         ${isPast ? 'opacity-50' : ''}
@@ -308,18 +308,51 @@ export default function Calendar() {
                       <div className={`text-xs font-semibold mb-1 ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
                         {format(day, 'd')}
                       </div>
-                      <div className="space-y-0.5">
-                        {dayShoots.slice(0, 3).map(s => {
+                      <div className="space-y-1">
+                        {dayShoots.map(s => {
                           const isMyAssigned = s.assigned_operators?.includes(user?.email);
                           const fancam = isFancamOrMixed(s, rigSettings);
-                          const cellColor = isPast ? 'bg-gray-700 opacity-60' : isMyAssigned ? 'bg-purple-600' : fancam ? 'bg-orange-500' : (statusColors[s.status] || 'bg-blue-600');
+
+                          const dotColor = isPast
+                            ? 'bg-gray-600'
+                            : isMyAssigned
+                              ? 'bg-purple-500'
+                              : fancam
+                                ? 'bg-orange-500'
+                                : statusColors[s.status] || 'bg-blue-600';
+
+                          const assignedNames = (s.assigned_operators || [])
+                            .map(email => {
+                              const assignedUser = allUsers.find(u => u.email === email);
+                              return getDisplayName(assignedUser, email);
+                            })
+                            .join(', ');
+
                           return (
-                            <div key={s.id} className={`text-xs truncate px-1 py-0.5 rounded text-white ${cellColor}`}>
-                              {s.game_time ? `${s.game_time} ` : ''}{shortenTitle(s.title)}
-                            </div>
+                            <button
+                              key={s.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDate(day);
+                                setSelectedShoot(s);
+                              }}
+                              className="w-full text-left rounded-md px-1.5 py-1 hover:bg-gray-800/80 transition-colors"
+                            >
+                              <div className="flex items-start gap-1.5">
+                                <span className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                                <div className="min-w-0">
+                                  <p className="text-xs text-white truncate">
+                                    {s.game_time ? `${s.game_time} ` : ''}
+                                    {shortenTitle(s.title)}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 truncate">
+                                    {assignedNames || 'Unassigned'}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
                           );
                         })}
-                        {dayShoots.length > 3 && <div className="text-xs text-gray-500">+{dayShoots.length - 3}</div>}
                       </div>
                     </div>
                   );
@@ -337,12 +370,12 @@ export default function Calendar() {
                 { label: 'Confirmed', color: 'bg-green-600' },
                 { label: 'In Progress', color: 'bg-yellow-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
-                { label: 'My Assigned', color: 'bg-purple-600' },
+                { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Past', color: 'bg-gray-700 opacity-50' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded ${l.color}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
                   <span className="text-xs text-gray-400">{l.label}</span>
                 </div>
               ))}
