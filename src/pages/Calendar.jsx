@@ -445,6 +445,8 @@ export default function Calendar() {
     return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
   };
 
+  const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;
+
   const userStandbyForDay = (day) => {
     if (!user?.email) return null;
     return getStandbyForDay(day).find(item => item.admin_email === user.email);
@@ -452,12 +454,42 @@ export default function Calendar() {
 
   const handleToggleStandbyDay = async (day) => {
     if (!isAdmin || !user?.email) return;
+
     const dateStr = format(day, 'yyyy-MM-dd');
     const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
-    const existing = userStandbyForDay(day);
+    const dayStandby = getStandbyForDay(day);
+    const primaryStandby = dayStandby[0] || null;
+    const myStandby = dayStandby.find(item => item.admin_email === user.email);
+    const isSomeoneElseStandby = primaryStandby && primaryStandby.admin_email !== user.email;
 
-    if (existing) {
-      await base44.entities.StandbyDay.delete(existing.id);
+    if (myStandby) {
+      await base44.entities.StandbyDay.delete(myStandby.id);
+      await Promise.all(
+        dayStandby
+          .filter(item => item.id !== myStandby.id && item.admin_email === user.email)
+          .map(item => base44.entities.StandbyDay.delete(item.id))
+      );
+    } else if (isSomeoneElseStandby) {
+      const currentName = primaryStandby.admin_name || primaryStandby.admin_email || 'another admin';
+      const shouldSwap = window.confirm(`This day is already assigned to ${currentName}. Swap standby coverage to you?`);
+      if (!shouldSwap) return;
+
+      await base44.entities.StandbyDay.update(primaryStandby.id, {
+        date: dateStr,
+        start_date: dateStr,
+        start_time: primaryStandby.start_time || '18:00',
+        end_date: primaryStandby.end_date || endDateStr,
+        end_time: primaryStandby.end_time || '06:00',
+        admin_email: user.email,
+        admin_name: user.full_name || user.email,
+        notes: `Calendar standby swapped from ${currentName}`,
+      });
+
+      await Promise.all(
+        dayStandby
+          .filter(item => item.id !== primaryStandby.id)
+          .map(item => base44.entities.StandbyDay.delete(item.id))
+      );
     } else {
       await base44.entities.StandbyDay.create({
         date: dateStr,
@@ -631,7 +663,9 @@ export default function Calendar() {
             const isPast = dateStr < todayStr;
             const dayShoots = getShootsForDay(day);
             const dayStandby = getStandbyForDay(day);
+            const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
+            const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const isSelected = isSameDay(day, selectedDate);
             const today = isToday(day);
             return (
@@ -652,22 +686,19 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myStandby ? 'border-green-500/40 bg-green-500/15 text-green-300' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'}`}
-                      title={myStandby ? 'Remove yourself from standby for this day' : 'Assign yourself to standby for this day'}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myStandby ? 'border-green-500/40 bg-green-500/15 text-green-300' : otherStandby ? 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                      title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
-                      Standby
+                      {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
                 </div>
-                {dayStandby.length > 0 && (
+                {primaryStandby && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
-                    {dayStandby.slice(0, 2).map(item => (
-                      <span key={item.id} className="text-[10px] rounded-full bg-green-950/40 border border-green-700/40 text-green-300 px-1.5 py-0.5 truncate max-w-full">
-                        Standby: {item.admin_name || item.admin_email}
-                      </span>
-                    ))}
-                    {dayStandby.length > 2 && <span className="text-[10px] text-green-400">+{dayStandby.length - 2}</span>}
+                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-green-950/40 border-green-700/40 text-green-300'}`}>
+                      Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                    </span>
                   </div>
                 )}
                 <div className="space-y-1">
@@ -691,7 +722,9 @@ export default function Calendar() {
           {weekDays.map(day => {
             const dayShoots = getShootsForDay(day);
             const dayStandby = getStandbyForDay(day);
+            const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
+            const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
 
@@ -703,20 +736,20 @@ export default function Calendar() {
                     <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {dayStandby.map(item => (
-                      <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-green-950/40 border border-green-700/40 text-green-300 px-2 py-1 text-xs">
-                        <ShieldCheck className="h-3 w-3" /> {item.admin_name || item.admin_email}
+                    {primaryStandby && (
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-green-950/40 border-green-700/40 text-green-300'}`}>
+                        <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                       </span>
-                    ))}
+                    )}
                     {isAdmin && !isPast && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleToggleStandbyDay(day)}
-                        className={`h-8 text-xs border-gray-700 ${myStandby ? 'text-green-300 hover:bg-green-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                        className={`h-8 text-xs border-gray-700 ${myStandby ? 'text-green-300 hover:bg-green-950/30' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
                       >
                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                        {myStandby ? 'Remove My Standby' : 'Assign Me Standby'}
+                        {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                       </Button>
                     )}
                   </div>
