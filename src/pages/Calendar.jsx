@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, Calendar as CalendarIcon, UserCheck, UserX, Check, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -76,9 +76,8 @@ async function createShootTimeEntry(shoot, email, name, notes) {
 
 function ViewToggle({ viewMode, setViewMode }) {
   const items = [
-    { key: 'week', label: 'Week', icon: CalendarRange },
-    { key: 'month', label: 'Month', icon: CalendarDays },
-    { key: 'day', label: 'Day', icon: CalendarIcon },
+    { key: 'month', label: 'Calendar', icon: CalendarDays },
+    { key: 'week', label: 'Week List', icon: CalendarRange },
   ];
 
   return (
@@ -109,6 +108,7 @@ function ShootCalendarEntry({
   compact = false,
   onSelect,
   onUpdate,
+  onDuplicate,
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
@@ -240,6 +240,16 @@ function ShootCalendarEntry({
 
           {!compact && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); onDuplicate?.(shoot); }}
+                  className="h-7 text-xs border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  <Copy className="h-3 w-3 mr-1" />Duplicate
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -309,7 +319,7 @@ export default function Calendar() {
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('week');
+  const [viewMode, setViewMode] = useState('month');
   const [showCSV, setShowCSV] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingShoot, setEditingShoot] = useState(null);
@@ -393,6 +403,40 @@ export default function Calendar() {
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
   });
 
+  const getStandbyForDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
+  };
+
+  const userStandbyForDay = (day) => {
+    if (!user?.email) return null;
+    return getStandbyForDay(day).find(item => item.admin_email === user.email);
+  };
+
+  const handleToggleStandbyDay = async (day) => {
+    if (!isAdmin || !user?.email) return;
+    const dateStr = format(day, 'yyyy-MM-dd');
+    const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
+    const existing = userStandbyForDay(day);
+
+    if (existing) {
+      await base44.entities.StandbyDay.delete(existing.id);
+    } else {
+      await base44.entities.StandbyDay.create({
+        date: dateStr,
+        start_date: dateStr,
+        start_time: '18:00',
+        end_date: endDateStr,
+        end_time: '06:00',
+        admin_email: user.email,
+        admin_name: user.full_name || user.email,
+        notes: 'Calendar standby assignment',
+      });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
+  };
+
   useEffect(() => {
     if (selectedShoot?._pending && shoots.length > 0) {
       const found = shoots.find(s => s.id === selectedShoot.id);
@@ -458,6 +502,26 @@ export default function Calendar() {
     refresh();
   };
 
+
+  const duplicateShoot = (shoot) => {
+    if (!isAdmin || !shoot) return;
+    const { id, created_date, updated_date, created_by, assigned_operators, pending_operators, ...copy } = shoot;
+    setEditingShoot(null);
+    setSelectedShoot(null);
+    setForm({
+      ...emptyForm,
+      ...copy,
+      title: `${shoot.title || 'Shoot'} Copy`,
+      assigned_operators: [],
+      pending_operators: [],
+      status: shoot.status || 'upcoming',
+    });
+    setShowAddForm(true);
+    setTimeout(() => {
+      document.getElementById('edit-form-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const handleSelectShoot = (shoot, day) => {
     setSelectedShoot(shoot);
     setSelectedDate(day);
@@ -468,7 +532,7 @@ export default function Calendar() {
     setCurrentDate(prev => {
       if (viewMode === 'month') return subMonths(prev, 1);
       if (viewMode === 'week') return subWeeks(prev, 1);
-      return addDays(prev, -1);
+      return subMonths(prev, 1);
     });
   };
 
@@ -476,13 +540,12 @@ export default function Calendar() {
     setCurrentDate(prev => {
       if (viewMode === 'month') return addMonths(prev, 1);
       if (viewMode === 'week') return addWeeks(prev, 1);
-      return addDays(prev, 1);
+      return addMonths(prev, 1);
     });
   };
 
   const titleText = useMemo(() => {
     if (viewMode === 'month') return format(currentDate, 'MMMM yyyy');
-    if (viewMode === 'day') return format(currentDate, 'EEEE, MMMM d yyyy');
     const start = startOfWeek(currentDate, { weekStartsOn: 0 });
     const end = endOfWeek(currentDate, { weekStartsOn: 0 });
     return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
@@ -506,6 +569,7 @@ export default function Calendar() {
       compact={compact}
       onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
+      onDuplicate={duplicateShoot}
     />
   );
 
@@ -528,21 +592,46 @@ export default function Calendar() {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
             const dayShoots = getShootsForDay(day);
+            const dayStandby = getStandbyForDay(day);
+            const myStandby = userStandbyForDay(day);
             const isSelected = isSameDay(day, selectedDate);
             const today = isToday(day);
             return (
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[210px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
+                className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${isPast ? 'opacity-55' : ''}
                 `}
               >
-                <div className={`text-xs font-semibold mb-1.5 ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
-                  {format(day, 'd')}
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
+                    {format(day, 'd')}
+                  </div>
+                  {isAdmin && !isPast && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myStandby ? 'border-green-500/40 bg-green-500/15 text-green-300' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                      title={myStandby ? 'Remove yourself from standby for this day' : 'Assign yourself to standby for this day'}
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      Standby
+                    </button>
+                  )}
                 </div>
+                {dayStandby.length > 0 && (
+                  <div className="mb-1.5 flex flex-wrap gap-1">
+                    {dayStandby.slice(0, 2).map(item => (
+                      <span key={item.id} className="text-[10px] rounded-full bg-green-950/40 border border-green-700/40 text-green-300 px-1.5 py-0.5 truncate max-w-full">
+                        Standby: {item.admin_name || item.admin_email}
+                      </span>
+                    ))}
+                    {dayStandby.length > 2 && <span className="text-[10px] text-green-400">+{dayStandby.length - 2}</span>}
+                  </div>
+                )}
                 <div className="space-y-1">
                   {dayShoots.map(s => renderEntry(s, day, true))}
                 </div>
@@ -557,84 +646,56 @@ export default function Calendar() {
   const renderWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-    const hours = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 - 23:00
-
-    return (
-      <CardContent className="p-3 md:p-4 overflow-x-auto">
-        <div className="min-w-[1180px]">
-          <div className="grid grid-cols-[72px_repeat(7,minmax(150px,1fr))] border-b border-gray-800 pb-2 mb-2">
-            <div />
-            {weekDays.map(day => {
-              const shootsForDay = getShootsForDay(day);
-              return (
-                <div
-                  key={day.toISOString()}
-                  onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                  className={`px-2 py-2 rounded-lg cursor-pointer ${isToday(day) ? 'bg-blue-950/50 text-blue-300' : 'text-gray-300 hover:bg-gray-800/60'}`}
-                >
-                  <p className="text-xs uppercase tracking-wider text-gray-500">{format(day, 'EEE')}</p>
-                  <p className="text-lg font-bold">{format(day, 'd')}</p>
-                  <p className="text-[11px] text-gray-500">{shootsForDay.length} shoot{shootsForDay.length === 1 ? '' : 's'}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-[72px_repeat(7,minmax(150px,1fr))]">
-            {hours.map(hour => (
-              <React.Fragment key={hour}>
-                <div className="h-24 border-t border-gray-800 pr-2 pt-2 text-right text-xs font-mono text-gray-500">
-                  {`${hour.toString().padStart(2, '0')}:00`}
-                </div>
-                {weekDays.map(day => {
-                  const dayShoots = getShootsForDay(day).filter(shoot => {
-                    const minutes = timeToMinutes(shoot.game_time || shoot.start_time || '12:00');
-                    return Math.floor(minutes / 60) === hour;
-                  });
-                  return (
-                    <div key={`${day.toISOString()}-${hour}`} className="h-24 border-t border-l border-gray-800 p-1.5 overflow-y-auto">
-                      <div className="space-y-1.5">
-                        {dayShoots.map(shoot => renderEntry(shoot, day, false))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    );
-  };
-
-  const renderDayView = () => {
-    const dayShoots = getShootsForDay(currentDate);
-    const hours = Array.from({ length: 18 }, (_, i) => i + 6);
 
     return (
       <CardContent className="p-3 md:p-4">
-        <div className="space-y-0">
-          {hours.map(hour => {
-            const hourShoots = dayShoots.filter(shoot => {
-              const minutes = timeToMinutes(shoot.game_time || shoot.start_time || '12:00');
-              return Math.floor(minutes / 60) === hour;
-            });
+        <div className="space-y-3">
+          {weekDays.map(day => {
+            const dayShoots = getShootsForDay(day);
+            const dayStandby = getStandbyForDay(day);
+            const myStandby = userStandbyForDay(day);
+            const dateStr = format(day, 'yyyy-MM-dd');
+            const isPast = dateStr < todayStr;
+
             return (
-              <div key={hour} className="grid grid-cols-[72px_1fr] min-h-[92px]">
-                <div className="border-t border-gray-800 pr-3 pt-3 text-right text-xs font-mono text-gray-500">
-                  {`${hour.toString().padStart(2, '0')}:00`}
-                </div>
-                <div className="border-t border-l border-gray-800 p-2">
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-                    {hourShoots.map(shoot => renderEntry(shoot, currentDate, false))}
+              <div key={day.toISOString()} className={`rounded-xl border ${isToday(day) ? 'border-blue-500/60 bg-blue-950/20' : 'border-gray-800 bg-gray-950/40'}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{format(day, 'EEEE, MMMM d')}</p>
+                    <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled</p>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {dayStandby.map(item => (
+                      <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-green-950/40 border border-green-700/40 text-green-300 px-2 py-1 text-xs">
+                        <ShieldCheck className="h-3 w-3" /> {item.admin_name || item.admin_email}
+                      </span>
+                    ))}
+                    {isAdmin && !isPast && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleStandbyDay(day)}
+                        className={`h-8 text-xs border-gray-700 ${myStandby ? 'text-green-300 hover:bg-green-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                        {myStandby ? 'Remove My Standby' : 'Assign Me Standby'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3">
+                  {dayShoots.length > 0 ? (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                      {dayShoots.map(shoot => renderEntry(shoot, day, false))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 py-3">Nothing scheduled for this day.</p>
+                  )}
                 </div>
               </div>
             );
           })}
-          {dayShoots.length === 0 && (
-            <div className="p-8 text-center text-gray-500 text-sm">Nothing scheduled for this day.</div>
-          )}
         </div>
       </CardContent>
     );
@@ -650,7 +711,7 @@ export default function Calendar() {
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
-            <p className="text-sm text-gray-500 mt-1">Week view is now the default scheduling board.</p>
+            <p className="text-sm text-gray-500 mt-1">Calendar is the main view. Use Week List for a cleaner weekly operations view.</p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex md:hidden gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
@@ -726,7 +787,6 @@ export default function Calendar() {
             <div className="overflow-x-auto">
               {viewMode === 'month' && renderMonthView()}
               {viewMode === 'week' && renderWeekView()}
-              {viewMode === 'day' && renderDayView()}
             </div>
           </Card>
 
@@ -765,6 +825,7 @@ export default function Calendar() {
                 {isAdmin && (
                   <div className="flex gap-2 mt-2">
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(liveSelectedShoot)}>Edit</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => duplicateShoot(liveSelectedShoot)}>Duplicate</Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDeleteShoot(liveSelectedShoot.id)}>Delete</Button>
                   </div>
                 )}
