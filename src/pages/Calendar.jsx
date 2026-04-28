@@ -301,14 +301,26 @@ function ShootCalendarEntry({
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               {canCheckStandbyRig && (
-                <button
-                  type="button"
-                  onClick={handleRigCheckToggle}
-                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
-                  title={rigCheckDone ? 'Rig checked - click to cancel/undo' : 'Mark rig checked and create Slack message'}
-                >
-                  {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleRigCheckToggle}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
+                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
+                  >
+                    {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
+                  </button>
+                  {rigCheckDone && (
+                    <button
+                      type="button"
+                      onClick={handleRigCheckToggle}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/10 text-red-300 transition-colors hover:bg-red-500/20"
+                      title="Cancel / undo rig check"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
@@ -1188,8 +1200,29 @@ export default function Calendar() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent className="p-4 space-y-3">
                 <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-sm text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+                <div className="space-y-2">
+                  {rigCheckMessageShoots.map((shoot) => {
+                    const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+                    const teamName = getShootTeamName(shoot);
+                    const label = getRigTypeLabel(shoot, rig) || 'Data';
+                    return (
+                      <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-3 py-2">
+                        <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
+                          className="h-7 border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs flex-shrink-0"
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                          Cancel Rig Check
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           )}
