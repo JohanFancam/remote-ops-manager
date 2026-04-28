@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -39,6 +39,19 @@ const isFancamOrMixed = (shoot, rigSettings) => {
   return rs?.rig_type === 'Fancam' || rs?.rig_type === 'Data/Fancam';
 };
 
+const getRigTypeLabel = (shoot, rig) => {
+  if (shoot?.rig_type_override) {
+    const parts = [shoot.rig_type_override];
+    if (rig?.sound) parts.push('Sound');
+    return parts.join('/');
+  }
+  if (!rig) return null;
+  const parts = [];
+  if (rig.rig_type) parts.push(rig.rig_type);
+  if (rig.sound) parts.push('Sound');
+  return parts.length > 0 ? parts.join('/') : null;
+};
+
 const timeToMinutes = (time) => {
   if (!time || typeof time !== 'string' || !time.includes(':')) return 12 * 60;
   const [h, m] = time.split(':').map(Number);
@@ -52,6 +65,12 @@ const minutesToTime = (minutes) => {
   const m = (safeMinutes % 60).toString().padStart(2, '0');
   return `${h}:${m}`;
 };
+
+const entryCoversDate = (entry, dateStr) => {
+  if (!entry?.start_date || !entry?.end_date) return false;
+  return entry.start_date <= dateStr && dateStr <= entry.end_date;
+};
+
 
 async function createShootTimeEntry(shoot, email, name, notes) {
   const { setup_offset = -150 } = shoot;
@@ -109,7 +128,9 @@ function ShootCalendarEntry({
   onSelect,
   onUpdate,
   onDuplicate,
+  onRigCheckToggle,
   getStandbyCoverageForShoot,
+  operatorAvailabilityForDay = [],
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
@@ -125,28 +146,13 @@ function ShootCalendarEntry({
       ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
       : '';
 
-  const isRigChecked = !!shoot.rig_checked || !!shoot.rig_checked_at;
-  const canToggleRigCheck = isAdmin && !!standbyCoverage && !isPast;
+  const rigCheckDone = !!shoot.rig_check_completed;
+  const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
 
-  const handleToggleRigCheck = async (e) => {
+  const handleRigCheckToggle = async (e) => {
     e.stopPropagation();
-    if (!canToggleRigCheck) return;
-
-    if (isRigChecked) {
-      await onUpdate(shoot.id, {
-        rig_checked: false,
-        rig_checked_by: '',
-        rig_checked_by_name: '',
-        rig_checked_at: '',
-      });
-    } else {
-      await onUpdate(shoot.id, {
-        rig_checked: true,
-        rig_checked_by: user?.email || '',
-        rig_checked_by_name: user?.full_name || user?.email || '',
-        rig_checked_at: new Date().toISOString(),
-      });
-    }
+    if (!canCheckStandbyRig) return;
+    await onRigCheckToggle?.(shoot, standbyCoverage);
   };
 
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
@@ -171,6 +177,13 @@ function ShootCalendarEntry({
     .join(', ');
 
   const assignmentLabel = assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
+  const unavailableNames = operatorAvailabilityForDay
+    .filter(e => e.type === 'unavailable')
+    .map(e => {
+      const unavailableUser = allUsers.find(u => u.email === e.operator_email);
+      return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
+    });
+
 
   const getApprovedCount = (email) =>
     allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(email)).length;
@@ -258,31 +271,23 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
-              {!compact && standbyCoverage && (
-                <p className={`text-[10px] mt-0.5 truncate ${isRigChecked ? 'text-green-300' : 'text-yellow-300'}`}>
-                  {isRigChecked ? 'Rig checked' : 'Rig check required'}
+              {isAdmin && unavailableNames.length > 0 && !compact && (
+                <p className="text-[11px] text-red-300 truncate mt-0.5">
+                  Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {standbyCoverage && (
+            <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {canCheckStandbyRig && (
                 <button
                   type="button"
-                  onClick={handleToggleRigCheck}
-                  disabled={!canToggleRigCheck}
-                  title={isRigChecked ? 'Rig checked' + (shoot.rig_checked_by_name ? ' by ' + shoot.rig_checked_by_name : '') : 'Mark rig checked'}
-                  className={`${compact ? 'h-6 w-6' : 'h-7 w-7'} inline-flex items-center justify-center rounded-md border transition-colors ${
-                    isRigChecked
-                      ? 'border-green-500/45 bg-green-500/15 text-green-300'
-                      : canToggleRigCheck
-                        ? 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
-                        : 'border-gray-700 bg-gray-800/60 text-gray-500'
-                  }`}
+                  onClick={handleRigCheckToggle}
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
+                  title={rigCheckDone ? 'Rig checked - click to undo' : 'Mark rig checked and create Slack message'}
                 >
-                  {isRigChecked ? <CheckCircle2 className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} /> : <Wrench className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />}
+                  {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
                 </button>
               )}
-
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                   shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
@@ -384,6 +389,8 @@ export default function Calendar() {
   const [form, setForm] = useState(emptyForm);
   const [selectedShoot, setSelectedShoot] = useState(null);
   const [mobileView, setMobileView] = useState('calendar');
+  const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
+  const [rigCheckCopied, setRigCheckCopied] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -461,6 +468,12 @@ export default function Calendar() {
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
   });
 
+
+  const { data: operatorAvailability = [] } = useQuery({
+    queryKey: ['operatorAvailability'],
+    queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
+  });
+
   const getStandbyCoverageForShoot = (shoot) => {
     if (!shoot?.date) return null;
 
@@ -495,6 +508,55 @@ export default function Calendar() {
     if (!user?.email) return null;
     return getStandbyForDay(day).find(item => item.admin_email === user.email);
   };
+
+  const getUnavailableForDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return operatorAvailability.filter(item => item.type === 'unavailable' && entryCoversDate(item, dateStr));
+  };
+
+  const getMyUnavailableForDay = (day) => {
+    if (!user?.email) return null;
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return operatorAvailability.find(item =>
+      item.operator_email === user.email &&
+      item.type === 'unavailable' &&
+      entryCoversDate(item, dateStr)
+    );
+  };
+
+  const getMyExactCalendarUnavailableForDay = (day) => {
+    if (!user?.email) return null;
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return operatorAvailability.find(item =>
+      item.operator_email === user.email &&
+      item.type === 'unavailable' &&
+      item.start_date === dateStr &&
+      item.end_date === dateStr &&
+      item.notes === 'Marked unavailable from main calendar'
+    );
+  };
+
+  const handleToggleUnavailableDay = async (day) => {
+    if (!user?.email || isAdmin) return;
+    const dateStr = format(day, 'yyyy-MM-dd');
+    const exactCalendarEntry = getMyExactCalendarUnavailableForDay(day);
+
+    if (exactCalendarEntry) {
+      await base44.entities.OperatorAvailability.delete(exactCalendarEntry.id);
+    } else {
+      await base44.entities.OperatorAvailability.create({
+        operator_email: user.email,
+        operator_name: user.full_name || user.email,
+        start_date: dateStr,
+        end_date: dateStr,
+        type: 'unavailable',
+        notes: 'Marked unavailable from main calendar',
+      });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['operatorAvailability'] });
+  };
+
 
   const handleToggleStandbyDay = async (day) => {
     if (!isAdmin || !user?.email) return;
@@ -548,6 +610,75 @@ export default function Calendar() {
     }
 
     queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
+  };
+
+  const buildRigCheckSlackMessage = (messageShoots) => {
+    const uniqueShoots = Array.from(new Map(messageShoots.map(s => [s.id, s])).values());
+    if (uniqueShoots.length === 0) return '';
+
+    const items = uniqueShoots
+      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
+      .map((s) => {
+        const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
+        const label = getRigTypeLabel(s, rig);
+        const timeLabel = s.game_time ? s.game_time + ' ' : '';
+        return '• ' + timeLabel + shortenTitle(s.title) + (label ? ' (' + label + ')' : '');
+      });
+
+    return 'Shoots ready for standby coverage:\n\n' + items.join('\n');
+  };
+
+  const rigCheckMessageShoots = useMemo(() => {
+    return rigCheckMessageShootIds
+      .map(id => shoots.find(s => s.id === id))
+      .filter(Boolean);
+  }, [rigCheckMessageShootIds, shoots]);
+
+  const rigCheckSlackMessage = useMemo(
+    () => buildRigCheckSlackMessage(rigCheckMessageShoots),
+    [rigCheckMessageShoots, rigSettings]
+  );
+
+  const handleCopyRigCheckMessage = async () => {
+    if (!rigCheckSlackMessage) return;
+    await navigator.clipboard.writeText(rigCheckSlackMessage);
+    setRigCheckCopied(true);
+    setTimeout(() => setRigCheckCopied(false), 2000);
+  };
+
+  const handleRigCheckToggle = async (shoot, standbyCoverage) => {
+    if (!shoot?.id || !user?.email) return;
+    const nextChecked = !shoot.rig_check_completed;
+    const nowIso = new Date().toISOString();
+
+    await base44.entities.Shoot.update(shoot.id, {
+      rig_check_completed: nextChecked,
+      rig_check_checked_from_calendar: nextChecked,
+      rig_check_checked_by: nextChecked ? user.email : '',
+      rig_check_checked_by_name: nextChecked ? (user.full_name || user.email) : '',
+      rig_check_checked_at: nextChecked ? nowIso : '',
+      rig_check_standby_date: nextChecked ? (standbyCoverage?.start_date || standbyCoverage?.date || '') : '',
+      rig_check_standby_admin_email: nextChecked ? (standbyCoverage?.admin_email || '') : '',
+      rig_check_standby_admin_name: nextChecked ? (standbyCoverage?.admin_name || standbyCoverage?.admin_email || '') : '',
+    });
+
+    setRigCheckMessageShootIds(prev => {
+      if (nextChecked) return [...new Set([...prev, shoot.id])];
+      return prev.filter(id => id !== shoot.id);
+    });
+
+    refresh();
+    setSelectedShoot(prev => prev && prev.id === shoot.id
+      ? {
+          ...prev,
+          rig_check_completed: nextChecked,
+          rig_check_checked_from_calendar: nextChecked,
+          rig_check_checked_by: nextChecked ? user.email : '',
+          rig_check_checked_by_name: nextChecked ? (user.full_name || user.email) : '',
+          rig_check_checked_at: nextChecked ? nowIso : '',
+        }
+      : prev
+    );
   };
 
   useEffect(() => {
@@ -683,7 +814,9 @@ export default function Calendar() {
       onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
       onDuplicate={duplicateShoot}
+      onRigCheckToggle={handleRigCheckToggle}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
+      operatorAvailabilityForDay={getUnavailableForDay(day)}
     />
   );
 
@@ -710,6 +843,9 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const dayUnavailable = getUnavailableForDay(day);
+            const myUnavailable = getMyUnavailableForDay(day);
+            const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
             const isSelected = isSameDay(day, selectedDate);
             const today = isToday(day);
             return (
@@ -737,12 +873,36 @@ export default function Calendar() {
                       {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
+                  {!isAdmin && !isPast && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-500/15 text-red-300' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                      title={myUnavailable ? exactCalendarUnavailable ? 'Remove your unavailable mark for this day' : 'You are marked unavailable from an availability range' : 'Mark yourself unavailable for this day'}
+                    >
+                      <UserX className="h-3 w-3" />
+                      {myUnavailable ? 'Unavailable' : 'I am out'}
+                    </button>
+                  )}
                 </div>
                 {primaryStandby && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-green-950/40 border-green-700/40 text-green-300'}`}>
                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                     </span>
+                  </div>
+                )}
+                {isAdmin && dayUnavailable.length > 0 && (
+                  <div className="mb-1.5 flex flex-wrap gap-1">
+                    {dayUnavailable.slice(0, 3).map(item => {
+                      const unavailableUser = allUsers.find(u => u.email === item.operator_email);
+                      return (
+                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 truncate max-w-full">
+                          Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
+                        </span>
+                      );
+                    })}
+                    {dayUnavailable.length > 3 && <span className="text-[10px] text-red-300">+{dayUnavailable.length - 3}</span>}
                   </div>
                 )}
                 <div className="space-y-1">
@@ -769,6 +929,9 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const dayUnavailable = getUnavailableForDay(day);
+            const myUnavailable = getMyUnavailableForDay(day);
+            const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
 
@@ -777,7 +940,7 @@ export default function Calendar() {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
                   <div>
                     <p className="text-sm font-semibold text-white">{format(day, 'EEEE, MMMM d')}</p>
-                    <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled</p>
+                    <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
@@ -785,6 +948,15 @@ export default function Calendar() {
                         <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                       </span>
                     )}
+                    {isAdmin && dayUnavailable.slice(0, 4).map(item => {
+                      const unavailableUser = allUsers.find(u => u.email === item.operator_email);
+                      return (
+                        <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-2 py-1 text-xs">
+                          <UserX className="h-3 w-3" /> {getDisplayName(unavailableUser, item.operator_email, item.operator_name)}
+                        </span>
+                      );
+                    })}
+                    {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-300">+{dayUnavailable.length - 4} unavailable</span>}
                     {isAdmin && !isPast && (
                       <Button
                         size="sm"
@@ -794,6 +966,18 @@ export default function Calendar() {
                       >
                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                      </Button>
+                    )}
+                    {!isAdmin && !isPast && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleUnavailableDay(day)}
+                        className={`h-8 text-xs border-gray-700 ${myUnavailable ? 'text-red-300 hover:bg-red-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                        title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
+                      >
+                        <UserX className="h-3.5 w-3.5 mr-1" />
+                        {myUnavailable ? 'Remove Unavailable' : 'Mark Unavailable'}
                       </Button>
                     )}
                   </div>
@@ -826,7 +1010,7 @@ export default function Calendar() {
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
-            <p className="text-sm text-gray-500 mt-1">Calendar is the main view. Use Week List for a cleaner weekly operations view.</p>
+            <p className="text-sm text-gray-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex md:hidden gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
@@ -920,6 +1104,7 @@ export default function Calendar() {
                 { label: 'Other Standby Coverage', color: 'bg-green-500' },
                 { label: 'Rig Check Required', color: 'bg-yellow-400' },
                 { label: 'Rig Checked', color: 'bg-green-400' },
+                { label: 'Operator Unavailable', color: 'bg-red-500' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
@@ -928,6 +1113,28 @@ export default function Calendar() {
               ))}
             </div>
           </div>
+
+          {isAdmin && rigCheckMessageShoots.length > 0 && (
+            <Card className="bg-gray-900 border-blue-800/60 mb-4">
+              <CardHeader className="border-b border-gray-800 pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-white text-base flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-yellow-300" />
+                      Rig check Slack message
+                    </CardTitle>
+                    <p className="text-xs text-gray-500 mt-1">Generated from the standby shoots you checked on this calendar.</p>
+                  </div>
+                  <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs flex-shrink-0">
+                    {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Slack</>}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-sm text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+              </CardContent>
+            </Card>
+          )}
 
           {liveSelectedShoot && (
             <Card className="bg-gray-900 border-gray-800">
