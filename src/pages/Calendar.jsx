@@ -140,11 +140,28 @@ function ShootCalendarEntry({
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
-  const standbyCoverageClass = isMyStandbyCoverage
-    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
-    : isOtherStandbyCoverage
-      ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
-      : '';
+
+  // Standby coverage outlines are admin-only. Remote users see the standby
+  // person's name, but not the standby coverage outline.
+  const standbyCoverageClass = isAdmin
+    ? (isMyStandbyCoverage
+      ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+      : isOtherStandbyCoverage
+        ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
+        : '')
+    : '';
+
+  // Remote users get outlines on their own shoots instead.
+  // Purple = assigned to me, Yellow = pending approval for me.
+  const remoteUserShootClass = !isAdmin
+    ? (isAssigned
+      ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
+      : isPending
+        ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
+        : '')
+    : '';
+
+  const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
   const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
@@ -254,7 +271,7 @@ function ShootCalendarEntry({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(shoot, day); }}
       onClick={() => onSelect(shoot, day)}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${standbyCoverageClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -271,6 +288,11 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
+              {!isAdmin && standbyCoverage && (standbyCoverage.admin_name || standbyCoverage.admin_email) && (
+                <p className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-green-300 truncate mt-0.5`}>
+                  Standby: {standbyCoverage.admin_name || standbyCoverage.admin_email}
+                </p>
+              )}
               {isAdmin && unavailableNames.length > 0 && !compact && (
                 <p className="text-[11px] text-red-300 truncate mt-0.5">
                   Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
@@ -283,7 +305,7 @@ function ShootCalendarEntry({
                   type="button"
                   onClick={handleRigCheckToggle}
                   className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
-                  title={rigCheckDone ? 'Rig checked - click to undo' : 'Mark rig checked and create Slack message'}
+                  title={rigCheckDone ? 'Rig checked - click to cancel/undo' : 'Mark rig checked and create Slack message'}
                 >
                   {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
                 </button>
@@ -1129,8 +1151,10 @@ export default function Calendar() {
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
+                { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
+                { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Rig Check Required', color: 'bg-yellow-400' },
                 { label: 'Rig Checked', color: 'bg-green-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
