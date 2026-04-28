@@ -612,6 +612,13 @@ export default function Calendar() {
     queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
   };
 
+  const getShootTeamName = (shoot) => {
+    const exactRig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
+    if (exactRig?.team) return exactRig.team;
+    if (shoot?.client) return shoot.client;
+    return shortenTitle(shoot?.title || 'Unknown Team');
+  };
+
   const buildRigCheckSlackMessage = (messageShoots) => {
     const uniqueShoots = Array.from(new Map(messageShoots.map(s => [s.id, s])).values());
     if (uniqueShoots.length === 0) return '';
@@ -620,18 +627,19 @@ export default function Calendar() {
       .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
       .map((s) => {
         const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-        const label = getRigTypeLabel(s, rig);
-        const timeLabel = s.game_time ? s.game_time + ' ' : '';
-        return '• ' + timeLabel + shortenTitle(s.title) + (label ? ' (' + label + ')' : '');
+        const teamName = getShootTeamName(s);
+        const label = getRigTypeLabel(s, rig) || 'Data';
+        return '• ' + teamName + ' - ' + label;
       });
 
-    return 'Shoots ready for standby coverage:\n\n' + items.join('\n');
+    return 'Shoots ready for today :\n\n' + items.join('\n');
   };
 
   const rigCheckMessageShoots = useMemo(() => {
     return rigCheckMessageShootIds
       .map(id => shoots.find(s => s.id === id))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(s => !s.rig_check_archived);
   }, [rigCheckMessageShootIds, shoots]);
 
   const rigCheckSlackMessage = useMemo(
@@ -644,6 +652,23 @@ export default function Calendar() {
     await navigator.clipboard.writeText(rigCheckSlackMessage);
     setRigCheckCopied(true);
     setTimeout(() => setRigCheckCopied(false), 2000);
+  };
+
+  const handleArchiveRigCheckMessageShoots = async () => {
+    const idsToArchive = rigCheckMessageShoots.map(s => s.id);
+    if (idsToArchive.length === 0) return;
+
+    await Promise.all(idsToArchive.map(id =>
+      base44.entities.Shoot.update(id, {
+        rig_check_archived: true,
+        rig_check_archived_at: new Date().toISOString(),
+        rig_check_archived_by: user?.email || '',
+        rig_check_archived_by_name: user?.full_name || user?.email || '',
+      })
+    ));
+
+    setRigCheckMessageShootIds(prev => prev.filter(id => !idsToArchive.includes(id)));
+    refresh();
   };
 
   const handleRigCheckToggle = async (shoot, standbyCoverage) => {
@@ -660,6 +685,10 @@ export default function Calendar() {
       rig_check_standby_date: nextChecked ? (standbyCoverage?.start_date || standbyCoverage?.date || '') : '',
       rig_check_standby_admin_email: nextChecked ? (standbyCoverage?.admin_email || '') : '',
       rig_check_standby_admin_name: nextChecked ? (standbyCoverage?.admin_name || standbyCoverage?.admin_email || '') : '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
     });
 
     setRigCheckMessageShootIds(prev => {
@@ -1123,11 +1152,16 @@ export default function Calendar() {
                       <Wrench className="h-4 w-4 text-yellow-300" />
                       Rig check Slack message
                     </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1">Generated from the standby shoots you checked on this calendar.</p>
+                    <p className="text-xs text-gray-500 mt-1">Generated from the standby rigs you checked on this calendar. Copy it, then archive the rigs to mark the message as dealt with.</p>
                   </div>
-                  <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs flex-shrink-0">
-                    {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Slack</>}
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2 flex-shrink-0">
+                    <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs">
+                      {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Slack</>}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs">
+                      Archive Tested Rigs
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-4">
