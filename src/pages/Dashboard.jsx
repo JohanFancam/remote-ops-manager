@@ -9,10 +9,8 @@ import AdminDayShootView from '../components/dashboard/AdminDayShootView';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
-import StandbyManager from '../components/dashboard/StandbyManager';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
-import { OperatorAvailabilityPanel } from '../components/dashboard/OperatorAvailabilityPanel';
 
 export default function Dashboard() {
   const { user, isAdmin } = useApp();
@@ -209,11 +207,6 @@ export default function Dashboard() {
           todayStr={todayStr}
         />
 
-        {isAdmin && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-            <StandbyManager user={user} allUsers={allUsers} />
-          </div>
-        )}
 
         {isAdmin && (
           <div className="mb-6">
@@ -296,7 +289,6 @@ export default function Dashboard() {
           <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />
         )}
 
-        {!isAdmin && <OperatorAvailabilityPanel user={user} />}
 
         {!isAdmin && (
           <div className="mt-6">
