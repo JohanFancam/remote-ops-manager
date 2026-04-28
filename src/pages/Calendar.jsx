@@ -129,6 +129,7 @@ function ShootCalendarEntry({
   onUpdate,
   onDuplicate,
   onRigCheckToggle,
+  onRigCheckCancel,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
 }) {
@@ -170,6 +171,12 @@ function ShootCalendarEntry({
     e.stopPropagation();
     if (!canCheckStandbyRig) return;
     await onRigCheckToggle?.(shoot, standbyCoverage);
+  };
+
+  const handleRigCheckCancel = async (e) => {
+    e.stopPropagation();
+    if (!canCheckStandbyRig || !rigCheckDone) return;
+    await onRigCheckCancel?.(shoot);
   };
 
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
@@ -313,7 +320,7 @@ function ShootCalendarEntry({
                   {rigCheckDone && (
                     <button
                       type="button"
-                      onClick={handleRigCheckToggle}
+                      onClick={handleRigCheckCancel}
                       className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/10 text-red-300 transition-colors hover:bg-red-500/20"
                       title="Cancel / undo rig check"
                     >
@@ -742,6 +749,34 @@ export default function Calendar() {
         }
       : prev
     );
+  };
+
+  const handleRigCheckCancel = async (shoot) => {
+    if (!shoot?.id || !user?.email) return;
+
+    const clearedRigCheck = {
+      rig_check_completed: false,
+      rig_check_checked_from_calendar: false,
+      rig_check_checked_by: '',
+      rig_check_checked_by_name: '',
+      rig_check_checked_at: '',
+      rig_check_standby_date: '',
+      rig_check_standby_admin_email: '',
+      rig_check_standby_admin_name: '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    };
+
+    await base44.entities.Shoot.update(shoot.id, clearedRigCheck);
+
+    setRigCheckMessageShootIds(prev => prev.filter(id => id !== shoot.id));
+    queryClient.setQueryData(['shoots'], (old = []) =>
+      old.map(item => item.id === shoot.id ? { ...item, ...clearedRigCheck } : item)
+    );
+    setSelectedShoot(prev => prev && prev.id === shoot.id ? { ...prev, ...clearedRigCheck } : prev);
+    refresh();
   };
 
   useEffect(() => {
@@ -1213,7 +1248,7 @@ export default function Calendar() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
+                          onClick={() => handleRigCheckCancel(shoot)}
                           className="h-7 border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs flex-shrink-0"
                         >
                           <XCircle className="h-3.5 w-3.5 mr-1" />
