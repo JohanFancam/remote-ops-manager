@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, CheckCircle2 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -125,6 +125,30 @@ function ShootCalendarEntry({
       ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
       : '';
 
+  const isRigChecked = !!shoot.rig_checked || !!shoot.rig_checked_at;
+  const canToggleRigCheck = isAdmin && !!standbyCoverage && !isPast;
+
+  const handleToggleRigCheck = async (e) => {
+    e.stopPropagation();
+    if (!canToggleRigCheck) return;
+
+    if (isRigChecked) {
+      await onUpdate(shoot.id, {
+        rig_checked: false,
+        rig_checked_by: '',
+        rig_checked_by_name: '',
+        rig_checked_at: '',
+      });
+    } else {
+      await onUpdate(shoot.id, {
+        rig_checked: true,
+        rig_checked_by: user?.email || '',
+        rig_checked_by_name: user?.full_name || user?.email || '',
+        rig_checked_at: new Date().toISOString(),
+      });
+    }
+  };
+
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
     const u = allUsers.find(u2 => u2.email === email);
     return !u || u.role !== 'admin';
@@ -234,22 +258,42 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
-              {standbyCoverage && (
-                <p className={`text-[10px] mt-0.5 truncate ${isMyStandbyCoverage ? 'text-blue-300' : 'text-green-300'}`}>
-                  Standby cover: {standbyCoverage.admin_name || standbyCoverage.admin_email}
+              {!compact && standbyCoverage && (
+                <p className={`text-[10px] mt-0.5 truncate ${isRigChecked ? 'text-green-300' : 'text-yellow-300'}`}>
+                  {isRigChecked ? 'Rig checked' : 'Rig check required'}
                 </p>
               )}
             </div>
-            {!compact && (
-              <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize flex-shrink-0 ${
-                shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
-                shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
-                shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
-                'bg-blue-500/15 text-blue-400 border-blue-500/25'
-              }`}>
-                {(shoot.status || 'upcoming').replace('_', ' ')}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {standbyCoverage && (
+                <button
+                  type="button"
+                  onClick={handleToggleRigCheck}
+                  disabled={!canToggleRigCheck}
+                  title={isRigChecked ? 'Rig checked' + (shoot.rig_checked_by_name ? ' by ' + shoot.rig_checked_by_name : '') : 'Mark rig checked'}
+                  className={`${compact ? 'h-6 w-6' : 'h-7 w-7'} inline-flex items-center justify-center rounded-md border transition-colors ${
+                    isRigChecked
+                      ? 'border-green-500/45 bg-green-500/15 text-green-300'
+                      : canToggleRigCheck
+                        ? 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
+                        : 'border-gray-700 bg-gray-800/60 text-gray-500'
+                  }`}
+                >
+                  {isRigChecked ? <CheckCircle2 className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} /> : <Wrench className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />}
+                </button>
+              )}
+
+              {!compact && (
+                <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
+                  shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
+                  shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
+                  shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                  'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                }`}>
+                  {(shoot.status || 'upcoming').replace('_', ' ')}
+                </span>
+              )}
+            </div>
           </div>
 
           {!compact && (
@@ -874,6 +918,8 @@ export default function Calendar() {
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'My Standby Coverage', color: 'bg-blue-500' },
                 { label: 'Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Rig Check Required', color: 'bg-yellow-400' },
+                { label: 'Rig Checked', color: 'bg-green-400' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
