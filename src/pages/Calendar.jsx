@@ -349,7 +349,7 @@ function ShootCalendarEntry({
                   size="sm"
                   variant="outline"
                   onClick={(e) => { e.stopPropagation(); onDuplicate?.(shoot); }}
-                  className="h-7 text-xs border-gray-700 text-gray-300 hover:bg-gray-800"
+                  className="h-7 rounded-md border-gray-700 bg-gray-950/70 text-xs text-gray-300 hover:bg-gray-800 hover:text-white"
                 >
                   <Copy className="h-3 w-3 mr-1" />Duplicate
                 </Button>
@@ -359,14 +359,14 @@ function ShootCalendarEntry({
                 variant="outline"
                 disabled={isPast || shootFull}
                 onClick={handleSelfAssign}
-                className={`h-7 text-xs border-gray-700 ${isAssigned ? 'text-green-400 hover:bg-green-950/30' : isPending ? 'text-yellow-400 hover:bg-yellow-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                className={`h-7 rounded-md border-gray-700 bg-gray-950/70 text-xs ${isAssigned ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : isPending ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
               >
                 {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
               </Button>
 
               {isAdmin && assignableUsers.length > 0 && (
                 <Select onValueChange={handleAdminAssignUser} value="__placeholder__">
-                  <SelectTrigger className="h-7 w-[170px] bg-gray-950 border-gray-700 text-gray-300 text-xs" onClick={(e) => e.stopPropagation()}>
+                  <SelectTrigger className="h-7 w-[170px] rounded-md border-gray-700 bg-gray-950/80 text-xs text-gray-300 hover:bg-gray-800 hover:text-white" onClick={(e) => e.stopPropagation()}>
                     <SelectValue placeholder="Assign operator" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-gray-700">
@@ -1060,7 +1060,7 @@ export default function Calendar() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleToggleStandbyDay(day)}
-                        className={`h-8 text-xs border-gray-700 ${myStandby ? 'text-green-300 hover:bg-green-950/30' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                        className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
                       >
                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
@@ -1071,7 +1071,7 @@ export default function Calendar() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleToggleUnavailableDay(day)}
-                        className={`h-8 text-xs border-gray-700 ${myUnavailable ? 'text-red-300 hover:bg-red-950/30' : 'text-gray-300 hover:bg-gray-800'}`}
+                        className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myUnavailable ? 'text-red-300 hover:bg-red-950/30 hover:text-red-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
                         title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
                       >
                         <UserX className="h-3.5 w-3.5 mr-1" />
@@ -1192,8 +1192,6 @@ export default function Calendar() {
             <div className="flex flex-wrap gap-x-5 gap-y-1.5">
               {[
                 { label: 'Upcoming', color: 'bg-blue-600' },
-                { label: 'Confirmed', color: 'bg-green-600' },
-                { label: 'In Progress', color: 'bg-yellow-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
@@ -1202,8 +1200,6 @@ export default function Calendar() {
                 { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
-                { label: 'Rig Check Required', color: 'bg-yellow-400' },
-                { label: 'Rig Checked', color: 'bg-green-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
