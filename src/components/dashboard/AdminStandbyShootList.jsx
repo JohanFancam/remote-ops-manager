@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Copy, Check, Archive, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Check, XCircle, Copy } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
@@ -17,42 +17,22 @@ function isCancelled(shoot) {
   return shoot?.status === 'cancelled';
 }
 
-function getShootDateTime(shoot) {
-  return getScheduleDateTimes(shoot).game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
-}
-
 function getRigTypeLabel(shoot, rig) {
   if (shoot?.rig_type_override) {
     const parts = [shoot.rig_type_override];
     if (rig?.sound) parts.push('Sound');
     return parts.join('/');
   }
-  if (!rig) return shoot?.rig_type || 'Data';
+  if (!rig) return null;
   const parts = [];
   if (rig.rig_type) parts.push(rig.rig_type);
   if (rig.sound) parts.push('Sound');
-  return parts.length > 0 ? parts.join('/') : (shoot?.rig_type || 'Data');
+  return parts.length > 0 ? parts.join('/') : null;
 }
 
-function getShootTeamName(shoot, rigSettings) {
-  const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
-  if (rig?.team) return rig.team;
-  if (shoot?.client) return shoot.client;
-  return shoot?.title || 'Unknown Team';
-}
 
-function buildRigCheckSlackMessage(shoots, rigSettings) {
-  const uniqueShoots = Array.from(new Map(shoots.map((s) => [s.id, s])).values());
-  if (uniqueShoots.length === 0) return '';
-
-  const items = uniqueShoots
-    .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
-    .map((shoot) => {
-      const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
-      return `• ${getShootTeamName(shoot, rigSettings)} - ${getRigTypeLabel(shoot, rig)}`;
-    });
-
-  return 'Shoots ready for today :\n\n' + items.join('\n');
+function getShootDateTime(shoot) {
+  return getScheduleDateTimes(shoot).game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
 }
 
 function ViewButton({ active, icon: Icon, children, onClick }) {
@@ -78,6 +58,7 @@ export default function AdminStandbyShootList({
   const [page, setPage] = useState(0);
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
+  const [rigMessageShootIds, setRigMessageShootIds] = useState([]);
   const [rigMessageCopied, setRigMessageCopied] = useState(false);
 
   const myStandbyWindows = useMemo(() => {
@@ -115,62 +96,6 @@ export default function AdminStandbyShootList({
       .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots, myStandbyWindows]);
 
-  const rigCheckMessageShoots = useMemo(() => {
-    return allStandbyShoots.filter((shoot) => shoot.rig_check_completed && !shoot.rig_check_archived);
-  }, [allStandbyShoots]);
-
-  const rigCheckSlackMessage = useMemo(() => {
-    return buildRigCheckSlackMessage(rigCheckMessageShoots, rigSettings);
-  }, [rigCheckMessageShoots, rigSettings]);
-
-  const handleStandbyRigCheck = async (shoot) => {
-    if (!onUpdate || !shoot?.id) return;
-    const nowIso = new Date().toISOString();
-    await onUpdate(shoot.id, {
-      rig_check_completed: true,
-      rig_check_checked_from_dashboard: true,
-      rig_check_checked_by: userEmail || '',
-      rig_check_checked_at: nowIso,
-      rig_check_standby_admin_email: userEmail || '',
-      rig_check_archived: false,
-      rig_check_archived_at: '',
-      rig_check_archived_by: '',
-      rig_check_archived_by_name: '',
-    });
-  };
-
-  const handleStandbyRigCancel = async (shoot) => {
-    if (!onUpdate || !shoot?.id) return;
-    await onUpdate(shoot.id, {
-      rig_check_completed: false,
-      rig_check_checked_from_dashboard: false,
-      rig_check_checked_by: '',
-      rig_check_checked_at: '',
-      rig_check_standby_admin_email: '',
-      rig_check_archived: false,
-      rig_check_archived_at: '',
-      rig_check_archived_by: '',
-      rig_check_archived_by_name: '',
-    });
-  };
-
-  const handleCopyRigMessage = async () => {
-    if (!rigCheckSlackMessage) return;
-    await navigator.clipboard.writeText(rigCheckSlackMessage);
-    setRigMessageCopied(true);
-    setTimeout(() => setRigMessageCopied(false), 2000);
-  };
-
-  const handleArchiveRigMessageShoots = async () => {
-    if (!onUpdate || rigCheckMessageShoots.length === 0) return;
-    const nowIso = new Date().toISOString();
-    await Promise.all(rigCheckMessageShoots.map((shoot) => onUpdate(shoot.id, {
-      rig_check_archived: true,
-      rig_check_archived_at: nowIso,
-      rig_check_archived_by: userEmail || '',
-    })));
-  };
-
   const pageSize = viewMode === 'tile' ? 4 : 3;
 
   useEffect(() => {
@@ -192,20 +117,143 @@ export default function AdminStandbyShootList({
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const renderCard = (shoot) => (
-    <CountdownCard
-      key={shoot.id}
-      shoot={shoot}
-      isAdmin={isAdmin}
-      rigSettings={rigSettings}
-      onUpdate={onUpdate}
-      userEmail={userEmail}
-      allUsers={allUsers}
-      standbyRigCheck
-      onStandbyRigCheck={handleStandbyRigCheck}
-      onStandbyRigCancel={handleStandbyRigCancel}
-    />
-  );
+  const getShootTeamName = (shoot) => {
+    const exactRig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
+    if (exactRig?.team) return exactRig.team;
+    if (shoot?.client) return shoot.client;
+    return shoot?.title || 'Unknown Team';
+  };
+
+  const buildRigSlackMessage = (messageShoots) => {
+    const uniqueShoots = Array.from(new Map(messageShoots.map((s) => [s.id, s])).values());
+    if (uniqueShoots.length === 0) return '';
+
+    const items = uniqueShoots
+      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
+      .map((shoot) => {
+        const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+        const teamName = getShootTeamName(shoot);
+        const label = getRigTypeLabel(shoot, rig) || 'Data';
+        return `• ${teamName} - ${label}`;
+      });
+
+    return 'Shoots ready for today :\n\n' + items.join('\n');
+  };
+
+  const rigMessageShoots = useMemo(() => {
+    return rigMessageShootIds
+      .map((id) => shoots.find((shoot) => shoot.id === id))
+      .filter(Boolean)
+      .filter((shoot) => !shoot.rig_check_archived);
+  }, [rigMessageShootIds, shoots]);
+
+  const rigSlackMessage = useMemo(() => buildRigSlackMessage(rigMessageShoots), [rigMessageShoots, rigSettings]);
+
+  const handleRigCheckToggle = async (shoot) => {
+    if (!shoot?.id || !onUpdate) return;
+    const nextChecked = !shoot.rig_check_completed;
+    const nowIso = new Date().toISOString();
+
+    await onUpdate(shoot.id, {
+      rig_check_completed: nextChecked,
+      rig_check_checked_from_dashboard: nextChecked,
+      rig_check_checked_by: nextChecked ? userEmail : '',
+      rig_check_checked_at: nextChecked ? nowIso : '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    });
+
+    setRigMessageShootIds((prev) => {
+      if (nextChecked) return [...new Set([...prev, shoot.id])];
+      return prev.filter((id) => id !== shoot.id);
+    });
+  };
+
+  const handleRigCheckCancel = async (shoot) => {
+    if (!shoot?.id || !onUpdate) return;
+
+    await onUpdate(shoot.id, {
+      rig_check_completed: false,
+      rig_check_checked_from_dashboard: false,
+      rig_check_checked_from_calendar: false,
+      rig_check_checked_by: '',
+      rig_check_checked_by_name: '',
+      rig_check_checked_at: '',
+      rig_check_standby_date: '',
+      rig_check_standby_admin_email: '',
+      rig_check_standby_admin_name: '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    });
+
+    setRigMessageShootIds((prev) => prev.filter((id) => id !== shoot.id));
+  };
+
+  const handleCopyRigSlackMessage = async () => {
+    if (!rigSlackMessage) return;
+    await navigator.clipboard.writeText(rigSlackMessage);
+    setRigMessageCopied(true);
+    setTimeout(() => setRigMessageCopied(false), 2000);
+  };
+
+  const handleArchiveRigMessageShoots = async () => {
+    if (!onUpdate || rigMessageShoots.length === 0) return;
+    await Promise.all(
+      rigMessageShoots.map((shoot) => onUpdate(shoot.id, {
+        rig_check_archived: true,
+        rig_check_archived_at: new Date().toISOString(),
+        rig_check_archived_by: userEmail || '',
+      }))
+    );
+    setRigMessageShootIds([]);
+  };
+
+  const renderCard = (shoot) => {
+    const rigChecked = !!shoot.rig_check_completed;
+    return (
+      <div key={shoot.id} className={rigChecked ? 'rounded-xl border border-green-700/40 bg-green-950/10 p-2' : 'rounded-xl border border-yellow-700/30 bg-yellow-950/5 p-2'}>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs">
+            {rigChecked ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-green-700/50 bg-green-950/40 px-2 py-1 text-green-300"><Check className="h-3.5 w-3.5" />Rig checked</span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-yellow-700/50 bg-yellow-950/30 px-2 py-1 text-yellow-300"><Wrench className="h-3.5 w-3.5" />Rig check needed</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleRigCheckToggle(shoot)}
+              className={rigChecked ? 'inline-flex h-8 min-w-[108px] items-center justify-center rounded-md border border-green-700/60 bg-green-950/35 px-2.5 text-xs font-medium text-green-300 hover:bg-green-900/35' : 'inline-flex h-8 min-w-[108px] items-center justify-center rounded-md border border-yellow-700/60 bg-yellow-950/30 px-2.5 text-xs font-medium text-yellow-300 hover:bg-yellow-900/30'}
+            >
+              {rigChecked ? <><Check className="mr-1 h-3.5 w-3.5" />Checked</> : <><Wrench className="mr-1 h-3.5 w-3.5" />Check Rig</>}
+            </button>
+            {rigChecked && (
+              <button
+                type="button"
+                onClick={() => handleRigCheckCancel(shoot)}
+                className="inline-flex h-8 min-w-[108px] items-center justify-center rounded-md border border-red-700/60 bg-red-950/25 px-2.5 text-xs font-medium text-red-300 hover:bg-red-900/30"
+              >
+                <XCircle className="mr-1 h-3.5 w-3.5" />Cancel
+              </button>
+            )}
+          </div>
+        </div>
+        <CountdownCard
+          shoot={shoot}
+          isAdmin={isAdmin}
+          rigSettings={rigSettings}
+          onUpdate={onUpdate}
+          userEmail={userEmail}
+          allUsers={allUsers}
+        />
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -220,48 +268,23 @@ export default function AdminStandbyShootList({
         </div>
       </div>
 
-      {rigCheckMessageShoots.length > 0 && (
-        <div className="mb-3 rounded-xl border border-blue-900/50 bg-blue-950/15 p-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Wrench className="h-4 w-4 text-yellow-300" />
-              Rig check Slack message
+      {rigMessageShoots.length > 0 && (
+        <div className="mb-4 rounded-xl border border-blue-800/60 bg-blue-950/10 p-3">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-white">Rig check Slack message</p>
+              <p className="text-xs text-gray-500">Copy this to Slack, then archive the rigs once the message has been sent.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleCopyRigMessage}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-700/70 bg-blue-600/20 px-2.5 text-xs font-semibold text-blue-200 transition-colors hover:bg-blue-600/30 hover:text-white"
-              >
-                {rigMessageCopied ? <><Check className="h-3.5 w-3.5" />Copied</> : <><Copy className="h-3.5 w-3.5" />Copy to Slack</>}
+              <button type="button" onClick={handleCopyRigSlackMessage} className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500">
+                {rigMessageCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Copy to Slack</>}
               </button>
-              <button
-                type="button"
-                onClick={handleArchiveRigMessageShoots}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-2.5 text-xs font-semibold text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
-              >
-                <Archive className="h-3.5 w-3.5" />Archive Tested
+              <button type="button" onClick={handleArchiveRigMessageShoots} className="inline-flex h-8 items-center rounded-md border border-gray-700 px-3 text-xs font-medium text-gray-300 hover:bg-gray-800">
+                Archive Tested Rigs
               </button>
             </div>
           </div>
-          <pre className="whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-950/80 p-3 text-xs text-gray-200">{rigCheckSlackMessage}</pre>
-          <div className="mt-2 space-y-1.5">
-            {rigCheckMessageShoots.map((shoot) => {
-              const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
-              return (
-                <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/60 px-2.5 py-1.5">
-                  <span className="truncate text-xs text-gray-300">{getShootTeamName(shoot, rigSettings)} - {getRigTypeLabel(shoot, rig)}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleStandbyRigCancel(shoot)}
-                    className="inline-flex h-7 items-center gap-1 rounded-md border border-red-800/60 bg-red-950/20 px-2 text-xs text-red-300 hover:bg-red-950/35"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />Cancel
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          <pre className="whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-950 p-3 font-sans text-sm text-gray-200">{rigSlackMessage}</pre>
         </div>
       )}
 
