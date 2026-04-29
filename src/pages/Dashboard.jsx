@@ -172,7 +172,9 @@ export default function Dashboard() {
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-10 text-center">
               <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">No current or upcoming assigned shoots or standby coverage.</p>
+              <p className="text-gray-500">
+                {isAdmin ? 'No current or upcoming assigned shoots or standby coverage.' : 'No upcoming assigned shoots.'}
+              </p>
             </CardContent>
           </Card>
         )}
