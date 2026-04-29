@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucide-react';
 import CountdownCard from './CountdownCard';
-import { getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
+import { getScheduleDateTimes } from '../utils/scheduleUtils';
 
 function getPrimaryDateTime(shoot) {
   const phaseDates = getScheduleDateTimes(shoot);
@@ -45,41 +45,30 @@ export default function AdminDayShootView({
   allUsers
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const [viewMode, setViewMode] = useState('day');
-  const [pageSize, setPageSize] = useState(3);
+  const [viewMode, setViewMode] = useState('tile');
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
   const [page, setPage] = useState(0);
 
   const sortedShoots = useMemo(() => {
     const now = new Date();
-    const activeOrCurrent = [];
-    const completedOrPast = [];
+    const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
 
-    [...shoots]
-      .filter((shoot) => !isShootCancelled(shoot))
-      .forEach((shoot) => {
+    return [...shoots]
+      .filter((shoot) => {
+        if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
         const primaryDate = getPrimaryDateTime(shoot);
-        const complete = isShootComplete(shoot);
         const gameDate = getScheduleDateTimes(shoot).game || primaryDate;
-        const stillRelevant = gameDate >= new Date(now.getTime() - 6 * 60 * 60 * 1000);
-
-        if (!complete && stillRelevant) {
-          activeOrCurrent.push(shoot);
-        } else {
-          completedOrPast.push(shoot);
-        }
-      });
-
-    activeOrCurrent.sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-    completedOrPast.sort((a, b) => getPrimaryDateTime(b) - getPrimaryDateTime(a));
-
-    return [...activeOrCurrent, ...completedOrPast];
+        return gameDate >= relevanceWindowStart;
+      })
+      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots]);
+
+  const pageSize = viewMode === 'tile' ? 4 : 3;
 
   useEffect(() => {
     setPage(0);
-  }, [viewMode, monthSelectedDate, pageSize, shoots.length]);
+  }, [viewMode, monthSelectedDate, shoots.length]);
 
   const totalPages = Math.max(1, Math.ceil(sortedShoots.length / pageSize));
   const visibleShoots = sortedShoots.slice(page * pageSize, page * pageSize + pageSize);
@@ -99,7 +88,7 @@ export default function AdminDayShootView({
     ? (shootsByDate[monthSelectedDate] || []).filter((shoot) => !isShootCancelled(shoot))
     : [];
 
-  const monthVisibleShoots = monthDayShootsList.slice(0, pageSize);
+  const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => (
     <CountdownCard
@@ -122,17 +111,8 @@ export default function AdminDayShootView({
           <ViewButton active={viewMode === 'tile'} icon={LayoutGrid} onClick={() => setViewMode('tile')}>Tile</ViewButton>
         </div>
 
-        <div className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900 px-2 py-1">
-          <span className="text-xs text-gray-500">Show</span>
-          {[3, 5].map((n) => (
-            <button
-              key={n}
-              onClick={() => setPageSize(n)}
-              className={`rounded px-2 py-1 text-xs font-semibold transition-colors ${pageSize === n ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
-            >
-              {n}
-            </button>
-          ))}
+        <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
+          {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
         </div>
       </div>
 
@@ -178,7 +158,7 @@ export default function AdminDayShootView({
                 {format(new Date(`${monthSelectedDate}T12:00:00`), 'EEEE, MMM d')} - {monthDayShootsList.length} shoot{monthDayShootsList.length !== 1 ? 's' : ''}
               </p>
               {monthDayShootsList.length === 0 ? (
-                <div className="py-4 text-center text-sm italic text-gray-500">No shoots on this day.</div>
+                <div className="py-4 text-center text-sm italic text-gray-500">No upcoming shoots on this day.</div>
               ) : (
                 <div className="space-y-2">{monthVisibleShoots.map(renderCard)}</div>
               )}
@@ -190,7 +170,7 @@ export default function AdminDayShootView({
       {viewMode !== 'month' && (
         <>
           {sortedShoots.length === 0 ? (
-            <div className="py-8 text-center text-sm italic text-gray-500">No assigned shoots.</div>
+            <div className="py-8 text-center text-sm italic text-gray-500">No upcoming assigned shoots.</div>
           ) : (
             <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2' : 'space-y-2'}>
               {visibleShoots.map(renderCard)}
