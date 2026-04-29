@@ -40,8 +40,7 @@ export default function AdminStandbyShootList({
   isAdmin = false
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const [viewMode, setViewMode] = useState('day');
-  const [pageSize, setPageSize] = useState(3);
+  const [viewMode, setViewMode] = useState('tile');
   const [page, setPage] = useState(0);
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
@@ -74,21 +73,18 @@ export default function AdminStandbyShootList({
       });
 
     const now = new Date();
-    const active = [];
-    const past = [];
-    Array.from(seen.values()).forEach((shoot) => {
-      const gameDt = getShootDateTime(shoot);
-      if (!isCompleted(shoot) && gameDt >= new Date(now.getTime() - 6 * 60 * 60 * 1000)) active.push(shoot);
-      else past.push(shoot);
-    });
-    active.sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-    past.sort((a, b) => getPrimaryDateTime(b) - getPrimaryDateTime(a));
-    return [...active, ...past];
+    const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+
+    return Array.from(seen.values())
+      .filter((shoot) => !isCompleted(shoot) && getShootDateTime(shoot) >= relevanceWindowStart)
+      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots, myStandbyWindows]);
+
+  const pageSize = viewMode === 'tile' ? 4 : 3;
 
   useEffect(() => {
     setPage(0);
-  }, [viewMode, monthSelectedDate, pageSize, shoots.length, standbyDays.length]);
+  }, [viewMode, monthSelectedDate, shoots.length, standbyDays.length]);
 
   const totalPages = Math.max(1, Math.ceil(allStandbyShoots.length / pageSize));
   const visibleShoots = allStandbyShoots.slice(page * pageSize, page * pageSize + pageSize);
@@ -103,7 +99,7 @@ export default function AdminStandbyShootList({
     return acc;
   }, {});
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
-  const monthVisibleShoots = monthDayShootsList.slice(0, pageSize);
+  const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => (
     <CountdownCard
@@ -125,11 +121,8 @@ export default function AdminStandbyShootList({
           <ViewButton active={viewMode === 'month'} icon={CalendarDays} onClick={() => setViewMode('month')}>Calendar</ViewButton>
           <ViewButton active={viewMode === 'tile'} icon={LayoutGrid} onClick={() => setViewMode('tile')}>Tile</ViewButton>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900 px-2 py-1">
-          <span className="text-xs text-gray-500">Show</span>
-          {[3, 5].map((n) => (
-            <button key={n} onClick={() => setPageSize(n)} className={`rounded px-2 py-1 text-xs font-semibold transition-colors ${pageSize === n ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>{n}</button>
-          ))}
+        <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
+          {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
         </div>
       </div>
 
@@ -161,7 +154,7 @@ export default function AdminStandbyShootList({
           {monthSelectedDate && (
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">{format(new Date(`${monthSelectedDate}T12:00:00`), 'EEEE, MMM d')} - {monthDayShootsList.length} standby shoot{monthDayShootsList.length !== 1 ? 's' : ''}</p>
-              {monthDayShootsList.length === 0 ? <div className="py-4 text-center text-sm italic text-gray-500">No standby coverage shoots on this day.</div> : <div className="space-y-2">{monthVisibleShoots.map(renderCard)}</div>}
+              {monthDayShootsList.length === 0 ? <div className="py-4 text-center text-sm italic text-gray-500">No upcoming standby coverage shoots on this day.</div> : <div className="space-y-2">{monthVisibleShoots.map(renderCard)}</div>}
             </div>
           )}
         </div>
@@ -170,7 +163,7 @@ export default function AdminStandbyShootList({
       {viewMode !== 'month' && (
         <>
           {allStandbyShoots.length === 0 ? (
-            <div className="py-6 text-center text-sm italic text-gray-500">No shoots during your standby coverage.</div>
+            <div className="py-6 text-center text-sm italic text-gray-500">No upcoming shoots during your standby coverage.</div>
           ) : (
             <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
           )}
