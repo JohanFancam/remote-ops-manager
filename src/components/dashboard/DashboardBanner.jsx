@@ -123,9 +123,14 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               {currentStandby.map((sd) => {
                 const startDate = sd.start_date || sd.date;
                 return (
-                  <div key={`${sd.admin_email}-${startDate}-${sd.start_time || ''}`} className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
-                    <Phone className="h-4 w-4 text-yellow-400" />
-                    <span className="truncate">{getStandbyName(sd)}</span>
+                  <div key={`${sd.admin_email}-${startDate}-${sd.start_time || ''}`} className="space-y-1">
+                    <div className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
+                      <Phone className="h-4 w-4 text-yellow-400" />
+                      <span className="truncate">{getStandbyName(sd)}</span>
+                    </div>
+                    <div className="pl-6">
+                      <InfoPill tone="yellow">{format(new Date(`${startDate}T12:00:00`), 'EEE, MMM d')}</InfoPill>
+                    </div>
                   </div>
                 );
               })}
@@ -171,4 +176,4 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       </div>
     </div>
   );
-} 
+}
