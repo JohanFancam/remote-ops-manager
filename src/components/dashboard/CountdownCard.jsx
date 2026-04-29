@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronDown, ChevronUp, Copy, Phone } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
@@ -98,15 +98,14 @@ export default function CountdownCard({
   rigSettings = [],
   onUpdate,
   userEmail,
-  allUsers = [],
-  showReadyMessage = true
+  allUsers = []
 }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const [updatingRig, setUpdatingRig] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [localPhaseStatus, setLocalPhaseStatus] = useState(null);
   const [readyCopied, setReadyCopied] = useState(false);
+  const [localPhaseStatus, setLocalPhaseStatus] = useState(null);
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -208,6 +207,39 @@ export default function CountdownCard({
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
   const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
   const rigLabel = matchedRig?.rig_type || shoot.rig_type_override || shoot.rig_type || null;
+  const shootTypeLabel = (() => {
+    const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
+    const parts = [baseType];
+    if (matchedRig?.sound && !String(baseType).toLowerCase().includes('sound')) parts.push('Sound');
+    return parts.filter(Boolean).join('/');
+  })();
+
+  const buildReadyMessage = () => {
+    const team = matchedRig?.team || shoot.client || shoot.title || 'Unknown Team';
+    const timeLabel = (value) => value ? format(value, 'HH:mm') : 'TBC';
+    const lines = [
+      'Shoots ready for today :',
+      '',
+      `• Team: ${team}`,
+      '',
+      `• Setup: ${timeLabel(phaseDates.setup)}`,
+      `• Pre-Shoot: ${timeLabel(phaseDates.pre_shoot)}`,
+      showAttention ? `• Attention: ${timeLabel(phaseDates.attention)}` : null,
+      showSound ? `• Sound Check: ${timeLabel(phaseDates.sound)}` : null,
+      `• Game Time: ${timeLabel(gameDate)}`,
+      '',
+      `• Venue: ${shoot.location || 'TBC'}`,
+      `• Shoot Type: ${shootTypeLabel}`,
+    ].filter((line) => line !== null);
+    return lines.join('\n');
+  };
+
+  const handleCopyReadyMessage = async () => {
+    await navigator.clipboard.writeText(buildReadyMessage());
+    setReadyCopied(true);
+    setTimeout(() => setReadyCopied(false), 2000);
+  };
+
 
   const quickPhases = [
     {
@@ -270,21 +302,6 @@ export default function CountdownCard({
     } catch (e) {
       setLocalPhaseStatus(effectivePhaseStatus);
     }
-  };
-
-  const buildReadyMessage = () => {
-    const team = shoot.client || shoot.title || 'Unknown Team';
-    const venue = shoot.location || matchedRig?.venue || matchedRig?.venue_type || 'TBC';
-    const shootType = rigLabel || 'Data';
-    const timeSettings = quickPhases.map((phase) => `• ${phase.label}: ${phase.time || 'TBC'}`).join('\n');
-
-    return `Shoots ready for today :\n\n${timeSettings}\n\n• Team: ${team}\n• Shoot Type: ${shootType}\n\n• Venue: ${venue}`;
-  };
-
-  const handleCopyReadyMessage = async () => {
-    await navigator.clipboard.writeText(buildReadyMessage());
-    setReadyCopied(true);
-    setTimeout(() => setReadyCopied(false), 2000);
   };
 
   const hdValue = matchedRig?.hd_enabled === false ? null : formatCameraValue(matchedRig?.hd || shoot.hd);
@@ -403,17 +420,6 @@ export default function CountdownCard({
               />
             ))}
 
-            {showReadyMessage && canMarkPhases && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
-              <button
-                type="button"
-                onClick={handleCopyReadyMessage}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-blue-700/70 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-200 transition-colors hover:border-blue-500 hover:bg-blue-900/45 hover:text-white"
-              >
-                {readyCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {readyCopied ? 'Copied' : 'Ready Message'}
-              </button>
-            )}
-
             {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
@@ -433,6 +439,14 @@ export default function CountdownCard({
                 ✓ Shoot Complete
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={handleCopyReadyMessage}
+              className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-blue-700 bg-blue-950/35 px-2.5 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-900/45 hover:text-blue-100"
+            >
+              {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
+            </button>
           </div>
         </div>
 
