@@ -8,7 +8,6 @@ import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext'
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
   Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen,
-  CalendarRange, Users, CheckSquare
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
@@ -55,9 +54,6 @@ function LayoutContent({ children, currentPageName }) {
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Team Schedule', icon: CalendarRange, page: 'TeamSchedule' },
-    { name: 'Operator Availability', icon: Users, page: 'OperatorAvailability' },
-    { name: 'Rigs Check', icon: CheckSquare, page: 'RigsCheck' },
     { name: 'Shoot Duration', icon: Clock, page: 'ShootDuration' },
     showRigs && { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     showReports && { name: 'Reports', icon: BarChart2, page: 'Reports' },
