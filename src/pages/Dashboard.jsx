@@ -77,7 +77,7 @@ export default function Dashboard() {
 
   const handleShootUpdate = async (id, data) => {
     await base44.entities.Shoot.update(id, data);
-    queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    await queryClient.invalidateQueries({ queryKey: ['shoots'] });
   };
 
   const visibleShoots = useMemo(() => {
