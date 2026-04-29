@@ -289,18 +289,11 @@ function ShootCalendarEntry({
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              {!compact && (
-                <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
-                  shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
-                  shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
-                  shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
-                  'bg-blue-500/15 text-blue-400 border-blue-500/25'
-                }`}>
-                  {(shoot.status || 'upcoming').replace('_', ' ')}
-                </span>
-              )}
-            </div>
+            {!compact && isAdmin && hasPending && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400 flex-shrink-0">
+                Pending
+              </span>
+            )}
           </div>
 
           {!compact && (
@@ -390,8 +383,6 @@ export default function Calendar() {
   const [editingShoot, setEditingShoot] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selectedShoot, setSelectedShoot] = useState(null);
-  const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
-  const [rigCheckCopied, setRigCheckCopied] = useState(false);
 
   useEffect(() => {
     const applyMobileDefaultView = () => {
@@ -623,132 +614,6 @@ export default function Calendar() {
     }
 
     queryClient.invalidateQueries({ queryKey: ['standbyDays'] });
-  };
-
-  const getShootTeamName = (shoot) => {
-    const exactRig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
-    if (exactRig?.team) return exactRig.team;
-    if (shoot?.client) return shoot.client;
-    return shortenTitle(shoot?.title || 'Unknown Team');
-  };
-
-  const buildRigCheckSlackMessage = (messageShoots) => {
-    const uniqueShoots = Array.from(new Map(messageShoots.map(s => [s.id, s])).values());
-    if (uniqueShoots.length === 0) return '';
-
-    const items = uniqueShoots
-      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
-      .map((s) => {
-        const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-        const teamName = getShootTeamName(s);
-        const label = getRigTypeLabel(s, rig) || 'Data';
-        return '• ' + teamName + ' - ' + label;
-      });
-
-    return 'Shoots ready for today :\n\n' + items.join('\n');
-  };
-
-  const rigCheckMessageShoots = useMemo(() => {
-    return rigCheckMessageShootIds
-      .map(id => shoots.find(s => s.id === id))
-      .filter(Boolean)
-      .filter(s => !s.rig_check_archived);
-  }, [rigCheckMessageShootIds, shoots]);
-
-  const rigCheckSlackMessage = useMemo(
-    () => buildRigCheckSlackMessage(rigCheckMessageShoots),
-    [rigCheckMessageShoots, rigSettings]
-  );
-
-  const handleCopyRigCheckMessage = async () => {
-    if (!rigCheckSlackMessage) return;
-    await navigator.clipboard.writeText(rigCheckSlackMessage);
-    setRigCheckCopied(true);
-    setTimeout(() => setRigCheckCopied(false), 2000);
-  };
-
-  const handleArchiveRigCheckMessageShoots = async () => {
-    const idsToArchive = rigCheckMessageShoots.map(s => s.id);
-    if (idsToArchive.length === 0) return;
-
-    await Promise.all(idsToArchive.map(id =>
-      base44.entities.Shoot.update(id, {
-        rig_check_archived: true,
-        rig_check_archived_at: new Date().toISOString(),
-        rig_check_archived_by: user?.email || '',
-        rig_check_archived_by_name: user?.full_name || user?.email || '',
-      })
-    ));
-
-    setRigCheckMessageShootIds(prev => prev.filter(id => !idsToArchive.includes(id)));
-    refresh();
-  };
-
-  const handleRigCheckToggle = async (shoot, standbyCoverage) => {
-    if (!shoot?.id || !user?.email) return;
-    const nextChecked = !shoot.rig_check_completed;
-    const nowIso = new Date().toISOString();
-
-    await base44.entities.Shoot.update(shoot.id, {
-      rig_check_completed: nextChecked,
-      rig_check_checked_from_calendar: nextChecked,
-      rig_check_checked_by: nextChecked ? user.email : '',
-      rig_check_checked_by_name: nextChecked ? (user.full_name || user.email) : '',
-      rig_check_checked_at: nextChecked ? nowIso : '',
-      rig_check_standby_date: nextChecked ? (standbyCoverage?.start_date || standbyCoverage?.date || '') : '',
-      rig_check_standby_admin_email: nextChecked ? (standbyCoverage?.admin_email || '') : '',
-      rig_check_standby_admin_name: nextChecked ? (standbyCoverage?.admin_name || standbyCoverage?.admin_email || '') : '',
-      rig_check_archived: false,
-      rig_check_archived_at: '',
-      rig_check_archived_by: '',
-      rig_check_archived_by_name: '',
-    });
-
-    setRigCheckMessageShootIds(prev => {
-      if (nextChecked) return [...new Set([...prev, shoot.id])];
-      return prev.filter(id => id !== shoot.id);
-    });
-
-    refresh();
-    setSelectedShoot(prev => prev && prev.id === shoot.id
-      ? {
-          ...prev,
-          rig_check_completed: nextChecked,
-          rig_check_checked_from_calendar: nextChecked,
-          rig_check_checked_by: nextChecked ? user.email : '',
-          rig_check_checked_by_name: nextChecked ? (user.full_name || user.email) : '',
-          rig_check_checked_at: nextChecked ? nowIso : '',
-        }
-      : prev
-    );
-  };
-
-  const handleRigCheckCancel = async (shoot) => {
-    if (!shoot?.id || !user?.email) return;
-
-    const clearedRigCheck = {
-      rig_check_completed: false,
-      rig_check_checked_from_calendar: false,
-      rig_check_checked_by: '',
-      rig_check_checked_by_name: '',
-      rig_check_checked_at: '',
-      rig_check_standby_date: '',
-      rig_check_standby_admin_email: '',
-      rig_check_standby_admin_name: '',
-      rig_check_archived: false,
-      rig_check_archived_at: '',
-      rig_check_archived_by: '',
-      rig_check_archived_by_name: '',
-    };
-
-    await base44.entities.Shoot.update(shoot.id, clearedRigCheck);
-
-    setRigCheckMessageShootIds(prev => prev.filter(id => id !== shoot.id));
-    queryClient.setQueryData(['shoots'], (old = []) =>
-      old.map(item => item.id === shoot.id ? { ...item, ...clearedRigCheck } : item)
-    );
-    setSelectedShoot(prev => prev && prev.id === shoot.id ? { ...prev, ...clearedRigCheck } : prev);
-    refresh();
   };
 
   useEffect(() => {
@@ -1145,7 +1010,6 @@ export default function Calendar() {
             </div>
           </div>
 
-
           {liveSelectedShoot && (
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="border-b border-gray-800 pb-3">
@@ -1251,4 +1115,4 @@ export default function Calendar() {
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
     </div>
   );
-}  
+} 
