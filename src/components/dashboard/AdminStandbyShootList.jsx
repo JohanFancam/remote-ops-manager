@@ -261,4 +261,4 @@ export default function AdminStandbyShootList({
       )}
     </div>
   );
-}
+} 
