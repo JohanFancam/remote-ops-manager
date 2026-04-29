@@ -56,7 +56,7 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       type="button"
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
         done
           ? 'border-green-700/70 bg-green-950/30 text-green-300'
           : 'border-gray-700 bg-gray-950/70 text-gray-200 hover:border-blue-500/70 hover:bg-blue-950/25 hover:text-white'
@@ -390,7 +390,7 @@ export default function CountdownCard({
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
                 disabled={!canOpenShootComplete}
-                className={`inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
                   canOpenShootComplete
                     ? 'border-blue-600 bg-blue-600/80 text-white hover:bg-blue-500'
                     : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
@@ -401,7 +401,7 @@ export default function CountdownCard({
             )}
 
             {shoot.status === 'completed' && (
-              <div className="inline-flex items-center justify-center rounded-lg border border-gray-600 bg-gray-800 px-6 py-2 text-sm font-medium text-gray-300">
+              <div className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-2.5 text-xs font-medium text-gray-300">
                 ✓ Shoot Complete
               </div>
             )}
@@ -502,13 +502,6 @@ export default function CountdownCard({
                 Standby: {getDisplayName(allUsers.find((u) => u.email === shoot.standby_admin), shoot.standby_admin)}
               </div>
             )}
-
-            <a
-              href={`/Calendar?shootId=${shoot.id}`}
-              className="block pt-1 text-center text-xs text-blue-500 hover:text-blue-400"
-            >
-              Open full detail in Calendar →
-            </a>
           </div>
         )}
       </div>
