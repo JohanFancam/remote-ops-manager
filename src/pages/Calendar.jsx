@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -128,6 +128,8 @@ function ShootCalendarEntry({
   onSelect,
   onUpdate,
   onDuplicate,
+  onRigCheckToggle,
+  onRigCheckCancel,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
 }) {
@@ -161,6 +163,21 @@ function ShootCalendarEntry({
     : '';
 
   const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
+
+  const rigCheckDone = !!shoot.rig_check_completed;
+  const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
+
+  const handleRigCheckToggle = async (e) => {
+    e.stopPropagation();
+    if (!canCheckStandbyRig) return;
+    await onRigCheckToggle?.(shoot, standbyCoverage);
+  };
+
+  const handleRigCheckCancel = async (e) => {
+    e.stopPropagation();
+    if (!canCheckStandbyRig || !rigCheckDone) return;
+    await onRigCheckCancel?.(shoot);
+  };
 
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
     const u = allUsers.find(u2 => u2.email === email);
@@ -289,11 +306,35 @@ function ShootCalendarEntry({
                 </p>
               )}
             </div>
-            {!compact && isAdmin && hasPending && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400 flex-shrink-0">
-                Pending
-              </span>
-            )}
+            <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {canCheckStandbyRig && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleRigCheckToggle}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
+                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked'}
+                  >
+                    {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
+                  </button>
+                  {rigCheckDone && (
+                    <button
+                      type="button"
+                      onClick={handleRigCheckCancel}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/10 text-red-300 transition-colors hover:bg-red-500/20"
+                      title="Cancel / undo rig check"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {!compact && isAdmin && hasPending && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400">
+                  Pending
+                </span>
+              )}
+            </div>
           </div>
 
           {!compact && (
@@ -666,6 +707,55 @@ export default function Calendar() {
     setSelectedShoot(prev => prev && prev.id === id ? { ...prev, ...data } : prev);
   };
 
+  const handleRigCheckToggle = async (shoot, standbyCoverage) => {
+    if (!shoot?.id || !user?.email || !isAdmin) return;
+
+    const nextChecked = !shoot.rig_check_completed;
+    const nowIso = new Date().toISOString();
+    const rigCheckData = {
+      rig_check_completed: nextChecked,
+      rig_check_checked_from_calendar: nextChecked,
+      rig_check_checked_by: nextChecked ? user.email : '',
+      rig_check_checked_by_name: nextChecked ? (user.full_name || user.email) : '',
+      rig_check_checked_at: nextChecked ? nowIso : '',
+      rig_check_standby_date: nextChecked ? (standbyCoverage?.start_date || standbyCoverage?.date || '') : '',
+      rig_check_standby_admin_email: nextChecked ? (standbyCoverage?.admin_email || '') : '',
+      rig_check_standby_admin_name: nextChecked ? (standbyCoverage?.admin_name || standbyCoverage?.admin_email || '') : '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    };
+
+    await base44.entities.Shoot.update(shoot.id, rigCheckData);
+    refresh();
+    setSelectedShoot(prev => prev && prev.id === shoot.id ? { ...prev, ...rigCheckData } : prev);
+  };
+
+  const handleRigCheckCancel = async (shoot) => {
+    if (!shoot?.id || !user?.email || !isAdmin) return;
+
+    const clearedRigCheck = {
+      rig_check_completed: false,
+      rig_check_checked_from_calendar: false,
+      rig_check_checked_from_dashboard: false,
+      rig_check_checked_by: '',
+      rig_check_checked_by_name: '',
+      rig_check_checked_at: '',
+      rig_check_standby_date: '',
+      rig_check_standby_admin_email: '',
+      rig_check_standby_admin_name: '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    };
+
+    await base44.entities.Shoot.update(shoot.id, clearedRigCheck);
+    refresh();
+    setSelectedShoot(prev => prev && prev.id === shoot.id ? { ...prev, ...clearedRigCheck } : prev);
+  };
+
   const startEdit = (shoot) => {
     setEditingShoot(shoot);
     setForm({ ...emptyForm, ...shoot });
@@ -749,6 +839,8 @@ export default function Calendar() {
       onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
       onDuplicate={duplicateShoot}
+      onRigCheckToggle={handleRigCheckToggle}
+      onRigCheckCancel={handleRigCheckCancel}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
     />
