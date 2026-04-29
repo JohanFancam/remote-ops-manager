@@ -171,4 +171,4 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       </div>
     </div>
   );
-}
+} 
