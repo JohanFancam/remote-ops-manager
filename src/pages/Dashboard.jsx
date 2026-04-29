@@ -73,9 +73,7 @@ export default function Dashboard() {
     return Array.from(map.values());
   }, [users, presenceRecords]);
 
-  const today = new Date();
-  const todayStr = format(today, 'yyyy-MM-dd');
-  const now = new Date();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const handleShootUpdate = async (id, data) => {
     await base44.entities.Shoot.update(id, data);
@@ -95,101 +93,21 @@ export default function Dashboard() {
     return visibleShoots.filter((s) => s.assigned_operators?.includes(user?.email));
   }, [visibleShoots, user?.email]);
 
-  // For the history/day-month navigator:
-  // keep all assigned shoots, including past/completed.
   const selfAssignedShoots = isAdmin ? allAssignedShoots : [];
   const remoteShoots = !isAdmin ? allAssignedShoots : [];
 
-  // Only current/next assigned shoots for the main "upcoming" admin logic.
-  const currentOrNextAssignedShoots = useMemo(() => {
-    return allAssignedShoots.filter((s) => s.date >= todayStr || s.status === 'completed');
-  }, [allAssignedShoots, todayStr]);
+  const myStandbyDays = useMemo(() => {
+    if (!isAdmin || !user?.email) return [];
+    return standbyDays.filter((sd) => sd.admin_email === user.email);
+  }, [standbyDays, isAdmin, user?.email]);
 
-  // Helper: convert standby record to start/end datetimes.
-  const standbyWindows = useMemo(() => {
-    return standbyDays
-      .filter((sd) => sd.admin_email === user?.email)
-      .map((sd) => {
-        const startDate = sd.start_date || sd.date;
-        const endDate = sd.end_date || startDate;
-        if (!startDate) return null;
-
-        const startDt = new Date(`${startDate}T${sd.start_time || '00:00'}`);
-        const endDt = new Date(`${endDate}T${sd.end_time || '23:59:59'}`);
-
-        return {
-          ...sd,
-          startDate,
-          endDate,
-          startDt,
-          endDt,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.startDt - b.startDt);
-  }, [standbyDays, user?.email]);
-
-  const currentStandbyWindow = useMemo(() => {
-    return standbyWindows.find((w) => w.startDt <= now && w.endDt >= now) || null;
-  }, [standbyWindows, now]);
-
-  const nextStandbyWindow = useMemo(() => {
-    return standbyWindows.find((w) => w.startDt > now) || null;
-  }, [standbyWindows, now]);
-
-  const buildDateRangeSet = (windowObj) => {
-    const dates = new Set();
-    if (!windowObj?.startDate || !windowObj?.endDate) return dates;
-
-    const cur = new Date(`${windowObj.startDate}T12:00:00`);
-    const last = new Date(`${windowObj.endDate}T12:00:00`);
-
-    while (cur <= last) {
-      dates.add(format(cur, 'yyyy-MM-dd'));
-      cur.setDate(cur.getDate() + 1);
-    }
-
-    return dates;
-  };
-
-  const currentStandbyDates = useMemo(
-    () => buildDateRangeSet(currentStandbyWindow),
-    [currentStandbyWindow]
-  );
-
-  const nextStandbyDates = useMemo(
-    () => buildDateRangeSet(nextStandbyWindow),
-    [nextStandbyWindow]
-  );
-
-  // Show only the shoots the admin is covering RIGHT NOW while on standby.
-  const currentStandbyShoots = useMemo(() => {
-    if (!isAdmin || !currentStandbyWindow) return [];
-
-    return visibleShoots.filter((s) => {
-      if (s.assigned_operators?.includes(user?.email)) return false;
-      return currentStandbyDates.has(s.date);
-    });
-  }, [isAdmin, currentStandbyWindow, visibleShoots, user?.email, currentStandbyDates]);
-
-  // If not currently on standby, show the shoots for the NEXT standby period.
-  const upcomingStandbyShoots = useMemo(() => {
-    if (!isAdmin || currentStandbyWindow || !nextStandbyWindow) return [];
-
-    return visibleShoots.filter((s) => {
-      if (s.assigned_operators?.includes(user?.email)) return false;
-      return nextStandbyDates.has(s.date);
-    });
-  }, [isAdmin, currentStandbyWindow, nextStandbyWindow, visibleShoots, user?.email, nextStandbyDates]);
-
-  const hasAnyCurrentOrNextCoverage =
-    currentOrNextAssignedShoots.length > 0 ||
-    currentStandbyShoots.length > 0 ||
-    upcomingStandbyShoots.length > 0;
+  const hasAnyDashboardShoots = isAdmin
+    ? selfAssignedShoots.length > 0 || myStandbyDays.length > 0
+    : remoteShoots.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-white">
             {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
@@ -198,97 +116,72 @@ export default function Dashboard() {
 
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
 
-        <DashboardBanner
-          user={user}
-          isAdmin={isAdmin}
-          shoots={shoots}
-          standbyDays={standbyDays}
-          allUsers={allUsers}
-          todayStr={todayStr}
-        />
+        <section className="mb-6">
+          <DashboardBanner
+            user={user}
+            isAdmin={isAdmin}
+            shoots={shoots}
+            standbyDays={standbyDays}
+            allUsers={allUsers}
+            todayStr={todayStr}
+          />
+        </section>
 
+        <section className="mb-8">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-400">Section 2</p>
+              <h2 className="text-lg font-semibold text-white">My Assigned Shoots</h2>
+            </div>
+            <p className="hidden text-xs text-gray-500 sm:block">Current or next shoot shows first. Previous/Next lets you browse your history.</p>
+          </div>
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+            <AdminDayShootView
+              shoots={isAdmin ? selfAssignedShoots : remoteShoots}
+              isAdmin={isAdmin}
+              rigSettings={rigSettings}
+              onUpdate={handleShootUpdate}
+              userEmail={user?.email}
+              allUsers={allUsers}
+            />
+          </div>
+        </section>
 
         {isAdmin && (
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-white mb-3">
-              My Assigned Shoots — Current / Next
-            </h2>
-            <AdminDayShootView
-              shoots={selfAssignedShoots}
-              isAdmin={isAdmin}
-              rigSettings={rigSettings}
-              onUpdate={handleShootUpdate}
-              userEmail={user?.email}
-              allUsers={allUsers}
-            />
-          </div>
+          <section className="mb-8">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-yellow-400">Section 3</p>
+                <h2 className="text-lg font-semibold text-white">Standby Coverage Shoots</h2>
+              </div>
+              <p className="hidden text-xs text-gray-500 sm:block">Uses your 18:00 - 06:00 standby windows from the main calendar.</p>
+            </div>
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+              <AdminStandbyShootList
+                shoots={visibleShoots}
+                allUsers={allUsers}
+                userEmail={user?.email}
+                rigSettings={rigSettings}
+                standbyDays={myStandbyDays}
+                onUpdate={handleShootUpdate}
+                isAdmin={isAdmin}
+              />
+            </div>
+          </section>
         )}
 
-        {isAdmin && currentStandbyWindow && (
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-white mb-3">
-              Standby Coverage — Current Standby Shoots
-            </h2>
-            <AdminStandbyShootList
-              shoots={currentStandbyShoots}
-              allUsers={allUsers}
-              userEmail={user?.email}
-              rigSettings={rigSettings}
-              standbyDays={[currentStandbyWindow]}
-              onUpdate={handleShootUpdate}
-              isAdmin={isAdmin}
-            />
-          </div>
-        )}
-
-        {isAdmin && !currentStandbyWindow && nextStandbyWindow && (
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-white mb-3">
-              Upcoming Standby Shoots
-            </h2>
-            <AdminStandbyShootList
-              shoots={upcomingStandbyShoots}
-              allUsers={allUsers}
-              userEmail={user?.email}
-              rigSettings={rigSettings}
-              standbyDays={[nextStandbyWindow]}
-              onUpdate={handleShootUpdate}
-              isAdmin={isAdmin}
-            />
-          </div>
-        )}
-
-        {isAdmin && !hasAnyCurrentOrNextCoverage && (
+        {!hasAnyDashboardShoots && (
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-10 text-center">
               <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">
-                No current or upcoming assigned shoots or standby coverage.
-              </p>
+              <p className="text-gray-500">No current or upcoming assigned shoots or standby coverage.</p>
             </CardContent>
           </Card>
         )}
 
-        {!isAdmin && (
-          <div>
-            <h2 className="text-base font-semibold text-white mb-3">My Shoots</h2>
-            <AdminDayShootView
-              shoots={remoteShoots}
-              isAdmin={false}
-              rigSettings={rigSettings}
-              onUpdate={handleShootUpdate}
-              userEmail={user?.email}
-              allUsers={allUsers}
-            />
-          </div>
-        )}
-
         <div className="mt-8" />
 
-        {isAdmin && (
-          <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />
-        )}
-
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
 
         {!isAdmin && (
           <div className="mt-6">
