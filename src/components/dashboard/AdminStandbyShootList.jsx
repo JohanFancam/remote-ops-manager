@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, CalendarDays, Copy, List, LayoutGrid, Wrench, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Check, Copy } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
@@ -17,19 +17,19 @@ function isCancelled(shoot) {
   return shoot?.status === 'cancelled';
 }
 
-function getRigTypeLabel(shoot, rig) {
-  const explicit = shoot?.rig_type_override || shoot?.rig_type || rig?.rig_type;
-  const hasSound = rig?.sound === true || shoot?.sound === true;
-
-  if (explicit === 'Data/Fancam' && hasSound) return 'Data/Fancam/Sound';
-  if (explicit === 'Fancam' && hasSound) return 'Fancam/Sound';
-  if (explicit) return explicit;
-  if (hasSound) return 'Data/Fancam/Sound';
-  return 'Data';
-}
-
 function getShootDateTime(shoot) {
   return getScheduleDateTimes(shoot).game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
+}
+
+function getRigTypeLabel(shoot, rig) {
+  const baseType = shoot?.rig_type_override || rig?.rig_type || shoot?.rig_type || 'Data';
+  const parts = [baseType];
+  if (rig?.sound && !String(baseType).toLowerCase().includes('sound')) parts.push('Sound');
+  return parts.filter(Boolean).join('/');
+}
+
+function getTeamName(shoot, rig) {
+  return rig?.team || shoot?.client || shoot?.title || 'Unknown Team';
 }
 
 function ViewButton({ active, icon: Icon, children, onClick }) {
@@ -113,74 +113,58 @@ export default function AdminStandbyShootList({
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const getShootTeamName = (shoot) => {
-    const exactRig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
-    if (exactRig?.team) return exactRig.team;
-    if (shoot?.client) return shoot.client;
-    return shoot?.title || 'Unknown Team';
-  };
-
-  const checkedRigShoots = allStandbyShoots.filter((shoot) => shoot.rig_check_completed && !shoot.rig_check_archived);
+  const checkedRigShoots = useMemo(() => {
+    return allStandbyShoots
+      .filter((shoot) => shoot.rig_check_completed && !shoot.rig_check_archived)
+      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')));
+  }, [allStandbyShoots]);
 
   const buildRigCheckMessage = () => {
     if (checkedRigShoots.length === 0) return '';
-
-    const items = checkedRigShoots
-      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
-      .map((shoot) => {
-        const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
-        return `• ${getShootTeamName(shoot)} - ${getRigTypeLabel(shoot, rig)}`;
-      });
-
+    const items = checkedRigShoots.map((shoot) => {
+      const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+      return `• ${getTeamName(shoot, rig)} - ${getRigTypeLabel(shoot, rig)}`;
+    });
     return `Shoots ready for today :\n\n${items.join('\n')}`;
   };
 
-  const rigCheckMessage = buildRigCheckMessage();
-
-  const handleCopyRigCheckMessage = async () => {
-    if (!rigCheckMessage) return;
-    await navigator.clipboard.writeText(rigCheckMessage);
+  const handleCopyRigMessage = async () => {
+    const message = buildRigCheckMessage();
+    if (!message) return;
+    await navigator.clipboard.writeText(message);
     setRigMessageCopied(true);
     setTimeout(() => setRigMessageCopied(false), 2000);
   };
 
-  const updateRigCheck = async (shoot, checked) => {
-    if (!onUpdate || !shoot?.id) return;
-
-    await onUpdate(shoot.id, checked
-      ? {
-          rig_check_completed: true,
-          rig_check_checked_from_dashboard: true,
-          rig_check_checked_by: userEmail || '',
-          rig_check_checked_at: new Date().toISOString(),
-          rig_check_archived: false,
-          rig_check_archived_at: '',
-        }
-      : {
-          rig_check_completed: false,
-          rig_check_checked_from_dashboard: false,
-          rig_check_checked_by: '',
-          rig_check_checked_at: '',
-          rig_check_archived: false,
-          rig_check_archived_at: '',
-        }
-    );
-  };
-
-  const handleArchiveCheckedRigs = async () => {
-    if (!onUpdate || checkedRigShoots.length === 0) return;
-
-    await Promise.all(checkedRigShoots.map((shoot) => onUpdate(shoot.id, {
-      rig_check_archived: true,
-      rig_check_archived_at: new Date().toISOString(),
-    })));
+  const handleToggleRigCheck = async (shoot) => {
+    if (!onUpdate || !isAdmin) return;
+    const nextChecked = !shoot.rig_check_completed;
+    await onUpdate(shoot.id, {
+      rig_check_completed: nextChecked,
+      rig_check_checked_from_dashboard: nextChecked,
+      rig_check_checked_by: nextChecked ? (userEmail || '') : '',
+      rig_check_checked_at: nextChecked ? new Date().toISOString() : '',
+      rig_check_archived: false,
+      rig_check_archived_at: '',
+      rig_check_archived_by: '',
+      rig_check_archived_by_name: '',
+    });
   };
 
   const renderCard = (shoot) => {
-    const rigChecked = !!shoot.rig_check_completed && !shoot.rig_check_archived;
-
+    const rigChecked = !!shoot.rig_check_completed;
     return (
-      <div key={shoot.id} className="space-y-2">
+      <div key={shoot.id} className="relative">
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => handleToggleRigCheck(shoot)}
+            className={`absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${rigChecked ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
+            title={rigChecked ? 'Rig checked - click to remove from rig message' : 'Mark rig checked'}
+          >
+            {rigChecked ? <Check className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+          </button>
+        )}
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}
@@ -188,33 +172,7 @@ export default function AdminStandbyShootList({
           onUpdate={onUpdate}
           userEmail={userEmail}
           allUsers={allUsers}
-          showReadyMessage={false}
         />
-        <div className="flex flex-wrap items-center justify-end gap-2 rounded-lg border border-gray-800 bg-gray-950/60 px-3 py-2">
-          <button
-            type="button"
-            onClick={() => updateRigCheck(shoot, !rigChecked)}
-            className={`inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-              rigChecked
-                ? 'border-green-700/70 bg-green-950/30 text-green-300 hover:bg-green-900/35'
-                : 'border-yellow-700/70 bg-yellow-950/20 text-yellow-300 hover:bg-yellow-900/25'
-            }`}
-          >
-            {rigChecked ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
-            {rigChecked ? 'Rig Checked' : 'Check Rig'}
-          </button>
-
-          {rigChecked && (
-            <button
-              type="button"
-              onClick={() => updateRigCheck(shoot, false)}
-              className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-red-700/60 bg-red-950/20 px-2.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-900/25"
-            >
-              <XCircle className="h-3.5 w-3.5" />
-              Uncheck Rig
-            </button>
-          )}
-        </div>
       </div>
     );
   };
@@ -232,32 +190,22 @@ export default function AdminStandbyShootList({
         </div>
       </div>
 
-      {checkedRigShoots.length > 0 && (
-        <div className="mb-4 rounded-xl border border-blue-800/60 bg-blue-950/10 p-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      {isAdmin && checkedRigShoots.length > 0 && (
+        <div className="mb-4 rounded-xl border border-green-800/40 bg-green-950/15 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-white">Rig check Slack message</p>
-              <p className="text-xs text-gray-500">Uncheck a rig to remove it from this message.</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-300">Rig check message</p>
+              <p className="text-[11px] text-gray-500">Only checked rigs are included. Untick a rig to remove it from this message.</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleCopyRigCheckMessage}
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-blue-700/70 bg-blue-600/80 px-3 text-xs font-medium text-white transition-colors hover:bg-blue-500"
-              >
-                {rigMessageCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {rigMessageCopied ? 'Copied' : 'Copy'}
-              </button>
-              <button
-                type="button"
-                onClick={handleArchiveCheckedRigs}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-gray-700 bg-gray-950/70 px-3 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
-              >
-                Archive Tested Rigs
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleCopyRigMessage}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-green-700 bg-green-950/45 px-3 text-xs font-medium text-green-300 transition-colors hover:bg-green-900/50 hover:text-green-100"
+            >
+              {rigMessageCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Copy to Slack</>}
+            </button>
           </div>
-          <pre className="whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-950 p-3 font-sans text-sm text-gray-200">{rigCheckMessage}</pre>
+          <pre className="whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-950 p-3 text-xs leading-relaxed text-gray-200">{buildRigCheckMessage()}</pre>
         </div>
       )}
 
