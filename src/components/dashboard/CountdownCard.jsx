@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
