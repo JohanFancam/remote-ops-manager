@@ -98,7 +98,8 @@ export default function CountdownCard({
   rigSettings = [],
   onUpdate,
   userEmail,
-  allUsers = []
+  allUsers = [],
+  showReadyMessage = true
 }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
@@ -440,13 +441,15 @@ export default function CountdownCard({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleCopyReadyMessage}
-              className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-blue-700 bg-blue-950/35 px-2.5 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-900/45 hover:text-blue-100"
-            >
-              {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
-            </button>
+            {showReadyMessage && isAssigned && (
+              <button
+                type="button"
+                onClick={handleCopyReadyMessage}
+                className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-blue-700 bg-blue-950/35 px-2.5 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-900/45 hover:text-blue-100"
+              >
+                {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
+              </button>
+            )}
           </div>
         </div>
 
