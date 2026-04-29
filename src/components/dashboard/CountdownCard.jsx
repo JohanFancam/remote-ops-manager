@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Copy, Check, Wrench, XCircle } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Copy, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
@@ -99,9 +99,7 @@ export default function CountdownCard({
   onUpdate,
   userEmail,
   allUsers = [],
-  standbyRigCheck = false,
-  onStandbyRigCheck,
-  onStandbyRigCancel
+  showReadyMessage = true
 }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
@@ -210,39 +208,6 @@ export default function CountdownCard({
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
   const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
   const rigLabel = matchedRig?.rig_type || shoot.rig_type_override || shoot.rig_type || null;
-  const rigCheckDone = !!shoot.rig_check_completed;
-  const canUseRigCheck = isAdmin && standbyRigCheck && !!onStandbyRigCheck && shoot.status !== 'completed' && shoot.status !== 'cancelled';
-
-  const readySlackMessage = useMemo(() => {
-    const team = shoot.client || shoot.title || 'team';
-    const timeLines = [
-      phaseDates.setup ? `• Setup: ${format(phaseDates.setup, 'EEE HH:mm')}` : null,
-      phaseDates.pre_shoot ? `• Pre-Shoot: ${format(phaseDates.pre_shoot, 'EEE HH:mm')}` : null,
-      showAttention && phaseDates.attention ? `• Attention: ${format(phaseDates.attention, 'EEE HH:mm')}` : null,
-      showSound && phaseDates.sound ? `• Sound Check: ${format(phaseDates.sound, 'EEE HH:mm')}` : null,
-      gameDate ? `• Game Time: ${format(gameDate, 'EEE HH:mm')}` : null,
-    ].filter(Boolean);
-
-    const detailLines = [
-      shoot.location ? `• Venue: ${shoot.location}` : null,
-      rigLabel ? `• Shoot Type: ${rigLabel}` : null,
-    ].filter(Boolean);
-
-    return [
-      `Ready for today's ${team} shoot`,
-      '',
-      ...timeLines,
-      '',
-      ...detailLines,
-    ].filter((line, index, arr) => line !== '' || (arr[index - 1] && arr[index + 1])).join('\n');
-  }, [shoot.client, shoot.title, shoot.location, phaseDates.setup, phaseDates.pre_shoot, phaseDates.attention, phaseDates.sound, gameDate, showAttention, showSound, rigLabel]);
-
-  const handleCopyReadySlackMessage = async () => {
-    if (!readySlackMessage) return;
-    await navigator.clipboard.writeText(readySlackMessage);
-    setReadyCopied(true);
-    setTimeout(() => setReadyCopied(false), 2000);
-  };
 
   const quickPhases = [
     {
@@ -305,6 +270,21 @@ export default function CountdownCard({
     } catch (e) {
       setLocalPhaseStatus(effectivePhaseStatus);
     }
+  };
+
+  const buildReadyMessage = () => {
+    const team = shoot.client || shoot.title || 'Unknown Team';
+    const venue = shoot.location || matchedRig?.venue || matchedRig?.venue_type || 'TBC';
+    const shootType = rigLabel || 'Data';
+    const timeSettings = quickPhases.map((phase) => `• ${phase.label}: ${phase.time || 'TBC'}`).join('\n');
+
+    return `Shoots ready for today :\n\n${timeSettings}\n\n• Team: ${team}\n• Shoot Type: ${shootType}\n\n• Venue: ${venue}`;
+  };
+
+  const handleCopyReadyMessage = async () => {
+    await navigator.clipboard.writeText(buildReadyMessage());
+    setReadyCopied(true);
+    setTimeout(() => setReadyCopied(false), 2000);
   };
 
   const hdValue = matchedRig?.hd_enabled === false ? null : formatCameraValue(matchedRig?.hd || shoot.hd);
@@ -423,39 +403,15 @@ export default function CountdownCard({
               />
             ))}
 
-            {isAssigned && readySlackMessage && (
+            {showReadyMessage && canMarkPhases && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
               <button
                 type="button"
-                onClick={handleCopyReadySlackMessage}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-blue-700/70 bg-blue-950/30 px-2.5 text-xs font-medium text-blue-200 transition-colors hover:border-blue-500 hover:bg-blue-900/35 hover:text-white"
+                onClick={handleCopyReadyMessage}
+                className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-blue-700/70 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-200 transition-colors hover:border-blue-500 hover:bg-blue-900/45 hover:text-white"
               >
-                {readyCopied ? <><Check className="h-3.5 w-3.5 text-green-300" />Copied</> : <><Copy className="h-3.5 w-3.5" />Ready Msg</>}
+                {readyCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {readyCopied ? 'Copied' : 'Ready Message'}
               </button>
-            )}
-
-            {canUseRigCheck && !rigCheckDone && (
-              <button
-                type="button"
-                onClick={() => onStandbyRigCheck?.(shoot)}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-yellow-700/70 bg-yellow-950/30 px-2.5 text-xs font-medium text-yellow-200 transition-colors hover:border-yellow-500 hover:bg-yellow-900/35 hover:text-white"
-              >
-                <Wrench className="h-3.5 w-3.5" />Rig Check
-              </button>
-            )}
-
-            {canUseRigCheck && rigCheckDone && (
-              <>
-                <div className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-green-700/70 bg-green-950/30 px-2.5 text-xs font-medium text-green-300">
-                  <Check className="h-3.5 w-3.5" />Rig Checked
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onStandbyRigCancel?.(shoot)}
-                  className="inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border border-red-800/70 bg-red-950/25 px-2.5 text-xs font-medium text-red-300 transition-colors hover:border-red-600 hover:bg-red-950/40 hover:text-white"
-                >
-                  <XCircle className="h-3.5 w-3.5" />Cancel Rig
-                </button>
-              </>
             )}
 
             {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
