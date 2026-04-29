@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Check, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
@@ -55,7 +55,6 @@ export default function AdminStandbyShootList({
   const [page, setPage] = useState(0);
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
-  const [rigMessageCopied, setRigMessageCopied] = useState(false);
 
   const myStandbyWindows = useMemo(() => {
     return standbyDays
@@ -113,70 +112,18 @@ export default function AdminStandbyShootList({
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const checkedRigShoots = useMemo(() => {
-    return allStandbyShoots
-      .filter((shoot) => shoot.rig_check_completed && !shoot.rig_check_archived)
-      .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')));
-  }, [allStandbyShoots]);
-
-  const buildRigCheckMessage = () => {
-    if (checkedRigShoots.length === 0) return '';
-    const items = checkedRigShoots.map((shoot) => {
-      const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
-      return `• ${getTeamName(shoot, rig)} - ${getRigTypeLabel(shoot, rig)}`;
-    });
-    return `Shoots ready for today :\n\n${items.join('\n')}`;
-  };
-
-  const handleCopyRigMessage = async () => {
-    const message = buildRigCheckMessage();
-    if (!message) return;
-    await navigator.clipboard.writeText(message);
-    setRigMessageCopied(true);
-    setTimeout(() => setRigMessageCopied(false), 2000);
-  };
-
-  const handleToggleRigCheck = async (shoot) => {
-    if (!onUpdate || !isAdmin) return;
-    const nextChecked = !shoot.rig_check_completed;
-    await onUpdate(shoot.id, {
-      rig_check_completed: nextChecked,
-      rig_check_checked_from_dashboard: nextChecked,
-      rig_check_checked_by: nextChecked ? (userEmail || '') : '',
-      rig_check_checked_at: nextChecked ? new Date().toISOString() : '',
-      rig_check_archived: false,
-      rig_check_archived_at: '',
-      rig_check_archived_by: '',
-      rig_check_archived_by_name: '',
-    });
-  };
-
-  const renderCard = (shoot) => {
-    const rigChecked = !!shoot.rig_check_completed;
-    return (
-      <div key={shoot.id} className="relative">
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => handleToggleRigCheck(shoot)}
-            className={`absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${rigChecked ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
-            title={rigChecked ? 'Rig checked - click to remove from rig message' : 'Mark rig checked'}
-          >
-            {rigChecked ? <Check className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-          </button>
-        )}
-        <CountdownCard
-          shoot={shoot}
-          isAdmin={isAdmin}
-          rigSettings={rigSettings}
-          onUpdate={onUpdate}
-          userEmail={userEmail}
-          allUsers={allUsers}
-          showReadyMessage={false}
-        />
-      </div>
-    );
-  };
+  const renderCard = (shoot) => (
+    <CountdownCard
+      key={shoot.id}
+      shoot={shoot}
+      isAdmin={isAdmin}
+      rigSettings={rigSettings}
+      onUpdate={onUpdate}
+      userEmail={userEmail}
+      allUsers={allUsers}
+      showReadyMessage={false}
+    />
+  );
 
   return (
     <div>
@@ -190,25 +137,6 @@ export default function AdminStandbyShootList({
           {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
         </div>
       </div>
-
-      {isAdmin && checkedRigShoots.length > 0 && (
-        <div className="mb-4 rounded-xl border border-green-800/40 bg-green-950/15 p-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-green-300">Rig check message</p>
-              <p className="text-[11px] text-gray-500">Only checked rigs are included. Untick a rig to remove it from this message.</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyRigMessage}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-green-700 bg-green-950/45 px-3 text-xs font-medium text-green-300 transition-colors hover:bg-green-900/50 hover:text-green-100"
-            >
-              {rigMessageCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Copy to Slack</>}
-            </button>
-          </div>
-          <pre className="whitespace-pre-wrap rounded-lg border border-gray-800 bg-gray-950 p-3 text-xs leading-relaxed text-gray-200">{buildRigCheckMessage()}</pre>
-        </div>
-      )}
 
       {viewMode === 'month' && (
         <div>
