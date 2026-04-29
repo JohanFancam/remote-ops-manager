@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, List, Grid3x3, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -429,9 +429,20 @@ export default function Calendar() {
   const [editingShoot, setEditingShoot] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selectedShoot, setSelectedShoot] = useState(null);
-  const [mobileView, setMobileView] = useState('calendar');
   const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
+
+  useEffect(() => {
+    const applyMobileDefaultView = () => {
+      if (window.innerWidth < 768) {
+        setViewMode('week');
+      }
+    };
+
+    applyMobileDefaultView();
+    window.addEventListener('resize', applyMobileDefaultView);
+    return () => window.removeEventListener('resize', applyMobileDefaultView);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1111,10 +1122,6 @@ export default function Calendar() {
             <p className="text-sm text-gray-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex md:hidden gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
-              <button onClick={() => setMobileView('calendar')} className={`p-1.5 rounded ${mobileView === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><Grid3x3 className="h-4 w-4" /></button>
-              <button onClick={() => setMobileView('list')} className={`p-1.5 rounded ${mobileView === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}><List className="h-4 w-4" /></button>
-            </div>
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
               <>
@@ -1129,39 +1136,7 @@ export default function Calendar() {
           </div>
         </div>
 
-        {mobileView === 'list' && (
-          <div className="md:hidden mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={goPrevious} className="text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <span className="text-white font-semibold">{titleText}</span>
-              <Button variant="ghost" size="icon" onClick={goNext} className="text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {calendarDays.map(day => {
-                const dayShoots = getShootsForDay(day);
-                if (dayShoots.length === 0) return null;
-                const dateStr = format(day, 'yyyy-MM-dd');
-                const isPast = dateStr < todayStr;
-                return (
-                  <div key={day.toISOString()}>
-                    <p className={`text-xs font-semibold uppercase tracking-wider mb-1 px-1 ${isToday(day) ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
-                      {format(day, 'EEE, MMM d')}
-                    </p>
-                    <div className="space-y-1.5">
-                      {dayShoots.map(s => renderEntry(s, day, false))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className={mobileView === 'list' ? 'hidden md:block' : ''}>
+        <div>
           <Card className="bg-gray-900 border-gray-800 mb-4 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-800 gap-3">
               <Button variant="ghost" size="icon" onClick={goPrevious} className="text-gray-400 hover:text-white hover:bg-gray-800 flex-shrink-0">
