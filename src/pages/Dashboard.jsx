@@ -2,8 +2,6 @@ import React, { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
-import { Card, CardContent } from "@/components/ui/card";
-import { Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminDayShootView from '../components/dashboard/AdminDayShootView';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
@@ -101,10 +99,6 @@ export default function Dashboard() {
     return standbyDays.filter((sd) => sd.admin_email === user.email);
   }, [standbyDays, isAdmin, user?.email]);
 
-  const hasAnyDashboardShoots = isAdmin
-    ? selfAssignedShoots.length > 0 || myStandbyDays.length > 0
-    : remoteShoots.length > 0;
-
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
@@ -166,17 +160,6 @@ export default function Dashboard() {
               />
             </div>
           </section>
-        )}
-
-        {!hasAnyDashboardShoots && (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-10 text-center">
-              <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500">
-                {isAdmin ? 'No current or upcoming assigned shoots or standby coverage.' : 'No upcoming assigned shoots.'}
-              </p>
-            </CardContent>
-          </Card>
         )}
 
         <div className="mt-8" />
