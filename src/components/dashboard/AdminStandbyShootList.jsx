@@ -172,6 +172,7 @@ export default function AdminStandbyShootList({
           onUpdate={onUpdate}
           userEmail={userEmail}
           allUsers={allUsers}
+          showReadyMessage={false}
         />
       </div>
     );
@@ -261,4 +262,4 @@ export default function AdminStandbyShootList({
       )}
     </div>
   );
-} 
+}
