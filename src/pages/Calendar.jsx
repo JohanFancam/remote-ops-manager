@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -128,8 +128,6 @@ function ShootCalendarEntry({
   onSelect,
   onUpdate,
   onDuplicate,
-  onRigCheckToggle,
-  onRigCheckCancel,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
 }) {
@@ -163,21 +161,6 @@ function ShootCalendarEntry({
     : '';
 
   const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
-
-  const rigCheckDone = !!shoot.rig_check_completed;
-  const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
-
-  const handleRigCheckToggle = async (e) => {
-    e.stopPropagation();
-    if (!canCheckStandbyRig) return;
-    await onRigCheckToggle?.(shoot, standbyCoverage);
-  };
-
-  const handleRigCheckCancel = async (e) => {
-    e.stopPropagation();
-    if (!canCheckStandbyRig || !rigCheckDone) return;
-    await onRigCheckCancel?.(shoot);
-  };
 
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
     const u = allUsers.find(u2 => u2.email === email);
@@ -307,28 +290,6 @@ function ShootCalendarEntry({
               )}
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              {canCheckStandbyRig && (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={handleRigCheckToggle}
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
-                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
-                  >
-                    {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
-                  </button>
-                  {rigCheckDone && (
-                    <button
-                      type="button"
-                      onClick={handleRigCheckCancel}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/10 text-red-300 transition-colors hover:bg-red-500/20"
-                      title="Cancel / undo rig check"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                   shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
@@ -923,7 +884,6 @@ export default function Calendar() {
       onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
       onDuplicate={duplicateShoot}
-      onRigCheckToggle={handleRigCheckToggle}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
     />
@@ -1185,53 +1145,6 @@ export default function Calendar() {
             </div>
           </div>
 
-          {isAdmin && rigCheckMessageShoots.length > 0 && (
-            <Card className="bg-gray-900 border-blue-800/60 mb-4">
-              <CardHeader className="border-b border-gray-800 pb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-white text-base flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-yellow-300" />
-                      Rig check Slack message
-                    </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1">Generated from the standby rigs you checked on this calendar. Copy it, then archive the rigs to mark the message as dealt with.</p>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-2 flex-shrink-0">
-                    <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs">
-                      {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Slack</>}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs">
-                      Archive Tested Rigs
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-sm text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
-                <div className="space-y-2">
-                  {rigCheckMessageShoots.map((shoot) => {
-                    const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
-                    const teamName = getShootTeamName(shoot);
-                    const label = getRigTypeLabel(shoot, rig) || 'Data';
-                    return (
-                      <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-3 py-2">
-                        <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRigCheckCancel(shoot)}
-                          className="h-7 border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs flex-shrink-0"
-                        >
-                          <XCircle className="h-3.5 w-3.5 mr-1" />
-                          Cancel Rig Check
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {liveSelectedShoot && (
             <Card className="bg-gray-900 border-gray-800">
