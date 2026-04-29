@@ -33,7 +33,7 @@ function getLivePhase(shoot, phase, now, phaseDates, gameDate, showAttention, sh
     return { label: 'Complete', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
   }
   if (phase.game_started || (gameDate && now >= gameDate)) {
-    return { label: 'Game Time', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+    return { label: 'Game Started', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
   }
   if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
     return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
@@ -56,11 +56,11 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       type="button"
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
         done
-          ? 'border-green-700 bg-green-950/30 text-green-300'
-          : 'border-blue-900/60 bg-gray-900/60 text-gray-100 hover:border-blue-600 hover:bg-gray-800/80'
-      } ${canClick ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
+          ? 'border-green-700/70 bg-green-950/30 text-green-300'
+          : 'border-gray-700 bg-gray-950/70 text-gray-200 hover:border-blue-500/70 hover:bg-blue-950/25 hover:text-white'
+      } ${canClick ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
     >
       <span>{label}</span>
@@ -232,6 +232,11 @@ export default function CountdownCard({
           doneKey: 'sound_started',
         }
       : null,
+    {
+      label: 'Game Start',
+      time: gameDate ? format(gameDate, 'HH:mm') : null,
+      doneKey: 'game_started',
+    },
   ].filter(Boolean);
 
   const handleRigTypeChange = async (type) => {
@@ -385,7 +390,7 @@ export default function CountdownCard({
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
                 disabled={!canOpenShootComplete}
-                className={`inline-flex items-center justify-center rounded-lg border px-6 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                   canOpenShootComplete
                     ? 'border-blue-600 bg-blue-600/80 text-white hover:bg-blue-500'
                     : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
