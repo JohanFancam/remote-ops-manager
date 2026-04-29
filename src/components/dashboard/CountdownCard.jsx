@@ -441,7 +441,7 @@ export default function CountdownCard({
               </div>
             )}
 
-            {showReadyMessage && isAssigned && (
+            {showReadyMessage && (
               <button
                 type="button"
                 onClick={handleCopyReadyMessage}
