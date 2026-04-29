@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Check, XCircle, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Wrench, Check, XCircle, Copy, ExternalLink } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
@@ -128,16 +128,30 @@ export default function AdminStandbyShootList({
     const uniqueShoots = Array.from(new Map(messageShoots.map((s) => [s.id, s])).values());
     if (uniqueShoots.length === 0) return '';
 
-    const items = uniqueShoots
+    const blocks = uniqueShoots
       .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
       .map((shoot) => {
         const rig = rigSettings.find((r) => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
         const teamName = getShootTeamName(shoot);
-        const label = getRigTypeLabel(shoot, rig) || 'Data';
-        return `• ${teamName} - ${label}`;
+        const shootType = getRigTypeLabel(shoot, rig) || 'Data';
+        const schedule = getScheduleDateTimes(shoot);
+        const formatScheduleTime = (date) => date ? format(date, 'HH:mm') : 'TBC';
+
+        return [
+          `• Team: ${teamName}`,
+          `• Shoot Type: ${shootType}`,
+          '',
+          `• Setup: ${formatScheduleTime(schedule.setup)}`,
+          `• Pre-Shoot: ${formatScheduleTime(schedule.pre_shoot)}`,
+          `• Attention: ${formatScheduleTime(schedule.attention)}`,
+          `• Sound: ${formatScheduleTime(schedule.sound)}`,
+          `• Game Start: ${formatScheduleTime(schedule.game)}`,
+          '',
+          `• Venue: ${shoot.location || 'TBC'}`,
+        ].join('\n');
       });
 
-    return 'Shoots ready for today :\n\n' + items.join('\n');
+    return 'Shoots ready for today :\n\n' + blocks.join('\n\n');
   };
 
   const rigMessageShoots = useMemo(() => {
@@ -197,6 +211,14 @@ export default function AdminStandbyShootList({
     if (!rigSlackMessage) return;
     await navigator.clipboard.writeText(rigSlackMessage);
     setRigMessageCopied(true);
+    setTimeout(() => setRigMessageCopied(false), 2000);
+  };
+
+  const handleCopyAndOpenSlack = async () => {
+    if (!rigSlackMessage) return;
+    await navigator.clipboard.writeText(rigSlackMessage);
+    setRigMessageCopied(true);
+    window.open('https://app.slack.com/client', '_blank', 'noopener,noreferrer');
     setTimeout(() => setRigMessageCopied(false), 2000);
   };
 
@@ -273,11 +295,14 @@ export default function AdminStandbyShootList({
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-white">Rig check Slack message</p>
-              <p className="text-xs text-gray-500">Copy this to Slack, then archive the rigs once the message has been sent.</p>
+              <p className="text-xs text-gray-500">Copy this to Slack. Uncheck/cancel a rig to remove it from this message, then archive once sent.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={handleCopyRigSlackMessage} className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500">
-                {rigMessageCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Copy to Slack</>}
+                {rigMessageCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Copy</>}
+              </button>
+              <button type="button" onClick={handleCopyAndOpenSlack} className="inline-flex h-8 items-center rounded-md border border-blue-500/50 bg-blue-950/35 px-3 text-xs font-medium text-blue-200 hover:bg-blue-900/35">
+                <ExternalLink className="mr-1 h-3.5 w-3.5" />Copy + Open Slack
               </button>
               <button type="button" onClick={handleArchiveRigMessageShoots} className="inline-flex h-8 items-center rounded-md border border-gray-700 px-3 text-xs font-medium text-gray-300 hover:bg-gray-800">
                 Archive Tested Rigs
@@ -340,4 +365,4 @@ export default function AdminStandbyShootList({
       )}
     </div>
   );
-} 
+}
