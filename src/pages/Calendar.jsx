@@ -16,6 +16,7 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
+import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -334,6 +335,7 @@ export default function Calendar() {
   const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
+  const [rigTestModal, setRigTestModal] = useState(null); // shoot
 
   useEffect(() => {
     const applyMobileDefaultView = () => {
@@ -756,28 +758,43 @@ export default function Calendar() {
     refresh();
   };
 
-  const handleAssignRigTest = async (shoot) => {
-    // Determine the standby admin for this shoot's date
-    const standbyCoverage = getStandbyCoverageForShoot(shoot);
-    const assignedEmail = standbyCoverage?.admin_email || user?.email || '';
-    const assignedName = standbyCoverage?.admin_name || standbyCoverage?.admin_email || user?.full_name || user?.email || '';
+  const handleAssignRigTest = (shoot) => {
+    setRigTestModal(shoot);
+  };
 
-    await base44.entities.RigTest.create({
-      title: `Rig Test – ${shoot.title}`,
-      scheduled_date: shoot.date,
-      assigned_to: assignedEmail,
-      assigned_name: assignedName,
-      status: 'pending',
-      checklist: [
-        { item: 'Camera connections checked', checked: false },
-        { item: 'Rig power on and stable', checked: false },
-        { item: 'Remote access confirmed', checked: false },
-        { item: 'Test footage captured', checked: false },
-        { item: 'Rig settings verified', checked: false },
-      ],
-      notes: `Auto-created from calendar for shoot: ${shoot.title} on ${shoot.date}`,
-    });
+  const handleConfirmRigTest = async (data) => {
+    await base44.entities.RigTest.create(data);
     queryClient.invalidateQueries({ queryKey: ['rigTests'] });
+    setRigTestModal(null);
+  };
+
+  // Quick self-assign/unassign from context menu
+  const handleContextMenuAssignSelf = async (shoot) => {
+    if (!user?.email) return;
+    const isPending = shoot.pending_operators?.includes(user.email);
+    const isAssigned = shoot.assigned_operators?.includes(user.email);
+    if (isAssigned) {
+      await handleShootUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
+    } else if (isPending) {
+      await handleShootUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
+    } else {
+      if (isAdmin) {
+        await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+        await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
+      } else {
+        await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      }
+    }
+  };
+
+  const handleContextMenuUnassignSelf = async (shoot) => {
+    if (!user?.email) return;
+    const isPending = shoot.pending_operators?.includes(user.email);
+    if (isPending) {
+      await handleShootUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
+    } else {
+      await handleShootUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
+    }
   };
 
   const duplicateShoot = (shoot) => {
@@ -833,7 +850,6 @@ export default function Calendar() {
     : null;
 
   const handleContextMenu = (e, shoot) => {
-    if (!isAdmin) return;
     setContextMenu({ x: e.clientX, y: e.clientY, shoot });
   };
 
@@ -1243,11 +1259,24 @@ export default function Calendar() {
           y={contextMenu.y}
           shoot={contextMenu.shoot}
           isAdmin={isAdmin}
+          userEmail={user?.email}
           onEdit={(shoot) => { startEdit(shoot); setSelectedShoot(null); }}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
           onAssignRigTest={handleAssignRigTest}
+          onAssignSelf={handleContextMenuAssignSelf}
+          onUnassignSelf={handleContextMenuUnassignSelf}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {rigTestModal && (
+        <RigTestAssignModal
+          shoot={rigTestModal}
+          user={user}
+          allUsers={allUsers}
+          onConfirm={handleConfirmRigTest}
+          onClose={() => setRigTestModal(null)}
         />
       )}
     </div>
