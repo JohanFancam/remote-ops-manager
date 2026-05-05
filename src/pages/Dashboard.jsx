@@ -171,8 +171,6 @@ export default function Dashboard() {
 
         <div className="mt-8" />
 
-        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
-
         {(isAdmin || isStandby) && (
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
@@ -187,6 +185,8 @@ export default function Dashboard() {
             </div>
           </section>
         )}
+
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
 
         {(!isAdmin && !isStandby) && (
           <div className="mt-6">
