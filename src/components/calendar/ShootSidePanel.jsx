@@ -3,6 +3,19 @@ import { X, ChevronDown, ChevronUp, Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+};
+
+const minutesToTime = (minutes) => {
+  const h = Math.floor(Math.abs(minutes) / 60);
+  const m = Math.abs(minutes) % 60;
+  const sign = minutes < 0 ? '-' : '';
+  return `${sign}${h}:${m.toString().padStart(2, '0')}`;
+};
+
 const getRigTypeLabel = (shoot, rig) => {
   if (shoot?.rig_type_override) {
     const parts = [shoot.rig_type_override];
@@ -77,6 +90,35 @@ export default function ShootSidePanel({
             <p className="text-xs text-gray-500 uppercase tracking-wider">Date & Time</p>
             <p className="text-sm text-white mt-1">{dayName}, {dateStr}</p>
             <p className="text-sm text-gray-300">{timeStr}</p>
+          </div>
+          
+          {/* Schedule Timeline */}
+          <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Schedule</p>
+            {shoot.setup_offset !== undefined && (
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Setup:</span>
+                <span className="text-gray-300">{minutesToTime(shoot.setup_offset)}</span>
+              </div>
+            )}
+            {shoot.pre_shoot_offset !== undefined && (
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Pre-Shoot:</span>
+                <span className="text-gray-300">{minutesToTime(shoot.pre_shoot_offset)}</span>
+              </div>
+            )}
+            {shoot.attention_offset !== undefined && (
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Attention:</span>
+                <span className="text-gray-300">{minutesToTime(shoot.attention_offset)}</span>
+              </div>
+            )}
+            {shoot.sound_offset !== undefined && (
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Sound:</span>
+                <span className="text-gray-300">{minutesToTime(shoot.sound_offset)}</span>
+              </div>
+            )}
           </div>
         </div>
 
