@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, Clock, X, DollarSign, Edit2, Bell, Settings2
+  MessageSquare, Save, Image, Send, X, DollarSign, Edit2, Bell
 } from 'lucide-react';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
@@ -108,113 +108,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
   );
 }
 
-// Feature keys that can be toggled on/off by L1 Admin
-const FEATURE_TOGGLES = [
-  { key: 'feature_rigs', label: 'Rig Settings', description: 'Rigs page & Rigs Check panel' },
-  { key: 'feature_reports', label: 'Reports', description: 'Shoot reports page' },
-  { key: 'feature_accounts', label: 'Accounts', description: 'Accounts/Payroll page' },
-  { key: 'feature_reference', label: 'Reference Guide', description: 'Reference Guide page' },
-  { key: 'feature_online_now', label: 'Online Now', description: 'Online users panel in sidebar' },
-  { key: 'feature_tutorial', label: 'Tutorial', description: 'Tutorial overlay & reopen button' },
-  { key: 'feature_standby_panel', label: 'Standby Schedule Panel', description: 'Standby schedule quick-launch on Dashboard' },
-  { key: 'feature_team_panel', label: 'Team Schedule Panel', description: 'Team schedule quick-launch on Dashboard' },
-  { key: 'feature_availability_panel', label: 'Operator Availability Panel', description: 'Operator availability quick-launch on Dashboard' },
-  { key: 'feature_timing_panel', label: 'Shoot Duration Tracker', description: 'Shoot timing tracker quick-launch on Dashboard' },
-];
 
-// Which features L2 admins can see — controlled by L1
-const L2_VISIBILITY_KEYS = FEATURE_TOGGLES.map(f => `l2_${f.key}`);
-
-function FeatureToggleSection({ appSettings, queryClient, isLevel1Admin }) {
-  const [saving, setSaving] = React.useState(null);
-
-  const isEnabled = (key) => appSettings.find(s => s.key === key)?.value !== 'false';
-  const canL2See = (key) => appSettings.find(s => s.key === `l2_${key}`)?.value !== 'false';
-
-  const toggleFeature = async (key) => {
-    setSaving(key);
-    const current = isEnabled(key);
-    const existing = appSettings.find(s => s.key === key);
-    const newVal = current ? 'false' : 'true';
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value: newVal });
-    } else {
-      await base44.entities.AppSettings.create({ key, value: newVal, description: `Feature toggle: ${key}` });
-    }
-    setSaving(null);
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const toggleL2 = async (key) => {
-    const l2key = `l2_${key}`;
-    setSaving(l2key);
-    const current = canL2See(key);
-    const existing = appSettings.find(s => s.key === l2key);
-    const newVal = current ? 'false' : 'true';
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value: newVal });
-    } else {
-      await base44.entities.AppSettings.create({ key: l2key, value: newVal, description: `L2 visibility: ${key}` });
-    }
-    setSaving(null);
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-4">
-        <CardTitle className="text-white flex items-center gap-2">
-          <Settings2 className="h-5 w-5 text-blue-400" /> Feature Visibility
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4 space-y-1">
-        <p className="text-xs text-gray-500 mb-3">
-          Toggle which features are visible. L1 controls global visibility; also set what L2 admins can see.
-        </p>
-        <div className="grid grid-cols-1 gap-2">
-          {FEATURE_TOGGLES.map(f => {
-            const enabled = isEnabled(f.key);
-            const l2Visible = canL2See(f.key);
-            return (
-              <div key={f.key} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${enabled ? 'border-gray-700 bg-gray-800/40' : 'border-gray-800 bg-gray-900/40 opacity-60'}`}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium">{f.label}</p>
-                  <p className="text-xs text-gray-500">{f.description}</p>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {/* L2 visibility toggle */}
-                  {enabled && (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-xs text-gray-600">L2</span>
-                      <button
-                        disabled={saving === `l2_${f.key}`}
-                        onClick={() => toggleL2(f.key)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${l2Visible ? 'bg-purple-600' : 'bg-gray-700'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${l2Visible ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
-                    </div>
-                  )}
-                  {/* L1 master toggle */}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-xs text-gray-600">On</span>
-                    <button
-                      disabled={saving === f.key}
-                      onClick={() => toggleFeature(f.key)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-700'}`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // App Version bump — triggers RefreshReminder for all users
 function AppVersionBump({ appSettings, queryClient }) {
@@ -288,7 +182,7 @@ const SLACK_PHASES = [
 ];
 
 export default function Settings() {
-  const { user, isAdmin, isLevel1Admin, isStandby } = useApp();
+  const { user, isAdmin, isStandby } = useApp();
   const queryClient = useQueryClient();
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -302,11 +196,12 @@ export default function Settings() {
   const [notifySaved, setNotifySaved] = useState(false);
   const [whatsappMsg, setWhatsappMsg] = useState("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
 
-  // Pending users
-  const [showAddPending, setShowAddPending] = useState(false);
-  const [pendingForm, setPendingForm] = useState({ full_name: '', email: '', role: 'user', notes: '' });
-  const [savingPending, setSavingPending] = useState(false);
-  const [invitingId, setInvitingId] = useState(null);
+  // Invite user
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('user');
+  const [inviting, setInviting] = useState(false);
+  const [inviteDone, setInviteDone] = useState(false);
 
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
@@ -323,11 +218,7 @@ export default function Settings() {
     queryFn: () => base44.entities.AppSettings.list(),
   });
 
-  const { data: pendingUsers = [] } = useQuery({
-    queryKey: ['pendingUsers'],
-    queryFn: () => base44.entities.PendingUser.list('-created_date', 100),
-    enabled: isAdmin,
-  });
+
 
   const logoSetting = appSettings.find(s => s.key === 'app_logo_url');
   const logoUrl = logoSetting?.value;
@@ -355,7 +246,6 @@ export default function Settings() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['allUsers'] });
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
   };
 
   const handleDelete = async (userId) => {
@@ -450,26 +340,16 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
-  const handleAddPendingUser = async () => {
-    if (!pendingForm.email) return;
-    setSavingPending(true);
-    await base44.entities.PendingUser.create({ ...pendingForm, invited: false });
-    setPendingForm({ full_name: '', email: '', role: 'user', notes: '' });
-    setShowAddPending(false);
-    setSavingPending(false);
-    refresh();
-  };
-
-  const handleInvitePendingUser = async (pu) => {
-    setInvitingId(pu.id);
-    await base44.users.inviteUser(pu.email, pu.role === 'admin' ? 'admin' : 'user');
-    await base44.entities.PendingUser.update(pu.id, { invited: true });
-    setInvitingId(null);
-    refresh();
-  };
-
-  const handleDeletePendingUser = async (id) => {
-    await base44.entities.PendingUser.delete(id);
+  const handleInviteUser = async () => {
+    if (!inviteEmail) return;
+    setInviting(true);
+    await base44.users.inviteUser(inviteEmail, inviteRole);
+    setInviteEmail('');
+    setInviteRole('user');
+    setInviting(false);
+    setInviteDone(true);
+    setShowInviteForm(false);
+    setTimeout(() => setInviteDone(false), 3000);
     refresh();
   };
 
@@ -701,11 +581,6 @@ export default function Settings() {
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
         )}
 
-        {/* Feature Visibility — Admin only */}
-        {isAdmin && (
-          <FeatureToggleSection appSettings={appSettings} queryClient={queryClient} isLevel1Admin={isAdmin} />
-        )}
-
         {/* App Version / Refresh Reminder — Admin only */}
         {isAdmin && (
           <Card className="bg-gray-900 border-gray-800 mb-6">
@@ -765,89 +640,57 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Pre-registered Users — Admin only */}
+        {/* Invite User — all admins */}
         {isAdmin && (
           <Card className="bg-gray-900 border-gray-800 mb-6">
             <CardHeader className="border-b border-gray-800 pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-orange-400" /> Pre-registered Users ({pendingUsers.length})
+                  <UserPlus className="h-5 w-5 text-blue-400" /> Invite User
                 </CardTitle>
-                <Button size="sm" onClick={() => setShowAddPending(!showAddPending)}
-                  className="bg-orange-700 hover:bg-orange-600 gap-1.5 text-xs">
-                  <UserPlus className="h-3.5 w-3.5" /> Add User
+                <Button size="sm" onClick={() => setShowInviteForm(!showInviteForm)}
+                  className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs">
+                  <UserPlus className="h-3.5 w-3.5" /> {showInviteForm ? 'Cancel' : 'Invite User'}
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-4">
-              {showAddPending && (
-                <div className="bg-gray-800/60 rounded-xl p-4 mb-4 border border-gray-700 space-y-3">
-                  <p className="text-sm font-medium text-gray-300">Add user — invite now or later</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Input placeholder="Full Name" value={pendingForm.full_name}
-                      onChange={e => setPendingForm({ ...pendingForm, full_name: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
-                    <Input placeholder="Email address *" value={pendingForm.email}
-                      onChange={e => setPendingForm({ ...pendingForm, email: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500" />
+            {showInviteForm && (
+              <CardContent className="pt-4">
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="text-xs text-gray-400 block mb-1">Email address</label>
+                    <Input
+                      placeholder="user@example.com"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                    />
                   </div>
-                  <div className="flex gap-3 flex-wrap items-center">
-                    <select value={pendingForm.role} onChange={e => setPendingForm({ ...pendingForm, role: e.target.value })}
-                      className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Role</label>
+                    <select
+                      value={inviteRole}
+                      onChange={e => setInviteRole(e.target.value)}
+                      className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-9"
+                    >
                       <option value="user">Remote Operator</option>
+                      <option value="standby">Standby User</option>
                       <option value="admin">Admin</option>
                     </select>
-                    <Input placeholder="Notes (optional)" value={pendingForm.notes}
-                      onChange={e => setPendingForm({ ...pendingForm, notes: e.target.value })}
-                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 flex-1" />
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddPendingUser} disabled={savingPending || !pendingForm.email}
-                      className="bg-orange-700 hover:bg-orange-600 gap-1.5">
-                      <Save className="h-3.5 w-3.5" /> Save (invite later)
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setShowAddPending(false)}>
-                      <X className="h-3.5 w-3.5 mr-1" /> Cancel
-                    </Button>
-                  </div>
+                  <Button onClick={handleInviteUser} disabled={inviting || !inviteEmail}
+                    className="bg-blue-700 hover:bg-blue-600 gap-2 h-9">
+                    <Send className="h-4 w-4" />
+                    {inviting ? 'Sending...' : 'Send Invite'}
+                  </Button>
                 </div>
-              )}
-              {pendingUsers.length === 0 && !showAddPending && (
-                <p className="text-gray-500 text-sm text-center py-4">No pre-registered users. Use "Add User" to register someone for later.</p>
-              )}
-              <div className="space-y-2">
-                {pendingUsers.map(pu => (
-                  <div key={pu.id} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{pu.full_name || pu.email}</p>
-                      <p className="text-xs text-gray-400">{pu.email}</p>
-                      {pu.notes && <p className="text-xs text-gray-500 mt-0.5">{pu.notes}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      <Badge className={`text-xs ${pu.invited ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}>
-                        {pu.invited ? 'Invited' : 'Pending'}
-                      </Badge>
-                      {!pu.invited && (
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-400 hover:bg-gray-700 gap-1"
-                          disabled={invitingId === pu.id}
-                          onClick={() => handleInvitePendingUser(pu)}>
-                          <Send className="h-3 w-3" />
-                          {invitingId === pu.id ? 'Sending...' : 'Invite Now'}
-                        </Button>
-                      )}
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400"
-                        onClick={() => handleDeletePendingUser(pu.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
+                {inviteDone && <p className="text-sm text-green-400 mt-3">✓ Invitation sent!</p>}
+              </CardContent>
+            )}
           </Card>
         )}
 
-        {/* Active Team Members — all admins can view and edit */}
+        {/* Active Team Members — all admins */}
         {isAdmin && (
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="border-b border-gray-800 pb-4">
@@ -859,7 +702,7 @@ export default function Settings() {
               <div className="divide-y divide-gray-800">
                 {users.map(u => (
                   <div key={u.id} className="px-5 py-4">
-                    {isLevel1Admin && editingUserId === u.id ? (
+                    {editingUserId === u.id ? (
                      <div className="space-y-3">
                        <Input
                          value={editUserForm.full_name}
@@ -874,8 +717,8 @@ export default function Settings() {
                            className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
                          >
                            <option value="user">Remote Operator</option>
-                           <option value="admin">Admin</option>
                            <option value="standby">Standby User</option>
+                           <option value="admin">Admin</option>
                          </select>
                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
                            <Save className="h-3 w-3" /> Save
@@ -894,19 +737,18 @@ export default function Settings() {
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-white truncate">{getDisplayName(u, u.email)}</p>
                             <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                            {u.standby && <span className="text-xs text-yellow-400">On Standby</span>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
                             {u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : 'Operator'}
                           </Badge>
-                          {isLevel1Admin && u.id !== user?.id && (
+                          {u.id !== user?.id && (
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
-                          {isLevel1Admin && u.id !== user?.id && (
+                          {u.id !== user?.id && (
                             deleteConfirm === u.id ? (
                               <div className="flex items-center gap-1">
                                 <span className="text-xs text-red-400">Sure?</span>
