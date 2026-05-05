@@ -17,6 +17,7 @@ import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
+import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -344,6 +345,8 @@ export default function Calendar() {
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
   const [rigTestModal, setRigTestModal] = useState(null); // shoot
+  const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
+  const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -765,6 +768,19 @@ export default function Calendar() {
 
   const handleAssignRigTest = (shoot) => {
     setRigTestModal(shoot);
+  };
+
+  const handleAssignOperators = (shoot) => {
+    setAssignOperatorsModal(shoot);
+  };
+
+  const handleConfirmAssignOperator = async (email) => {
+    if (!assignOperatorsModal?.id || !email) return;
+    const current = assignOperatorsModal.assigned_operators || [];
+    if (!current.includes(email)) {
+      await handleShootUpdate(assignOperatorsModal.id, { assigned_operators: [...current, email] });
+    }
+    setAssignOperatorsModal(null);
   };
 
   const handleConfirmRigTest = async (data) => {
@@ -1269,10 +1285,20 @@ export default function Calendar() {
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
           onAssignRigTest={handleAssignRigTest}
+          onAssignOperators={handleAssignOperators}
           onAssignSelf={handleContextMenuAssignSelf}
           onUnassignSelf={handleContextMenuUnassignSelf}
           onViewDetails={(shoot) => { setSelectedShoot(shoot); setSelectedDate(new Date(shoot.date + 'T12:00:00')); }}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {assignOperatorsModal && (
+        <AssignOperatorModal
+          shoot={assignOperatorsModal}
+          allUsers={allUsers}
+          onConfirm={handleConfirmAssignOperator}
+          onClose={() => setAssignOperatorsModal(null)}
         />
       )}
 

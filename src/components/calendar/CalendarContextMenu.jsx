@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink } from 'lucide-react';
+import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
 
 export default function CalendarContextMenu({
   x, y, shoot, isAdmin, userEmail,
-  onEdit, onDuplicate, onDelete, onAssignRigTest,
+  onEdit, onDuplicate, onDelete, onAssignRigTest, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
 }) {
@@ -43,6 +43,7 @@ export default function CalendarContextMenu({
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-white', divider: true },
       { label: 'Duplicate Shoot', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-white' },
+      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
       { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-teal-400' },
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
     ] : []),
