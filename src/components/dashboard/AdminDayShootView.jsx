@@ -42,7 +42,9 @@ export default function AdminDayShootView({
   rigSettings,
   onUpdate,
   userEmail,
-  allUsers
+  allUsers,
+  onShootContextMenu,
+  onShootClick,
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [viewMode, setViewMode] = useState('tile');
@@ -99,6 +101,8 @@ export default function AdminDayShootView({
       onUpdate={onUpdate}
       userEmail={userEmail}
       allUsers={allUsers}
+      onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
+      onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
     />
   );
 

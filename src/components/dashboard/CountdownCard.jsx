@@ -99,7 +99,9 @@ export default function CountdownCard({
   onUpdate,
   userEmail,
   allUsers = [],
-  showReadyMessage = true
+  showReadyMessage = true,
+  onContextMenu,
+  onCardClick,
 }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
@@ -343,6 +345,7 @@ export default function CountdownCard({
               ? 'border-gray-700 bg-gray-900/95'
               : 'border-gray-800 bg-gray-900/95'
         } hover:border-gray-600`}
+        onContextMenu={onContextMenu}
       >
         <div className="px-4 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
@@ -552,4 +555,4 @@ export default function CountdownCard({
       </div>
     </>
   );
-} 
+}
