@@ -247,15 +247,9 @@ function ShootCalendarEntry({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
       onClick={(e) => {
-        const isMobile = window.innerWidth < 768;
-        if (isMobile) {
-          e.preventDefault();
-          onContextMenu?.(e, shoot);
-        } else if (!isAdmin) {
-          onSelect(shoot, day);
-        }
+        e.preventDefault();
+        onContextMenu?.(e, shoot);
       }}
-      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.(e, shoot); }}
       className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
       <div className="flex items-start gap-2">
@@ -841,11 +835,7 @@ export default function Calendar() {
     setEditingShootForm({ ...copy, title: `${shoot.title || 'Shoot'} Copy` });
   };
 
-  const handleSelectShoot = (shoot, day) => {
-    setSelectedShoot(shoot);
-    setSelectedDate(day);
-    setCurrentDate(day);
-  };
+
 
   const goPrevious = () => {
     setCurrentDate(prev => {
@@ -875,7 +865,7 @@ export default function Calendar() {
     : null;
 
   const handleContextMenu = (e, shoot) => {
-    setContextMenu({ x: e.clientX, y: e.clientY, shoot });
+    setContextMenu({ shoot });
   };
 
   const renderEntry = (shoot, day, compact = false) => (
@@ -890,7 +880,6 @@ export default function Calendar() {
       rigSettings={rigSettings}
       todayStr={todayStr}
       compact={compact}
-      onSelect={handleSelectShoot}
       onUpdate={handleShootUpdate}
       onDuplicate={duplicateShoot}
       onRigCheckToggle={handleRigCheckToggle}
@@ -1196,42 +1185,7 @@ export default function Calendar() {
             </Card>
           )}
 
-          {liveSelectedShoot && (
-            <ShootSidePanel
-              shoot={liveSelectedShoot}
-              user={user}
-              isAdmin={isAdmin}
-              rigSettings={rigSettings}
-              allShoots={shoots}
-              allUsers={allUsers}
-              standbyAdmins={standbyAdmins}
-              slackMessages={slackMessages}
-              onUpdate={handleShootUpdate}
-              onEdit={startEdit}
-              onDuplicate={duplicateShoot}
-              onDelete={handleDeleteShoot}
-              onClose={() => setSelectedShoot(null)}
-            />
-          )}
 
-          {editingShootForm && (
-            <ShootEditPanel
-              shoot={editingShootForm}
-              form={form}
-              setForm={setForm}
-              onSave={handleAddShoot}
-              onCancel={() => {
-                setEditingShootForm(null);
-                setEditingShoot(null);
-                setForm(emptyForm);
-              }}
-              onClose={() => {
-                setEditingShootForm(null);
-                setEditingShoot(null);
-                setForm(emptyForm);
-              }}
-            />
-          )}
         </div>
       </div>
 
@@ -1239,20 +1193,52 @@ export default function Calendar() {
 
       {contextMenu && (
         <CalendarContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
           shoot={contextMenu.shoot}
           isAdmin={isAdmin}
           userEmail={user?.email}
-          onEdit={(shoot) => { startEdit(shoot); setSelectedShoot(null); }}
+          onEdit={(shoot) => { startEdit(shoot); setContextMenu(null); }}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
           onAssignRigTest={handleAssignRigTest}
           onAssignOperators={handleAssignOperators}
           onAssignSelf={handleContextMenuAssignSelf}
           onUnassignSelf={handleContextMenuUnassignSelf}
-          onViewDetails={(shoot) => { setSelectedShoot(shoot); setSelectedDate(new Date(shoot.date + 'T12:00:00')); }}
+          onViewDetails={(shoot) => { setSelectedShoot(shoot); setSelectedDate(new Date(shoot.date + 'T12:00:00')); setContextMenu(null); }}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {selectedShoot && (
+        <ShootSidePanel
+          shoot={selectedShoot}
+          user={user}
+          isAdmin={isAdmin}
+          rigSettings={rigSettings}
+          allUsers={allUsers}
+          onUpdate={handleShootUpdate}
+          onEdit={startEdit}
+          onDuplicate={duplicateShoot}
+          onDelete={handleDeleteShoot}
+          onClose={() => setSelectedShoot(null)}
+        />
+      )}
+
+      {editingShootForm && (
+        <ShootEditPanel
+          shoot={editingShootForm}
+          form={form}
+          setForm={setForm}
+          onSave={handleAddShoot}
+          onCancel={() => {
+            setEditingShootForm(null);
+            setEditingShoot(null);
+            setForm(emptyForm);
+          }}
+          onClose={() => {
+            setEditingShootForm(null);
+            setEditingShoot(null);
+            setForm(emptyForm);
+          }}
         />
       )}
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp, Edit2, Copy, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 
 const timeToMinutes = (timeStr) => {
@@ -66,11 +67,9 @@ export default function ShootSidePanel({
   const rigTypeLabel = getRigTypeLabel(shoot, rig) || 'Data';
 
   return (
-    <>
-      {/* Backdrop for mobile */}
-      <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
-
-      <div className="fixed top-0 right-0 h-full z-50 flex flex-col bg-gray-900 border-l border-gray-800 shadow-2xl w-full md:w-[480px] lg:w-[540px]">
+    <Sheet open={true} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto">
+        <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-4 border-b border-gray-800 flex-shrink-0">
           <div className="min-w-0 flex-1">
@@ -79,9 +78,6 @@ export default function ShootSidePanel({
               {dayName}, {dateStr} · {timeStr}
             </p>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white flex-shrink-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Shoot Type Badge */}
@@ -225,7 +221,8 @@ export default function ShootSidePanel({
             )}
           </div>
         )}
-      </div>
-    </>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

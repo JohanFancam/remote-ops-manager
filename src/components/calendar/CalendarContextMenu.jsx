@@ -1,16 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus, X } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 
 export default function CalendarContextMenu({
-  x, y, shoot, isAdmin, userEmail,
+  shoot, isAdmin, userEmail,
   onEdit, onDuplicate, onDelete, onAssignRigTest, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
 }) {
-  const menuRef = useRef(null);
-  const [isMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -42,42 +39,12 @@ export default function CalendarContextMenu({
     ] : []),
   ];
 
-  // Mobile: use sheet drawer on the right
-  if (isMobile) {
-    return (
-      <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white">
-
-          <div className="px-4 py-3 space-y-2">
-            {items.map(({ label, icon: Icon, action, color, divider }) => (
-              <React.Fragment key={label}>
-                {divider && <div className="border-t border-gray-800 my-1" />}
-                <button
-                  onClick={action}
-                  className={`flex items-center gap-2.5 w-full px-3 py-3 text-sm ${color} hover:bg-gray-800 rounded-lg transition-colors`}
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
-                  {label}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  // Desktop: use same sheet drawer
   return (
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white">
         <SheetHeader className="px-4 py-3 border-b border-gray-800">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <SheetTitle className="text-base text-white truncate">{shoot.title}</SheetTitle>
-              {shoot.date && <p className="text-[10px] text-gray-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
-            </div>
-          </div>
+          <SheetTitle className="text-base text-white truncate">{shoot.title}</SheetTitle>
+          {shoot.date && <p className="text-[10px] text-gray-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
         </SheetHeader>
 
         <div className="px-4 py-3 space-y-2">
@@ -97,4 +64,4 @@ export default function CalendarContextMenu({
       </SheetContent>
     </Sheet>
   );
-  }
+}

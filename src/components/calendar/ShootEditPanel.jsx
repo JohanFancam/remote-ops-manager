@@ -1,8 +1,8 @@
 import React from 'react';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function ShootEditPanel({
   shoot,
@@ -13,21 +13,14 @@ export default function ShootEditPanel({
   onClose,
 }) {
   return (
-    <>
-      {/* Backdrop for mobile */}
-      <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
-
-      <div className="fixed top-0 right-0 h-full z-50 flex flex-col bg-gray-900 border-l border-gray-800 shadow-2xl w-full md:w-[500px] lg:w-[600px]">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 p-4 border-b border-gray-800 flex-shrink-0">
-          <h2 className="text-base font-semibold text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</h2>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Sheet open={true} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto">
+        <SheetHeader className="px-4 py-3 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+          <SheetTitle className="text-base text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
+        </SheetHeader>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 mt-4">
           <div className="space-y-4">
             {/* Title */}
             <div>
@@ -136,7 +129,7 @@ export default function ShootEditPanel({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-800 p-4 flex-shrink-0 flex gap-2">
+        <div className="border-t border-gray-800 p-4 flex-shrink-0 flex gap-2 sticky bottom-0 bg-gray-900 z-10">
           <Button onClick={onSave} className="flex-1 bg-blue-600 hover:bg-blue-700">
             {shoot ? 'Save Changes' : 'Create Shoot'}
           </Button>
@@ -144,7 +137,7 @@ export default function ShootEditPanel({
             Cancel
           </Button>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
