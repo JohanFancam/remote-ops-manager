@@ -5,8 +5,7 @@ import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -14,7 +13,7 @@ import {
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
-import ShootDetailPanel from '../components/calendar/ShootDetailPanel';
+import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 
@@ -231,44 +230,6 @@ function ShootCalendarEntry({
     }
   };
 
-  const handleApprove = async (e, email) => {
-    e.stopPropagation();
-    await onUpdate(shoot.id, {
-      pending_operators: (shoot.pending_operators || []).filter(item => item !== email),
-      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
-    });
-  };
-
-  const handleReject = async (e, email) => {
-    e.stopPropagation();
-    await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(item => item !== email) });
-  };
-
-  const handleAdminAssignUser = async (email) => {
-    if (!email || email === '__placeholder__') return;
-    await onUpdate(shoot.id, {
-      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
-      pending_operators: (shoot.pending_operators || []).filter(item => item !== email),
-    });
-  };
-
-  const handleRemoveOperator = async (e, email) => {
-    e.stopPropagation();
-    await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(item => item !== email) });
-  };
-
-  const assignableUsers = Array.from(
-    new Map(
-      (allUsers || [])
-        .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
-        .map((u) => [u.email.trim(), { ...u, email: u.email.trim() }])
-    ).values()
-  ).filter(
-    (u) =>
-      !shoot.assigned_operators?.includes(u.email) &&
-      !shoot.pending_operators?.includes(u.email)
-  );
-
   return (
     <div
       role="button"
@@ -340,18 +301,8 @@ function ShootCalendarEntry({
             </div>
           </div>
 
-          {!compact && (
+          {!compact && !isAdmin && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => { e.stopPropagation(); onDuplicate?.(shoot); }}
-                  className="h-7 rounded-md border-gray-700 bg-gray-950/70 text-xs text-gray-300 hover:bg-gray-800 hover:text-white"
-                >
-                  <Copy className="h-3 w-3 mr-1" />Duplicate
-                </Button>
-              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -361,53 +312,6 @@ function ShootCalendarEntry({
               >
                 {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
               </Button>
-
-              {isAdmin && assignableUsers.length > 0 && (
-                <Select onValueChange={handleAdminAssignUser} value="__placeholder__">
-                  <SelectTrigger className="h-7 w-[170px] rounded-md border-gray-700 bg-gray-950/80 text-xs text-gray-300 hover:bg-gray-800 hover:text-white" onClick={(e) => e.stopPropagation()}>
-                    <SelectValue placeholder="Assign operator" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
-                    <SelectItem value="__placeholder__" disabled className="text-gray-500">Assign operator</SelectItem>
-                    {assignableUsers.map(u => (
-                      <SelectItem key={u.email} value={u.email} className="text-white">
-                        {getDisplayName(u, u.email)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
-
-          {!compact && isAdmin && shoot.pending_operators?.length > 0 && (
-            <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
-              {shoot.pending_operators.map(email => {
-                const pendingUser = allUsers.find(u => u.email === email);
-                return (
-                  <div key={email} className="flex items-center justify-between gap-2 rounded-md bg-yellow-950/25 border border-yellow-800/35 px-2 py-1">
-                    <span className="text-xs text-yellow-200 truncate">Pending: {getDisplayName(pendingUser, email)}</span>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <Button size="icon" variant="ghost" className="h-6 w-6 text-green-400 hover:bg-green-950/40" onClick={(e) => handleApprove(e, email)}><Check className="h-3.5 w-3.5" /></Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6 text-red-400 hover:bg-red-950/40" onClick={(e) => handleReject(e, email)}><X className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {!compact && isAdmin && shoot.assigned_operators?.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
-              {shoot.assigned_operators.map(email => {
-                const assignedUser = allUsers.find(u => u.email === email);
-                return (
-                  <span key={email} className="inline-flex items-center gap-1 text-xs rounded-full bg-gray-800 border border-gray-700 text-gray-300 px-2 py-1">
-                    {getDisplayName(assignedUser, email)}
-                    <button type="button" className="text-gray-500 hover:text-red-400" onClick={(e) => handleRemoveOperator(e, email)}>×</button>
-                  </span>
-                );
-              })}
             </div>
           )}
         </div>
@@ -1257,39 +1161,21 @@ export default function Calendar() {
           )}
 
           {liveSelectedShoot && (
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="border-b border-gray-800 pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-white text-base truncate">{liveSelectedShoot.title}</CardTitle>
-                    <p className="text-xs text-gray-400 mt-0.5">{format(new Date(liveSelectedShoot.date + 'T12:00:00'), 'EEE, MMM d yyyy')}</p>
-                  </div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white ml-2" onClick={() => setSelectedShoot(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                {isAdmin && (
-                  <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => startEdit(liveSelectedShoot)}>Edit</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => duplicateShoot(liveSelectedShoot)}>Duplicate</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-red-400 hover:bg-gray-800" onClick={() => handleDeleteShoot(liveSelectedShoot.id)}>Delete</Button>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="p-4">
-                <ShootDetailPanel
-                  shoot={liveSelectedShoot}
-                  user={user}
-                  isAdmin={isAdmin}
-                  rigSettings={rigSettings}
-                  allShoots={shoots}
-                  allUsers={allUsers}
-                  standbyAdmins={standbyAdmins}
-                  slackMessages={slackMessages}
-                  onUpdate={handleShootUpdate}
-                />
-              </CardContent>
-            </Card>
+            <ShootSidePanel
+              shoot={liveSelectedShoot}
+              user={user}
+              isAdmin={isAdmin}
+              rigSettings={rigSettings}
+              allShoots={shoots}
+              allUsers={allUsers}
+              standbyAdmins={standbyAdmins}
+              slackMessages={slackMessages}
+              onUpdate={handleShootUpdate}
+              onEdit={startEdit}
+              onDuplicate={duplicateShoot}
+              onDelete={handleDeleteShoot}
+              onClose={() => setSelectedShoot(null)}
+            />
           )}
 
           {isAdmin && showAddForm && (
