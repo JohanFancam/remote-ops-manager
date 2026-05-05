@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isStandby, isAccounts, isLevel1Admin, adminLevel, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -27,21 +27,12 @@ function LayoutContent({ children, currentPageName }) {
   const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
   const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
 
-  // Feature visibility — L1 always sees everything; L2 sees only what L1 enabled for them
-  const isFeatureVisible = (key) => {
-    if (!isAdmin) return true; // remotes unaffected
-    const masterEnabled = appSettings.find(s => s.key === `feature_${key}`)?.value !== 'false';
-    if (!masterEnabled) return false;
-    if (adminLevel === 2) {
-      return appSettings.find(s => s.key === `l2_feature_${key}`)?.value !== 'false';
-    }
-    return true;
-  };
-  const showRigs = isFeatureVisible('rigs');
-  const showReports = isFeatureVisible('reports');
-  const showAccounts = isFeatureVisible('accounts');
-  const showReference = isFeatureVisible('reference');
-  const showTutorialBtn = isFeatureVisible('tutorial');
+  // All admins see all features
+  const showRigs = isAdmin;
+  const showReports = isAdmin;
+  const showAccounts = isAdmin;
+  const showReference = true;
+  const showTutorialBtn = true;
 
   const { data: myShoots = [] } = useQuery({
     queryKey: ['myShoots', user?.email],
