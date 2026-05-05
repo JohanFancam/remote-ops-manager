@@ -236,7 +236,15 @@ function ShootCalendarEntry({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
-      onClick={() => { if (!isAdmin) onSelect(shoot, day); }}
+      onClick={(e) => {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          e.preventDefault();
+          onContextMenu?.(e, shoot);
+        } else if (!isAdmin) {
+          onSelect(shoot, day);
+        }
+      }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.(e, shoot); }}
       className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
@@ -338,15 +346,9 @@ export default function Calendar() {
   const [rigTestModal, setRigTestModal] = useState(null); // shoot
 
   useEffect(() => {
-    const applyMobileDefaultView = () => {
-      if (window.innerWidth < 768) {
-        setViewMode('week');
-      }
-    };
-
-    applyMobileDefaultView();
-    window.addEventListener('resize', applyMobileDefaultView);
-    return () => window.removeEventListener('resize', applyMobileDefaultView);
+    if (window.innerWidth < 768) {
+      setViewMode('week');
+    }
   }, []);
 
   useEffect(() => {
@@ -375,6 +377,8 @@ export default function Calendar() {
     queryFn: () => base44.entities.UserPresence.list(),
   });
 
+  const EXCLUDED_EMAILS = ['hano@fancam.com'];
+
   const allUsers = useMemo(() => {
     const map = new Map();
 
@@ -401,7 +405,8 @@ export default function Calendar() {
     });
 
     return Array.from(map.values()).filter(
-      (u) => u && typeof u.email === 'string' && u.email.trim() !== ''
+      (u) => u && typeof u.email === 'string' && u.email.trim() !== '' &&
+        !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase())
     );
   }, [rawUsers, presenceRecords]);
 

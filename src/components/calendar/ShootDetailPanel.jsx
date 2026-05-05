@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
   Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone,
   MapPin, Tv2, Timer, Aperture, Sun
 } from 'lucide-react';
+
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
@@ -86,7 +86,6 @@ async function createShootTimeEntry(shoot, email, name, entryType, notes) {
 
 export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
-  const [showAssignUser, setShowAssignUser] = useState(false);
   const schedule = getSchedule(shoot);
   const todayStr = new Date().toISOString().split('T')[0];
   const isPast = shoot.date < todayStr;
@@ -160,13 +159,15 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     if (!email) return;
     const current = shoot.assigned_operators || [];
     if (!current.includes(email)) await onUpdate(shoot.id, { assigned_operators: [...current, email] });
-    setShowAssignUser(false);
   };
+
+  const EXCLUDED_EMAILS = ['hano@fancam.com'];
 
   const assignableUsers = Array.from(
     new Map(
       (allUsers || [])
         .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
+        .filter((u) => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
         .map((u) => [u.email.trim(), { ...u, email: u.email.trim() }])
     ).values()
   ).filter(
@@ -350,59 +351,47 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
-      {/* Assigned operators */}
-      {shoot.assigned_operators?.length > 0 && (
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Assigned Operators</p>
-          <div className="space-y-1">
-            {shoot.assigned_operators.map(email => (
-              <div key={email} className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-1.5">
-                <span className="text-sm text-gray-300 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
-                {isAdmin && (
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-600 hover:text-red-400 ml-2 flex-shrink-0" onClick={() => handleRemoveOperator(email)}>
-                    <UserX className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Admin: assign any user — allowed even on past shoots for backfilling */}
+      {/* Assigned operators + quick assign */}
       {isAdmin && (
-        <div>
-          {showAssignUser ? (
-            <div className="bg-gray-800/60 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-2">Assign a user:</p>
-              {assignableUsers.length > 0 ? (
-                <Select onValueChange={handleAdminAssignUser}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full mb-2">
-                    <SelectValue placeholder="Select user…" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
-                    {assignableUsers.map((u) => (
-                      <SelectItem
-                        key={u.email}
-                        value={u.email}
-                        className="text-white"
-                      >
-                        {getDisplayName(u, u.email)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="bg-gray-700 border border-gray-600 text-gray-400 rounded-md px-3 py-2 text-sm mb-2">
-                  No assignable users available
+        <div className="bg-gray-800/40 rounded-lg p-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Operators</p>
+
+          {/* Currently assigned */}
+          {(shoot.assigned_operators || []).length > 0 && (
+            <div className="space-y-1 mb-3">
+              {shoot.assigned_operators.map(email => (
+                <div key={email} className="flex items-center justify-between bg-gray-700/50 rounded px-2.5 py-1.5">
+                  <span className="text-sm text-gray-200 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
+                  <button
+                    onClick={() => handleRemoveOperator(email)}
+                    className="ml-2 flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors"
+                    title="Remove"
+                  >
+                    <UserX className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              )}
-              <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-white" onClick={() => setShowAssignUser(false)}>Cancel</Button>
+              ))}
             </div>
-          ) : (
-            <Button size="sm" variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full text-xs" onClick={() => setShowAssignUser(true)}>
-              <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Assign User
-            </Button>
+          )}
+
+          {/* Quick-assign buttons */}
+          {assignableUsers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {assignableUsers.map(u => (
+                <button
+                  key={u.email}
+                  onClick={() => handleAdminAssignUser(u.email)}
+                  className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-gray-600 bg-gray-800 text-gray-300 hover:border-blue-500 hover:text-blue-300 transition-colors"
+                >
+                  <UserPlus className="h-3 w-3" />
+                  {getDisplayName(u, u.email)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(shoot.assigned_operators || []).length === 0 && assignableUsers.length === 0 && (
+            <p className="text-xs text-gray-500">No users available to assign.</p>
           )}
         </div>
       )}
