@@ -1,0 +1,35 @@
+{
+  "name": "PendingUser",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin"
+      ],
+      "default": "user"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "invited": {
+      "type": "boolean",
+      "default": false
+    },
+    "inactive": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, user is no longer active but kept for historical records"
+    }
+  },
+  "required": [
+    "email"
+  ]
+}

@@ -142,7 +142,10 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
     }`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white">{op.full_name || op.email}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-white">{op.full_name || op.email}</p>
+            {op.inactive && <Badge className="text-xs bg-gray-700 text-gray-400 border-gray-600">Not in use</Badge>}
+          </div>
           <p className="text-xs text-gray-500">{op.email}</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -341,7 +344,7 @@ export default function Accounts() {
 
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
-      .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
     const knownEmails = new Set(knownUsers.map(u => u.email));
 
     // Pick up any operator emails from shoots not in PendingUser at all, and not known admins
