@@ -131,6 +131,7 @@ function ShootCalendarEntry({
   day,
   user,
   isAdmin,
+  isStandby,
   allUsers,
   allShoots,
   rigSettings,
@@ -158,11 +159,15 @@ function ShootCalendarEntry({
     ? (isMyStandbyCoverage
       ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
       : isOtherStandbyCoverage
-        ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'
+        ? 'border-orange-500 ring-1 ring-orange-500/45 shadow-[0_0_0_1px_rgba(234,88,12,0.22)]'
         : '')
     : '';
 
-  const remoteUserShootClass = !isAdmin
+  const standbyUserResponsibilityClass = !isAdmin && isStandby && isMyStandbyCoverage
+    ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.25)]'
+    : '';
+
+  const remoteUserShootClass = !isAdmin && !isStandby
     ? (isAssigned
       ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
       : isPending
@@ -170,7 +175,7 @@ function ShootCalendarEntry({
         : '')
     : '';
 
-  const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
+  const entryOutlineClass = standbyCoverageClass || standbyUserResponsibilityClass || remoteUserShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
   const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
@@ -875,6 +880,7 @@ export default function Calendar() {
       day={day}
       user={user}
       isAdmin={isAdmin}
+      isStandby={isStandby}
       allUsers={allUsers}
       allShoots={shoots}
       rigSettings={rigSettings}
@@ -1124,7 +1130,8 @@ export default function Calendar() {
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Standby User Coverage', color: 'bg-purple-500' },
+                { label: 'Admin: Other Standby Coverage', color: 'bg-orange-500' },
+                { label: 'Standby User: My Responsibility', color: 'bg-purple-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
