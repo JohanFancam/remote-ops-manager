@@ -18,6 +18,7 @@ import { shortenTitle } from '../components/utils/scheduleUtils';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
+import ShootEditPanel from '../components/calendar/ShootEditPanel';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -380,7 +381,7 @@ export default function Calendar() {
     queryFn: () => base44.entities.UserPresence.list(),
   });
 
-  const EXCLUDED_EMAILS = ['hano@fancam.com'];
+  const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com'];
 
   const allUsers = useMemo(() => {
     const map = new Map();
@@ -740,7 +741,7 @@ export default function Calendar() {
       await base44.entities.Shoot.create(payload);
     }
     setForm(emptyForm);
-    setShowAddForm(false);
+    setEditingShootForm(null);
     setEditingShoot(null);
     refresh();
   };
@@ -754,10 +755,8 @@ export default function Calendar() {
   const startEdit = (shoot) => {
     setEditingShoot(shoot);
     setForm({ ...emptyForm, ...shoot });
-    setShowAddForm(true);
-    setTimeout(() => {
-      document.getElementById('edit-form-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    setEditingShootForm(shoot);
+    setSelectedShoot(null);
   };
 
   const handleDeleteShoot = async (id) => {
@@ -821,7 +820,6 @@ export default function Calendar() {
   const duplicateShoot = (shoot) => {
     if (!isAdmin || !shoot) return;
     const { id, created_date, updated_date, created_by, assigned_operators, pending_operators, ...copy } = shoot;
-    setEditingShoot(null);
     setSelectedShoot(null);
     setForm({
       ...emptyForm,
@@ -831,10 +829,8 @@ export default function Calendar() {
       pending_operators: [],
       status: shoot.status || 'upcoming',
     });
-    setShowAddForm(true);
-    setTimeout(() => {
-      document.getElementById('edit-form-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    setEditingShoot(null);
+    setEditingShootForm({ ...copy, title: `${shoot.title || 'Shoot'} Copy` });
   };
 
   const handleSelectShoot = (shoot, day) => {
@@ -1088,14 +1084,9 @@ export default function Calendar() {
           <div className="flex gap-2 flex-wrap items-center">
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
-              <>
-                <Button onClick={() => { setShowAddForm(true); setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); }} className="bg-blue-600 hover:bg-blue-700" size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> Add Shoot
-                </Button>
-                <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
-                  <Upload className="h-4 w-4 mr-1" /> Import CSV
-                </Button>
-              </>
+              <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
+                <Upload className="h-4 w-4 mr-1" /> Import CSV
+              </Button>
             )}
           </div>
         </div>
@@ -1215,59 +1206,23 @@ export default function Calendar() {
             />
           )}
 
-          {isAdmin && showAddForm && (
-            <div id="edit-form-anchor" className="mt-4">
-              <Card className="bg-gray-900 border-blue-700">
-                <CardHeader className="border-b border-gray-800 py-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white text-base">{editingShoot ? 'Edit Shoot' : 'New Shoot'}</CardTitle>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white" onClick={() => { setShowAddForm(false); setEditingShoot(null); setForm(emptyForm); }}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                    <Input placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                    <Input placeholder="Client / Team" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                    <Input placeholder="Venue / Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                    <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
-                    <input type="time" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 h-9 text-sm w-full" />
-                    <Select value={form.status || 'upcoming'} onValueChange={(v) => setForm({ ...form, status: v })}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border-gray-700">
-                        {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
-                          <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="Notes / Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 md:col-span-3" />
-                  </div>
-                  <div className="bg-gray-800/60 rounded-lg p-3 mb-3">
-                    <p className="text-xs text-gray-400 mb-2 font-medium">Schedule Offsets (minutes before game time)</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { key: 'setup_offset', label: 'Setup' },
-                        { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
-                        { key: 'attention_offset', label: 'Attention' },
-                        { key: 'sound_offset', label: 'Sound' },
-                      ].map(({ key, label }) => (
-                        <div key={key}>
-                          <label className="text-xs text-gray-500 block mb-1">{label}</label>
-                          <Input type="number" value={form[key]} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleAddShoot} className="bg-blue-600 hover:bg-blue-700">{editingShoot ? 'Save Changes' : 'Create Shoot'}</Button>
-                    <Button variant="outline" onClick={() => { setShowAddForm(false); setEditingShoot(null); setForm(emptyForm); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancel</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {editingShootForm && (
+            <ShootEditPanel
+              shoot={editingShootForm}
+              form={form}
+              setForm={setForm}
+              onSave={handleAddShoot}
+              onCancel={() => {
+                setEditingShootForm(null);
+                setEditingShoot(null);
+                setForm(emptyForm);
+              }}
+              onClose={() => {
+                setEditingShootForm(null);
+                setEditingShoot(null);
+                setForm(emptyForm);
+              }}
+            />
           )}
         </div>
       </div>

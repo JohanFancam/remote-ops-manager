@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import ShootDetailPanel from './ShootDetailPanel';
+
+const getRigTypeLabel = (shoot, rig) => {
+  if (shoot?.rig_type_override) {
+    const parts = [shoot.rig_type_override];
+    if (rig?.sound) parts.push('Sound');
+    return parts.join('/');
+  }
+  if (!rig) return null;
+  const parts = [];
+  if (rig.rig_type) parts.push(rig.rig_type);
+  if (rig.sound) parts.push('Sound');
+  return parts.length > 0 ? parts.join('/') : null;
+};
+
 export default function ShootSidePanel({
   shoot,
   user,
   isAdmin,
   rigSettings,
-  allShoots,
-  allUsers,
-  standbyAdmins,
-  slackMessages,
   onUpdate,
   onEdit,
   onDuplicate,
@@ -21,6 +30,14 @@ export default function ShootSidePanel({
   const [showDetails, setShowDetails] = useState(false);
 
   if (!shoot) return null;
+
+  const shootDate = new Date(shoot.date + 'T12:00:00');
+  const dayName = format(shootDate, 'EEEE');
+  const dateStr = format(shootDate, 'MMM d, yyyy');
+  const timeStr = shoot.game_time || 'TBA';
+
+  const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+  const rigTypeLabel = getRigTypeLabel(shoot, rig) || 'Data';
 
   return (
     <>
@@ -33,8 +50,7 @@ export default function ShootSidePanel({
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold text-white truncate">{shoot.title}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d yyyy')}
-              {shoot.game_time ? ` · ${shoot.game_time}` : ''}
+              {dayName}, {dateStr} · {timeStr}
             </p>
           </div>
           <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white flex-shrink-0" onClick={onClose}>
@@ -42,7 +58,41 @@ export default function ShootSidePanel({
           </Button>
         </div>
 
+        {/* Shoot Type Badge */}
+        <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Shoot Type</p>
+          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${
+            rigTypeLabel === 'Fancam' || rigTypeLabel === 'Data/Fancam'
+              ? 'bg-orange-500/15 text-orange-300 border-orange-500/30'
+              : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+          }`}>
+            {rigTypeLabel}
+          </span>
+        </div>
 
+        {/* Schedule Info */}
+        <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 space-y-2">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Date & Time</p>
+            <p className="text-sm text-white mt-1">{dayName}, {dateStr}</p>
+            <p className="text-sm text-gray-300">{timeStr}</p>
+          </div>
+        </div>
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 flex gap-2 flex-wrap">
+            <Button size="sm" onClick={() => onEdit(shoot)} className="bg-blue-600 hover:bg-blue-700 text-xs h-8">
+              <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+            </Button>
+            <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs h-8">
+              <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
+            </Button>
+            <Button size="sm" onClick={() => onDelete(shoot.id)} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs h-8">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+            </Button>
+          </div>
+        )}
 
         {/* More Details toggle */}
         <div className="px-4 py-2 border-b border-gray-800 flex-shrink-0">
@@ -50,28 +100,53 @@ export default function ShootSidePanel({
             className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-white transition-colors"
             onClick={() => setShowDetails(!showDetails)}
           >
-            <span className="uppercase tracking-wider">More Details</span>
+            <span className="uppercase tracking-wider">More Info</span>
             {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <ShootDetailPanel
-            shoot={shoot}
-            user={user}
-            isAdmin={isAdmin}
-            rigSettings={rigSettings}
-            allShoots={allShoots}
-            allUsers={allUsers}
-            standbyAdmins={standbyAdmins}
-            slackMessages={slackMessages}
-            onUpdate={onUpdate}
-          />
-        </div>
+        {/* Expandable Details */}
+        {showDetails && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+            {shoot.client && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Client/Team</p>
+                <p className="text-white">{shoot.client}</p>
+              </div>
+            )}
+            {shoot.location && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
+                <p className="text-white">{shoot.location}</p>
+              </div>
+            )}
+            {shoot.status && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                <p className="text-white capitalize">{shoot.status.replace('_', ' ')}</p>
+              </div>
+            )}
+            {shoot.description && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</p>
+                <p className="text-gray-300">{shoot.description}</p>
+              </div>
+            )}
+            {(shoot.assigned_operators || []).length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Assigned Operators</p>
+                <p className="text-white">{shoot.assigned_operators.join(', ')}</p>
+              </div>
+            )}
+            {shoot.notes && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Notes</p>
+                <p className="text-gray-300">{shoot.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-
     </>
   );
 }
