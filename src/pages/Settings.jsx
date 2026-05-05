@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { getDisplayName } from '../components/utils/nameUtils';
+import RigTestChecklistSettings from '../components/settings/RigTestChecklistSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -579,6 +580,11 @@ export default function Settings() {
         {/* Message Templates — Admin only */}
         {isAdmin && (
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
+        )}
+
+        {/* Rig Test Checklist — Admin only */}
+        {isAdmin && (
+          <RigTestChecklistSettings appSettings={appSettings} />
         )}
 
         {/* App Version / Refresh Reminder — Admin only */}

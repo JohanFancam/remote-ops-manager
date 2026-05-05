@@ -235,8 +235,8 @@ function ShootCalendarEntry({
     <div
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(shoot, day); }}
-      onClick={() => onSelect(shoot, day)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
+      onClick={() => { if (!isAdmin) onSelect(shoot, day); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.(e, shoot); }}
       className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
@@ -1266,6 +1266,7 @@ export default function Calendar() {
           onAssignRigTest={handleAssignRigTest}
           onAssignSelf={handleContextMenuAssignSelf}
           onUnassignSelf={handleContextMenuUnassignSelf}
+          onViewDetails={(shoot) => { setSelectedShoot(shoot); setSelectedDate(new Date(shoot.date + 'T12:00:00')); }}
           onClose={() => setContextMenu(null)}
         />
       )}

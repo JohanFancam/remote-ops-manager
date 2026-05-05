@@ -9,17 +9,14 @@ import {
   ChevronDown, ChevronUp, Plus, CheckCircle2, Circle, Clock, Trash2, X, Check
 } from 'lucide-react';
 
-const DEFAULT_CHECKLIST = [
+const FALLBACK_CHECKLIST = [
   'Power on all rigs and confirm boot',
   'Check network / remote connectivity',
   'Verify camera feeds (HD + Wide)',
   'Test audio / sound recording',
   'Confirm rig type settings match team profile',
-  'Test attention camera (if enabled)',
   'Review storage / SD cards',
   'Check battery levels',
-  'Confirm Slack alert templates are correct',
-  'Log any faults or replacements needed',
 ];
 
 function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
@@ -27,7 +24,7 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
   const [comment, setComment] = useState(test.comments || '');
   const [savingComment, setSavingComment] = useState(false);
 
-  const checklist = test.checklist || DEFAULT_CHECKLIST.map(item => ({ item, checked: false }));
+  const checklist = test.checklist || FALLBACK_CHECKLIST.map(item => ({ item, checked: false }));
   const checkedCount = checklist.filter(c => c.checked).length;
   const allDone = checkedCount === checklist.length;
   const isAssignedToMe = test.assigned_to === user?.email;
@@ -77,6 +74,9 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
           <p className="text-xs text-gray-500 mt-0.5">
             {format(new Date(test.scheduled_date + 'T12:00:00'), 'EEE, MMM d yyyy')}
             {test.assigned_name ? ` · ${test.assigned_name}` : ''}
+            {test.due_date && (
+              <span className="ml-2 text-yellow-500">Due: {format(new Date(test.due_date + 'T12:00:00'), 'MMM d')}</span>
+            )}
           </p>
           <div className="flex items-center gap-2 mt-1">
             <div className="flex-1 bg-gray-800 rounded-full h-1.5 max-w-[120px]">
@@ -181,12 +181,24 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [newDueDate, setNewDueDate] = useState('');
   const [newAssigned, setNewAssigned] = useState(user?.email || '');
 
   const { data: rigTests = [] } = useQuery({
     queryKey: ['rigTests'],
     queryFn: () => base44.entities.RigTest.list('-scheduled_date', 200),
   });
+
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const defaultChecklist = useMemo(() => {
+    const val = appSettings.find(s => s.key === 'rig_test_checklist')?.value;
+    if (val) { try { return JSON.parse(val); } catch { /* ignore */ } }
+    return FALLBACK_CHECKLIST;
+  }, [appSettings]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['rigTests'] });
 
@@ -201,13 +213,15 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
     await base44.entities.RigTest.create({
       title: newTitle,
       scheduled_date: newDate,
+      due_date: newDueDate || undefined,
       assigned_to: newAssigned,
       assigned_name: assignedUser?.full_name || newAssigned,
-      checklist: DEFAULT_CHECKLIST.map(item => ({ item, checked: false })),
+      checklist: defaultChecklist.map(item => ({ item, checked: false })),
       status: 'pending',
     });
     setNewTitle('');
     setNewDate(format(new Date(), 'yyyy-MM-dd'));
+    setNewDueDate('');
     setShowAdd(false);
     refresh();
   };
@@ -242,7 +256,16 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
         <div className="bg-gray-800/60 border border-blue-700/40 rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium text-white">New Rig Test</p>
           <Input placeholder="Title e.g. Weekly Rig Check" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 h-8 text-sm" />
-          <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-500 block mb-0.5">Scheduled Date</label>
+              <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 block mb-0.5">Due Date (optional)</label>
+              <Input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+            </div>
+          </div>
           {assignableUsers.length > 0 && (
             <select
               value={newAssigned}

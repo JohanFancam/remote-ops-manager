@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX } from 'lucide-react';
+import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink } from 'lucide-react';
 
 export default function CalendarContextMenu({
   x, y, shoot, isAdmin, userEmail,
   onEdit, onDuplicate, onDelete, onAssignRigTest,
-  onAssignSelf, onUnassignSelf,
+  onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
 }) {
   const menuRef = useRef(null);
@@ -26,11 +26,14 @@ export default function CalendarContextMenu({
   const isPending = shoot?.pending_operators?.includes(userEmail);
 
   const menuWidth = 220;
-  const estimatedHeight = 220;
+  const estimatedHeight = isAdmin ? 280 : 160;
   const left = Math.min(x, window.innerWidth - menuWidth - 8);
   const top = Math.min(y, window.innerHeight - estimatedHeight - 8);
 
   const items = [
+    // View details (everyone)
+    { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
+
     // Self-assign/unassign (available to everyone)
     isAssigned || isPending
       ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-yellow-400' }

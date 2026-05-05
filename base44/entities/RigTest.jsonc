@@ -11,6 +11,11 @@
       "format": "date",
       "description": "Date the rig test is scheduled for"
     },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Optional due date by which the rig test must be completed"
+    },
     "assigned_to": {
       "type": "string",
       "description": "Email of the admin/standby assigned to this test"

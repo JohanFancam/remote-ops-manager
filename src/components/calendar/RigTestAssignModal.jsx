@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
-const DEFAULT_CHECKLIST = [
-  'Camera connections checked',
-  'Rig power on and stable',
-  'Remote access confirmed',
-  'Test footage captured',
-  'Rig settings verified',
+const FALLBACK_CHECKLIST = [
+  'Power on all rigs and confirm boot',
+  'Check network / remote connectivity',
+  'Verify camera feeds (HD + Wide)',
+  'Test audio / sound recording',
+  'Confirm rig type settings match team profile',
+  'Review storage / SD cards',
+  'Check battery levels',
 ];
 
 export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, onClose }) {
@@ -17,27 +20,30 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
 
   const [assignedTo, setAssignedTo] = useState(user?.email || '');
   const [scheduledDate, setScheduledDate] = useState(shoot?.date || '');
-  const [checklistItems, setChecklistItems] = useState([...DEFAULT_CHECKLIST]);
-  const [newItem, setNewItem] = useState('');
+  const [dueDate, setDueDate] = useState('');
+
+  // Load checklist from AppSettings
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const settingsChecklist = (() => {
+    const val = appSettings.find(s => s.key === 'rig_test_checklist')?.value;
+    if (!val) return null;
+    try { return JSON.parse(val); } catch { return null; }
+  })();
+
+  const checklistItems = settingsChecklist || FALLBACK_CHECKLIST;
 
   const assignedUser = assignableUsers.find(u => u.email === assignedTo);
   const assignedName = assignedUser?.full_name || assignedUser?.email || assignedTo;
-
-  const handleAddItem = () => {
-    if (newItem.trim()) {
-      setChecklistItems(prev => [...prev, newItem.trim()]);
-      setNewItem('');
-    }
-  };
-
-  const handleRemoveItem = (idx) => {
-    setChecklistItems(prev => prev.filter((_, i) => i !== idx));
-  };
 
   const handleConfirm = () => {
     onConfirm({
       title: `Rig Test – ${shoot?.title || 'Shoot'}`,
       scheduled_date: scheduledDate,
+      due_date: dueDate || undefined,
       assigned_to: assignedTo,
       assigned_name: assignedName,
       status: 'pending',
@@ -48,7 +54,7 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
@@ -64,22 +70,21 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
           {/* Assignee */}
           <div>
             <label className="text-xs text-gray-400 mb-1.5 block font-medium">Assign To</label>
-            <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue placeholder="Select person" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
-                {assignableUsers.map(u => (
-                  <SelectItem key={u.email} value={u.email} className="text-white">
-                    {u.full_name || u.email}
-                    <span className="ml-1.5 text-xs text-gray-500 capitalize">({u.role})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={assignedTo}
+              onChange={e => setAssignedTo(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-9"
+            >
+              <option value="">Select person…</option>
+              {assignableUsers.map(u => (
+                <option key={u.email} value={u.email}>
+                  {u.full_name || u.email} ({u.role})
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Date */}
+          {/* Scheduled Date */}
           <div>
             <label className="text-xs text-gray-400 mb-1.5 block font-medium">Scheduled Date</label>
             <Input
@@ -90,40 +95,29 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
             />
           </div>
 
-          {/* Checklist */}
+          {/* Due Date */}
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Checklist Items</label>
-            <div className="space-y-1.5 mb-2">
-              {checklistItems.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-1.5">
-                  <span className="text-xs text-gray-300 flex-1">{item}</span>
-                  <button
-                    onClick={() => handleRemoveItem(idx)}
-                    className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={newItem}
-                onChange={e => setNewItem(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddItem(); } }}
-                placeholder="Add checklist item…"
-                className="bg-gray-800 border-gray-700 text-white text-xs h-8 placeholder:text-gray-500"
-              />
-              <Button size="sm" variant="outline" className="h-8 border-gray-700 text-gray-300 hover:bg-gray-800 px-2" onClick={handleAddItem}>
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Due Date <span className="text-gray-600">(optional)</span></label>
+            <Input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              className="bg-gray-800 border-gray-700 text-white"
+            />
+          </div>
+
+          {/* Checklist preview */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">
+              Checklist: <span className="text-gray-400">{checklistItems.length} items</span>
+              <span className="ml-2 text-gray-600">(managed in Settings → Rig Test Checklist)</span>
+            </p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex gap-2 p-4 border-t border-gray-800">
-          <Button onClick={handleConfirm} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white">
+          <Button onClick={handleConfirm} disabled={!assignedTo || !scheduledDate} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white">
             Create Rig Test
           </Button>
           <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">
