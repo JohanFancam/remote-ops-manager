@@ -9,9 +9,10 @@ import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
+import StandbyUserQuota from '../components/dashboard/StandbyUserQuota';
 
 export default function Dashboard() {
-  const { user, isAdmin } = useApp();
+  const { user, isAdmin, isStandby } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -91,20 +92,20 @@ export default function Dashboard() {
     return visibleShoots.filter((s) => s.assigned_operators?.includes(user?.email));
   }, [visibleShoots, user?.email]);
 
-  const selfAssignedShoots = isAdmin ? allAssignedShoots : [];
-  const remoteShoots = !isAdmin ? allAssignedShoots : [];
+  const selfAssignedShoots = (isAdmin || isStandby) ? allAssignedShoots : [];
+  const remoteShoots = (!isAdmin && !isStandby) ? allAssignedShoots : [];
 
   const myStandbyDays = useMemo(() => {
-    if (!isAdmin || !user?.email) return [];
+    if ((!isAdmin && !isStandby) || !user?.email) return [];
     return standbyDays.filter((sd) => sd.admin_email === user.email);
-  }, [standbyDays, isAdmin, user?.email]);
+  }, [standbyDays, isAdmin, isStandby, user?.email]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-white">
-            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Operator')}`}
+            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator')}`}
           </h1>
         </div>
 
@@ -121,17 +122,22 @@ export default function Dashboard() {
           />
         </section>
 
+        {/* Standby user quota tracker */}
+        {isStandby && (
+          <StandbyUserQuota user={user} shoots={shoots} />
+        )}
+
         <section className="mb-8">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-white">My Assigned Shoots</h2>
             </div>
-            <p className="hidden text-xs text-gray-500 sm:block">Current or next shoot shows first. Previous/Next lets you browse your history.</p>
+            <p className="hidden text-xs text-gray-500 sm:block">Current or next shoot shows first.</p>
           </div>
           <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
             <AdminDayShootView
-              shoots={isAdmin ? selfAssignedShoots : remoteShoots}
-              isAdmin={isAdmin}
+              shoots={(isAdmin || isStandby) ? selfAssignedShoots : remoteShoots}
+              isAdmin={isAdmin || isStandby}
               rigSettings={rigSettings}
               onUpdate={handleShootUpdate}
               userEmail={user?.email}
@@ -140,7 +146,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {isAdmin && (
+        {(isAdmin || isStandby) && (
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
@@ -166,7 +172,7 @@ export default function Dashboard() {
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
 
-        {!isAdmin && (
+        {(!isAdmin && !isStandby) && (
           <div className="mt-6">
             <RemoteEarnings user={user} />
           </div>

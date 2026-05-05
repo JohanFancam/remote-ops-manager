@@ -7,17 +7,14 @@
       "enum": [
         "admin",
         "user",
-        "accounts"
+        "standby"
       ],
       "default": "user"
     },
-    "admin_level": {
+    "shoot_quota": {
       "type": "number",
-      "description": "1 = full admin, 2 = restricted admin"
-    },
-    "standby": {
-      "type": "boolean",
-      "default": false
+      "default": 10,
+      "description": "Required number of shoots (for standby role users)"
     }
   }
 }

@@ -17,13 +17,18 @@ const remoteNavItems = [
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
 ];
 
+const standbyNavItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+];
+
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isAccounts, isLoading } = useApp();
+  const { isAdmin, isStandby, isLoading } = useApp();
 
-  if (isLoading || isAccounts) return null;
+  if (isLoading) return null;
 
-  const navItems = isAdmin ? adminNavItems : remoteNavItems;
+  const navItems = isAdmin ? adminNavItems : isStandby ? standbyNavItems : remoteNavItems;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>

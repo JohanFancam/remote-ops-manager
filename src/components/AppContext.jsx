@@ -19,10 +19,11 @@ export function AppProvider({ children }) {
   const presenceIdRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
-  const isAccounts = user?.role === 'accounts';
-  const adminLevel = isAdmin ? (user?.admin_level ?? 1) : null;
-  const isLevel1Admin = isAdmin && adminLevel === 1;
-  const isLevel2Admin = isAdmin && adminLevel === 2;
+  const isStandby = user?.role === 'standby';
+  const isAccounts = false; // removed role
+  const adminLevel = null; // removed admin levels
+  const isLevel1Admin = isAdmin; // all admins have full access now
+  const isLevel2Admin = false;
 
   // Write/update presence record when user loads
   useEffect(() => {
@@ -80,7 +81,7 @@ export function AppProvider({ children }) {
   }, [user?.email]);
 
   return (
-    <AppContext.Provider value={{ user, isAdmin, isAccounts, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
+    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
       {children}
     </AppContext.Provider>
   );

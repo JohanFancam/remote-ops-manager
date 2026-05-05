@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isAccounts, isLevel1Admin, adminLevel, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, isLevel1Admin, adminLevel, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -69,13 +69,14 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  const accountsNav = [
-    { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+  const standbyNav = [
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  const navItems = isAdmin ? adminNav : isAccounts ? accountsNav : remoteNav;
+  const navItems = isAdmin ? adminNav : isStandby ? standbyNav : remoteNav;
 
   const handleLogout = () => base44.auth.logout();
 
@@ -103,9 +104,9 @@ function LayoutContent({ children, currentPageName }) {
         <div className="px-4 py-3 border-b border-gray-800">
           <span className={cn(
             "text-xs px-2.5 py-1 rounded-full font-medium",
-            isAdmin ? "bg-blue-600/20 text-blue-400" : "bg-gray-700 text-gray-400"
+            isAdmin ? "bg-blue-600/20 text-blue-400" : isStandby ? "bg-yellow-600/20 text-yellow-400" : "bg-gray-700 text-gray-400"
           )}>
-            {isAdmin ? `⚡ Admin ${adminLevel === 2 ? 'L2' : 'L1'}` : '📡 Remote Operator'}
+            {isAdmin ? '⚡ Admin' : isStandby ? '🎯 Standby User' : '📡 Remote Operator'}
           </span>
         </div>
 
@@ -237,4 +238,4 @@ export default function Layout({ children, currentPageName }) {
       </LayoutContent>
     </AppProvider>
   );
-} 
+}

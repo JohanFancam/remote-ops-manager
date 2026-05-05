@@ -288,7 +288,7 @@ const SLACK_PHASES = [
 ];
 
 export default function Settings() {
-  const { user, isAdmin, isLevel1Admin } = useApp();
+  const { user, isAdmin, isLevel1Admin, isStandby } = useApp();
   const queryClient = useQueryClient();
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -474,19 +474,15 @@ export default function Settings() {
   };
 
   const [editingUserId, setEditingUserId] = useState(null);
-  const [editUserForm, setEditUserForm] = useState({ full_name: '', role: 'user', admin_level: 1 });
+  const [editUserForm, setEditUserForm] = useState({ full_name: '', role: 'user' });
 
   const handleEditUser = (u) => {
     setEditingUserId(u.id);
-    setEditUserForm({ full_name: u.full_name || '', role: u.role || 'user', admin_level: u.admin_level ?? 1 });
+    setEditUserForm({ full_name: u.full_name || '', role: u.role || 'user' });
   };
 
   const handleSaveUser = async (u) => {
-    const updatePayload = {
-      role: editUserForm.role,
-      admin_level: editUserForm.role === 'admin' ? Number(editUserForm.admin_level) : null,
-    };
-    // full_name can be updated via User.update for other users (admin only)
+    const updatePayload = { role: editUserForm.role };
     if (editUserForm.full_name && editUserForm.full_name !== u.full_name) {
       updatePayload.full_name = editUserForm.full_name;
     }
@@ -494,8 +490,6 @@ export default function Settings() {
     setEditingUserId(null);
     refresh();
   };
-
-  const isStandby = user?.standby === true;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
@@ -522,8 +516,8 @@ export default function Settings() {
               <div className="flex-1 min-w-0">
                 <p className="text-lg font-semibold text-white">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-gray-400 text-sm">{user?.email}</p>
-                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                  {user?.role === 'admin' ? `Admin Level ${user?.admin_level ?? 1}` : 'Remote Operator'}
+                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : user?.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Standby User' : 'Remote Operator'}
                 </Badge>
               </div>
             </div>
@@ -707,13 +701,13 @@ export default function Settings() {
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
         )}
 
-        {/* Feature Visibility — L1 Admin only */}
-        {isLevel1Admin && (
-          <FeatureToggleSection appSettings={appSettings} queryClient={queryClient} isLevel1Admin={isLevel1Admin} />
+        {/* Feature Visibility — Admin only */}
+        {isAdmin && (
+          <FeatureToggleSection appSettings={appSettings} queryClient={queryClient} isLevel1Admin={isAdmin} />
         )}
 
-        {/* App Version / Refresh Reminder — L1 Admin only */}
-        {isLevel1Admin && (
+        {/* App Version / Refresh Reminder — Admin only */}
+        {isAdmin && (
           <Card className="bg-gray-900 border-gray-800 mb-6">
             <CardHeader className="border-b border-gray-800 pb-4">
               <CardTitle className="text-white flex items-center gap-2">
@@ -743,8 +737,8 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Slack Messages — Level 1 Admin only */}
-        {isLevel1Admin && (
+        {/* Slack Messages — Admin only */}
+        {isAdmin && (
           <Card className="bg-gray-900 border-gray-800 mb-6">
             <CardHeader className="border-b border-gray-800 pb-4">
               <CardTitle className="text-white flex items-center gap-2">
@@ -771,8 +765,8 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Pre-registered Users — L1 only */}
-        {isLevel1Admin && (
+        {/* Pre-registered Users — Admin only */}
+        {isAdmin && (
           <Card className="bg-gray-900 border-gray-800 mb-6">
             <CardHeader className="border-b border-gray-800 pb-4">
               <div className="flex items-center justify-between">
@@ -853,17 +847,12 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Active Team Members — all admins can view; only L1 can edit */}
+        {/* Active Team Members — all admins can view and edit */}
         {isAdmin && (
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="border-b border-gray-800 pb-4">
               <CardTitle className="text-white flex items-center gap-2">
                 <Users className="h-5 w-5 text-purple-400" /> Active Team Members ({users.length})
-                {!isLevel1Admin && (
-                  <span className="text-xs text-gray-500 font-normal ml-2 bg-gray-800 border border-gray-700 px-2 py-0.5 rounded-full">
-                    👁 View only — contact L1 Admin to make changes
-                  </span>
-                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -871,41 +860,31 @@ export default function Settings() {
                 {users.map(u => (
                   <div key={u.id} className="px-5 py-4">
                     {isLevel1Admin && editingUserId === u.id ? (
-                      <div className="space-y-3">
-                        <Input
-                          value={editUserForm.full_name}
-                          onChange={e => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
-                          placeholder="Full name"
-                          className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
-                        />
-                        <div className="flex gap-2 flex-wrap items-center">
-                          <select
-                            value={editUserForm.role}
-                            onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
-                            className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
-                          >
-                            <option value="user">Remote Operator</option>
-                            <option value="admin">Admin</option>
-                            <option value="accounts">Accounts</option>
-                          </select>
-                          {editUserForm.role === 'admin' && (
-                            <select
-                              value={editUserForm.admin_level}
-                              onChange={e => setEditUserForm({ ...editUserForm, admin_level: Number(e.target.value) })}
-                              className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
-                            >
-                              <option value={1}>L1 Full</option>
-                              <option value={2}>L2 Restricted</option>
-                            </select>
-                          )}
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
-                            <Save className="h-3 w-3" /> Save
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 text-gray-400 hover:text-white" onClick={() => setEditingUserId(null)}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+                     <div className="space-y-3">
+                       <Input
+                         value={editUserForm.full_name}
+                         onChange={e => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
+                         placeholder="Full name"
+                         className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
+                       />
+                       <div className="flex gap-2 flex-wrap items-center">
+                         <select
+                           value={editUserForm.role}
+                           onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                           className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1.5 text-sm"
+                         >
+                           <option value="user">Remote Operator</option>
+                           <option value="admin">Admin</option>
+                           <option value="standby">Standby User</option>
+                         </select>
+                         <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
+                           <Save className="h-3 w-3" /> Save
+                         </Button>
+                         <Button size="sm" variant="ghost" className="h-8 text-gray-400 hover:text-white" onClick={() => setEditingUserId(null)}>
+                           <X className="h-3 w-3" />
+                         </Button>
+                       </div>
+                     </div>
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -919,8 +898,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                            {u.role === 'admin' ? `Admin L${u.admin_level ?? 1}` : u.role === 'accounts' ? 'Accounts' : 'Operator'}
+                          <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                            {u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : 'Operator'}
                           </Badge>
                           {isLevel1Admin && u.id !== user?.id && (
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>

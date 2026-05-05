@@ -291,8 +291,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 export default function Accounts() {
   const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
-  const isAccounts = user?.role === 'accounts';
-  const canView = isAdmin || isAccounts;
+  const canView = isAdmin;
 
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
 
@@ -337,7 +336,7 @@ export default function Accounts() {
   const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
   // Pending shoots this month (operator in pending_operators, not yet assigned)
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
-  const remoteUsers = allUsers.filter(u => u.role === 'user');
+  const remoteUsers = allUsers.filter(u => u.role === 'user' || u.role === 'standby');
 
   const summaryRows = useMemo(() => {
     return remoteUsers.map(op => {

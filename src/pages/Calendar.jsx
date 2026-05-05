@@ -419,7 +419,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isLevel1Admin } = useApp();
+  const { user, isAdmin, isStandby, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -611,7 +611,7 @@ export default function Calendar() {
 
 
   const handleToggleStandbyDay = async (day) => {
-    if (!isAdmin || !user?.email) return;
+    if ((!isAdmin && !isStandby) || !user?.email) return;
 
     const dateStr = format(day, 'yyyy-MM-dd');
     const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
@@ -971,7 +971,7 @@ export default function Calendar() {
                   <div className={`text-xs font-semibold ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
                     {format(day, 'd')}
                   </div>
-                  {isAdmin && !isPast && (
+                  {(isAdmin || isStandby) && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
@@ -982,7 +982,7 @@ export default function Calendar() {
                       {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
-                  {!isAdmin && !isPast && (
+                  {(!isAdmin && !isStandby) && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
@@ -1066,7 +1066,7 @@ export default function Calendar() {
                       );
                     })}
                     {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-300">+{dayUnavailable.length - 4} unavailable</span>}
-                    {isAdmin && !isPast && (
+                    {(isAdmin || isStandby) && !isPast && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1077,7 +1077,7 @@ export default function Calendar() {
                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                       </Button>
                     )}
-                    {!isAdmin && !isPast && (
+                    {(!isAdmin && !isStandby) && !isPast && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1338,4 +1338,4 @@ export default function Calendar() {
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
     </div>
   );
-} 
+}
