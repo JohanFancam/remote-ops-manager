@@ -16,6 +16,7 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootDetailPanel from '../components/calendar/ShootDetailPanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
+import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -130,6 +131,7 @@ function ShootCalendarEntry({
   onDuplicate,
   onRigCheckToggle,
   onRigCheckCancel,
+  onContextMenu,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
 }) {
@@ -273,6 +275,7 @@ function ShootCalendarEntry({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(shoot, day); }}
       onClick={() => onSelect(shoot, day)}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.(e, shoot); }}
       className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
       <div className="flex items-start gap-2">
@@ -426,6 +429,7 @@ export default function Calendar() {
   const [selectedShoot, setSelectedShoot] = useState(null);
   const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
 
   useEffect(() => {
     const applyMobileDefaultView = () => {
@@ -848,6 +852,30 @@ export default function Calendar() {
     refresh();
   };
 
+  const handleAssignRigTest = async (shoot) => {
+    // Determine the standby admin for this shoot's date
+    const standbyCoverage = getStandbyCoverageForShoot(shoot);
+    const assignedEmail = standbyCoverage?.admin_email || user?.email || '';
+    const assignedName = standbyCoverage?.admin_name || standbyCoverage?.admin_email || user?.full_name || user?.email || '';
+
+    await base44.entities.RigTest.create({
+      title: `Rig Test – ${shoot.title}`,
+      scheduled_date: shoot.date,
+      assigned_to: assignedEmail,
+      assigned_name: assignedName,
+      status: 'pending',
+      checklist: [
+        { item: 'Camera connections checked', checked: false },
+        { item: 'Rig power on and stable', checked: false },
+        { item: 'Remote access confirmed', checked: false },
+        { item: 'Test footage captured', checked: false },
+        { item: 'Rig settings verified', checked: false },
+      ],
+      notes: `Auto-created from calendar for shoot: ${shoot.title} on ${shoot.date}`,
+    });
+    queryClient.invalidateQueries({ queryKey: ['rigTests'] });
+  };
+
   const duplicateShoot = (shoot) => {
     if (!isAdmin || !shoot) return;
     const { id, created_date, updated_date, created_by, assigned_operators, pending_operators, ...copy } = shoot;
@@ -900,6 +928,11 @@ export default function Calendar() {
     ? (shoots.find(s => s.id === selectedShoot.id) || selectedShoot)
     : null;
 
+  const handleContextMenu = (e, shoot) => {
+    if (!isAdmin) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, shoot });
+  };
+
   const renderEntry = (shoot, day, compact = false) => (
     <ShootCalendarEntry
       key={shoot.id}
@@ -917,6 +950,7 @@ export default function Calendar() {
       onDuplicate={duplicateShoot}
       onRigCheckToggle={handleRigCheckToggle}
       onRigCheckCancel={handleRigCheckCancel}
+      onContextMenu={handleContextMenu}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
     />
@@ -1316,6 +1350,20 @@ export default function Calendar() {
       </div>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
+
+      {contextMenu && (
+        <CalendarContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          shoot={contextMenu.shoot}
+          isAdmin={isAdmin}
+          onEdit={(shoot) => { startEdit(shoot); setSelectedShoot(null); }}
+          onDuplicate={duplicateShoot}
+          onDelete={handleDeleteShoot}
+          onAssignRigTest={handleAssignRigTest}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
