@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Copy, Check, UserCheck, UserX, ChevronDown, ChevronUp, UserPlus,
+  Copy, Check, ChevronDown, ChevronUp,
   Zap, Camera, AlertTriangle, Volume2, Clock, Flag, Phone,
   MapPin, Tv2, Timer, Aperture, Sun
 } from 'lucide-react';
@@ -140,41 +139,6 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     }
   };
 
-  const handleApprove = async (email) => {
-    await onUpdate(shoot.id, {
-      pending_operators: (shoot.pending_operators || []).filter(e => e !== email),
-      assigned_operators: [...new Set([...(shoot.assigned_operators || []), email])],
-    });
-  };
-
-  const handleReject = async (email) => {
-    await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== email) });
-  };
-
-  const handleRemoveOperator = async (email) => {
-    await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== email) });
-  };
-
-  const handleAdminAssignUser = async (email) => {
-    if (!email) return;
-    const current = shoot.assigned_operators || [];
-    if (!current.includes(email)) await onUpdate(shoot.id, { assigned_operators: [...current, email] });
-  };
-
-  const EXCLUDED_EMAILS = ['hano@fancam.com'];
-
-  const assignableUsers = Array.from(
-    new Map(
-      (allUsers || [])
-        .filter((u) => u && typeof u.email === 'string' && u.email.trim() !== '')
-        .filter((u) => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
-        .map((u) => [u.email.trim(), { ...u, email: u.email.trim() }])
-    ).values()
-  ).filter(
-    (u) =>
-      !shoot.assigned_operators?.includes(u.email) &&
-      !shoot.pending_operators?.includes(u.email)
-  );
   const approvedCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
   const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - approvedCount);
 
@@ -329,72 +293,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         </div>
       )}
 
-      {/* Pending approval — admin */}
-      {isAdmin && shoot.pending_operators?.length > 0 && (
-        <div className="bg-yellow-950/30 border border-yellow-800/50 rounded-lg p-3">
-          <p className="text-xs text-yellow-400 uppercase tracking-wider mb-2">⏳ Pending Approval ({shoot.pending_operators.length})</p>
-          <div className="space-y-2">
-            {shoot.pending_operators.map(email => (
-              <div key={email} className="flex items-center justify-between">
-                <span className="text-sm text-gray-300 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
-                <div className="flex gap-1.5 ml-2 flex-shrink-0">
-                  <Button size="sm" className="h-6 text-xs bg-green-700 hover:bg-green-600 px-2" onClick={() => handleApprove(email)}>
-                    <UserCheck className="h-3 w-3 mr-1" />Approve
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-6 text-xs text-red-400 hover:bg-gray-800 px-2" onClick={() => handleReject(email)}>
-                    <UserX className="h-3 w-3 mr-1" />Reject
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Assigned operators + quick assign */}
-      {isAdmin && (
-        <div className="bg-gray-800/40 rounded-lg p-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Operators</p>
-
-          {/* Currently assigned */}
-          {(shoot.assigned_operators || []).length > 0 && (
-            <div className="space-y-1 mb-3">
-              {shoot.assigned_operators.map(email => (
-                <div key={email} className="flex items-center justify-between bg-gray-700/50 rounded px-2.5 py-1.5">
-                  <span className="text-sm text-gray-200 truncate">{getDisplayName(allUsers.find(u => u.email === email), email)}</span>
-                  <button
-                    onClick={() => handleRemoveOperator(email)}
-                    className="ml-2 flex-shrink-0 text-gray-500 hover:text-red-400 transition-colors"
-                    title="Remove"
-                  >
-                    <UserX className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Quick-assign buttons */}
-          {assignableUsers.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {assignableUsers.map(u => (
-                <button
-                  key={u.email}
-                  onClick={() => handleAdminAssignUser(u.email)}
-                  className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-gray-600 bg-gray-800 text-gray-300 hover:border-blue-500 hover:text-blue-300 transition-colors"
-                >
-                  <UserPlus className="h-3 w-3" />
-                  {getDisplayName(u, u.email)}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {(shoot.assigned_operators || []).length === 0 && assignableUsers.length === 0 && (
-            <p className="text-xs text-gray-500">No users available to assign.</p>
-          )}
-        </div>
-      )}
 
       {/* Self assign/unassign — admin can do on past shoots too */}
       {(!isPast || isAdmin) && (
