@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Clock, MessageSquare, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Clock, MessageSquare, Download, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ export default function RigTestLog() {
   const { isAdmin, isStandby } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [expandedTestId, setExpandedTestId] = useState(null);
 
   const { data: rigTests = [] } = useQuery({
     queryKey: ['rigTests'],
@@ -71,7 +72,7 @@ export default function RigTestLog() {
   const pendingCount = monthTests.filter(t => t.status !== 'completed').length;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
+    <div className="min-h-screen bg-gray-950 text-white p-3 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
@@ -112,127 +113,156 @@ export default function RigTestLog() {
           </Card>
         </div>
 
-        {/* Full-width calendar */}
-        <Card className="bg-gray-900 border-gray-800 mb-6">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-800">
-            <Button variant="ghost" size="icon" onClick={() => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <CardTitle className="text-white text-lg">{format(currentDate, 'MMMM yyyy')}</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-7 mb-3">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-2">
-              {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
-              {calendarDays.map(day => {
-                const dayTests = testsForDay(day);
-                const isSelected = selectedDay && isSameDay(day, selectedDay);
-                const today = isToday(day);
-
-                return (
-                  <div
-                    key={day.toISOString()}
-                    onClick={() => setSelectedDay(isSameDay(day, selectedDay) ? null : day)}
-                    className={`min-h-[90px] p-2 rounded-xl cursor-pointer border transition-all
-                      ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
-                      ${today ? 'ring-2 ring-blue-500' : ''}
-                    `}
-                  >
-                    <div className={`text-sm font-semibold mb-1 ${today ? 'text-blue-400' : 'text-gray-400'}`}>
-                      {format(day, 'd')}
-                    </div>
-                    <div className="space-y-1">
-                      {dayTests.slice(0, 3).map(test => (
-                        <div key={test.id} className={`text-[11px] rounded-md px-1.5 py-0.5 truncate ${
-                          test.status === 'completed'
-                            ? 'bg-green-900/50 text-green-300'
-                            : 'bg-yellow-900/40 text-yellow-300'
-                        }`}>
-                          {test.assigned_name?.split(' ')[0] || test.title}
-                        </div>
-                      ))}
-                      {dayTests.length > 3 && <div className="text-[10px] text-gray-500">+{dayTests.length - 3} more</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Day detail panel */}
-        {selectedDay && (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="border-b border-gray-800 pb-3">
-              <CardTitle className="text-white text-sm">
-                {format(selectedDay, 'EEE, MMM d yyyy')} — {selectedDayTests.length} test{selectedDayTests.length !== 1 ? 's' : ''}
-              </CardTitle>
+        <div className="flex gap-4 h-[calc(100vh-200px)]">
+          {/* Calendar - left side, larger */}
+          <Card className="bg-gray-900 border-gray-800 flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-800 flex-shrink-0">
+              <Button variant="ghost" size="icon" onClick={() => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <CardTitle className="text-white">{format(currentDate, 'MMMM yyyy')}</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
             </CardHeader>
-            <CardContent className="p-4">
-              {selectedDayTests.length === 0 ? (
-                <p className="text-xs text-gray-500">No rig tests on this day.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedDayTests.map(test => (
-                    <div key={test.id} className={`rounded-xl border p-4 ${test.status === 'completed' ? 'border-green-800/50 bg-green-950/10' : 'border-gray-800 bg-gray-800/40'}`}>
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{test.title}</p>
-                          {test.assigned_name && <p className="text-xs text-gray-400 mt-0.5">{test.assigned_name}</p>}
-                        </div>
-                        {test.status === 'completed'
-                          ? <Badge className="bg-green-500/15 text-green-400 border-green-500/30 text-xs flex-shrink-0">Done</Badge>
-                          : <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-xs flex-shrink-0">Pending</Badge>
-                        }
+            <CardContent className="p-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-7 mb-4">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
+                {calendarDays.map(day => {
+                  const dayTests = testsForDay(day);
+                  const isSelected = selectedDay && isSameDay(day, selectedDay);
+                  const today = isToday(day);
+
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      onClick={() => setSelectedDay(day)}
+                      className={`min-h-[120px] p-2.5 rounded-lg cursor-pointer border transition-all
+                        ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
+                        ${today ? 'ring-2 ring-blue-500' : ''}
+                      `}
+                    >
+                      <div className={`text-sm font-semibold mb-2 ${today ? 'text-blue-400' : 'text-gray-400'}`}>
+                        {format(day, 'd')}
                       </div>
-
-                      {test.checklist && test.checklist.length > 0 && (
-                        <div className="space-y-1 mb-3">
-                          {test.checklist.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5">
-                              {item.checked
-                                ? <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
-                                : <Circle className="h-3 w-3 text-gray-600 flex-shrink-0" />
-                              }
-                              <span className={`text-xs ${item.checked ? 'line-through text-gray-600' : 'text-gray-400'}`}>
-                                {item.item}
-                              </span>
-                            </div>
-                          ))}
-                          <p className="text-[10px] text-gray-600 mt-1">
-                            {test.checklist.filter(i => i.checked).length}/{test.checklist.length} complete
-                          </p>
-                        </div>
-                      )}
-
-                      {test.comments && (
-                        <div className="flex items-start gap-1.5 bg-gray-900/60 rounded-lg p-2 mb-2">
-                          <MessageSquare className="h-3.5 w-3.5 text-gray-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-gray-400 italic">{test.comments}</p>
-                        </div>
-                      )}
-
-                      {test.completed_at && (
-                        <p className="text-[10px] text-gray-600 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Completed {format(new Date(test.completed_at), 'MMM d, HH:mm')}
-                        </p>
-                      )}
+                      <div className="space-y-1">
+                        {dayTests.slice(0, 4).map(test => (
+                          <div key={test.id} className={`text-[10px] rounded px-1.5 py-0.5 truncate ${
+                            test.status === 'completed'
+                              ? 'bg-green-900/50 text-green-300'
+                              : 'bg-yellow-900/40 text-yellow-300'
+                          }`}>
+                            {test.title?.substring(0, 15)}
+                          </div>
+                        ))}
+                        {dayTests.length > 4 && <div className="text-[9px] text-gray-500">+{dayTests.length - 4}</div>}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
-        )}
-      </div>
-    </div>
-  );
-}
+
+          {/* Side panel - right side */}
+          {selectedDay && (
+            <div className="w-80 flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-gray-800 flex-shrink-0">
+                <p className="text-sm font-semibold text-white">{format(selectedDay, 'EEE, MMM d yyyy')}</p>
+                <p className="text-xs text-gray-500 mt-1">{selectedDayTests.length} test{selectedDayTests.length !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                {selectedDayTests.length === 0 ? (
+                  <div className="p-4">
+                    <p className="text-xs text-gray-500">No rig tests on this day.</p>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-2">
+                    {selectedDayTests.map(test => {
+                      const isExpanded = expandedTestId === test.id;
+                      return (
+                        <div key={test.id} className={`rounded-lg border transition-all ${test.status === 'completed' ? 'border-green-800/50 bg-green-950/10' : 'border-gray-800 bg-gray-800/40'}`}>
+                          <button
+                            onClick={() => setExpandedTestId(isExpanded ? null : test.id)}
+                            className="w-full p-3 flex items-start justify-between gap-2 text-left"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{test.title}</p>
+                              {test.assigned_name && <p className="text-xs text-gray-400 mt-0.5 truncate">{test.assigned_name}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge className={`text-xs ${test.status === 'completed' ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'}`}>
+                                {test.status === 'completed' ? 'Done' : 'Pending'}
+                              </Badge>
+                              <ChevronRight className={`h-4 w-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="border-t border-gray-700 p-3 space-y-3 text-sm">
+                              {test.checklist && test.checklist.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase mb-2">Checklist</p>
+                                  <div className="space-y-1">
+                                    {test.checklist.map((item, idx) => (
+                                      <div key={idx} className="flex items-center gap-1.5">
+                                        {item.checked
+                                          ? <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
+                                          : <Circle className="h-3 w-3 text-gray-600 flex-shrink-0" />
+                                        }
+                                        <span className={`text-xs ${item.checked ? 'line-through text-gray-600' : 'text-gray-400'}`}>
+                                          {item.item}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-[10px] text-gray-600 mt-2">
+                                    {test.checklist.filter(i => i.checked).length}/{test.checklist.length} complete
+                                  </p>
+                                </div>
+                              )}
+
+                              {test.comments && (
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase mb-1">Comments</p>
+                                  <p className="text-xs text-gray-300 italic">{test.comments}</p>
+                                </div>
+                              )}
+
+                              {test.completed_at && (
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase">Completed</p>
+                                  <p className="text-xs text-gray-300 mt-0.5">{format(new Date(test.completed_at), 'MMM d, HH:mm')}</p>
+                                </div>
+                              )}
+
+                              {test.rig_ids && test.rig_ids.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase mb-1">Rigs</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {test.rig_ids.map((id, idx) => (
+                                      <Badge key={idx} variant="outline" className="text-xs border-gray-700">{id}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
+          </div>
+          </div>
+          );
+          }
