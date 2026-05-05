@@ -336,7 +336,7 @@ export default function Calendar() {
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('month');
+  const [viewMode, setViewMode] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 'week' : 'month');
   const [showCSV, setShowCSV] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingShoot, setEditingShoot] = useState(null);
