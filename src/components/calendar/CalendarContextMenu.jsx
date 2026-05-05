@@ -41,7 +41,7 @@ export default function CalendarContextMenu({
 
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white">
+      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white transition-all duration-300">
         <SheetHeader className="px-4 py-3 border-b border-gray-800">
           <SheetTitle className="text-base text-white truncate">{shoot.title}</SheetTitle>
           {shoot.date && <p className="text-[10px] text-gray-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}

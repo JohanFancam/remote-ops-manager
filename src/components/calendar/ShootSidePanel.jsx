@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Edit2, Copy, Trash2 } from 'lucide-react';
+import React from 'react';
+import { Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
@@ -54,8 +54,6 @@ export default function ShootSidePanel({
   onDelete,
   onClose,
 }) {
-  const [showDetails, setShowDetails] = useState(false);
-
   if (!shoot) return null;
 
   const shootDate = new Date(shoot.date + 'T12:00:00');
@@ -68,7 +66,7 @@ export default function ShootSidePanel({
 
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto">
+      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
         <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-4 border-b border-gray-800 flex-shrink-0">
@@ -151,20 +149,8 @@ export default function ShootSidePanel({
           </div>
         )}
 
-        {/* More Details toggle */}
-        <div className="px-4 py-2 border-b border-gray-800 flex-shrink-0">
-          <button
-            className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-white transition-colors"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            <span className="uppercase tracking-wider">More Info</span>
-            {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-
-        {/* Expandable Details */}
-        {showDetails && (
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+        {/* More Details */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
             {shoot.client && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Client/Team</p>
@@ -220,7 +206,6 @@ export default function ShootSidePanel({
               </div>
             )}
           </div>
-        )}
         </div>
       </SheetContent>
     </Sheet>

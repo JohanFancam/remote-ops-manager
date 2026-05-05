@@ -302,14 +302,36 @@ function ShootCalendarEntry({
                 </div>
               )}
               {!compact && (
-                <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
-                  shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
-                  shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
-                  shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
-                  'bg-blue-500/15 text-blue-400 border-blue-500/25'
-                }`}>
-                  {(shoot.status || 'upcoming').replace('_', ' ')}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
+                    shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
+                    shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
+                    shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                    'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                  }`}>
+                    {(shoot.status || 'upcoming').replace('_', ' ')}
+                  </span>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                      {['Data', 'Fancam', 'Data/Fancam'].map(type => (
+                        <button
+                          key={type}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type });
+                          }}
+                          className={`px-1.5 py-0.5 rounded border transition-colors ${
+                            shoot.rig_type_override === type
+                              ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                              : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-300 hover:border-gray-600'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

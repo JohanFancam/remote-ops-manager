@@ -14,7 +14,7 @@ export default function ShootEditPanel({
 }) {
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto">
+      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
         <SheetHeader className="px-4 py-3 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
           <SheetTitle className="text-base text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
         </SheetHeader>
