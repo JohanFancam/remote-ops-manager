@@ -298,25 +298,21 @@ export default function Accounts() {
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 1000),
-    enabled: canView,
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
-    enabled: canView,
   });
 
   const { data: paymentRecords = [] } = useQuery({
     queryKey: ['paymentRecords'],
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
-    enabled: canView,
   });
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
-    enabled: canView,
   });
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
