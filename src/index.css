@@ -89,3 +89,19 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Smooth sheet transitions */
+[data-radix-dialog-content] {
+  animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
