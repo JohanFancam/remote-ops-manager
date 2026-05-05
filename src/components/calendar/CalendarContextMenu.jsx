@@ -81,6 +81,9 @@ export default function CalendarContextMenu({
                 <SheetTitle className="text-base text-white truncate">{shoot.title}</SheetTitle>
                 {shoot.date && <p className="text-[10px] text-gray-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
               </div>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-gray-800 flex-shrink-0" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </SheetHeader>
 
