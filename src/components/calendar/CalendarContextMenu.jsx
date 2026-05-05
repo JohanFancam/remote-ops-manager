@@ -14,9 +14,16 @@ export default function CalendarContextMenu({
       if (menuRef.current && !menuRef.current.contains(e.target)) onClose();
     };
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    
+    // Prevent background scroll
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleKey);
+    
     return () => {
+      document.body.style.overflow = originalOverflow;
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKey);
     };
@@ -27,8 +34,19 @@ export default function CalendarContextMenu({
 
   const menuWidth = 220;
   const estimatedHeight = isAdmin ? 280 : 160;
-  const left = Math.min(x, window.innerWidth - menuWidth - 8);
-  const top = Math.min(y, window.innerHeight - estimatedHeight - 8);
+  const padding = 8;
+  
+  // Position menu, avoiding viewport edges
+  let left = x;
+  let top = y;
+  
+  if (x + menuWidth + padding > window.innerWidth) {
+    left = window.innerWidth - menuWidth - padding;
+  }
+  
+  if (y + estimatedHeight + padding > window.innerHeight) {
+    top = window.innerHeight - estimatedHeight - padding;
+  }
 
   const items = [
     // View details (everyone)
@@ -50,11 +68,16 @@ export default function CalendarContextMenu({
   ];
 
   return (
-    <div
-      ref={menuRef}
-      style={{ position: 'fixed', left, top, zIndex: 9999 }}
-      className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 w-56"
-    >
+    <>
+      {/* Backdrop to prevent background interaction */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      
+      {/* Context menu */}
+      <div
+        ref={menuRef}
+        style={{ position: 'fixed', left, top, zIndex: 50 }}
+        className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 w-56"
+      >
       <div className="px-3 py-1.5 border-b border-gray-800 mb-1">
         <p className="text-xs text-gray-500 truncate font-medium">{shoot.title}</p>
         {shoot.date && <p className="text-[10px] text-gray-600">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
@@ -71,6 +94,7 @@ export default function CalendarContextMenu({
           </button>
         </React.Fragment>
       ))}
-    </div>
-  );
-}
+      </div>
+      </>
+      );
+      }
