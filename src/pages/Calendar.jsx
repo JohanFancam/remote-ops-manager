@@ -334,7 +334,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isLevel1Admin } = useApp();
+  const { user, isAdmin, isStandby, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -525,7 +525,7 @@ export default function Calendar() {
   };
 
   const handleToggleStandbyDay = async (day) => {
-    if (!isAdmin || !user?.email) return;
+    if (!(isAdmin || isStandby) || !user?.email) return;
 
     const dateStr = format(day, 'yyyy-MM-dd');
     const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
@@ -932,7 +932,7 @@ export default function Calendar() {
                   <div className={`text-xs font-semibold ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
                     {format(day, 'd')}
                   </div>
-                  {isAdmin && !isPast && (
+                  {(isAdmin || isStandby) && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
@@ -1027,17 +1027,17 @@ export default function Calendar() {
                       );
                     })}
                     {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-300">+{dayUnavailable.length - 4} unavailable</span>}
-                    {isAdmin && !isPast && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleStandbyDay(day)}
-                        className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                        {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
-                      </Button>
-                    )}
+                    {(isAdmin || isStandby) && !isPast && (
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => handleToggleStandbyDay(day)}
+                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                       >
+                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                       </Button>
+                     )}
                     {!isAdmin && !isPast && (
                       <Button
                         size="sm"
