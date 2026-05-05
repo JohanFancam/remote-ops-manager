@@ -21,6 +21,7 @@ export default function ShootSidePanel({
   user,
   isAdmin,
   rigSettings,
+  allUsers = [],
   onUpdate,
   onEdit,
   onDuplicate,
@@ -126,16 +127,34 @@ export default function ShootSidePanel({
                 <p className="text-white capitalize">{shoot.status.replace('_', ' ')}</p>
               </div>
             )}
+            {(shoot.assigned_operators || []).length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Assigned Operators</p>
+                <div className="space-y-1">
+                  {shoot.assigned_operators.map((email) => {
+                    const user = allUsers.find(u => u.email === email);
+                    const displayName = user?.full_name || email;
+                    return <p key={email} className="text-white">{displayName}</p>;
+                  })}
+                </div>
+              </div>
+            )}
+            {(shoot.pending_operators || []).length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Pending Approval</p>
+                <div className="space-y-1">
+                  {shoot.pending_operators.map((email) => {
+                    const user = allUsers.find(u => u.email === email);
+                    const displayName = user?.full_name || email;
+                    return <p key={email} className="text-yellow-300">{displayName} (pending)</p>;
+                  })}
+                </div>
+              </div>
+            )}
             {shoot.description && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</p>
                 <p className="text-gray-300">{shoot.description}</p>
-              </div>
-            )}
-            {(shoot.assigned_operators || []).length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Assigned Operators</p>
-                <p className="text-white">{shoot.assigned_operators.join(', ')}</p>
               </div>
             )}
             {shoot.notes && (
