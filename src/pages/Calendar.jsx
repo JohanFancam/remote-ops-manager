@@ -1195,6 +1195,7 @@ export default function Calendar() {
         <CalendarContextMenu
           shoot={contextMenu.shoot}
           isAdmin={isAdmin}
+          isStandby={isStandby}
           userEmail={user?.email}
           onEdit={(shoot) => { startEdit(shoot); setContextMenu(null); }}
           onDuplicate={duplicateShoot}
@@ -1213,12 +1214,14 @@ export default function Calendar() {
           shoot={selectedShoot}
           user={user}
           isAdmin={isAdmin}
+          isStandby={isStandby}
           rigSettings={rigSettings}
           allUsers={allUsers}
           onUpdate={handleShootUpdate}
           onEdit={startEdit}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
+          onAssignRigTest={handleAssignRigTest}
           onClose={() => setSelectedShoot(null)}
         />
       )}

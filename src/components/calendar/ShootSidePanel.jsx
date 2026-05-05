@@ -46,12 +46,14 @@ export default function ShootSidePanel({
   shoot,
   user,
   isAdmin,
+  isStandby,
   rigSettings,
   allUsers = [],
   onUpdate,
   onEdit,
   onDuplicate,
   onDelete,
+  onAssignRigTest,
   onClose,
 }) {
   if (!shoot) return null;
@@ -153,20 +155,27 @@ export default function ShootSidePanel({
           </div>
         </div>
 
-        {/* Admin Actions */}
-        {isAdmin && (
-          <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 flex gap-2 flex-wrap">
-            <Button size="sm" onClick={() => onEdit(shoot)} className="bg-blue-600 hover:bg-blue-700 text-xs h-8">
-              <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+        {/* Actions */}
+        <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 flex gap-2 flex-wrap">
+          {isAdmin && (
+            <>
+              <Button size="sm" onClick={() => onEdit(shoot)} className="bg-blue-600 hover:bg-blue-700 text-xs h-8">
+                <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+              </Button>
+              <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs h-8">
+                <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
+              </Button>
+              <Button size="sm" onClick={() => onDelete(shoot.id)} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs h-8">
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+              </Button>
+            </>
+          )}
+          {(isAdmin || isStandby) && onAssignRigTest && (
+            <Button size="sm" onClick={() => onAssignRigTest(shoot)} className="bg-teal-600 hover:bg-teal-700 text-xs h-8">
+              🔧 Assign Rig Test
             </Button>
-            <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs h-8">
-              <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
-            </Button>
-            <Button size="sm" onClick={() => onDelete(shoot.id)} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs h-8">
-              <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* More Details */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">

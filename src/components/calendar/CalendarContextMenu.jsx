@@ -3,7 +3,7 @@ import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, User
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function CalendarContextMenu({
-  shoot, isAdmin, userEmail,
+  shoot, isAdmin, isStandby, userEmail,
   onEdit, onDuplicate, onDelete, onAssignRigTest, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
@@ -36,6 +36,11 @@ export default function CalendarContextMenu({
       { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
       { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-teal-400' },
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
+    ] : []),
+
+    // Standby-only actions (non-admin standby users)
+    ...(isStandby && !isAdmin ? [
+      { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-teal-400', divider: true },
     ] : []),
   ];
 
