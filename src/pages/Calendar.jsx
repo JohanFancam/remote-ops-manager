@@ -57,15 +57,23 @@ const getRigTypeLabel = (shoot, rig) => {
 
 const timeToMinutes = (time) => {
   if (!time || typeof time !== 'string' || !time.includes(':')) return 12 * 60;
+
   const [h, m] = time.split(':').map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return 12 * 60;
+
   return h * 60 + m;
 };
 
+// ✅ FIX: correctly handles times before/after midnight
 const minutesToTime = (minutes) => {
-  const safeMinutes = Math.max(0, Math.min(23 * 60 + 59, minutes));
-  const h = Math.floor(safeMinutes / 60).toString().padStart(2, '0');
-  const m = (safeMinutes % 60).toString().padStart(2, '0');
+  if (typeof minutes !== 'number' || isNaN(minutes)) return '00:00';
+
+  // Wrap around 24h instead of clamping
+  const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
+
+  const h = Math.floor(normalizedMinutes / 60).toString().padStart(2, '0');
+  const m = (normalizedMinutes % 60).toString().padStart(2, '0');
+
   return `${h}:${m}`;
 };
 
