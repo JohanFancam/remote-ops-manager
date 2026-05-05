@@ -81,13 +81,32 @@ export default function ShootSidePanel({
         {/* Shoot Type Badge */}
         <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Shoot Type</p>
-          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${
-            rigTypeLabel === 'Fancam' || rigTypeLabel === 'Data/Fancam'
-              ? 'bg-orange-500/15 text-orange-300 border-orange-500/30'
-              : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-          }`}>
-            {rigTypeLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${
+              rigTypeLabel === 'Fancam' || rigTypeLabel === 'Data/Fancam'
+                ? 'bg-orange-500/15 text-orange-300 border-orange-500/30'
+                : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+            }`}>
+              {rigTypeLabel}
+            </span>
+            {isAdmin && (
+              <div className="flex items-center gap-1 text-[11px]">
+                {['Data', 'Fancam', 'Data/Fancam'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type })}
+                    className={`px-2 py-1 rounded border transition-colors ${
+                      shoot.rig_type_override === type
+                        ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                        : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-300 hover:border-gray-600'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Schedule Info */}
