@@ -345,6 +345,7 @@ export default function Accounts() {
     const knownEmails = new Set(knownUsers.map(u => u.email));
 
     // Pick up any operator emails from shoots not in PendingUser at all, and not known admins
+    // Also exclude the current user if they are admin
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
 
