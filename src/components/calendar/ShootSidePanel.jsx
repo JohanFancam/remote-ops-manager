@@ -99,32 +99,38 @@ export default function ShootSidePanel({
           </div>
           
           {/* Schedule Timeline */}
-          <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Schedule</p>
-            {shoot.setup_offset !== undefined && (
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Setup:</span>
-                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
+          <div className="mt-3 pt-3 border-t border-gray-700">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Schedule</p>
+            <div className="space-y-2">
+              {shoot.setup_offset !== undefined && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Setup</span>
+                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
+                </div>
+              )}
+              {shoot.pre_shoot_offset !== undefined && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Pre-Shoot</span>
+                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
+                </div>
+              )}
+              {shoot.attention_offset !== undefined && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Attention</span>
+                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
+                </div>
+              )}
+              {shoot.sound_offset !== undefined && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Sound Check</span>
+                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs border-t border-gray-700 pt-2 mt-2">
+                <span className="text-gray-300 font-medium">Game Time</span>
+                <span className="text-gray-200 font-mono">{shoot.game_time || 'TBA'}</span>
               </div>
-            )}
-            {shoot.pre_shoot_offset !== undefined && (
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Pre-Shoot:</span>
-                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
-              </div>
-            )}
-            {shoot.attention_offset !== undefined && (
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Attention:</span>
-                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
-              </div>
-            )}
-            {shoot.sound_offset !== undefined && (
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Sound:</span>
-                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
