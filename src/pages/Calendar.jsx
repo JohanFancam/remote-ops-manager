@@ -155,17 +155,15 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  const standbyCoverageClass = isAdmin
-    ? (isMyStandbyCoverage
-      ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
-      : isOtherStandbyCoverage
+  const standbyCoverageClass = isMyStandbyCoverage
+    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+    : isOtherStandbyCoverage
+      ? (isAdmin
         ? 'border-orange-500 ring-1 ring-orange-500/45 shadow-[0_0_0_1px_rgba(234,88,12,0.22)]'
-        : '')
-    : '';
-
-  const standbyUserResponsibilityClass = !isAdmin && isStandby && isMyStandbyCoverage
-    ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.25)]'
-    : '';
+        : isStandby
+          ? 'border-cyan-500 ring-1 ring-cyan-500/45 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]'
+          : '')
+      : '';
 
   const remoteUserShootClass = !isAdmin && !isStandby
     ? (isAssigned
@@ -175,10 +173,10 @@ function ShootCalendarEntry({
         : '')
     : '';
 
-  const entryOutlineClass = standbyCoverageClass || standbyUserResponsibilityClass || remoteUserShootClass;
+  const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
-  const canCheckStandbyRig = !!standbyCoverage && isAdmin && isMyStandbyCoverage && !isPast;
+  const canCheckStandbyRig = !!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage && !isPast;
 
   const handleRigCheckToggle = async (e) => {
     e.stopPropagation();
@@ -272,8 +270,8 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
-              {!isAdmin && standbyCoverage && (standbyCoverage.admin_name || standbyCoverage.admin_email) && (
-                <p className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-green-300 truncate mt-0.5`}>
+              {standbyCoverage && (standbyCoverage.admin_name || standbyCoverage.admin_email) && (
+                <p className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-cyan-300 truncate mt-0.5`}>
                   Standby: {standbyCoverage.admin_name || standbyCoverage.admin_email}
                 </p>
               )}
@@ -1129,9 +1127,9 @@ export default function Calendar() {
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Admin: Other Standby Coverage', color: 'bg-orange-500' },
-                { label: 'Standby User: My Responsibility', color: 'bg-purple-500' },
+                { label: 'My Standby Coverage', color: 'bg-blue-500' },
+                { label: 'Other Admin Standby Coverage', color: 'bg-orange-500' },
+                { label: 'Standby User sees Admin Standby', color: 'bg-cyan-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
@@ -1144,7 +1142,7 @@ export default function Calendar() {
             </div>
           </div>
 
-          {isAdmin && rigCheckMessageShoots.length > 0 && (
+          {(isAdmin || isStandby) && rigCheckMessageShoots.length > 0 && (
             <Card className="bg-gray-900 border-blue-800/60 mb-4">
               <CardHeader className="border-b border-gray-800 pb-3">
                 <div className="flex items-center justify-between gap-3">
