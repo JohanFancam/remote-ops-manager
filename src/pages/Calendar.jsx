@@ -957,7 +957,7 @@ export default function Calendar() {
                 </div>
                 {primaryStandby && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
-                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-green-950/40 border-green-700/40 text-green-300'}`}>
+                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-purple-950/40 border-purple-700/40 text-purple-300'}`}>
                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                     </span>
                   </div>
@@ -1014,10 +1014,10 @@ export default function Calendar() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-green-950/40 border-green-700/40 text-green-300'}`}>
-                        <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
-                      </span>
-                    )}
+                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-purple-950/40 border-purple-700/40 text-purple-300'}`}>
+                         <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
+                       </span>
+                     )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
@@ -1124,7 +1124,7 @@ export default function Calendar() {
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Standby User Coverage', color: 'bg-purple-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },

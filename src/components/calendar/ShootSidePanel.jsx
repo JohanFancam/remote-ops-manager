@@ -111,13 +111,58 @@ export default function ShootSidePanel({
           </div>
         </div>
 
-        {/* Schedule Info */}
-        <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 space-y-2">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Date & Time</p>
-            <p className="text-sm text-white mt-1">{dayName}, {dateStr}</p>
-            <p className="text-sm text-gray-300">{timeStr}</p>
+        {/* Rig Type & Details */}
+        {(isAdmin || isStandby) && rig && (
+          <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 space-y-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Rig Details</p>
+            <div className="space-y-2">
+              {rig.rig_type && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Rig Type</span>
+                  <span className="text-white font-medium">{rig.rig_type}</span>
+                </div>
+              )}
+              {rig.hd_enabled && (
+                <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
+                  <div className="font-semibold mb-1">HD Camera Enabled</div>
+                </div>
+              )}
+              {rig.wide_enabled && (
+                <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
+                  <div className="font-semibold">Wide Camera Enabled</div>
+                </div>
+              )}
+              {rig.attention_enabled && (
+                <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
+                  <div className="font-semibold">Attention Camera Enabled</div>
+                </div>
+              )}
+              {rig.sound && (
+                <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
+                  <div className="font-semibold">Sound System Enabled</div>
+                </div>
+              )}
+              {rig.remote_rigs && rig.remote_rigs.length > 0 && (
+                <div className="text-[11px] text-gray-300">
+                  <div className="font-semibold mb-1">Remote Rigs</div>
+                  <div className="flex flex-wrap gap-1">
+                    {rig.remote_rigs.map((r, idx) => (
+                      <span key={idx} className="bg-gray-700 px-2 py-1 rounded">{r}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        )}
+
+        {/* Schedule Info */}
+         <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0 space-y-2">
+           <div>
+             <p className="text-xs text-gray-500 uppercase tracking-wider">Date & Time</p>
+             <p className="text-sm text-white mt-1">{dayName}, {dateStr}</p>
+             <p className="text-sm text-gray-300">{timeStr}</p>
+           </div>
           
           {/* Schedule Timeline */}
           <div className="mt-3 pt-3 border-t border-gray-700">
