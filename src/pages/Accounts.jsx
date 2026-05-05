@@ -300,9 +300,9 @@ export default function Accounts() {
     queryFn: () => base44.entities.Shoot.list('-date', 1000),
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list(),
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list(),
   });
 
   const { data: paymentRecords = [] } = useQuery({
@@ -321,6 +321,7 @@ export default function Accounts() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
   };
 
   const goMonth = (delta) => {
@@ -332,7 +333,28 @@ export default function Accounts() {
   const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
   // Pending shoots this month (operator in pending_operators, not yet assigned)
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
-  const remoteUsers = allUsers.filter(u => u.role === 'user' || u.role === 'standby');
+
+  // Build operator list from PendingUser (non-admin) + any emails seen in shoots not already covered
+  const remoteUsers = useMemo(() => {
+    const knownUsers = pendingUsers
+      .filter(u => u.role !== 'admin')
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
+    const knownEmails = new Set(knownUsers.map(u => u.email));
+
+    // Collect all operator emails seen across all shoots
+    const extraEmails = new Set();
+    shoots.forEach(s => {
+      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e)) extraEmails.add(e); });
+      (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e)) extraEmails.add(e); });
+    });
+
+    // Try to resolve names from payment records
+    const nameMap = {};
+    paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
+
+    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
+    return [...knownUsers, ...extraUsers];
+  }, [pendingUsers, shoots, paymentRecords]);
 
   const summaryRows = useMemo(() => {
     return remoteUsers.map(op => {
