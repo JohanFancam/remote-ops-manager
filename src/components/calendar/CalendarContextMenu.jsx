@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus, X } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 export default function CalendarContextMenu({
   x, y, shoot, isAdmin, userEmail,
@@ -8,6 +10,7 @@ export default function CalendarContextMenu({
   onClose
 }) {
   const menuRef = useRef(null);
+  const [isMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -67,34 +70,68 @@ export default function CalendarContextMenu({
     ] : []),
   ];
 
+  // Mobile: use sheet drawer on the right
+  if (isMobile) {
+    return (
+      <Sheet open={true} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0">
+          <SheetHeader className="px-4 py-3 border-b border-gray-800">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-base text-white truncate">{shoot.title}</SheetTitle>
+                {shoot.date && <p className="text-[10px] text-gray-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
+              </div>
+            </div>
+          </SheetHeader>
+
+          <div className="px-4 py-3 space-y-2">
+            {items.map(({ label, icon: Icon, action, color, divider }) => (
+              <React.Fragment key={label}>
+                {divider && <div className="border-t border-gray-800 my-1" />}
+                <button
+                  onClick={action}
+                  className={`flex items-center gap-2.5 w-full px-3 py-3 text-sm ${color} hover:bg-gray-800 rounded-lg transition-colors`}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop: fixed position context menu
   return (
     <>
       {/* Backdrop to prevent background interaction */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      
+
       {/* Context menu */}
       <div
         ref={menuRef}
         style={{ position: 'fixed', left, top, zIndex: 50 }}
         className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 w-56"
       >
-      <div className="px-3 py-1.5 border-b border-gray-800 mb-1">
-        <p className="text-xs text-gray-500 truncate font-medium">{shoot.title}</p>
-        {shoot.date && <p className="text-[10px] text-gray-600">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
+        <div className="px-3 py-1.5 border-b border-gray-800 mb-1">
+          <p className="text-xs text-gray-500 truncate font-medium">{shoot.title}</p>
+          {shoot.date && <p className="text-[10px] text-gray-600">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
+        </div>
+        {items.map(({ label, icon: Icon, action, color, divider }) => (
+          <React.Fragment key={label}>
+            {divider && <div className="border-t border-gray-800 my-1" />}
+            <button
+              onClick={action}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm ${color} hover:bg-gray-800 transition-colors`}
+            >
+              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+              {label}
+            </button>
+          </React.Fragment>
+        ))}
       </div>
-      {items.map(({ label, icon: Icon, action, color, divider }) => (
-        <React.Fragment key={label}>
-          {divider && <div className="border-t border-gray-800 my-1" />}
-          <button
-            onClick={action}
-            className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm ${color} hover:bg-gray-800 transition-colors`}
-          >
-            <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-            {label}
-          </button>
-        </React.Fragment>
-      ))}
-      </div>
-      </>
-      );
-      }
+    </>
+  );
+  }
