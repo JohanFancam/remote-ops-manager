@@ -1,0 +1,69 @@
+{
+  "name": "RigTest",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short description e.g. 'Weekly Rig Test'"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the rig test is scheduled for"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of the admin/standby assigned to this test"
+    },
+    "assigned_name": {
+      "type": "string",
+      "description": "Display name of the assigned person"
+    },
+    "rig_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional list of rig IDs being tested"
+    },
+    "checklist": {
+      "type": "array",
+      "description": "Checklist items with completion status",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "comments": {
+      "type": "string",
+      "description": "General comments / issues found during testing"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed"
+      ],
+      "default": "pending"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when marked complete"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "scheduled_date"
+  ]
+}

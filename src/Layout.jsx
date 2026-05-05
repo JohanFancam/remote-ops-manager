@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen,
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical,
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
@@ -49,6 +49,7 @@ function LayoutContent({ children, currentPageName }) {
     showRigs && { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     showReports && { name: 'Reports', icon: BarChart2, page: 'Reports' },
     showAccounts && { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
     showReference && { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ].filter(Boolean);
@@ -63,6 +64,7 @@ function LayoutContent({ children, currentPageName }) {
   const standbyNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
     { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
