@@ -10,9 +10,15 @@ const timeToMinutes = (timeStr) => {
 };
 
 const minutesToTime = (minutes) => {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  if (typeof minutes !== 'number' || isNaN(minutes)) return '00:00';
+
+  // Wrap around 24h instead of clamping
+  const normalizedMinutes = ((minutes % 1440) + 1440) % 1440;
+
+  const h = Math.floor(normalizedMinutes / 60).toString().padStart(2, '0');
+  const m = (normalizedMinutes % 60).toString().padStart(2, '0');
+
+  return `${h}:${m}`;
 };
 
 const calculateScheduleTime = (gameTime, offset) => {
