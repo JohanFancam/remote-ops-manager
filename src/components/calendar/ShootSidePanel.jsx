@@ -10,10 +10,16 @@ const timeToMinutes = (timeStr) => {
 };
 
 const minutesToTime = (minutes) => {
-  const h = Math.floor(Math.abs(minutes) / 60);
-  const m = Math.abs(minutes) % 60;
-  const sign = minutes < 0 ? '-' : '';
-  return `${sign}${h}:${m.toString().padStart(2, '0')}`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+const calculateScheduleTime = (gameTime, offset) => {
+  if (!gameTime || offset === undefined) return null;
+  const gameMinutes = timeToMinutes(gameTime);
+  const scheduleMinutes = gameMinutes + offset;
+  return minutesToTime(scheduleMinutes);
 };
 
 const getRigTypeLabel = (shoot, rig) => {
@@ -98,25 +104,25 @@ export default function ShootSidePanel({
             {shoot.setup_offset !== undefined && (
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Setup:</span>
-                <span className="text-gray-300">{minutesToTime(shoot.setup_offset)}</span>
+                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
               </div>
             )}
             {shoot.pre_shoot_offset !== undefined && (
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Pre-Shoot:</span>
-                <span className="text-gray-300">{minutesToTime(shoot.pre_shoot_offset)}</span>
+                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
               </div>
             )}
             {shoot.attention_offset !== undefined && (
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Attention:</span>
-                <span className="text-gray-300">{minutesToTime(shoot.attention_offset)}</span>
+                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
               </div>
             )}
             {shoot.sound_offset !== undefined && (
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Sound:</span>
-                <span className="text-gray-300">{minutesToTime(shoot.sound_offset)}</span>
+                <span className="text-gray-300">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
               </div>
             )}
           </div>
