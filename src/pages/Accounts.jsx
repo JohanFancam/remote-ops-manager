@@ -334,30 +334,12 @@ export default function Accounts() {
   // Pending shoots this month (operator in pending_operators, not yet assigned)
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
 
-  // Build operator list: only non-admin users from PendingUser
-  // Plus any emails seen in shoots that aren't known admins
+  // Only show remote operators (role === 'user' or 'standby') from PendingUser — never admins
   const remoteUsers = useMemo(() => {
-    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
-
-    const knownUsers = pendingUsers
-      .filter(u => u.role !== 'admin')
+    return pendingUsers
+      .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
-    const knownEmails = new Set(knownUsers.map(u => u.email));
-
-    // Collect operator emails from shoots, excluding admins and already-known users
-    const extraEmails = new Set();
-    shoots.forEach(s => {
-      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
-      (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
-    });
-
-    // Resolve names from payment records for unknown emails
-    const nameMap = {};
-    paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
-
-    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
-    return [...knownUsers, ...extraUsers];
-  }, [pendingUsers, shoots, paymentRecords]);
+  }, [pendingUsers]);
 
   const summaryRows = useMemo(() => {
     return remoteUsers.map(op => {
