@@ -149,10 +149,12 @@ function ShootCalendarEntry({
   rigCheckMessageCopied = false,
   rigCheckMessageShootIds = [],
 }) {
-  // Standby users only grey out completed shoots; admins/remote users grey out all past shoots
-  const isPast = isStandby
-    ? shoot.status === 'completed'
-    : shoot.date < todayStr;
+  // Grey out past shoots (by date) for admin and standby; for remote users grey out by date too
+  // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
+  const isPast = shoot.date < todayStr;
+  const isCompleted = shoot.status === 'completed';
+  const shouldGrey = isPast || isCompleted;
+
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const hasPending = (shoot.pending_operators || []).length > 0;
@@ -161,17 +163,19 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Colours: admin my standby = blue, admin other standby = green
-  //          standby user my standby = violet, standby user other standby = purple/indigo
-  const standbyCoverageClass = isMyStandbyCoverage
-    ? (isStandby
-        ? 'border-violet-500 ring-1 ring-violet-500/45 shadow-[0_0_0_1px_rgba(139,92,246,0.25)]'
-        : 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]')
-    : isOtherStandbyCoverage
-      ? (isStandby
-          ? 'border-indigo-500 ring-1 ring-indigo-500/40 shadow-[0_0_0_1px_rgba(99,102,241,0.20)]'
-          : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]')
-      : '';
+  // Admin & standby: show standby coverage outlines only
+  // Remote users: show assigned/pending outlines
+  const standbyCoverageClass = (isAdmin || isStandby)
+    ? (isMyStandbyCoverage
+        ? (isStandby
+            ? 'border-violet-500 ring-1 ring-violet-500/45 shadow-[0_0_0_1px_rgba(139,92,246,0.25)]'
+            : 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]')
+        : isOtherStandbyCoverage
+          ? (isStandby
+              ? 'border-indigo-500 ring-1 ring-indigo-500/40 shadow-[0_0_0_1px_rgba(99,102,241,0.20)]'
+              : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]')
+          : '')
+    : '';
 
   const remoteUserShootClass = !isAdmin && !isStandby
     ? (isAssigned
@@ -200,19 +204,18 @@ function ShootCalendarEntry({
     await onRigCheckCancel?.(shoot);
   };
 
+  // shootFull only applies to remote users, not standby
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
     const u = allUsers.find(u2 => u2.email === email);
     return !u || u.role !== 'admin';
   });
-  const shootFull = !isAdmin && nonAdminAssigned.length > 0 && !isAssigned;
+  const shootFull = !isAdmin && !isStandby && nonAdminAssigned.length > 0 && !isAssigned;
 
-  const dotColor = isPast
+  const dotColor = shouldGrey
     ? 'bg-gray-600'
-    : isAssigned
-      ? 'bg-purple-500'
-      : fancam
-        ? 'bg-orange-500'
-        : statusColors[shoot.status] || 'bg-blue-600';
+    : fancam
+      ? 'bg-orange-500'
+      : statusColors[shoot.status] || 'bg-blue-600';
 
   const assignedNames = (shoot.assigned_operators || [])
     .map(email => {
@@ -263,7 +266,7 @@ function ShootCalendarEntry({
         e.preventDefault();
         onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${isPast ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (isPast ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -323,7 +326,7 @@ function ShootCalendarEntry({
             </div>
           </div>
 
-          {!compact && !isAdmin && (
+          {!compact && !isAdmin && !isStandby && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -925,6 +928,7 @@ export default function Calendar() {
           {calendarDays.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
+            const greyOutDay = isPast && !isStandby;
             const dayShoots = getShootsForDay(day);
             const dayStandby = getStandbyForDay(day);
             const primaryStandby = getPrimaryStandbyForDay(day);
@@ -942,11 +946,11 @@ export default function Calendar() {
                 className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
-                  ${isPast && !isStandby ? 'opacity-55' : ''}
+                  ${greyOutDay ? 'opacity-55' : ''}
                 `}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : (isPast && !isStandby) ? 'text-gray-600' : 'text-gray-300'}`}>
+                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-gray-300'}`}>
                     {format(day, 'd')}
                   </div>
                   {(isAdmin || isStandby) && !isPast && (
