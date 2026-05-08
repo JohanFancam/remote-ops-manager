@@ -222,26 +222,13 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
           </div>
 
           {/* Footer */}
-          <div className="px-4 pb-3 flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 h-7 text-xs border-gray-700 text-gray-300 hover:bg-gray-800"
-              onClick={() => {
-                window.location.href = `/Calendar?shootId=${alert.shoot.id}`;
-                dismiss(alert.id);
-              }}
-            >
-              View Shoot
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 text-xs text-gray-500 hover:text-white"
+          <div className="px-4 pb-3">
+            <button
               onClick={() => dismiss(alert.id)}
+              className="text-xs text-gray-500 hover:text-gray-300 underline"
             >
               Dismiss
-            </Button>
+            </button>
           </div>
         </div>
       ))}
