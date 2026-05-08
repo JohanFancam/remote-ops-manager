@@ -173,7 +173,7 @@ function ShootCalendarEntry({
           : '')
     : '';
 
-  const remoteUserShootClass = !isAdmin && !isStandby
+  const remoteUserShootClass = !isAdmin
     ? (isAssigned
       ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
       : isPending
