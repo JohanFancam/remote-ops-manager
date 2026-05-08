@@ -41,6 +41,7 @@ export default function CalendarContextMenu({
     // Standby-only actions (non-admin standby users)
     ...(isStandby && !isAdmin ? [
       { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-teal-400', divider: true },
+      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
     ] : []),
   ];
 

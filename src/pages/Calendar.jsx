@@ -149,7 +149,10 @@ function ShootCalendarEntry({
   rigCheckMessageCopied = false,
   rigCheckMessageShootIds = [],
 }) {
-  const isPast = shoot.date < todayStr;
+  // Standby users only grey out completed shoots; admins/remote users grey out all past shoots
+  const isPast = isStandby
+    ? shoot.status === 'completed'
+    : shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const hasPending = (shoot.pending_operators || []).length > 0;
@@ -158,14 +161,15 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Colours: my standby = blue, other admin standby = green, standby user (me) = teal, standby user sees other = emerald outline
+  // Colours: admin my standby = blue, admin other standby = green
+  //          standby user my standby = violet, standby user other standby = purple/indigo
   const standbyCoverageClass = isMyStandbyCoverage
     ? (isStandby
-        ? 'border-teal-500 ring-1 ring-teal-500/45 shadow-[0_0_0_1px_rgba(20,184,166,0.25)]'
+        ? 'border-violet-500 ring-1 ring-violet-500/45 shadow-[0_0_0_1px_rgba(139,92,246,0.25)]'
         : 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]')
     : isOtherStandbyCoverage
       ? (isStandby
-          ? 'border-emerald-500 ring-1 ring-emerald-500/40 shadow-[0_0_0_1px_rgba(16,185,129,0.20)]'
+          ? 'border-indigo-500 ring-1 ring-indigo-500/40 shadow-[0_0_0_1px_rgba(99,102,241,0.20)]'
           : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]')
       : '';
 
@@ -951,8 +955,8 @@ export default function Calendar() {
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${
                         myStandby
-                          ? (isStandby ? 'border-teal-500/40 bg-teal-500/15 text-teal-300' : 'border-blue-500/40 bg-blue-500/15 text-blue-300')
-                          : otherStandby ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
+                          ? (isStandby ? 'border-violet-500/40 bg-violet-500/15 text-violet-300' : 'border-blue-500/40 bg-blue-500/15 text-blue-300')
+                          : otherStandby ? (isStandby ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20' : 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20')
                           : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'
                       }`}
                       title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
@@ -977,8 +981,8 @@ export default function Calendar() {
                    <div className="mb-1.5 flex flex-wrap gap-1">
                      <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
                        primaryStandby.admin_email === user?.email
-                         ? (isStandby ? 'bg-teal-950/40 border-teal-700/40 text-teal-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
-                         : 'bg-green-950/40 border-green-700/40 text-green-300'
+                         ? (isStandby ? 'bg-violet-950/40 border-violet-700/40 text-violet-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
+                         : (isStandby ? 'bg-indigo-950/40 border-indigo-700/40 text-indigo-300' : 'bg-green-950/40 border-green-700/40 text-green-300')
                      }`}>
                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                      </span>
@@ -1038,8 +1042,8 @@ export default function Calendar() {
                     {primaryStandby && (
                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
                          primaryStandby.admin_email === user?.email
-                           ? (isStandby ? 'bg-teal-950/40 border-teal-700/40 text-teal-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
-                           : 'bg-green-950/40 border-green-700/40 text-green-300'
+                           ? (isStandby ? 'bg-violet-950/40 border-violet-700/40 text-violet-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
+                           : (isStandby ? 'bg-indigo-950/40 border-indigo-700/40 text-indigo-300' : 'bg-green-950/40 border-green-700/40 text-green-300')
                        }`}>
                          <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                        </span>
@@ -1060,8 +1064,8 @@ export default function Calendar() {
                          onClick={() => handleToggleStandbyDay(day)}
                          className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${
                            myStandby
-                             ? (isStandby ? 'text-teal-300 hover:bg-teal-950/30 hover:text-teal-200' : 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200')
-                             : otherStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200'
+                             ? (isStandby ? 'text-violet-300 hover:bg-violet-950/30 hover:text-violet-200' : 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200')
+                             : otherStandby ? (isStandby ? 'text-indigo-300 hover:bg-indigo-950/30 hover:text-indigo-200' : 'text-green-300 hover:bg-green-950/30 hover:text-green-200')
                              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                          }`}
                        >
@@ -1155,9 +1159,9 @@ export default function Calendar() {
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
-                 { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
-                 { label: 'Standby User: My Standby', color: 'bg-teal-500' },
-                 { label: 'Standby User: Other Standby', color: 'bg-emerald-500' },
+                { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Standby User: My Standby', color: 'bg-violet-500' },
+                { label: 'Standby User: Other Standby', color: 'bg-indigo-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
