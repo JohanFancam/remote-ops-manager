@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
+import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
 import { Button } from "@/components/ui/button";
@@ -199,6 +200,7 @@ function LayoutContent({ children, currentPageName }) {
       )}
 
       <RefreshReminder />
+      {user && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
       {/* Tutorial overlay */}
       {!isLoading && user && (
