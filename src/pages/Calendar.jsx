@@ -743,6 +743,7 @@ export default function Calendar() {
 
   const handleAddShoot = async () => {
     if (!form.title || !form.date) return;
+
     const payload = {
       ...form,
       setup_offset: Number(form.setup_offset),
@@ -750,11 +751,23 @@ export default function Calendar() {
       attention_offset: Number(form.attention_offset),
       sound_offset: Number(form.sound_offset),
     };
+
+    // FIX: If a completed shoot is changed back to upcoming/confirmed/in progress,
+    // remove the hidden completed phase marker so it appears in the upcoming banner again.
+    if (editingShoot?.phase_status?.shoot_complete && payload.status !== 'completed') {
+      const { shoot_complete, ...restPhaseStatus } = editingShoot.phase_status;
+
+      payload.phase_status = {
+        ...restPhaseStatus,
+      };
+    }
+
     if (editingShoot) {
       await base44.entities.Shoot.update(editingShoot.id, payload);
     } else {
       await base44.entities.Shoot.create(payload);
     }
+
     setForm(emptyForm);
     setEditingShootForm(null);
     setEditingShoot(null);
