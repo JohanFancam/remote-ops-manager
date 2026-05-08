@@ -743,17 +743,18 @@ export default function Calendar() {
 
   const handleAddShoot = async () => {
     if (!form.title || !form.date) return;
-
     const payload = {
       ...form,
       setup_offset: Number(form.setup_offset),
       pre_shoot_offset: Number(form.pre_shoot_offset),
       attention_offset: Number(form.attention_offset),
       sound_offset: Number(form.sound_offset),
+      last_changed_by_email: user?.email || '',
+      last_changed_by_name: user?.full_name || user?.email || '',
     };
 
-    // FIX: If a completed shoot is changed back to upcoming/confirmed/in progress,
-    // remove the hidden completed phase marker so it appears in the upcoming banner again.
+    // FIX: If a completed shoot is changed back to upcoming/confirmed/etc,
+    // remove the completed phase marker so it appears in the upcoming banner again.
     if (editingShoot?.phase_status?.shoot_complete && payload.status !== 'completed') {
       const { shoot_complete, ...restPhaseStatus } = editingShoot.phase_status;
 
@@ -761,13 +762,11 @@ export default function Calendar() {
         ...restPhaseStatus,
       };
     }
-
     if (editingShoot) {
       await base44.entities.Shoot.update(editingShoot.id, payload);
     } else {
       await base44.entities.Shoot.create(payload);
     }
-
     setForm(emptyForm);
     setEditingShootForm(null);
     setEditingShoot(null);
@@ -776,7 +775,11 @@ export default function Calendar() {
 
   const handleShootUpdate = async (id, data) => {
     // If admin is reverting status away from completed, clear the shoot_complete phase marker
-    const payload = { ...data };
+    const payload = {
+      ...data,
+      last_changed_by_email: user?.email || '',
+      last_changed_by_name: user?.full_name || user?.email || '',
+    };
     if (data.status && data.status !== 'completed') {
       const existing = shoots.find(s => s.id === id);
       if (existing?.phase_status?.shoot_complete) {
