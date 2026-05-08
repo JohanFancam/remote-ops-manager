@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, isToday, startOfWeek,
@@ -145,6 +146,8 @@ function ShootCalendarEntry({
   onContextMenu,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
+  rigCheckMessageCopied = false,
+  rigCheckMessageShootIds = [],
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
@@ -177,6 +180,8 @@ function ShootCalendarEntry({
   const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
+  const isInMessageQueue = rigCheckMessageShootIds.includes(shoot.id);
+  const gearIsGreen = rigCheckDone || (isInMessageQueue && rigCheckMessageCopied);
   const canCheckStandbyRig = !!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage && !isPast;
 
   const handleRigCheckToggle = async (e) => {
@@ -284,10 +289,10 @@ function ShootCalendarEntry({
                   <button
                     type="button"
                     onClick={handleRigCheckToggle}
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${rigCheckDone ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'}`}
                     title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
                   >
-                    {rigCheckDone ? <Check className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
+                    <Wrench className="h-3.5 w-3.5" />
                   </button>
                   {rigCheckDone && (
                     <button
@@ -346,6 +351,7 @@ export default function Calendar() {
   const [selectedShoot, setSelectedShoot] = useState(null);
   const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
+  const [showRigCheckPanel, setShowRigCheckPanel] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
   const [rigTestModal, setRigTestModal] = useState(null); // shoot
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
@@ -617,7 +623,7 @@ export default function Calendar() {
     if (!rigCheckSlackMessage) return;
     await navigator.clipboard.writeText(rigCheckSlackMessage);
     setRigCheckCopied(true);
-    setTimeout(() => setRigCheckCopied(false), 2000);
+    // don't auto-reset — stays green until archived
   };
 
   const handleArchiveRigCheckMessageShoots = async () => {
@@ -634,6 +640,8 @@ export default function Calendar() {
     ));
 
     setRigCheckMessageShootIds(prev => prev.filter(id => !idsToArchive.includes(id)));
+    setRigCheckCopied(false);
+    setShowRigCheckPanel(false);
     refresh();
   };
 
@@ -661,6 +669,8 @@ export default function Calendar() {
       if (nextChecked) return [...new Set([...prev, shoot.id])];
       return prev.filter(id => id !== shoot.id);
     });
+
+    if (nextChecked) setShowRigCheckPanel(true);
 
     refresh();
     setSelectedShoot(prev => prev && prev.id === shoot.id
@@ -888,6 +898,8 @@ export default function Calendar() {
       onContextMenu={handleContextMenu}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
+      rigCheckMessageCopied={rigCheckCopied}
+      rigCheckMessageShootIds={rigCheckMessageShootIds}
     />
   );
 
@@ -1164,34 +1176,38 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Rig Check Slack Message — fixed side panel */}
-      {(isAdmin || isStandby) && rigCheckMessageShoots.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-40 w-80 max-h-[70vh] flex flex-col bg-gray-900 border border-blue-700/60 rounded-xl shadow-2xl overflow-hidden">
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-800 flex-shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <Wrench className="h-4 w-4 text-yellow-300 flex-shrink-0" />
-              <span className="text-sm font-semibold text-white truncate">Rig Check Message</span>
-              <span className="text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full px-1.5 py-0.5 flex-shrink-0">{rigCheckMessageShoots.length}</span>
-            </div>
-            <div className="flex gap-1 flex-shrink-0">
-              <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs h-7 px-2">
-                {rigCheckCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs h-7 px-2">
-                Archive
-              </Button>
-            </div>
+      {/* Rig Check Slack Message — Sheet panel */}
+      <Sheet open={showRigCheckPanel && rigCheckMessageShoots.length > 0} onOpenChange={setShowRigCheckPanel}>
+        <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
+          <SheetHeader className="px-4 py-3 border-b border-gray-800 flex-shrink-0">
+            <SheetTitle className="flex items-center gap-2 text-white">
+              <Wrench className={`h-4 w-4 flex-shrink-0 ${rigCheckCopied ? 'text-green-400' : 'text-yellow-300'}`} />
+              Rig Check Message
+              <span className="text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full px-1.5 py-0.5">{rigCheckMessageShoots.length}</span>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex gap-2 px-4 py-3 border-b border-gray-800 flex-shrink-0">
+            <Button size="sm" onClick={handleCopyRigCheckMessage} className={`flex-1 text-xs h-8 ${rigCheckCopied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+              {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied!</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Clipboard</>}
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs h-8">
+              Archive All
+            </Button>
           </div>
-          <div className="overflow-y-auto flex-1 p-3 space-y-3">
+          <div className="p-4 space-y-4">
             <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
             <div className="space-y-1.5">
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Checked Shoots</p>
               {rigCheckMessageShoots.map((shoot) => {
                 const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
                 const teamName = getShootTeamName(shoot);
                 const label = getRigTypeLabel(shoot, rig) || 'Data';
                 return (
                   <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-2.5 py-1.5">
-                    <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Wrench className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                      <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleRigCheckCancel(shoot)}
@@ -1205,8 +1221,8 @@ export default function Calendar() {
               })}
             </div>
           </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
 
