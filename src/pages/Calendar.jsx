@@ -155,14 +155,15 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
+  // Colours: my standby = blue, other admin standby = green, standby user (me) = teal, standby user sees other = emerald outline
   const standbyCoverageClass = isMyStandbyCoverage
-    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+    ? (isStandby
+        ? 'border-teal-500 ring-1 ring-teal-500/45 shadow-[0_0_0_1px_rgba(20,184,166,0.25)]'
+        : 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]')
     : isOtherStandbyCoverage
-      ? (isAdmin
-        ? 'border-orange-500 ring-1 ring-orange-500/45 shadow-[0_0_0_1px_rgba(234,88,12,0.22)]'
-        : isStandby
-          ? 'border-cyan-500 ring-1 ring-cyan-500/45 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]'
-          : '')
+      ? (isStandby
+          ? 'border-emerald-500 ring-1 ring-emerald-500/40 shadow-[0_0_0_1px_rgba(16,185,129,0.20)]'
+          : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]')
       : '';
 
   const remoteUserShootClass = !isAdmin && !isStandby
@@ -270,11 +271,7 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
-              {standbyCoverage && (standbyCoverage.admin_name || standbyCoverage.admin_email) && (
-                <p className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-cyan-300 truncate mt-0.5`}>
-                  Standby: {standbyCoverage.admin_name || standbyCoverage.admin_email}
-                </p>
-              )}
+              {/* Standby name removed from entry — shown at day level only */}
               {isAdmin && unavailableNames.length > 0 && !compact && (
                 <p className="text-[11px] text-red-300 truncate mt-0.5">
                   Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
@@ -940,14 +937,19 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myStandby ? 'border-green-500/40 bg-green-500/15 text-green-300' : otherStandby ? 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${
+                        myStandby
+                          ? (isStandby ? 'border-teal-500/40 bg-teal-500/15 text-teal-300' : 'border-blue-500/40 bg-blue-500/15 text-blue-300')
+                          : otherStandby ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
+                          : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'
+                      }`}
                       title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
                       {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
-                  {!isAdmin && !isPast && (
+                  {!isAdmin && !isStandby && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
@@ -960,12 +962,16 @@ export default function Calendar() {
                   )}
                 </div>
                 {primaryStandby && (
-                  <div className="mb-1.5 flex flex-wrap gap-1">
-                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-purple-950/40 border-purple-700/40 text-purple-300'}`}>
-                      Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
-                    </span>
-                  </div>
-                )}
+                   <div className="mb-1.5 flex flex-wrap gap-1">
+                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
+                       primaryStandby.admin_email === user?.email
+                         ? (isStandby ? 'bg-teal-950/40 border-teal-700/40 text-teal-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
+                         : 'bg-green-950/40 border-green-700/40 text-green-300'
+                     }`}>
+                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                     </span>
+                   </div>
+                 )}
                 {isAdmin && dayUnavailable.length > 0 && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     {dayUnavailable.slice(0, 3).map(item => {
@@ -1018,7 +1024,11 @@ export default function Calendar() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
-                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${primaryStandby.admin_email === user?.email ? 'bg-blue-950/40 border-blue-700/40 text-blue-300' : 'bg-purple-950/40 border-purple-700/40 text-purple-300'}`}>
+                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
+                         primaryStandby.admin_email === user?.email
+                           ? (isStandby ? 'bg-teal-950/40 border-teal-700/40 text-teal-300' : 'bg-blue-950/40 border-blue-700/40 text-blue-300')
+                           : 'bg-green-950/40 border-green-700/40 text-green-300'
+                       }`}>
                          <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                        </span>
                      )}
@@ -1036,24 +1046,29 @@ export default function Calendar() {
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleStandbyDay(day)}
-                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : otherStandby ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${
+                           myStandby
+                             ? (isStandby ? 'text-teal-300 hover:bg-teal-950/30 hover:text-teal-200' : 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200')
+                             : otherStandby ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200'
+                             : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                         }`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                          {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                        </Button>
                      )}
-                    {!isAdmin && !isPast && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleUnavailableDay(day)}
-                        className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myUnavailable ? 'text-red-300 hover:bg-red-950/30 hover:text-red-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
-                        title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
-                      >
-                        <UserX className="h-3.5 w-3.5 mr-1" />
-                        {myUnavailable ? 'Remove Unavailable' : 'Mark Unavailable'}
-                      </Button>
-                    )}
+                    {!isAdmin && !isStandby && !isPast && (
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => handleToggleUnavailableDay(day)}
+                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${myUnavailable ? 'text-red-300 hover:bg-red-950/30 hover:text-red-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                         title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
+                       >
+                         <UserX className="h-3.5 w-3.5 mr-1" />
+                         {myUnavailable ? 'Remove Unavailable' : 'Mark Unavailable'}
+                       </Button>
+                     )}
                   </div>
                 </div>
 
@@ -1127,9 +1142,10 @@ export default function Calendar() {
                 { label: 'My Assigned', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Other Admin Standby Coverage', color: 'bg-orange-500' },
-                { label: 'Standby User sees Admin Standby', color: 'bg-cyan-500' },
+                { label: 'Admin: My Standby Coverage', color: 'bg-blue-500' },
+                 { label: 'Admin: Other Standby Coverage', color: 'bg-green-500' },
+                 { label: 'Standby User: My Standby', color: 'bg-teal-500' },
+                 { label: 'Standby User: Other Standby', color: 'bg-emerald-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
@@ -1142,57 +1158,55 @@ export default function Calendar() {
             </div>
           </div>
 
-          {(isAdmin || isStandby) && rigCheckMessageShoots.length > 0 && (
-            <Card className="bg-gray-900 border-blue-800/60 mb-4">
-              <CardHeader className="border-b border-gray-800 pb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-white text-base flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-yellow-300" />
-                      Rig check Slack message
-                    </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1">Generated from the standby rigs you checked on this calendar. Copy it, then archive the rigs to mark the message as dealt with.</p>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-2 flex-shrink-0">
-                    <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs">
-                      {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Slack</>}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs">
-                      Archive Tested Rigs
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-sm text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
-                <div className="space-y-2">
-                  {rigCheckMessageShoots.map((shoot) => {
-                    const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
-                    const teamName = getShootTeamName(shoot);
-                    const label = getRigTypeLabel(shoot, rig) || 'Data';
-                    return (
-                      <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-3 py-2">
-                        <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRigCheckCancel(shoot)}
-                          className="h-7 border-red-700/60 text-red-300 hover:bg-red-950/30 text-xs flex-shrink-0"
-                        >
-                          <XCircle className="h-3.5 w-3.5 mr-1" />
-                          Cancel Rig Check
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Rig check message moved to side panel below */}
 
 
         </div>
       </div>
+
+      {/* Rig Check Slack Message — fixed side panel */}
+      {(isAdmin || isStandby) && rigCheckMessageShoots.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-40 w-80 max-h-[70vh] flex flex-col bg-gray-900 border border-blue-700/60 rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-800 flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Wrench className="h-4 w-4 text-yellow-300 flex-shrink-0" />
+              <span className="text-sm font-semibold text-white truncate">Rig Check Message</span>
+              <span className="text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full px-1.5 py-0.5 flex-shrink-0">{rigCheckMessageShoots.length}</span>
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <Button size="sm" onClick={handleCopyRigCheckMessage} className="bg-blue-600 hover:bg-blue-700 text-xs h-7 px-2">
+                {rigCheckCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs h-7 px-2">
+                Archive
+              </Button>
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1 p-3 space-y-3">
+            <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+            <div className="space-y-1.5">
+              {rigCheckMessageShoots.map((shoot) => {
+                const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+                const teamName = getShootTeamName(shoot);
+                const label = getRigTypeLabel(shoot, rig) || 'Data';
+                return (
+                  <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-2.5 py-1.5">
+                    <span className="text-xs text-gray-300 truncate">{teamName} - {label}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRigCheckCancel(shoot)}
+                      className="text-red-400 hover:text-red-300 flex-shrink-0"
+                      title="Cancel rig check"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
 
