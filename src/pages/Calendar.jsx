@@ -163,25 +163,24 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Admin & standby: show standby coverage outlines — blue = mine, green = others (same for both roles)
-  // Remote users: show assigned/pending outlines
-  const standbyCoverageClass = (isAdmin || isStandby)
-    ? (isMyStandbyCoverage
-        ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
-        : isOtherStandbyCoverage
-          ? 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]'
-          : '')
+  // Cleaner highlighting:
+  // - Admin/standby users only see a standby outline for THEIR OWN standby coverage.
+  // - Other people's standby coverage is still shown by the standby name on the day,
+  //   but it no longer outlines every affected shoot.
+  // - Any user, including admin/standby, sees their own assigned shoots outlined.
+  const myStandbyCoverageClass = (isAdmin || isStandby) && isMyStandbyCoverage
+    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
     : '';
 
-  const remoteUserShootClass = !isAdmin
-    ? (isAssigned
-      ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
-      : isPending
-        ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
-        : '')
+  const myAssignedShootClass = isAssigned
+    ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
     : '';
 
-  const entryOutlineClass = standbyCoverageClass || remoteUserShootClass;
+  const pendingShootClass = !isAdmin && !isStandby && isPending
+    ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
+    : '';
+
+  const entryOutlineClass = myStandbyCoverageClass || myAssignedShootClass || pendingShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
   const isInMessageQueue = rigCheckMessageShootIds.includes(shoot.id);
@@ -1182,11 +1181,11 @@ export default function Calendar() {
               {[
                 { label: 'Upcoming', color: 'bg-blue-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
-                { label: 'My Assigned', color: 'bg-purple-500' },
+                { label: 'My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'My Standby Coverage', color: 'bg-blue-500' },
-                { label: 'Other Standby Coverage', color: 'bg-green-500' },
+                { label: 'Standby Assigned To Someone Else', color: 'bg-green-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-500' },
