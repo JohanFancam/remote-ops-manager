@@ -942,11 +942,11 @@ export default function Calendar() {
                 className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
-                  ${isPast ? 'opacity-55' : ''}
+                  ${isPast && !isStandby ? 'opacity-55' : ''}
                 `}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>
+                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : (isPast && !isStandby) ? 'text-gray-600' : 'text-gray-300'}`}>
                     {format(day, 'd')}
                   </div>
                   {(isAdmin || isStandby) && !isPast && (
