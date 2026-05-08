@@ -15,56 +15,101 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
 
   const handleSubmit = async () => {
     setSaving(true);
-    const completedAt = new Date().toISOString();
-    const slack = `✅ ${team} shoot is now complete${hadIssues ? ' — issues noted' : ' — no issues'}. ${notes ? `Notes: ${notes}` : ''}`;
-    
-    await base44.entities.ShootReport.create({
-      shoot_id: shoot.id,
-      shoot_title: shoot.title,
-      shoot_date: shoot.date,
-      operator_email: user?.email,
-      operator_name: user?.full_name,
-      had_issues: hadIssues,
-      notes,
-      completed_at: completedAt,
-      slack_message: slack,
-    });
 
-    // Note: shoot status is updated by the parent via onClose(true)
+    try {
+      const completedAt = new Date().toISOString();
 
-    setSlackText(slack);
-    setSaved(true);
-    setSaving(false);
+      const slack = `✅ ${team} shoot is now complete${
+        hadIssues ? ' — issues noted' : ' — no issues'
+      }. ${notes ? `Notes: ${notes}` : ''}`;
+
+      await base44.entities.ShootReport.create({
+        shoot_id: shoot.id,
+        shoot_title: shoot.title,
+        shoot_date: shoot.date,
+        operator_email: user?.email,
+        operator_name: user?.full_name,
+        had_issues: hadIssues,
+        notes,
+        completed_at: completedAt,
+        slack_message: slack,
+      });
+
+      // Note: shoot status is updated by the parent via onClose(true)
+
+      setSlackText(slack);
+      setSaved(true);
+    } catch (error) {
+      console.error('Failed to save shoot report:', error);
+      alert('Failed to save report. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(slackText);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   if (saved) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full space-y-4">
+
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-7 w-7 text-green-400 flex-shrink-0" />
-            <h2 className="text-white font-bold text-lg">Report Saved!</h2>
+            <h2 className="text-white font-bold text-lg">
+              Report Saved!
+            </h2>
           </div>
-          <p className="text-gray-400 text-sm">Report saved. Copy the message below to Slack, then confirm if the shoot is complete:</p>
+
+          <p className="text-gray-400 text-sm">
+            Report saved. Copy the message below to Slack, then confirm if the shoot is complete:
+          </p>
+
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
-            <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">{slackText}</pre>
+            <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">
+              {slackText}
+            </pre>
           </div>
+
           <div className="flex gap-2">
-            <Button onClick={handleCopy} className="flex-1 bg-blue-700 hover:bg-blue-600">
-              {copied ? <><Check className="h-4 w-4 mr-2 text-green-300" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy to Slack</>}
+            <Button
+              onClick={handleCopy}
+              className="flex-1 bg-blue-700 hover:bg-blue-600"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2 text-green-300" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Slack
+                </>
+              )}
             </Button>
           </div>
+
           <div className="flex gap-2 pt-1 border-t border-gray-700">
-            <Button onClick={() => onClose(true)} className="flex-1 bg-green-700 hover:bg-green-600 text-sm">
+            <Button
+              onClick={() => onClose(true)}
+              className="flex-1 bg-green-700 hover:bg-green-600 text-sm"
+            >
               ✓ Mark Shoot Complete
             </Button>
-            <Button variant="outline" onClick={() => onClose(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 text-sm">
+
+            <Button
+              variant="outline"
+              onClick={() => onClose(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 text-sm"
+            >
               Close Without Completing
             </Button>
           </div>
@@ -77,19 +122,48 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full space-y-5">
-          <h2 className="text-white font-bold text-lg">Mark Shoot Complete?</h2>
-          <p className="text-gray-400 text-sm">Were there any issues during the <span className="text-white font-medium">{team}</span> shoot?</p>
+
+          <h2 className="text-white font-bold text-lg">
+            Mark Shoot Complete?
+          </h2>
+
+          <p className="text-gray-400 text-sm">
+            Were there any issues during the{' '}
+            <span className="text-white font-medium">
+              {team}
+            </span>{' '}
+            shoot?
+          </p>
+
           <div className="grid grid-cols-2 gap-3">
-            <Button className="bg-green-700 hover:bg-green-600 h-14 flex-col gap-1" onClick={() => setHadIssues(false)}>
+
+            <Button
+              className="bg-green-700 hover:bg-green-600 h-14 flex-col gap-1"
+              onClick={() => setHadIssues(false)}
+            >
               <CheckCircle2 className="h-5 w-5" />
               <span className="text-xs">No Issues</span>
             </Button>
-            <Button className="bg-red-800 hover:bg-red-700 h-14 flex-col gap-1" onClick={() => setHadIssues(true)}>
+
+            <Button
+              className="bg-red-800 hover:bg-red-700 h-14 flex-col gap-1"
+              onClick={() => setHadIssues(true)}
+            >
               <AlertCircle className="h-5 w-5" />
               <span className="text-xs">Had Issues</span>
             </Button>
+
           </div>
-          <Button variant="ghost" className="w-full text-gray-500" onClick={onClose}>Cancel</Button>
+
+          {/* FIXED BUG HERE */}
+          <Button
+            variant="ghost"
+            className="w-full text-gray-500"
+            onClick={() => onClose(false)}
+          >
+            Cancel
+          </Button>
+
         </div>
       </div>
     );
@@ -98,23 +172,48 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full space-y-4">
+
         <h2 className="text-white font-bold text-lg">
-          {hadIssues ? '⚠️ Describe the Issues' : '✅ Confirm Shoot Complete'}
+          {hadIssues
+            ? '⚠️ Describe the Issues'
+            : '✅ Confirm Shoot Complete'}
         </h2>
+
         {hadIssues && (
-          <p className="text-gray-400 text-sm">Please describe the issues encountered:</p>
+          <p className="text-gray-400 text-sm">
+            Please describe the issues encountered:
+          </p>
         )}
+
         <textarea
           value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder={hadIssues ? "Describe issues..." : "Any additional notes? (optional)"}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={
+            hadIssues
+              ? "Describe issues..."
+              : "Any additional notes? (optional)"
+          }
           className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 text-sm resize-none h-28 placeholder:text-gray-500"
         />
+
         <div className="flex gap-2">
-          <Button onClick={handleSubmit} disabled={saving || (hadIssues && !notes)} className="flex-1 bg-blue-600 hover:bg-blue-700">
+
+          <Button
+            onClick={handleSubmit}
+            disabled={saving || (hadIssues && !notes)}
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+          >
             {saving ? 'Saving...' : 'Submit & Complete'}
           </Button>
-          <Button variant="ghost" className="text-gray-500" onClick={() => setHadIssues(null)}>Back</Button>
+
+          <Button
+            variant="ghost"
+            className="text-gray-500"
+            onClick={() => setHadIssues(null)}
+          >
+            Back
+          </Button>
+
         </div>
       </div>
     </div>
