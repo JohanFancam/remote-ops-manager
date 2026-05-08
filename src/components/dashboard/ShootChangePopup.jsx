@@ -13,16 +13,42 @@ const TRACKED_FIELDS = [
   { key: 'rig_type_override', label: 'Rig Type', icon: Wifi },
 ];
 
+const STORAGE_KEY = 'shoot_change_alerts';
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 function formatValue(field, value) {
   if (!value && value !== 0) return '—';
   if (field.format) return field.format(value);
   return String(value).replace(/_/g, ' ');
 }
 
+function loadStoredAlerts() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Filter out old alerts
+    return parsed.filter(a => Date.now() - new Date(a.timestamp).getTime() < MAX_AGE_MS);
+  } catch {
+    return [];
+  }
+}
+
+function saveAlerts(alerts) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
+  } catch {}
+}
+
 export default function ShootChangePopup({ userEmail, isAdmin = false }) {
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState(() => loadStoredAlerts());
   const shootsRef = useRef({});
   const seededRef = useRef(false);
+
+  // Persist alerts to localStorage whenever they change
+  useEffect(() => {
+    saveAlerts(alerts);
+  }, [alerts]);
 
   useEffect(() => {
     if (!userEmail) return;
@@ -41,8 +67,6 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
       const prev = shootsRef.current[shoot.id];
       const isAssigned = shoot.assigned_operators?.includes(userEmail);
       const wasAssigned = prev?.assigned_operators?.includes(userEmail);
-
-      // Show to: assigned users (or admins) when a shoot is updated or deleted
       const isRelevant = isAssigned || wasAssigned || isAdmin;
 
       if (event.type === 'update' && prev && isRelevant) {
@@ -51,14 +75,12 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
         TRACKED_FIELDS.forEach(field => {
           const oldVal = prev[field.key];
           const newVal = shoot[field.key];
-          const oldStr = oldVal ?? '';
-          const newStr = newVal ?? '';
-          if (String(oldStr) !== String(newStr)) {
+          if (String(oldVal ?? '') !== String(newVal ?? '')) {
             changes.push({ field, oldVal, newVal });
           }
         });
 
-        // Check if newly assigned
+        // Check assignment changes
         const newlyAssigned = (shoot.assigned_operators || []).filter(e => e === userEmail && !(prev.assigned_operators || []).includes(e));
         const newlyRemoved = (prev.assigned_operators || []).filter(e => e === userEmail && !(shoot.assigned_operators || []).includes(e));
 
@@ -75,9 +97,13 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
             type: 'update',
             shoot,
             changes,
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
           };
-          setAlerts(prev => [...prev, alert]);
+          setAlerts(prev => {
+            const next = [...prev, alert];
+            saveAlerts(next);
+            return next;
+          });
         }
       }
 
@@ -87,12 +113,15 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
           type: 'delete',
           shoot: prev,
           changes: [],
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         };
-        setAlerts(prev => [...prev, alert]);
+        setAlerts(prev => {
+          const next = [...prev, alert];
+          saveAlerts(next);
+          return next;
+        });
       }
 
-      // Update seed
       if (event.type === 'delete') {
         delete shootsRef.current[shoot.id];
       } else {
@@ -103,8 +132,18 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
     return () => unsubscribe();
   }, [userEmail]);
 
-  const dismiss = (id) => setAlerts(prev => prev.filter(a => a.id !== id));
-  const dismissAll = () => setAlerts([]);
+  const dismiss = (id) => {
+    setAlerts(prev => {
+      const next = prev.filter(a => a.id !== id);
+      saveAlerts(next);
+      return next;
+    });
+  };
+
+  const dismissAll = () => {
+    setAlerts([]);
+    saveAlerts([]);
+  };
 
   if (alerts.length === 0) return null;
 
@@ -140,10 +179,7 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
                 <p className="text-xs text-gray-400 truncate">{alert.shoot.title}</p>
               </div>
             </div>
-            <button
-              onClick={() => dismiss(alert.id)}
-              className="text-gray-500 hover:text-white flex-shrink-0 mt-0.5"
-            >
+            <button onClick={() => dismiss(alert.id)} className="text-gray-500 hover:text-white flex-shrink-0 mt-0.5">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -160,7 +196,7 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
               alert.changes.map(({ field, oldVal, newVal }) => (
                 <div key={field.key} className="rounded-lg border border-gray-800 bg-gray-950/60 px-3 py-2">
                   <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">{field.label}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-red-300 line-through">{formatValue(field, oldVal)}</span>
                     <span className="text-gray-600">→</span>
                     <span className="text-xs text-green-300 font-medium">{formatValue(field, newVal)}</span>
@@ -169,7 +205,6 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
               ))
             )}
 
-            {/* Shoot date/time footer */}
             {alert.type === 'update' && alert.shoot.date && (
               <div className="flex items-center gap-1.5 text-xs text-gray-500 pt-1">
                 <Calendar className="h-3 w-3" />
@@ -177,6 +212,11 @@ export default function ShootChangePopup({ userEmail, isAdmin = false }) {
                   {format(new Date(alert.shoot.date + 'T12:00:00'), 'EEE, MMM d')}
                   {alert.shoot.game_time ? ` · ${alert.shoot.game_time}` : ''}
                 </span>
+                {alert.timestamp && (
+                  <span className="ml-auto text-gray-600">
+                    {format(new Date(alert.timestamp), 'MMM d, HH:mm')}
+                  </span>
+                )}
               </div>
             )}
           </div>

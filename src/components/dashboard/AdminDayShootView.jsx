@@ -15,7 +15,7 @@ function getPrimaryDateTime(shoot) {
 }
 
 function isShootComplete(shoot) {
-  return !!shoot?.phase_status?.shoot_complete || shoot?.status === 'completed';
+  return shoot?.status === 'completed';
 }
 
 function isShootCancelled(shoot) {

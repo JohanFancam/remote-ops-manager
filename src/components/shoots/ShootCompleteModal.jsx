@@ -49,9 +49,9 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full space-y-4">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-7 w-7 text-green-400 flex-shrink-0" />
-            <h2 className="text-white font-bold text-lg">Shoot Complete!</h2>
+            <h2 className="text-white font-bold text-lg">Report Saved!</h2>
           </div>
-          <p className="text-gray-400 text-sm">Report saved. Copy the message below to Slack:</p>
+          <p className="text-gray-400 text-sm">Report saved. Copy the message below to Slack, then confirm if the shoot is complete:</p>
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
             <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">{slackText}</pre>
           </div>
@@ -59,7 +59,14 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
             <Button onClick={handleCopy} className="flex-1 bg-blue-700 hover:bg-blue-600">
               {copied ? <><Check className="h-4 w-4 mr-2 text-green-300" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy to Slack</>}
             </Button>
-            <Button variant="outline" onClick={() => onClose(true)} className="border-gray-700 text-gray-300 hover:bg-gray-800">Done</Button>
+          </div>
+          <div className="flex gap-2 pt-1 border-t border-gray-700">
+            <Button onClick={() => onClose(true)} className="flex-1 bg-green-700 hover:bg-green-600 text-sm">
+              ✓ Mark Shoot Complete
+            </Button>
+            <Button variant="outline" onClick={() => onClose(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 text-sm">
+              Close Without Completing
+            </Button>
           </div>
         </div>
       </div>

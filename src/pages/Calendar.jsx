@@ -762,9 +762,18 @@ export default function Calendar() {
   };
 
   const handleShootUpdate = async (id, data) => {
-    await base44.entities.Shoot.update(id, data);
+    // If admin is reverting status away from completed, clear the shoot_complete phase marker
+    const payload = { ...data };
+    if (data.status && data.status !== 'completed') {
+      const existing = shoots.find(s => s.id === id);
+      if (existing?.phase_status?.shoot_complete) {
+        const { shoot_complete, ...restPhase } = existing.phase_status;
+        payload.phase_status = restPhase;
+      }
+    }
+    await base44.entities.Shoot.update(id, payload);
     refresh();
-    setSelectedShoot(prev => prev && prev.id === id ? { ...prev, ...data } : prev);
+    setSelectedShoot(prev => prev && prev.id === id ? { ...prev, ...payload } : prev);
   };
 
   const startEdit = (shoot) => {
