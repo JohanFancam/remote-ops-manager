@@ -209,7 +209,7 @@ export default function CountdownCard({
 
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
   const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
-  const rigLabel = matchedRig?.rig_type || shoot.rig_type_override || shoot.rig_type || null;
+  const rigLabel = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || null;
   const shootTypeLabel = (() => {
     const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
     const parts = [baseType];
