@@ -76,11 +76,6 @@ export default function AccountsDashboard() {
     return unsub;
   }, [queryClient]);
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list(),
-  });
-
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
@@ -96,33 +91,12 @@ export default function AccountsDashboard() {
   };
 
   const remoteUsers = useMemo(() => {
-    // Build a complete set of admin emails from BOTH PendingUser and User entities
-    const adminEmails = new Set([
-      ...pendingUsers.filter(u => u.role === 'admin' || u.role === 'standby' || u.role === 'accounts').map(u => u.email?.trim().toLowerCase()),
-      ...allUsers.filter(u => u.role === 'admin' || u.role === 'accounts').map(u => u.email?.trim().toLowerCase()),
-    ]);
-
-    // Only include role=user remote operators from PendingUser
-    const knownUsers = pendingUsers
+    // Only show operators explicitly registered as role=user in PendingUser
+    // This prevents admins from ever appearing, regardless of shoot assignments
+    return pendingUsers
       .filter(u => u.role === 'user')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: !!u.inactive }));
-    const knownEmails = new Set(knownUsers.map(u => u.email?.trim().toLowerCase()));
-
-    const nameMap = {};
-    paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
-
-    // Extra emails found in shoots but not in PendingUser — only add if not admin
-    const extraEmails = new Set();
-    shoots.forEach(s => {
-      (s.assigned_operators || []).forEach(e => {
-        if (!e) return;
-        const lower = e.trim().toLowerCase();
-        if (!knownEmails.has(lower) && !adminEmails.has(lower)) extraEmails.add(e);
-      });
-    });
-    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email, inactive: false }));
-    return [...knownUsers, ...extraUsers];
-  }, [pendingUsers, allUsers, shoots, paymentRecords]);
+  }, [pendingUsers]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
@@ -409,13 +383,13 @@ export default function AccountsDashboard() {
                 {monthSummaryRows
                   .sort((a, b) => b.total - a.total)
                   .map(row => (
-                  <div key={row.email} className={`px-5 py-4 space-y-2 ${row.inactive ? 'opacity-40' : ''}`}>
+                  <div key={row.email} className={`px-5 py-4 space-y-2 transition-colors ${row.inactive ? 'opacity-40' : ''} ${row.paid ? 'bg-green-950/20' : ''}`}>
                     {/* Main row */}
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-white truncate">{row.name}</p>
-                          {row.inactive && <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full flex-shrink-0">Inactive</span>}
+                          {row.inactive && <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full flex-shrink-0">Not in use</span>}
                         </div>
                         <p className="text-xs text-gray-500 truncate">{row.email}</p>
                         {row.paidDate && row.paid && (
