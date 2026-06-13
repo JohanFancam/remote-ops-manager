@@ -191,7 +191,9 @@ export default function AccountsDashboard() {
       const note = monthRec?.notes || '';
 
       return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid, paidDate, note, inactive: !!op.inactive };
-    }).filter(op => op.shoots > 0);
+    // Always show inactive users (greyed out) even with 0 shoots — for historical/audit purposes
+    // Active users only shown when they have shoots that month
+    }).filter(op => op.shoots > 0 || op.inactive);
   }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
