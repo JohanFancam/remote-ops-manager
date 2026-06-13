@@ -416,25 +416,40 @@ export default function Calendar() {
   const allUsers = useMemo(() => {
     const map = new Map();
 
-    (presenceRecords || []).forEach((p) => {
-      const email = typeof p?.user_email === 'string' ? p.user_email.trim() : '';
+    // Start with PendingUser records as the base name source (admin-defined names)
+    (pendingUsers || []).forEach((pu) => {
+      const email = typeof pu?.email === 'string' ? pu.email.trim().toLowerCase() : '';
       if (!email) return;
-
       map.set(email, {
         email,
-        full_name: p?.user_name || '',
-        role: p?.user_role || '',
+        full_name: pu.full_name || '',
+        role: pu.role || '',
+      });
+    });
+
+    (presenceRecords || []).forEach((p) => {
+      const email = typeof p?.user_email === 'string' ? p.user_email.trim().toLowerCase() : '';
+      if (!email) return;
+      const existing = map.get(email);
+      map.set(email, {
+        ...(existing || {}),
+        email,
+        // Prefer PendingUser full_name over presence name
+        full_name: existing?.full_name || p?.user_name || '',
+        role: existing?.role || p?.user_role || '',
         standby: !!p?.standby,
       });
     });
 
     (rawUsers || []).forEach((u) => {
-      const email = typeof u?.email === 'string' ? u.email.trim() : '';
+      const email = typeof u?.email === 'string' ? u.email.trim().toLowerCase() : '';
       if (!email) return;
-
+      const existing = map.get(email);
       map.set(email, {
         ...u,
         email,
+        // Prefer PendingUser full_name (admin-set) over User entity name
+        full_name: existing?.full_name || u.full_name || '',
       });
     });
 
@@ -442,7 +457,7 @@ export default function Calendar() {
       (u) => u && typeof u.email === 'string' && u.email.trim() !== '' &&
         !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase())
     );
-  }, [rawUsers, presenceRecords]);
+  }, [rawUsers, presenceRecords, pendingUsers]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
