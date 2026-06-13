@@ -76,6 +76,11 @@ export default function AccountsDashboard() {
     return unsub;
   }, [queryClient]);
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
@@ -91,21 +96,33 @@ export default function AccountsDashboard() {
   };
 
   const remoteUsers = useMemo(() => {
-    // Only include role=user (remote operators), never admins or standby
-    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin' || u.role === 'standby').map(u => u.email));
+    // Build a complete set of admin emails from BOTH PendingUser and User entities
+    const adminEmails = new Set([
+      ...pendingUsers.filter(u => u.role === 'admin' || u.role === 'standby' || u.role === 'accounts').map(u => u.email?.trim().toLowerCase()),
+      ...allUsers.filter(u => u.role === 'admin' || u.role === 'accounts').map(u => u.email?.trim().toLowerCase()),
+    ]);
+
+    // Only include role=user remote operators from PendingUser
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: !!u.inactive }));
-    const knownEmails = new Set(knownUsers.map(u => u.email));
+    const knownEmails = new Set(knownUsers.map(u => u.email?.trim().toLowerCase()));
+
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
+
+    // Extra emails found in shoots but not in PendingUser — only add if not admin
     const extraEmails = new Set();
     shoots.forEach(s => {
-      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
+      (s.assigned_operators || []).forEach(e => {
+        if (!e) return;
+        const lower = e.trim().toLowerCase();
+        if (!knownEmails.has(lower) && !adminEmails.has(lower)) extraEmails.add(e);
+      });
     });
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email, inactive: false }));
     return [...knownUsers, ...extraUsers];
-  }, [pendingUsers, shoots, paymentRecords]);
+  }, [pendingUsers, allUsers, shoots, paymentRecords]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
