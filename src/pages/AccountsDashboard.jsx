@@ -92,12 +92,20 @@ export default function AccountsDashboard() {
   };
 
   const remoteUsers = useMemo(() => {
-    // Only show operators explicitly registered as role=user in PendingUser
-    // This prevents admins from ever appearing, regardless of shoot assignments
-    return pendingUsers
-      .filter(u => u.role === 'user')
-      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: !!u.inactive }));
-  }, [pendingUsers]);
+    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
+    const knownUsers = pendingUsers
+      .filter(u => u.role === 'user' || u.role === 'standby')
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
+    const knownEmails = new Set(knownUsers.map(u => u.email));
+    const nameMap = {};
+    paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
+    const extraEmails = new Set();
+    shoots.forEach(s => {
+      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
+    });
+    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email, inactive: false }));
+    return [...knownUsers, ...extraUsers];
+  }, [pendingUsers, shoots, paymentRecords]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
