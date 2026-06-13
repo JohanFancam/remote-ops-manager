@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ChevronLeft, ChevronRight, Download, TrendingUp, Users,
-  DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock
+  DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock, RefreshCw
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend } from 'recharts';
@@ -71,14 +71,26 @@ export default function AccountsDashboard() {
   const { data: paymentRecords = [], refetch: refetchPayments } = useQuery({
     queryKey: ['paymentRecords'],
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 3000),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
-  // Real-time sync — any accounts user's changes (paid toggle, notes) update all viewers instantly
+  // Real-time sync — data changes update all viewers instantly
   useEffect(() => {
-    const unsub = base44.entities.PaymentRecord.subscribe(() => {
+    const unsubPayments = base44.entities.PaymentRecord.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
     });
-    return unsub;
+    const unsubShoots = base44.entities.Shoot.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    });
+    const unsubPending = base44.entities.PendingUser.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+    });
+    return () => {
+      unsubPayments();
+      unsubShoots();
+      unsubPending();
+    };
   }, [queryClient]);
 
   const { data: appSettings = [] } = useQuery({
@@ -88,6 +100,12 @@ export default function AccountsDashboard() {
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+    queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+  };
 
   const goMonth = (delta) => {
     const [y, m] = filterMonth.split('-').map(Number);
@@ -281,6 +299,9 @@ export default function AccountsDashboard() {
           </div>
           <div className="flex items-center gap-4 flex-wrap justify-end">
             <LiveClock />
+            <Button onClick={refresh} variant="ghost" size="icon" className="text-gray-500 hover:text-white h-9 w-9" title="Refresh data">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <Button
               onClick={() => exportCSV(monthSummaryRows, filterMonth)}
               className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
