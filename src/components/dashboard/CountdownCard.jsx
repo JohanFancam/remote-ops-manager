@@ -14,7 +14,7 @@ const statusColors = {
   cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
 
-const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
+const RIG_TYPES = ['Data', 'Fancam'];
 
 function formatCountdown(ms) {
   if (ms == null) return '—';
@@ -213,6 +213,9 @@ export default function CountdownCard({
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
   const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
   const rigLabel = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || null;
+  const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type || 'Data';
+  const highlightData = effectiveRigType === 'Data' || effectiveRigType === 'Data/Fancam';
+  const highlightFancam = effectiveRigType === 'Fancam' || effectiveRigType === 'Data/Fancam';
   const shootTypeLabel = (() => {
     const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
     const parts = [baseType];
@@ -514,14 +517,14 @@ export default function CountdownCard({
               </div>
 
               <div className="mt-3 space-y-2">
-                {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} />}
-                {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} />}
-                {fancamDayHdValue && <RigConfigRow label="Fancam Day HD" value={fancamDayHdValue} />}
-                {fancamDayWideValue && <RigConfigRow label="Fancam Day Wide" value={fancamDayWideValue} />}
-                {fancamNightHdValue && <RigConfigRow label="Fancam Night HD" value={fancamNightHdValue} />}
-                {fancamNightWideValue && <RigConfigRow label="Fancam Night Wide" value={fancamNightWideValue} />}
-                {attentionValue && <RigConfigRow label="Attention" value={attentionValue} />}
-                {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound} />}
+                {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} accent={highlightData} />}
+                {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} accent={highlightData} />}
+                {fancamDayHdValue && <RigConfigRow label="Fancam Day HD" value={fancamDayHdValue} accent={highlightFancam} />}
+                {fancamDayWideValue && <RigConfigRow label="Fancam Day Wide" value={fancamDayWideValue} accent={highlightFancam} />}
+                {fancamNightHdValue && <RigConfigRow label="Fancam Night HD" value={fancamNightHdValue} accent={highlightFancam} />}
+                {fancamNightWideValue && <RigConfigRow label="Fancam Night Wide" value={fancamNightWideValue} accent={highlightFancam} />}
+                {attentionValue && <RigConfigRow label="Attention" value={attentionValue} accent={showAttention || highlightData || highlightFancam} />}
+                {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound || highlightData || highlightFancam} />}
               </div>
             </div>
 
