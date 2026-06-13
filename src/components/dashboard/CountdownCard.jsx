@@ -130,7 +130,7 @@ export default function CountdownCard({
   }, [rigSettings, shoot.client, shoot.title]);
 
   const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound === true;
+  const showSound = matchedRig?.sound_enabled === true;
 
   const gameDate = getGameDateTime(shoot);
   const phaseDates = getScheduleDateTimes(shoot);
@@ -216,7 +216,7 @@ export default function CountdownCard({
   const shootTypeLabel = (() => {
     const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
     const parts = [baseType];
-    if (matchedRig?.sound && !String(baseType).toLowerCase().includes('sound')) parts.push('Sound');
+    if (matchedRig?.sound_enabled && !String(baseType).toLowerCase().includes('sound')) parts.push('Sound');
     return parts.filter(Boolean).join('/');
   })();
 
@@ -310,9 +310,13 @@ export default function CountdownCard({
     }
   };
 
-  const hdValue = matchedRig?.hd_enabled === false ? null : formatCameraValue(matchedRig?.hd || shoot.hd);
-  const wideValue = matchedRig?.wide_enabled === false ? null : formatCameraValue(matchedRig?.wide || shoot.wide);
-  const attentionValue = showAttention ? formatCameraValue(matchedRig?.attention || shoot.attention) : null;
+  const dataHdValue = matchedRig?.data_enabled !== false && matchedRig?.data_hd ? formatCameraValue(matchedRig.data_hd) : null;
+  const dataWideValue = matchedRig?.data_enabled !== false && matchedRig?.data_wide ? formatCameraValue(matchedRig.data_wide) : null;
+  const fancamDayHdValue = matchedRig?.fancam_day_enabled && matchedRig?.fancam_day_hd ? formatCameraValue(matchedRig.fancam_day_hd) : null;
+  const fancamDayWideValue = matchedRig?.fancam_day_enabled && matchedRig?.fancam_day_wide ? formatCameraValue(matchedRig.fancam_day_wide) : null;
+  const fancamNightHdValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_hd ? formatCameraValue(matchedRig.fancam_night_hd) : null;
+  const fancamNightWideValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_wide ? formatCameraValue(matchedRig.fancam_night_wide) : null;
+  const attentionValue = showAttention && matchedRig?.attention_hd ? formatCameraValue(matchedRig.attention_hd) : null;
   const soundValue = showSound ? 'Enabled' : null;
 
   return (
@@ -510,10 +514,14 @@ export default function CountdownCard({
               </div>
 
               <div className="mt-3 space-y-2">
-                <RigConfigRow label="HD" value={hdValue} />
-                <RigConfigRow label="Wide" value={wideValue} />
-                <RigConfigRow label="Attention" value={attentionValue} />
-                <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound} />
+                {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} />}
+                {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} />}
+                {fancamDayHdValue && <RigConfigRow label="Fancam Day HD" value={fancamDayHdValue} />}
+                {fancamDayWideValue && <RigConfigRow label="Fancam Day Wide" value={fancamDayWideValue} />}
+                {fancamNightHdValue && <RigConfigRow label="Fancam Night HD" value={fancamNightHdValue} />}
+                {fancamNightWideValue && <RigConfigRow label="Fancam Night Wide" value={fancamNightWideValue} />}
+                {attentionValue && <RigConfigRow label="Attention" value={attentionValue} />}
+                {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound} />}
               </div>
             </div>
 

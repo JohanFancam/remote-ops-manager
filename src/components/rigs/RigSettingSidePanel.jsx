@@ -38,28 +38,35 @@ function Toggle({ enabled, onChange, readOnly }) {
   );
 }
 
-function CamSelect({ cam, onChange, readOnly }) {
+function CamSelect({ cam, onChange, readOnly, freeTextFields = [] }) {
   const set = (field, val) => onChange({ ...cam, [field]: val });
+  const fields = [
+    { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
+    { label: 'F-Stop', field: 'aperture', options: APERTURE_OPTIONS },
+    { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
+  ];
   return (
     <div className="grid grid-cols-3 gap-2">
-      {[
-        { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
-        { label: 'F-Stop', field: 'aperture', options: APERTURE_OPTIONS },
-        { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
-      ].map(f => (
+      {fields.map(f => (
         <div key={f.field}>
           <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
-          <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60">
-            {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+          {freeTextFields.includes(f.field) ? (
+            <input type="text" value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
+              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60 placeholder:text-gray-500"
+              placeholder={f.options[0]} />
+          ) : (
+            <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
+              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60">
+              {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange, readOnly }) {
+function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange, readOnly, freeTextFields }) {
   return (
     <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
       <div className="flex items-center justify-between mb-3">
@@ -75,14 +82,14 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs text-gray-400 font-medium">HD Camera</span>
             </div>
-            <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} readOnly={readOnly} />
+            <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
           </div>
           {camKeyWide && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs text-gray-400 font-medium">Wide Camera</span>
               </div>
-              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} readOnly={readOnly} />
+              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
             </div>
           )}
         </div>
@@ -226,6 +233,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camWide={form.fancam_day_wide || DEFAULT_FANCAM_DAY_WIDE}
                   onCamChange={updateCam}
                   readOnly={readOnly}
+                  freeTextFields={['aperture', 'iso']}
                 />
 
                 {/* 3. Fancam Night Settings */}
