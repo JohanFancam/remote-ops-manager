@@ -681,6 +681,7 @@ export default function Settings() {
                     >
                       <option value="user">Remote Operator</option>
                       <option value="standby">Standby User</option>
+                      <option value="accounts">Accounts</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>
@@ -724,8 +725,9 @@ export default function Settings() {
                          >
                            <option value="user">Remote Operator</option>
                            <option value="standby">Standby User</option>
+                           <option value="accounts">Accounts</option>
                            <option value="admin">Admin</option>
-                         </select>
+                           </select>
                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={() => handleSaveUser(u)}>
                            <Save className="h-3 w-3" /> Save
                          </Button>
@@ -746,8 +748,8 @@ export default function Settings() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                            {u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : 'Operator'}
+                          <Badge className={`text-xs border ${u.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : u.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : u.role === 'accounts' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                            {u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : u.role === 'accounts' ? 'Accounts' : 'Operator'}
                           </Badge>
                           {u.id !== user?.id && (
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => handleEditUser(u)}>
