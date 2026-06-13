@@ -29,16 +29,16 @@ const emptyForm = {
   sound_enabled: false, notes: '',
 };
 
-function Toggle({ enabled, onChange }) {
+function Toggle({ enabled, onChange, readOnly }) {
   return (
-    <button type="button" onClick={onChange}
-      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-blue-600' : 'bg-gray-700'}`}>
+    <button type="button" onClick={onChange} disabled={readOnly}
+      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-blue-600' : 'bg-gray-700'} ${readOnly ? 'cursor-default opacity-60' : ''}`}>
       <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
   );
 }
 
-function CamSelect({ cam, onChange }) {
+function CamSelect({ cam, onChange, readOnly }) {
   const set = (field, val) => onChange({ ...cam, [field]: val });
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -49,8 +49,8 @@ function CamSelect({ cam, onChange }) {
       ].map(f => (
         <div key={f.field}>
           <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
-          <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+          <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60">
             {f.options.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
@@ -59,7 +59,7 @@ function CamSelect({ cam, onChange }) {
   );
 }
 
-function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange }) {
+function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange, readOnly }) {
   return (
     <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
       <div className="flex items-center justify-between mb-3">
@@ -67,7 +67,7 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
           <span className="text-sm font-semibold text-white">{title}</span>
           {note && <p className="text-[10px] text-gray-500 mt-0.5">{note}</p>}
         </div>
-        <Toggle enabled={enabled} onChange={onToggle} />
+        <Toggle enabled={enabled} onChange={onToggle} readOnly={readOnly} />
       </div>
       {enabled && (
         <div className="space-y-3 mt-3">
@@ -75,14 +75,14 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs text-gray-400 font-medium">HD Camera</span>
             </div>
-            <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} />
+            <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} readOnly={readOnly} />
           </div>
           {camKeyWide && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs text-gray-400 font-medium">Wide Camera</span>
               </div>
-              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} />
+              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} readOnly={readOnly} />
             </div>
           )}
         </div>
@@ -91,7 +91,7 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
   );
 }
 
-export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onClose }) {
+export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onClose, readOnly = false }) {
   const [form, setForm] = useState(emptyForm);
   const [rigInput, setRigInput] = useState('');
   const isNew = !rig;
@@ -136,7 +136,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <h2 className="text-lg font-semibold text-white">
-              {isNew ? 'New Rig Setting' : `Editing: ${rig?.team || '…'}`}
+              {readOnly ? `Viewing: ${rig?.team || '…'}` : isNew ? 'New Rig Setting' : `Editing: ${rig?.team || '…'}`}
             </h2>
           </div>
 
@@ -144,23 +144,23 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
           <div className="flex-1 overflow-y-auto p-4 space-y-5">
             {/* Basic fields */}
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-              <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Sport" /></SelectTrigger>
+              <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} disabled={readOnly}
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 disabled:opacity-60" />
+              <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })} disabled={readOnly}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue placeholder="Sport" /></SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
                   {SPORTS.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={form.venue_type} onValueChange={v => setForm({ ...form, venue_type: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+              <Select value={form.venue_type} onValueChange={v => setForm({ ...form, venue_type: v })} disabled={readOnly}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
                   <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
                   <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Rig Type" /></SelectTrigger>
+              <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })} disabled={readOnly}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue placeholder="Rig Type" /></SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
                   {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
                 </SelectContent>
@@ -170,19 +170,23 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             {/* Shoot Plan */}
             <div>
               <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Shoot Plan</label>
-              <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })}
+              <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })} disabled={readOnly}
                 placeholder="Describe the shoot plan..." rows={3}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none disabled:opacity-60" />
             </div>
 
             {/* Remote Rigs */}
             <div>
               <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Remote Rigs</label>
               <div className="flex gap-2 mb-2">
-                <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addRig()}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
+                {!readOnly && (
+                  <>
+                    <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addRig()}
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
+                    <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
+                  </>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {form.remote_rigs?.map((r, i) => (
@@ -208,6 +212,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camHd={form.data_hd || DEFAULT_DATA_HD}
                   camWide={form.data_wide || DEFAULT_DATA_WIDE}
                   onCamChange={updateCam}
+                  readOnly={readOnly}
                 />
 
                 {/* 2. Fancam Day Settings */}
@@ -220,6 +225,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camHd={form.fancam_day_hd || DEFAULT_FANCAM_DAY_HD}
                   camWide={form.fancam_day_wide || DEFAULT_FANCAM_DAY_WIDE}
                   onCamChange={updateCam}
+                  readOnly={readOnly}
                 />
 
                 {/* 3. Fancam Night Settings */}
@@ -232,6 +238,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camHd={form.fancam_night_hd || DEFAULT_FANCAM_NIGHT_HD}
                   camWide={form.fancam_night_wide || DEFAULT_FANCAM_NIGHT_WIDE}
                   onCamChange={updateCam}
+                  readOnly={readOnly}
                 />
 
                 {/* 4. Attention Camera */}
@@ -244,6 +251,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camHd={form.attention_hd || DEFAULT_ATTENTION_HD}
                   camWide={null}
                   onCamChange={updateCam}
+                  readOnly={readOnly}
                 />
 
                 {/* 5. Sound Recording */}
@@ -255,7 +263,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     </div>
                     <p className="text-[10px] text-gray-500 mt-0.5 ml-6">Sound enabled for this rig</p>
                   </div>
-                  <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} />
+                  <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} readOnly={readOnly} />
                 </div>
               </div>
             </div>
@@ -263,25 +271,33 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             {/* Notes */}
             <div>
               <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Notes</label>
-              <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+              <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} disabled={readOnly}
                 placeholder="Any additional notes..." rows={2}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none" />
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none disabled:opacity-60" />
             </div>
           </div>
 
           {/* Footer Actions */}
           <div className="p-4 border-t border-gray-800 flex gap-2">
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 flex-1">
-              {isNew ? 'Create Rig Setting' : 'Save Changes'}
-            </Button>
-            {!isNew && (
-              <Button onClick={() => { onDelete(rig.id); onClose(); }} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30">
-                Delete
+            {readOnly ? (
+              <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800 flex-1">
+                Close
               </Button>
+            ) : (
+              <>
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 flex-1">
+                  {isNew ? 'Create Rig Setting' : 'Save Changes'}
+                </Button>
+                {!isNew && (
+                  <Button onClick={() => { onDelete(rig.id); onClose(); }} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30">
+                    Delete
+                  </Button>
+                )}
+                <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                  Cancel
+                </Button>
+              </>
             )}
-            <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-              Cancel
-            </Button>
           </div>
         </div>
       </SheetContent>

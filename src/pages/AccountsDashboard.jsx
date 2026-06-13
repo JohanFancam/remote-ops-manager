@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ChevronLeft, ChevronRight, Download, TrendingUp, Users,
-  DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock, RefreshCw
+  DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend } from 'recharts';
@@ -53,6 +53,13 @@ export default function AccountsDashboard() {
   const [saving, setSaving] = useState(null); // email currently saving
   const [datePickerFor, setDatePickerFor] = useState(null); // email awaiting date choice
   const [customDate, setCustomDate] = useState('');
+  const [exportMonthOpen, setExportMonthOpen] = useState(false);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set();
+    shoots.forEach(s => { if (s.date) months.add(s.date.substring(0, 7)); });
+    return [...months].sort().reverse();
+  }, [shoots]);
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -302,13 +309,53 @@ export default function AccountsDashboard() {
             <Button onClick={refresh} variant="ghost" size="icon" className="text-gray-500 hover:text-white h-9 w-9" title="Refresh data">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button
-              onClick={() => exportCSV(monthSummaryRows, filterMonth)}
-              className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
+            <div className="relative">
+              <Button
+                onClick={() => exportCSV(monthSummaryRows, filterMonth)}
+                className="bg-green-700 hover:bg-green-600 gap-2 text-sm rounded-r-none"
+              >
+                <Download className="h-4 w-4" />
+                Export {format(new Date(filterMonth + '-01'), 'MMM yyyy')}
+              </Button>
+              <Button
+                onClick={() => setExportMonthOpen(!exportMonthOpen)}
+                className="bg-green-700 hover:bg-green-600 text-sm px-2 rounded-l-none border-l border-green-600"
+              >
+                <ChevronDown className={`h-4 w-4 transition-transform ${exportMonthOpen ? 'rotate-180' : ''}`} />
+              </Button>
+              {exportMonthOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
+                  {availableMonths.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setFilterMonth(m);
+                        setExportMonthOpen(false);
+                        // Export after state update (use setTimeout to let state settle)
+                        setTimeout(() => {
+                          // Recompute rows for this month
+                          const monthShoots = shoots.filter(s => s.date?.startsWith(m) && s.status !== 'cancelled');
+                          const rows = remoteUsers.map(op => {
+                            const opShoots = monthShoots.filter(s2 => s2.assigned_operators?.includes(op.email));
+                            const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === m);
+                            const byDate = {};
+                            opShoots.forEach(s2 => { if (!byDate[s2.date]) byDate[s2.date] = []; byDate[s2.date].push(s2); });
+                            const autoAdditionalIds = new Set();
+                            Object.values(byDate).forEach(ds => getAdditionalShootIds(ds).forEach(id => autoAdditionalIds.add(id)));
+                            const total = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+                            return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid: false, paidDate: null, note: '' };
+                          }).filter(op => op.shoots > 0);
+                          exportCSV(rows, m);
+                        }, 100);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors ${m === filterMonth ? 'text-green-400 font-medium' : 'text-gray-300'}`}
+                    >
+                      {format(new Date(m + '-01'), 'MMMM yyyy')}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -4,13 +4,14 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
 
 export default function Rigs() {
   const { isAdmin } = useApp();
   const queryClient = useQueryClient();
   const [sidePanelRig, setSidePanelRig] = useState(null); // rig object to edit, or {} for new, or null for closed
+  const [viewOnly, setViewOnly] = useState(false); // true when viewing (not editing)
   const [search, setSearch] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
@@ -29,6 +30,7 @@ export default function Rigs() {
       await base44.entities.RigSetting.create(formData);
     }
     setSidePanelRig(null);
+    setViewOnly(false);
     refresh();
   };
 
@@ -62,7 +64,7 @@ export default function Rigs() {
             <p className="text-gray-400 text-sm mt-1">Team-based camera configurations</p>
           </div>
           {isAdmin && (
-            <Button onClick={() => setSidePanelRig({})} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" /> New Rig Setting
             </Button>
           )}
@@ -81,8 +83,8 @@ export default function Rigs() {
           )}
         </div>
 
-        {/* 2x2 tile grid — scroll for more */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* 3-column tile grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           {filtered.map(rig => {
             const isActive = sidePanelRig?.id === rig.id;
             return (
@@ -135,14 +137,22 @@ export default function Rigs() {
                 {/* Actions */}
                 {isAdmin && (
                   <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between">
-                    <button
-                      onClick={() => setSidePanelRig(rig)}
-                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-                        isActive ? 'text-blue-400 hover:text-white' : 'text-gray-400 hover:text-white'
-                      }`}>
-                      <Edit2 className="h-3.5 w-3.5" />
-                      {isActive ? 'Editing →' : 'Edit'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setSidePanelRig(rig); setViewOnly(true); }}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-blue-400 transition-colors"
+                        title="Quick view">
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </button>
+                      <button
+                        onClick={() => { setSidePanelRig(rig); setViewOnly(false); }}
+                        className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                          isActive && !viewOnly ? 'text-blue-400 hover:text-white' : 'text-gray-400 hover:text-white'
+                        }`}>
+                        <Edit2 className="h-3.5 w-3.5" />
+                        {isActive && !viewOnly ? 'Editing →' : 'Edit'}
+                      </button>
+                    </div>
                     <div className="flex gap-1 items-center">
                       <button onClick={() => handleDuplicate(rig)} title="Duplicate"
                         className="p-1.5 rounded text-gray-500 hover:text-blue-400 hover:bg-gray-800 transition-colors">
@@ -187,7 +197,8 @@ export default function Rigs() {
           rig={sidePanelRig?.id ? sidePanelRig : null}
           onSave={handleSave}
           onDelete={handleDelete}
-          onClose={() => setSidePanelRig(null)}
+          onClose={() => { setSidePanelRig(null); setViewOnly(false); }}
+          readOnly={viewOnly}
         />
       </div>
     </div>
