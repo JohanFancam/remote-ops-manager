@@ -1,0 +1,39 @@
+{
+  "name": "ShootReport",
+  "type": "object",
+  "properties": {
+    "shoot_id": {
+      "type": "string"
+    },
+    "shoot_title": {
+      "type": "string"
+    },
+    "shoot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "operator_email": {
+      "type": "string"
+    },
+    "operator_name": {
+      "type": "string"
+    },
+    "had_issues": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string"
+    },
+    "slack_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "shoot_id",
+    "shoot_title"
+  ]
+}

@@ -1,0 +1,298 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useApp } from '../components/AppContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ChevronLeft, ChevronRight, Download, TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
+import { format, startOfYear, endOfYear, eachMonthOfInterval, parseISO } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+
+function exportCSV(rows, month) {
+  const header = 'Operator,Email,Shoots,Amount (ZAR),Paid\n';
+  const body = rows
+    .map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${r.paid ? 'Yes' : 'No'}`)
+    .join('\n');
+  const blob = new Blob([header + body], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Earnings_${month}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export default function AccountsDashboard() {
+  const { user, isAccounts, isAdmin } = useApp();
+  const canView = isAccounts || isAdmin;
+
+  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+
+  const { data: shoots = [] } = useQuery({
+    queryKey: ['shoots'],
+    queryFn: () => base44.entities.Shoot.list('-date', 2000),
+  });
+
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list(),
+  });
+
+  const { data: paymentRecords = [] } = useQuery({
+    queryKey: ['paymentRecords'],
+    queryFn: () => base44.entities.PaymentRecord.list('-created_date', 3000),
+  });
+
+  const { data: appSettings = [] } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
+  const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+
+  const goMonth = (delta) => {
+    const [y, m] = filterMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setFilterMonth(format(d, 'yyyy-MM'));
+  };
+
+  // All remote users (non-admin)
+  const remoteUsers = useMemo(() => {
+    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
+    const knownUsers = pendingUsers
+      .filter(u => u.role === 'user' || u.role === 'standby')
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
+    const knownEmails = new Set(knownUsers.map(u => u.email));
+
+    const nameMap = {};
+    paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
+
+    const extraEmails = new Set();
+    shoots.forEach(s => {
+      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
+    });
+
+    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
+    return [...knownUsers, ...extraUsers];
+  }, [pendingUsers, shoots, paymentRecords]);
+
+  // Calculate fee for a shoot given records
+  function calcFee(shoot, opRecords, autoAdditionalIds) {
+    const rec = opRecords.find(r => r.shoot_id === shoot.id);
+    if (rec?.override_fee != null) return rec.override_fee;
+    const isAdd = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id);
+    return isAdd ? additionalRate : baseRate;
+  }
+
+  // Month summary rows
+  const monthSummaryRows = useMemo(() => {
+    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+    return remoteUsers.map(op => {
+      const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
+      const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
+
+      const byDate = {};
+      opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+      const autoAdditionalIds = new Set();
+      Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
+
+      const total = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+      const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
+
+      return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid: allPaid };
+    }).filter(op => op.shoots > 0);
+  }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
+
+  const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
+  const paidCount = monthSummaryRows.filter(r => r.paid).length;
+
+  // Year chart data — monthly totals for the current year
+  const yearChartData = useMemo(() => {
+    const yearNum = parseInt(filterMonth.split('-')[0]);
+    const months = eachMonthOfInterval({
+      start: startOfYear(new Date(yearNum, 0, 1)),
+      end: endOfYear(new Date(yearNum, 0, 1)),
+    });
+
+    return months.map(monthDate => {
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
+
+      let total = 0;
+      remoteUsers.forEach(op => {
+        const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
+        const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === monthKey);
+
+        const byDate = {};
+        opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+        const autoAdditionalIds = new Set();
+        Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
+
+        total += opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+      });
+
+      return {
+        month: format(monthDate, 'MMM'),
+        monthKey,
+        total,
+        isCurrentMonth: monthKey === filterMonth,
+      };
+    });
+  }, [shoots, remoteUsers, paymentRecords, filterMonth, baseRate, additionalRate]);
+
+  const yearTotal = yearChartData.reduce((s, d) => s + d.total, 0);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload?.length) {
+      return (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+          <p className="text-gray-400">{label}</p>
+          <p className="text-white font-bold">R{payload[0].value.toLocaleString('en-ZA')}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (!canView) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <p className="text-gray-500">Access restricted.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Earnings Overview</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Read-only · Standard: R{baseRate} · Additional: R{additionalRate}</p>
+          </div>
+          <Button
+            onClick={() => exportCSV(monthSummaryRows, filterMonth)}
+            className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+
+        {/* Year chart */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <p className="text-sm text-gray-400 flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4" /> {filterMonth.split('-')[0]} Yearly Spend
+                </p>
+                <p className="text-2xl font-bold text-white">R{yearTotal.toLocaleString('en-ZA')}</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false}
+                  tickFormatter={v => v === 0 ? '' : `R${(v / 1000).toFixed(0)}k`} width={42} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                  {yearChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Month navigator */}
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(1)}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Monthly summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="h-4 w-4 text-blue-400" />
+                <p className="text-gray-400 text-sm">Month Total</p>
+              </div>
+              <p className="text-2xl font-bold text-white">R{grandTotal.toLocaleString('en-ZA')}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-purple-400" />
+                <p className="text-gray-400 text-sm">Operators</p>
+              </div>
+              <p className="text-2xl font-bold text-white">{monthSummaryRows.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-900 border-gray-800 col-span-2 md:col-span-1">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="h-4 w-4 text-green-400" />
+                <p className="text-gray-400 text-sm">Paid Out</p>
+              </div>
+              <p className="text-2xl font-bold text-green-400">{paidCount} / {monthSummaryRows.length}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Operator earnings table */}
+        {monthSummaryRows.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">No operator activity for this month.</div>
+        ) : (
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-0">
+              <div className="px-5 py-3 border-b border-gray-800">
+                <p className="text-sm font-semibold text-gray-300">Operator Breakdown</p>
+              </div>
+              <div className="divide-y divide-gray-800">
+                {monthSummaryRows
+                  .sort((a, b) => b.total - a.total)
+                  .map(row => (
+                  <div key={row.email} className="flex items-center justify-between px-5 py-3 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{row.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{row.email}</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs text-gray-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}</span>
+                      <span className="font-mono font-bold text-white text-sm">R{row.total.toLocaleString('en-ZA')}</span>
+                      <Badge className={row.paid
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                      }>
+                        {row.paid ? 'Paid' : 'Unpaid'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-700 bg-gray-800/40">
+                <span className="text-sm font-semibold text-gray-300">Total</span>
+                <span className="font-mono font-bold text-white">R{grandTotal.toLocaleString('en-ZA')}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

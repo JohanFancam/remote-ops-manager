@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical,
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical, Receipt,
 } from 'lucide-react';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isStandby, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -70,7 +70,11 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  const navItems = isAdmin ? adminNav : isStandby ? standbyNav : remoteNav;
+  const accountsNav = [
+    { name: 'Earnings', icon: Receipt, page: 'AccountsDashboard' },
+  ];
+
+  const navItems = isAdmin ? adminNav : isStandby ? standbyNav : isAccounts ? accountsNav : remoteNav;
 
   const handleLogout = () => base44.auth.logout();
 

@@ -9,6 +9,7 @@ import OperatorAvailability from './pages/OperatorAvailability'
 import RigsCheck from './pages/RigsCheck'
 import ShootDuration from './pages/ShootDuration'
 import RigTestLog from './pages/RigTestLog';
+import AccountsDashboard from './pages/AccountsDashboard';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -70,6 +71,7 @@ const AuthenticatedApp = () => {
       <Route path="/RigsCheck" element={<LayoutWrapper currentPageName="RigsCheck"><RigsCheck /></LayoutWrapper>} />
       <Route path="/ShootDuration" element={<LayoutWrapper currentPageName="ShootDuration"><ShootDuration /></LayoutWrapper>} />
       <Route path="/RigTestLog" element={<LayoutWrapper currentPageName="RigTestLog"><RigTestLog /></LayoutWrapper>} />
+      <Route path="/AccountsDashboard" element={<LayoutWrapper currentPageName="AccountsDashboard"><AccountsDashboard /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

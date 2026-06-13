@@ -20,7 +20,7 @@ export function AppProvider({ children }) {
 
   const isAdmin = user?.role === 'admin';
   const isStandby = user?.role === 'standby';
-  const isAccounts = false; // removed role
+  const isAccounts = user?.role === 'accounts';
   const adminLevel = null; // removed admin levels
   const isLevel1Admin = isAdmin; // all admins have full access now
   const isLevel2Admin = false;

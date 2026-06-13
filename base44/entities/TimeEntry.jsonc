@@ -1,0 +1,55 @@
+{
+  "name": "TimeEntry",
+  "type": "object",
+  "properties": {
+    "operator_email": {
+      "type": "string"
+    },
+    "operator_name": {
+      "type": "string"
+    },
+    "shoot_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "hours": {
+      "type": "number"
+    },
+    "rate": {
+      "type": "number"
+    },
+    "total": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "entry_type": {
+      "type": "string",
+      "enum": [
+        "clock",
+        "coffee_break",
+        "lunch_break",
+        "manual"
+      ],
+      "default": "manual"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_email",
+    "date",
+    "hours"
+  ]
+}
