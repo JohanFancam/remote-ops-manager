@@ -10,7 +10,7 @@ import {
   DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend } from 'recharts';
 import { getAdditionalShootIds } from '../components/utils/earningsUtils';
 
 function exportCSV(rows, month) {
@@ -215,6 +215,7 @@ export default function AccountsDashboard() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
       let total = 0;
+      let paidTotal = 0;
       let activeOps = 0;
       let paidOps = 0;
       remoteUsers.forEach(op => {
@@ -226,12 +227,13 @@ export default function AccountsDashboard() {
         opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
         const autoAdditionalIds = new Set();
         Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
-        total += opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+        const opTotal = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+        total += opTotal;
         const monthRec = paymentRecords.find(r => r.operator_email === op.email && r.period_month === monthKey && !r.shoot_id);
-        if (monthRec?.paid) paidOps++;
+        if (monthRec?.paid) { paidOps++; paidTotal += opTotal; }
       });
       const allPaid = activeOps > 0 && paidOps === activeOps;
-      return { month: format(monthDate, 'MMM'), monthKey, total, isCurrentMonth: monthKey === filterMonth, allPaid, activeOps };
+      return { month: format(monthDate, 'MMM'), monthKey, total, paidTotal, isCurrentMonth: monthKey === filterMonth, allPaid, activeOps };
     });
   }, [shoots, remoteUsers, paymentRecords, filterMonth, baseRate, additionalRate]);
 
@@ -239,10 +241,15 @@ export default function AccountsDashboard() {
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload?.length) {
+      const total = payload.find(p => p.dataKey === 'total')?.value || 0;
+      const paid = payload.find(p => p.dataKey === 'paidTotal')?.value || 0;
+      const outstanding = total - paid;
       return (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-          <p className="text-gray-400">{label}</p>
-          <p className="text-white font-bold">R{payload[0].value.toLocaleString('en-ZA')}</p>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm space-y-1">
+          <p className="text-gray-400 font-medium">{label}</p>
+          <p className="text-white">Total: <span className="font-bold">R{total.toLocaleString('en-ZA')}</span></p>
+          <p className="text-green-400">Paid: <span className="font-bold">R{paid.toLocaleString('en-ZA')}</span></p>
+          {outstanding > 0 && <p className="text-yellow-400">Outstanding: <span className="font-bold">R{outstanding.toLocaleString('en-ZA')}</span></p>}
         </div>
       );
     }
@@ -291,19 +298,29 @@ export default function AccountsDashboard() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%" barGap={2}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false}
                   tickFormatter={v => v === 0 ? '' : `R${(v / 1000).toFixed(0)}k`} width={42} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="total" name="Total Spend" radius={[4, 4, 0, 0]}>
                   {yearChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : entry.allPaid ? '#16a34a' : '#374151'} />
+                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
+                  ))}
+                </Bar>
+                <Bar dataKey="paidTotal" name="Paid" radius={[4, 4, 0, 0]}>
+                  {yearChartData.map((entry, i) => (
+                    <Cell key={i} fill="#16a34a" fillOpacity={0.85} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            <div className="flex items-center gap-4 mt-2 px-1">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#374151]" /><span className="text-xs text-gray-400">Total Spend</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#3b82f6]" /><span className="text-xs text-gray-400">Current Month</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-green-700" /><span className="text-xs text-gray-400">Paid</span></div>
+            </div>
           </CardContent>
         </Card>
 
