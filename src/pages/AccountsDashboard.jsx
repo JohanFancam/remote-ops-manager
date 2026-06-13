@@ -194,16 +194,23 @@ export default function AccountsDashboard() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
       let total = 0;
+      let activeOps = 0;
+      let paidOps = 0;
       remoteUsers.forEach(op => {
         const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
+        if (opShoots.length === 0) return;
+        activeOps++;
         const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === monthKey);
         const byDate = {};
         opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
         const autoAdditionalIds = new Set();
         Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
         total += opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
+        const monthRec = paymentRecords.find(r => r.operator_email === op.email && r.period_month === monthKey && !r.shoot_id);
+        if (monthRec?.paid) paidOps++;
       });
-      return { month: format(monthDate, 'MMM'), monthKey, total, isCurrentMonth: monthKey === filterMonth };
+      const allPaid = activeOps > 0 && paidOps === activeOps;
+      return { month: format(monthDate, 'MMM'), monthKey, total, isCurrentMonth: monthKey === filterMonth, allPaid, activeOps };
     });
   }, [shoots, remoteUsers, paymentRecords, filterMonth, baseRate, additionalRate]);
 
@@ -271,7 +278,7 @@ export default function AccountsDashboard() {
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                   {yearChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
+                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : entry.allPaid ? '#16a34a' : '#374151'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -284,7 +291,19 @@ export default function AccountsDashboard() {
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
+            {paidCount > 0 && paidCount === monthSummaryRows.length && (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Fully Paid
+              </Badge>
+            )}
+            {paidCount > 0 && paidCount < monthSummaryRows.length && (
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1">
+                <Clock className="h-3 w-3" /> {paidCount}/{monthSummaryRows.length} Paid
+              </Badge>
+            )}
+          </div>
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
