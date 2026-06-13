@@ -39,9 +39,18 @@
       }
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accounts"
+          }
+        }
+      ]
     },
     "update": {
       "user_condition": {
