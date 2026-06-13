@@ -76,8 +76,14 @@ export default function Dashboard() {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const handleShootUpdate = async (id, data) => {
-    await base44.entities.Shoot.update(id, data);
-    await queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    queryClient.setQueryData(['shoots'], (old = []) =>
+      old.map((s) => (s.id === id ? { ...s, ...data } : s))
+    );
+    try {
+      await base44.entities.Shoot.update(id, data);
+    } catch {
+      queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    }
   };
 
   const visibleShoots = useMemo(() => {
