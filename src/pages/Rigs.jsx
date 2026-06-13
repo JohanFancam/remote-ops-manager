@@ -4,35 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, X, Timer, Aperture, Sun, Settings2, StickyNote, Copy, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
-
-const CAMERAS = [
-  { key: 'hd', label: 'HD Camera' },
-  { key: 'wide', label: 'Wide Camera' },
-  { key: 'attention', label: 'Attention Camera' },
-];
-
-function CamRow({ label, enabled, cam }) {
-  if (!enabled) return (
-    <div className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-800/30">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-xs text-gray-700">OFF</span>
-    </div>
-  );
-  return (
-    <div className="flex flex-wrap items-center justify-between py-1.5 px-2 rounded bg-blue-950/20 gap-1">
-      <span className="text-xs text-gray-300 font-medium">{label}</span>
-      {cam && (
-        <div className="flex gap-2 text-xs text-gray-400 flex-wrap">
-          <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{cam.shutter || '—'}</span>
-          <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{cam.aperture || '—'}</span>
-          <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{cam.iso || '—'}</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function Rigs() {
   const { isAdmin } = useApp();
@@ -127,19 +100,13 @@ export default function Rigs() {
                   )}
                 </div>
 
-                {/* Camera badges */}
+                {/* Section badges */}
                 <div className="px-4 py-2 flex flex-wrap gap-1.5">
-                  {rig.hd_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">HD</Badge>}
-                  {rig.wide_enabled !== false && <Badge className="bg-gray-700/60 text-gray-300 border-gray-600 text-xs">Wide</Badge>}
-                  {rig.attention_enabled && <Badge className="bg-orange-900/40 text-orange-300 border-orange-700/40 text-xs">Attention</Badge>}
-                  {rig.sound && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
-                </div>
-
-                {/* Camera settings */}
-                <div className="px-4 pb-3 space-y-1 flex-1">
-                  {CAMERAS.map(cam => (
-                    <CamRow key={cam.key} label={cam.label} enabled={rig[`${cam.key}_enabled`] !== false} cam={rig[cam.key]} />
-                  ))}
+                  {rig.data_enabled !== false && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">Data</Badge>}
+                  {rig.fancam_day_enabled && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">Fancam Day</Badge>}
+                  {rig.fancam_night_enabled && <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">Fancam Night</Badge>}
+                  {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">Attention</Badge>}
+                  {rig.sound_enabled && <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Sound</Badge>}
                 </div>
 
                 {/* Remote rigs */}

@@ -102,9 +102,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
   // Which optional phases are enabled for this shoot
   const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound === true;
+  const showSound = matchedRig?.sound_enabled === true;
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
-  const rigTypeLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
+  const rigTypeLabel = effectiveRigType ? (matchedRig?.sound_enabled ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
   // End time = game time + 5 hours
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
@@ -165,10 +165,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             <Tv2 className="h-3 w-3" /> {matchedRig.rig_type}
           </span>
         )}
-        {matchedRig.hd_enabled !== false && <span className="text-xs bg-gray-800/60 border border-gray-700 text-gray-300 px-2.5 py-1 rounded-full">HD</span>}
-        {matchedRig.wide_enabled !== false && <span className="text-xs bg-gray-800/60 border border-gray-700 text-gray-300 px-2.5 py-1 rounded-full">Wide</span>}
-        {matchedRig.attention_enabled && <span className="text-xs bg-orange-950/40 border border-orange-800/50 text-orange-300 px-2.5 py-1 rounded-full">Attention</span>}
-        {matchedRig.sound && (
+        {matchedRig.data_enabled !== false && <span className="text-xs bg-blue-500/20 border border-blue-500/30 text-blue-300 px-2.5 py-1 rounded-full">Data</span>}
+        {matchedRig.fancam_day_enabled && <span className="text-xs bg-orange-500/20 border border-orange-500/30 text-orange-300 px-2.5 py-1 rounded-full">Fancam Day</span>}
+        {matchedRig.fancam_night_enabled && <span className="text-xs bg-purple-500/20 border border-purple-500/30 text-purple-300 px-2.5 py-1 rounded-full">Fancam Night</span>}
+        {matchedRig.attention_enabled && <span className="text-xs bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-2.5 py-1 rounded-full">Attention</span>}
+        {matchedRig.sound_enabled && (
           <span className="flex items-center gap-1.5 text-xs bg-green-950/40 border border-green-800/50 text-green-300 px-2.5 py-1 rounded-full">
             <Volume2 className="h-3 w-3" /> Sound
           </span>
@@ -243,42 +244,110 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                 )}
               </div>
 
-              {/* Camera Settings */}
+              {/* Camera Settings — 5 sections */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" /> Camera Settings</p>
-                <div className="bg-gray-800/50 rounded-lg px-3 py-1 border border-gray-700/50 space-y-0">
-                  {[
-                    { key: 'hd', label: 'HD Camera' },
-                    { key: 'wide', label: 'Wide Camera' },
-                    { key: 'attention', label: 'Attention Camera' },
-                  ].map(cam => {
-                    const enabled = matchedRig[`${cam.key}_enabled`] !== false || cam.key !== 'attention' ? matchedRig[`${cam.key}_enabled`] !== false : false;
-                    const settings = matchedRig[cam.key];
-                    return (
-                      <div key={cam.key} className="flex items-center justify-between py-2 border-b border-gray-700/40 last:border-0">
-                        <span className={`text-sm ${enabled ? 'text-white font-medium' : 'text-gray-600'}`}>{cam.label}</span>
-                        {enabled && settings ? (
-                          <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap justify-end">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{settings.shutter || settings.shutter_min || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{settings.aperture || settings.aperture_min || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{settings.iso || settings.iso_min || '—'}</span>
+                <div className="space-y-2">
+                  {matchedRig.data_enabled !== false && (
+                    <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-blue-400 mb-2">Data Settings</p>
+                      {matchedRig.data_hd && (
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-xs text-gray-300 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.data_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.data_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.data_hd.iso || '—'}</span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-gray-600">OFF</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </div>
+                      )}
+                      {matchedRig.data_wide && (
+                        <div className="flex items-center justify-between py-1 border-t border-gray-700/40">
+                          <span className="text-xs text-gray-300 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.data_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.data_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.data_wide.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {matchedRig.fancam_day_enabled && (
+                    <div className="bg-orange-950/20 border border-orange-900/30 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-orange-400 mb-2">Fancam Day Settings</p>
+                      {matchedRig.fancam_day_hd && (
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-xs text-gray-300 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_hd.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                      {matchedRig.fancam_day_wide && (
+                        <div className="flex items-center justify-between py-1 border-t border-gray-700/40">
+                          <span className="text-xs text-gray-300 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.fancam_day_wide.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {matchedRig.fancam_night_enabled && (
+                    <div className="bg-purple-950/20 border border-purple-900/30 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-purple-400 mb-2">Fancam Night Settings</p>
+                      {matchedRig.fancam_night_hd && (
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-xs text-gray-300 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_hd.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                      {matchedRig.fancam_night_wide && (
+                        <div className="flex items-center justify-between py-1 border-t border-gray-700/40">
+                          <span className="text-xs text-gray-300 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.fancam_night_wide.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {matchedRig.attention_enabled && (
+                    <div className="bg-yellow-950/20 border border-yellow-900/30 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-yellow-400 mb-2">Attention Camera</p>
+                      {matchedRig.attention_hd && (
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-xs text-gray-300 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-gray-500" />{matchedRig.attention_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-gray-500" />{matchedRig.attention_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-gray-500" />{matchedRig.attention_hd.iso || '—'}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Sound */}
-              <div className={`rounded-lg border px-3 py-2 flex items-center justify-between ${matchedRig.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-700 bg-gray-800/30'}`}>
+              <div className={`rounded-lg border px-3 py-2 flex items-center justify-between ${matchedRig.sound_enabled ? 'border-green-700 bg-green-950/20' : 'border-gray-700 bg-gray-800/30'}`}>
                 <div className="flex items-center gap-2">
-                  <Volume2 className={`h-3.5 w-3.5 ${matchedRig.sound ? 'text-green-400' : 'text-gray-600'}`} />
+                  <Volume2 className={`h-3.5 w-3.5 ${matchedRig.sound_enabled ? 'text-green-400' : 'text-gray-600'}`} />
                   <span className="text-sm text-gray-300">Sound Recording</span>
                 </div>
-                <span className={`text-xs font-semibold ${matchedRig.sound ? 'text-green-400' : 'text-gray-600'}`}>{matchedRig.sound ? 'YES' : 'NO'}</span>
+                <span className={`text-xs font-semibold ${matchedRig.sound_enabled ? 'text-green-400' : 'text-gray-600'}`}>{matchedRig.sound_enabled ? 'YES' : 'NO'}</span>
               </div>
 
               {/* Rig Notes */}

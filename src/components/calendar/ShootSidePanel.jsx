@@ -32,13 +32,13 @@ const calculateScheduleTime = (gameTime, offset) => {
 const getRigTypeLabel = (shoot, rig) => {
   if (shoot?.rig_type_override) {
     const parts = [shoot.rig_type_override];
-    if (rig?.sound) parts.push('Sound');
+    if (rig?.sound_enabled) parts.push('Sound');
     return parts.join('/');
   }
   if (!rig) return null;
   const parts = [];
   if (rig.rig_type) parts.push(rig.rig_type);
-  if (rig.sound) parts.push('Sound');
+  if (rig.sound_enabled) parts.push('Sound');
   return parts.length > 0 ? parts.join('/') : null;
 };
 
@@ -130,24 +130,36 @@ export default function ShootSidePanel({
                   <span className="text-white font-medium">{rig.rig_type}</span>
                 </div>
               )}
-              {rig.hd_enabled && (
+              {rig.data_enabled !== false && (
                 <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
-                  <div className="font-semibold mb-1">HD Camera Enabled</div>
+                  <div className="font-semibold mb-1">Data Settings</div>
+                  {rig.data_hd && <div className="text-gray-400">HD {rig.data_hd.shutter} | {rig.data_hd.aperture} | {rig.data_hd.iso}</div>}
+                  {rig.data_wide && <div className="text-gray-400">Wide {rig.data_wide.shutter} | {rig.data_wide.aperture} | {rig.data_wide.iso}</div>}
                 </div>
               )}
-              {rig.wide_enabled && (
+              {rig.fancam_day_enabled && (
                 <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
-                  <div className="font-semibold">Wide Camera Enabled</div>
+                  <div className="font-semibold mb-1">Fancam Day Settings</div>
+                  {rig.fancam_day_hd && <div className="text-gray-400">HD {rig.fancam_day_hd.shutter} | {rig.fancam_day_hd.aperture} | {rig.fancam_day_hd.iso}</div>}
+                  {rig.fancam_day_wide && <div className="text-gray-400">Wide {rig.fancam_day_wide.shutter} | {rig.fancam_day_wide.aperture} | {rig.fancam_day_wide.iso}</div>}
+                </div>
+              )}
+              {rig.fancam_night_enabled && (
+                <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
+                  <div className="font-semibold mb-1">Fancam Night Settings</div>
+                  {rig.fancam_night_hd && <div className="text-gray-400">HD {rig.fancam_night_hd.shutter} | {rig.fancam_night_hd.aperture} | {rig.fancam_night_hd.iso}</div>}
+                  {rig.fancam_night_wide && <div className="text-gray-400">Wide {rig.fancam_night_wide.shutter} | {rig.fancam_night_wide.aperture} | {rig.fancam_night_wide.iso}</div>}
                 </div>
               )}
               {rig.attention_enabled && (
                 <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
-                  <div className="font-semibold">Attention Camera Enabled</div>
+                  <div className="font-semibold mb-1">Attention Camera</div>
+                  {rig.attention_hd && <div className="text-gray-400">HD {rig.attention_hd.shutter} | {rig.attention_hd.aperture} | {rig.attention_hd.iso}</div>}
                 </div>
               )}
-              {rig.sound && (
+              {rig.sound_enabled && (
                 <div className="text-[11px] text-gray-300 bg-gray-800/50 px-2 py-1.5 rounded border border-gray-700">
-                  <div className="font-semibold">Sound System Enabled</div>
+                  <div className="font-semibold">Sound Recording Enabled</div>
                 </div>
               )}
               {rig.remote_rigs && rig.remote_rigs.length > 0 && (

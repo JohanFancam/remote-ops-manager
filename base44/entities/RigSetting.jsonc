@@ -39,33 +39,58 @@
       },
       "description": "Google Remote names"
     },
-    "hd_enabled": {
+    "data_enabled": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "description": "Data Settings section enabled"
     },
-    "hd": {
+    "data_hd": {
       "type": "object",
-      "description": "HD Camera settings: shutter, aperture, iso"
+      "description": "Data HD Camera: shutter, aperture, iso"
     },
-    "wide_enabled": {
+    "data_wide": {
+      "type": "object",
+      "description": "Data Wide Camera: shutter, aperture, iso"
+    },
+    "fancam_day_enabled": {
       "type": "boolean",
-      "default": true
+      "default": false,
+      "description": "Fancam Day Settings section enabled"
     },
-    "wide": {
+    "fancam_day_hd": {
       "type": "object",
-      "description": "Wide Camera settings: shutter, aperture, iso"
+      "description": "Fancam Day HD Camera: shutter, aperture, iso"
+    },
+    "fancam_day_wide": {
+      "type": "object",
+      "description": "Fancam Day Wide Camera: shutter, aperture, iso"
+    },
+    "fancam_night_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Fancam Night Settings section enabled"
+    },
+    "fancam_night_hd": {
+      "type": "object",
+      "description": "Fancam Night HD Camera: shutter, aperture, iso"
+    },
+    "fancam_night_wide": {
+      "type": "object",
+      "description": "Fancam Night Wide Camera: shutter, aperture, iso"
     },
     "attention_enabled": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Attention Camera section enabled"
     },
-    "attention": {
+    "attention_hd": {
       "type": "object",
-      "description": "Attention Camera settings: shutter, aperture, iso"
+      "description": "Attention Camera HD: shutter, aperture, iso"
     },
-    "sound": {
+    "sound_enabled": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Sound Recording enabled"
     },
     "notes": {
       "type": "string"

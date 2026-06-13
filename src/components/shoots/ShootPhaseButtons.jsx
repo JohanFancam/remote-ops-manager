@@ -57,8 +57,8 @@ export default function ShootPhaseButtons({ shoot, user, rigSetting, slackMessag
 
   const visiblePhases = PHASES.filter(p => {
     if (!p.requiresRig) return true;
-    if (p.requiresRig === 'attention_camera') return rigSetting?.attention_camera === true;
-    if (p.requiresRig === 'sound') return rigSetting?.sound === true;
+    if (p.requiresRig === 'attention_camera') return rigSetting?.attention_enabled === true;
+    if (p.requiresRig === 'sound') return rigSetting?.sound_enabled === true;
     return true;
   });
 

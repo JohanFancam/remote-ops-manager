@@ -9,20 +9,24 @@ const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket',
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
 const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400'];
 const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
-const ISO_OPTIONS = ['Auto', '200', '400', '800', '1000', '1600', '3200', '6400'];
-const CAMERAS = [
-  { key: 'hd', label: 'HD Camera' },
-  { key: 'wide', label: 'Wide Camera' },
-  { key: 'attention', label: 'Attention Camera' },
-];
-const DEFAULT_CAM = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
+const ISO_OPTIONS = ['Auto', '200', '400', '800', '1000', '1600', '3200', '5000', '6400'];
+
+const DEFAULT_DATA_HD = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
+const DEFAULT_DATA_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
+const DEFAULT_FANCAM_DAY_HD = { shutter: '1/400', aperture: 'F5.6', iso: '400' };
+const DEFAULT_FANCAM_DAY_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '400' };
+const DEFAULT_FANCAM_NIGHT_HD = { shutter: '1/400', aperture: 'F5.6', iso: '5000' };
+const DEFAULT_FANCAM_NIGHT_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '3200' };
+const DEFAULT_ATTENTION_HD = { shutter: '1/100', aperture: 'F11', iso: 'Auto' };
+
 const emptyForm = {
   team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
   remote_rigs: [],
-  hd_enabled: true, hd: { ...DEFAULT_CAM },
-  wide_enabled: true, wide: { ...DEFAULT_CAM },
-  attention_enabled: false, attention: { ...DEFAULT_CAM },
-  sound: false, notes: '',
+  data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide: { ...DEFAULT_DATA_WIDE },
+  fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
+  fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
+  attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
+  sound_enabled: false, notes: '',
 };
 
 function Toggle({ enabled, onChange }) {
@@ -34,29 +38,53 @@ function Toggle({ enabled, onChange }) {
   );
 }
 
-function CameraEditor({ label, enabled, onToggle, cam, onChange }) {
+function CamSelect({ cam, onChange }) {
   const set = (field, val) => onChange({ ...cam, [field]: val });
   return (
-    <div className={`rounded-lg border p-3 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-300">{label}</span>
+    <div className="grid grid-cols-3 gap-2">
+      {[
+        { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
+        { label: 'F-Stop', field: 'aperture', options: APERTURE_OPTIONS },
+        { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
+      ].map(f => (
+        <div key={f.field}>
+          <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+          <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)}
+            className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
+            {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange }) {
+  return (
+    <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <span className="text-sm font-semibold text-white">{title}</span>
+          {note && <p className="text-[10px] text-gray-500 mt-0.5">{note}</p>}
+        </div>
         <Toggle enabled={enabled} onChange={onToggle} />
       </div>
       {enabled && (
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          {[
-            { label: 'Shutter', field: 'shutter', options: SHUTTER_OPTIONS },
-            { label: 'F-Stop', field: 'aperture', options: APERTURE_OPTIONS },
-            { label: 'ISO', field: 'iso', options: ISO_OPTIONS },
-          ].map(f => (
-            <div key={f.field}>
-              <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
-              <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5">
-                {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+        <div className="space-y-3 mt-3">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs text-gray-400 font-medium">HD Camera</span>
             </div>
-          ))}
+            <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} />
+          </div>
+          {camKeyWide && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-400 font-medium">Wide Camera</span>
+              </div>
+              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -68,11 +96,19 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
   const [rigInput, setRigInput] = useState('');
   const isNew = !rig;
 
-  // Init form when rig changes
   React.useEffect(() => {
-    if (rig) {
-      setForm({ ...emptyForm, ...rig });
-    } else {
+    if (rig && isOpen) {
+      setForm(prev => {
+        const merged = { ...emptyForm };
+        // Copy all known keys from rig, with defaults for missing ones
+        for (const key of Object.keys(emptyForm)) {
+          if (key in rig && rig[key] !== undefined && rig[key] !== null) {
+            merged[key] = rig[key];
+          }
+        }
+        return merged;
+      });
+    } else if (isOpen) {
       setForm(emptyForm);
     }
   }, [rig, isOpen]);
@@ -89,8 +125,9 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
     setForm({ ...form, remote_rigs: [...(form.remote_rigs || []), rigInput.trim()] });
     setRigInput('');
   };
-
   const removeRig = (i) => setForm({ ...form, remote_rigs: form.remote_rigs.filter((_, idx) => idx !== i) });
+
+  const updateCam = (key, val) => setForm({ ...form, [key]: val });
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -101,9 +138,6 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             <h2 className="text-lg font-semibold text-white">
               {isNew ? 'New Rig Setting' : `Editing: ${rig?.team || '…'}`}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-              <X className="h-5 w-5" />
-            </button>
           </div>
 
           {/* Form */}
@@ -160,26 +194,69 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
               </div>
             </div>
 
-            {/* Camera Settings */}
+            {/* Camera Settings — 5 Sections */}
             <div>
-              <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block">Camera Settings</label>
+              <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
               <div className="space-y-3">
-                {CAMERAS.map(cam => (
-                  <CameraEditor key={cam.key} label={cam.label}
-                    enabled={form[`${cam.key}_enabled`] !== false}
-                    onToggle={() => setForm({ ...form, [`${cam.key}_enabled`]: !(form[`${cam.key}_enabled`] !== false) })}
-                    cam={form[cam.key] || DEFAULT_CAM}
-                    onChange={val => setForm({ ...form, [cam.key]: val })} />
-                ))}
-              </div>
+                {/* 1. Data Settings */}
+                <CameraSection
+                  title="Data Settings"
+                  note="Standard: HD 1/400 | F5.6 | AUTO ISO   ·   Wide 1/400 | F5.6 | AUTO ISO"
+                  enabled={form.data_enabled}
+                  onToggle={() => setForm({ ...form, data_enabled: !form.data_enabled })}
+                  camKeyHd="data_hd" camKeyWide="data_wide"
+                  camHd={form.data_hd || DEFAULT_DATA_HD}
+                  camWide={form.data_wide || DEFAULT_DATA_WIDE}
+                  onCamChange={updateCam}
+                />
 
-              {/* Sound toggle */}
-              <div className={`mt-3 rounded-lg border p-3 flex items-center justify-between ${form.sound ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
-                <div className="flex items-center gap-2">
-                  <Volume2 className={`h-4 w-4 ${form.sound ? 'text-green-400' : 'text-gray-600'}`} />
-                  <span className="text-sm font-medium text-gray-300">Sound Recording</span>
+                {/* 2. Fancam Day Settings */}
+                <CameraSection
+                  title="Fancam Day Settings"
+                  note="Standard: HD 1/400 | F5.6–F11 | 400–1000 ISO   ·   Wide 1/400 | F5.6–F11 | 400–1000 ISO"
+                  enabled={form.fancam_day_enabled}
+                  onToggle={() => setForm({ ...form, fancam_day_enabled: !form.fancam_day_enabled })}
+                  camKeyHd="fancam_day_hd" camKeyWide="fancam_day_wide"
+                  camHd={form.fancam_day_hd || DEFAULT_FANCAM_DAY_HD}
+                  camWide={form.fancam_day_wide || DEFAULT_FANCAM_DAY_WIDE}
+                  onCamChange={updateCam}
+                />
+
+                {/* 3. Fancam Night Settings */}
+                <CameraSection
+                  title="Fancam Night Settings"
+                  note="Standard: HD 1/400 | F5.6 | 5000 ISO   ·   Wide 1/400 | F5.6 | 3200 ISO"
+                  enabled={form.fancam_night_enabled}
+                  onToggle={() => setForm({ ...form, fancam_night_enabled: !form.fancam_night_enabled })}
+                  camKeyHd="fancam_night_hd" camKeyWide="fancam_night_wide"
+                  camHd={form.fancam_night_hd || DEFAULT_FANCAM_NIGHT_HD}
+                  camWide={form.fancam_night_wide || DEFAULT_FANCAM_NIGHT_WIDE}
+                  onCamChange={updateCam}
+                />
+
+                {/* 4. Attention Camera */}
+                <CameraSection
+                  title="Attention Camera"
+                  note="Standard: HD 1/100 | F11 | AUTO ISO"
+                  enabled={form.attention_enabled}
+                  onToggle={() => setForm({ ...form, attention_enabled: !form.attention_enabled })}
+                  camKeyHd="attention_hd" camKeyWide={null}
+                  camHd={form.attention_hd || DEFAULT_ATTENTION_HD}
+                  camWide={null}
+                  onCamChange={updateCam}
+                />
+
+                {/* 5. Sound Recording */}
+                <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.sound_enabled ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Volume2 className={`h-4 w-4 ${form.sound_enabled ? 'text-green-400' : 'text-gray-600'}`} />
+                      <span className="text-sm font-semibold text-white">Sound Recording</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5 ml-6">Sound enabled for this rig</p>
+                  </div>
+                  <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} />
                 </div>
-                <Toggle enabled={form.sound} onChange={() => setForm({ ...form, sound: !form.sound })} />
               </div>
             </div>
 
