@@ -240,8 +240,9 @@ function ShootCalendarEntry({
       return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
     });
 
+  // Count ALL future assigned shoots for a remote operator (including current shoot if already assigned)
   const getApprovedCount = (email) =>
-    allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(email)).length;
+    allShoots.filter(s => s.date >= todayStr && s.assigned_operators?.includes(email)).length;
 
   const handleSelfAssign = async (e) => {
     e.stopPropagation();
@@ -256,7 +257,8 @@ function ShootCalendarEntry({
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
       if (shootFull) return;
-      const approvedCount = getApprovedCount(user.email);
+      // Count current future assigned shoots (not including this shoot since they're not yet assigned)
+      const approvedCount = allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(user.email)).length;
       if (approvedCount < AUTO_APPROVE_LIMIT) {
         await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
@@ -840,21 +842,26 @@ export default function Calendar() {
     setRigTestModal(null);
   };
 
-  // Quick self-assign/unassign from context menu
+  // Quick self-assign/unassign from context menu — enforces AUTO_APPROVE_LIMIT for remote users
   const handleContextMenuAssignSelf = async (shoot) => {
     if (!user?.email) return;
     const isPending = shoot.pending_operators?.includes(user.email);
     const isAssigned = shoot.assigned_operators?.includes(user.email);
+    const todayStrLocal = format(new Date(), 'yyyy-MM-dd');
     if (isAssigned) {
       await handleShootUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
     } else if (isPending) {
       await handleShootUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
+    } else if (isAdmin) {
+      await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      if (isAdmin) {
+      // Remote user: enforce 5-shoot pre-approval limit
+      const approvedCount = shoots.filter(s => s.id !== shoot.id && s.date >= todayStrLocal && s.assigned_operators?.includes(user.email)).length;
+      if (approvedCount < AUTO_APPROVE_LIMIT) {
         await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
-        await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
-      } else {
-        await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      } else if (!(shoot.pending_operators || []).includes(user.email)) {
+        await handleShootUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
     }
   };
