@@ -60,7 +60,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Shoot Duration', icon: Clock, page: 'ShootDuration' },
     showRigs && { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     showReports && { name: 'Reports', icon: BarChart2, page: 'Reports' },
-    showAccounts && { name: 'Accounts', icon: DollarSign, page: 'Accounts' },
+    showAccounts && { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
     { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
     showReference && { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },

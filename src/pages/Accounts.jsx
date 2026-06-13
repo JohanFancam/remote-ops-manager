@@ -8,51 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Download, Check, X, FileText, Edit2, Save, RefreshCw, Clock, CheckCircle2
+  Check, X, FileText, Edit2, Save, RefreshCw, Clock, CheckCircle2
 } from 'lucide-react';
-import { format } from 'date-fns';
-import jsPDF from 'jspdf';
+import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { getAdditionalShootIds } from '../components/utils/earningsUtils';
 
-function exportPDF(rows, month, baseRate, additionalRate) {
-  const doc = new jsPDF();
-  doc.setFontSize(16); doc.setFont('helvetica', 'bold');
-  doc.text('Remote Ops — Accounts Summary', 20, 20);
-  doc.setFontSize(11); doc.setFont('helvetica', 'normal');
-  doc.text(`Month: ${month}   |   Standard: R${baseRate}  Additional: R${additionalRate}`, 20, 30);
-  doc.setFontSize(8); doc.setTextColor(120, 120, 120);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, 20, 38);
-  let y = 52;
-  doc.setTextColor(0, 0, 0);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-  doc.text('Operator', 20, y); doc.text('Shoots', 90, y); doc.text('Amount (ZAR)', 130, y); doc.text('Status', 175, y);
-  doc.setDrawColor(180, 180, 180); doc.line(20, y + 3, 190, y + 3); y += 10;
-  doc.setFont('helvetica', 'normal');
-  rows.forEach(r => {
-    if (y > 270) { doc.addPage(); y = 20; }
-    doc.text((r.name || r.email).substring(0, 35), 20, y);
-    doc.text(String(r.shoots), 90, y);
-    doc.text(`R${r.total.toFixed(2)}`, 130, y);
-    doc.text(r.paid ? 'PAID' : 'UNPAID', 175, y);
-    y += 9;
-  });
-  doc.line(20, y + 2, 190, y + 2); y += 8;
-  doc.setFont('helvetica', 'bold');
-  const grand = rows.reduce((s, r) => s + r.total, 0);
-  doc.text('TOTAL', 20, y);
-  doc.text(`R${grand.toFixed(2)}`, 130, y);
-  doc.save(`Accounts_${month}.pdf`);
-}
-
-function exportCSV(rows, month) {
-  const header = 'Operator,Email,Shoots,Amount (ZAR),Paid\n';
-  const body = rows.map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${r.paid ? 'Yes' : 'No'}`).join('\n');
-  const blob = new Blob([header + body], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `Accounts_${month}.csv`; a.click();
-}
-
-function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onTogglePaid, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -61,28 +23,20 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
   const opShoots = shoots
     .filter(s => s.assigned_operators?.includes(op.email))
-    .sort((a, b) => {
-      const dc = a.date.localeCompare(b.date);
-      return dc !== 0 ? dc : (a.game_time || '').localeCompare(b.game_time || '');
-    });
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.game_time || '').localeCompare(b.game_time || ''));
 
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
 
   const shootsByDate = useMemo(() => {
     const byDate = {};
-    opShoots.forEach(s => {
-      if (!byDate[s.date]) byDate[s.date] = [];
-      byDate[s.date].push(s);
-    });
+    opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
     return byDate;
   }, [opShoots]);
 
   const autoAdditionalIds = useMemo(() => {
     const ids = new Set();
-    Object.values(shootsByDate).forEach(dayShots => {
-      getAdditionalShootIds(dayShots).forEach(id => ids.add(id));
-    });
+    Object.values(shootsByDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => ids.add(id)));
     return ids;
   }, [shootsByDate]);
 
@@ -99,24 +53,12 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   };
 
   const total = opShoots.reduce((s, sh) => s + getFee(sh), 0);
-  const allPaid = opShoots.length > 0 && opShoots.every(sh => getRecord(sh)?.paid === true);
+  const hasPending = pendingShoots.length > 0;
 
   const handleSaveFee = async (shoot) => {
     const rec = getRecord(shoot);
     await onSaveFee({ shoot, email: op.email, name: op.full_name, month, override_fee: parseFloat(editFee), existingId: rec?.id });
     setEditingId(null);
-  };
-
-  const handleTogglePaid = async (shoot) => {
-    const rec = getRecord(shoot);
-    await onTogglePaid({ shoot, email: op.email, name: op.full_name, month, paid: !rec?.paid, existingId: rec?.id });
-  };
-
-  const handleToggleAllPaid = async () => {
-    for (const shoot of opShoots) {
-      const rec = getRecord(shoot);
-      await onTogglePaid({ shoot, email: op.email, name: op.full_name, month, paid: !allPaid, existingId: rec?.id });
-    }
   };
 
   const handleSaveNote = async (shoot) => {
@@ -132,13 +74,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
     await onToggleAdditional({ shoot, email: op.email, name: op.full_name, month, is_additional: !current, existingId: rec?.id });
   };
 
-  const hasPending = pendingShoots.length > 0;
-
   return (
     <div className={`rounded-xl border transition-colors ${
-      allPaid ? 'border-green-800/60 bg-green-950/10'
-      : hasPending ? 'border-yellow-800/40 bg-gray-900'
-      : 'border-gray-800 bg-gray-900'
+      hasPending ? 'border-yellow-800/40 bg-yellow-950/10' : 'border-gray-800 bg-gray-900'
     }`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
@@ -158,16 +96,12 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             <p className="text-sm text-gray-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
             <p className="font-mono font-bold text-white">R{total.toFixed(2)}</p>
           </div>
-          <Badge className={allPaid ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}>
-            {allPaid ? 'Paid' : 'Unpaid'}
-          </Badge>
           {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
         </div>
       </button>
 
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-3">
-
           {/* Pending approval section */}
           {hasPending && (
             <div className="bg-yellow-950/20 border border-yellow-800/40 rounded-xl p-3 space-y-2">
@@ -193,20 +127,10 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </div>
           )}
 
-          {/* Approved shoots */}
           {opShoots.length > 0 && (
             <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
               <CheckCircle2 className="h-3 w-3" /> Approved Shoots ({opShoots.length})
             </p>
-          )}
-
-          {opShoots.length > 0 && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={handleToggleAllPaid}
-                className={allPaid ? 'bg-gray-700 hover:bg-gray-600 text-xs' : 'bg-green-700 hover:bg-green-600 text-xs'}>
-                {allPaid ? 'Mark All Unpaid' : 'Mark All Paid'}
-              </Button>
-            </div>
           )}
 
           {opShoots.length === 0 && !hasPending && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
@@ -215,12 +139,11 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
           {opShoots.map(shoot => {
             const rec = getRecord(shoot);
             const fee = getFee(shoot);
-            const isPaid = rec?.paid === true;
             const additional = isAdditional(shoot);
             const hasOverrideFee = rec?.override_fee != null;
             const hasManualAdditional = rec?.is_additional != null;
             return (
-              <div key={shoot.id} className={`rounded-lg p-3 border ${isPaid ? 'border-green-800/40 bg-green-950/10' : 'border-gray-800 bg-gray-800/40'}`}>
+              <div key={shoot.id} className="rounded-lg p-3 border border-gray-800 bg-gray-800/40">
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{shoot.title}</p>
@@ -253,10 +176,6 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                         </Button>
                       </>
                     )}
-                    <Button size="sm" onClick={() => handleTogglePaid(shoot)}
-                      className={`h-7 text-xs px-2 ${isPaid ? 'bg-gray-700 hover:bg-gray-600' : 'bg-green-700 hover:bg-green-600'}`}>
-                      {isPaid ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
-                    </Button>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
@@ -292,7 +211,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 }
 
 export default function Accounts() {
-  const { user, isAdmin } = useApp();
+  const { isAdmin } = useApp();
   const queryClient = useQueryClient();
   const canView = isAdmin;
 
@@ -300,7 +219,7 @@ export default function Accounts() {
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
-    queryFn: () => base44.entities.Shoot.list('-date', 1000),
+    queryFn: () => base44.entities.Shoot.list('-date', 2000),
   });
 
   const { data: pendingUsers = [] } = useQuery({
@@ -334,30 +253,21 @@ export default function Accounts() {
   };
 
   const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
-  // Pending shoots this month (operator in pending_operators, not yet assigned)
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
 
-  // Build operator list: non-admin PendingUsers + any shoot emails not flagged as admin in PendingUser
   const remoteUsers = useMemo(() => {
-    // Emails explicitly marked as admin — these are always excluded
     const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
-
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
     const knownEmails = new Set(knownUsers.map(u => u.email));
-
-    // Pick up any operator emails from shoots not in PendingUser at all, and not known admins
-    // Also exclude the current user if they are admin
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
-
     const extraEmails = new Set();
     shoots.forEach(s => {
       (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
       (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
     });
-
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
     return [...knownUsers, ...extraUsers];
   }, [pendingUsers, shoots, paymentRecords]);
@@ -366,37 +276,41 @@ export default function Accounts() {
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opPending = monthPendingShoots.filter(s => s.pending_operators?.includes(op.email));
-      const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
-
-      const byDate = {};
-      opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
-      const autoAdditionalIds = new Set();
-      Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
-
-      const total = opShoots.reduce((sum, sh) => {
-        const rec = opRecords.find(r => r.shoot_id === sh.id);
-        if (rec?.override_fee != null) return sum + rec.override_fee;
-        const additional = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(sh.id);
-        return sum + (additional ? additionalRate : baseRate);
-      }, 0);
-
-      const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
-      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length, total, paid: allPaid };
+      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length };
     }).filter(op => op.shoots > 0 || op.pending > 0);
-  }, [remoteUsers, monthShoots, monthPendingShoots, paymentRecords, filterMonth, baseRate, additionalRate]);
+  }, [remoteUsers, monthShoots, monthPendingShoots, filterMonth]);
 
-  const grandTotal = summaryRows.reduce((s, r) => s + r.total, 0);
-  const paidCount = summaryRows.filter(r => r.paid).length;
   const totalPending = summaryRows.reduce((s, r) => s + r.pending, 0);
+  const totalShoots = summaryRows.reduce((s, r) => s + r.shoots, 0);
+
+  // Shoots per operator chart data
+  const operatorChartData = useMemo(() => {
+    return summaryRows
+      .filter(r => r.shoots > 0)
+      .sort((a, b) => b.shoots - a.shoots)
+      .map(r => ({ name: r.name.split(' ')[0], shoots: r.shoots, pending: r.pending }));
+  }, [summaryRows]);
+
+  // Yearly total shoots chart
+  const yearChartData = useMemo(() => {
+    const yearNum = parseInt(filterMonth.split('-')[0]);
+    const months = eachMonthOfInterval({
+      start: startOfYear(new Date(yearNum, 0, 1)),
+      end: endOfYear(new Date(yearNum, 0, 1)),
+    });
+    return months.map(monthDate => {
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const count = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled').length;
+      return { month: format(monthDate, 'MMM'), count, isCurrentMonth: monthKey === filterMonth };
+    });
+  }, [shoots, filterMonth]);
+
+  const yearTotal = yearChartData.reduce((s, d) => s + d.count, 0);
 
   const upsertRecord = async ({ shoot, email, name, month, existingId, ...fields }) => {
     const base = {
-      operator_email: email,
-      operator_name: name,
-      period_month: month,
-      shoot_id: shoot.id,
-      shoot_title: shoot.title,
-      shoot_date: shoot.date,
+      operator_email: email, operator_name: name, period_month: month,
+      shoot_id: shoot.id, shoot_title: shoot.title, shoot_date: shoot.date,
     };
     if (existingId) {
       await base44.entities.PaymentRecord.update(existingId, { ...base, ...fields });
@@ -406,18 +320,10 @@ export default function Accounts() {
     refresh();
   };
 
-  const handleSaveFee = (args) => upsertRecord(args);
-  const handleTogglePaid = (args) => upsertRecord(args);
-  const handleSaveNote = (args) => upsertRecord(args);
-  const handleToggleAdditional = (args) => upsertRecord(args);
-
   const handleApprove = async (shoot, email) => {
     const newPending = (shoot.pending_operators || []).filter(e => e !== email);
     const newAssigned = [...(shoot.assigned_operators || []), email];
-    await base44.entities.Shoot.update(shoot.id, {
-      pending_operators: newPending,
-      assigned_operators: newAssigned,
-    });
+    await base44.entities.Shoot.update(shoot.id, { pending_operators: newPending, assigned_operators: newAssigned });
     refresh();
   };
 
@@ -437,58 +343,101 @@ export default function Accounts() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto space-y-6">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Accounts</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Operator earnings — Standard: R{baseRate} · Additional: R{additionalRate}</p>
+            <h1 className="text-2xl font-bold text-white">Pending / Approve</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Review self-assignments and approve pending shoots</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={() => exportPDF(summaryRows, filterMonth, baseRate, additionalRate)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
-              <FileText className="h-4 w-4" /> PDF
-            </Button>
-            <Button onClick={() => exportCSV(summaryRows, filterMonth)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9 text-xs">
-              <Download className="h-4 w-4" /> CSV
-            </Button>
-            <Button onClick={refresh} variant="ghost" size="icon" className="text-gray-500 hover:text-white h-9 w-9">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button onClick={refresh} variant="ghost" size="icon" className="text-gray-500 hover:text-white h-9 w-9">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Month nav */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Yearly shoots chart */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-5">
+            <div className="mb-4">
+              <p className="text-sm text-gray-400">{filterMonth.split('-')[0]} — Total Shoots</p>
+              <p className="text-2xl font-bold text-white">{yearTotal} shoots</p>
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
+                <Tooltip
+                  formatter={(v) => [v, 'Shoots']}
+                  contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#9ca3af' }}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {yearChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Month navigator */}
+        <div className="flex items-center justify-between">
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
+            {totalPending > 0 && (
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1">
+                <Clock className="h-3 w-3" /> {totalPending} pending
+              </Badge>
+            )}
+          </div>
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Shoots per operator chart */}
+        {operatorChartData.length > 0 && (
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Total Payout</p>
-              <p className="text-2xl font-bold text-white mt-1">R{grandTotal.toFixed(2)}</p>
+              <p className="text-sm text-gray-400 mb-3">Shoots per Operator — {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={operatorChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
+                  <Tooltip
+                    formatter={(v) => [v, 'Shoots']}
+                    contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: '#9ca3af' }}
+                  />
+                  <Bar dataKey="shoots" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-5">
+              <p className="text-gray-400 text-sm">Total Shoots</p>
+              <p className="text-2xl font-bold text-white mt-1">{totalShoots}</p>
             </CardContent>
           </Card>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Operators</p>
+              <p className="text-gray-400 text-sm">Operators Active</p>
               <p className="text-2xl font-bold text-white mt-1">{summaryRows.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Paid</p>
-              <p className="text-2xl font-bold text-green-400 mt-1">{paidCount} / {summaryRows.length}</p>
-            </CardContent>
-          </Card>
-          <Card className={`border-gray-800 ${totalPending > 0 ? 'bg-yellow-950/20 border-yellow-800/40' : 'bg-gray-900'}`}>
+          <Card className={`border-gray-800 col-span-2 md:col-span-1 ${totalPending > 0 ? 'bg-yellow-950/20 border-yellow-800/40' : 'bg-gray-900'}`}>
             <CardContent className="p-5">
               <p className={`text-sm ${totalPending > 0 ? 'text-yellow-400' : 'text-gray-400'}`}>Pending Approvals</p>
               <p className={`text-2xl font-bold mt-1 ${totalPending > 0 ? 'text-yellow-400' : 'text-white'}`}>{totalPending}</p>
@@ -511,10 +460,9 @@ export default function Accounts() {
                   .sort((a, b) => a.date.localeCompare(b.date))}
                 paymentRecords={paymentRecords}
                 month={filterMonth}
-                onSaveFee={handleSaveFee}
-                onTogglePaid={handleTogglePaid}
-                onSaveNote={handleSaveNote}
-                onToggleAdditional={handleToggleAdditional}
+                onSaveFee={(args) => upsertRecord(args)}
+                onSaveNote={(args) => upsertRecord(args)}
+                onToggleAdditional={(args) => upsertRecord(args)}
                 onApprove={handleApprove}
                 onReject={handleReject}
                 baseRate={baseRate}

@@ -43,6 +43,7 @@ function LiveClock() {
 
 export default function AccountsDashboard() {
   const { user, isAccounts, isAdmin } = useApp();
+  const canMarkPaid = isAccounts; // only accounts users can mark as paid
   const canView = isAccounts || isAdmin;
   const queryClient = useQueryClient();
 
@@ -416,24 +417,33 @@ export default function AccountsDashboard() {
                           <StickyNote className="h-4 w-4" />
                         </button>
 
-                        {/* Paid toggle */}
-                        <button
-                          onClick={() => handleTogglePaid(row)}
-                          disabled={saving === row.email}
-                          className="flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50"
-                          title={row.paid ? 'Mark as unpaid' : 'Mark as paid'}
-                        >
-                          {row.paid
-                            ? <CheckCircle2 className="h-5 w-5 text-green-400" />
-                            : <Circle className="h-5 w-5 text-gray-500 hover:text-green-400" />
-                          }
+                        {/* Paid toggle — accounts users only */}
+                        {canMarkPaid ? (
+                          <button
+                            onClick={() => handleTogglePaid(row)}
+                            disabled={saving === row.email}
+                            className="flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                            title={row.paid ? 'Mark as unpaid' : 'Mark as paid'}
+                          >
+                            {row.paid
+                              ? <CheckCircle2 className="h-5 w-5 text-green-400" />
+                              : <Circle className="h-5 w-5 text-gray-500 hover:text-green-400" />
+                            }
+                            <Badge className={row.paid
+                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                              : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                            }>
+                              {row.paid ? 'Paid' : 'Unpaid'}
+                            </Badge>
+                          </button>
+                        ) : (
                           <Badge className={row.paid
                             ? 'bg-green-500/20 text-green-400 border-green-500/30'
                             : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                           }>
                             {row.paid ? 'Paid' : 'Unpaid'}
                           </Badge>
-                        </button>
+                        )}
                       </div>
                     </div>
 
