@@ -63,7 +63,15 @@ export default function ShootSidePanel({
   const dateStr = format(shootDate, 'MMM d, yyyy');
   const timeStr = shoot.game_time || 'TBA';
 
-  const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+  const client = (shoot.client || '').toLowerCase().trim();
+  const titleLower = (shoot.title || '').toLowerCase().trim();
+  const rig = rigSettings.find(r => {
+    const team = (r.team || '').toLowerCase().trim();
+    if (!team) return false;
+    return team === client || team === titleLower ||
+      client.includes(team) || titleLower.includes(team) ||
+      team.includes(client) || team.includes(titleLower);
+  });
   const rigTypeLabel = getRigTypeLabel(shoot, rig) || 'Data';
 
   return (

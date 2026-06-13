@@ -33,13 +33,26 @@ const AUTO_APPROVE_LIMIT = 5;
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
+// Fuzzy rig match: shoot client/title contains team name OR team name contains shoot client/title keyword
+const findMatchingRig = (shoot, rigSettings) => {
+  if (!shoot) return null;
+  const client = (shoot.client || '').toLowerCase().trim();
+  const title = (shoot.title || '').toLowerCase().trim();
+  return rigSettings.find(r => {
+    const team = (r.team || '').toLowerCase().trim();
+    if (!team) return false;
+    return (
+      team === client || team === title ||
+      client.includes(team) || title.includes(team) ||
+      team.includes(client) || team.includes(title)
+    );
+  }) || null;
+};
+
 const isFancamOrMixed = (shoot, rigSettings) => {
   if (shoot.rig_type_override === 'Fancam' || shoot.rig_type_override === 'Data/Fancam') return true;
   if (shoot.rig_type_override === 'Data') return false;
-  const rs = rigSettings.find(r => r.team && (
-    (shoot.client || '').toLowerCase().includes(r.team.toLowerCase()) ||
-    (shoot.title || '').toLowerCase().includes(r.team.toLowerCase())
-  ));
+  const rs = findMatchingRig(shoot, rigSettings);
   return rs?.rig_type === 'Fancam' || rs?.rig_type === 'Data/Fancam';
 };
 
@@ -587,8 +600,8 @@ export default function Calendar() {
   };
 
   const getShootTeamName = (shoot) => {
-    const exactRig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
-    if (exactRig?.team) return exactRig.team;
+    const rig = findMatchingRig(shoot, rigSettings);
+    if (rig?.team) return rig.team;
     if (shoot?.client) return shoot.client;
     return shortenTitle(shoot?.title || 'Unknown Team');
   };
@@ -600,7 +613,7 @@ export default function Calendar() {
     const items = uniqueShoots
       .sort((a, b) => ((a.date || '') + ' ' + (a.game_time || '')).localeCompare((b.date || '') + ' ' + (b.game_time || '')))
       .map((s) => {
-        const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
+        const rig = findMatchingRig(s, rigSettings);
         const teamName = getShootTeamName(s);
         const label = getRigTypeLabel(s, rig) || 'Data';
         return '• ' + teamName + ' - ' + label;
@@ -858,18 +871,30 @@ export default function Calendar() {
 
   const duplicateShoot = (shoot) => {
     if (!isAdmin || !shoot) return;
-    const { id, created_date, updated_date, created_by, assigned_operators, pending_operators, ...copy } = shoot;
+    const {
+      id, created_date, updated_date, created_by,
+      assigned_operators, pending_operators,
+      // Strip all phase/rig-check state so duplicate starts fresh
+      phase_status,
+      rig_check_completed, rig_check_checked_from_calendar,
+      rig_check_checked_by, rig_check_checked_by_name, rig_check_checked_at,
+      rig_check_standby_date, rig_check_standby_admin_email, rig_check_standby_admin_name,
+      rig_check_archived, rig_check_archived_at, rig_check_archived_by, rig_check_archived_by_name,
+      ...copy
+    } = shoot;
     setSelectedShoot(null);
+    const newTitle = `${shoot.title || 'Shoot'} Copy`;
     setForm({
       ...emptyForm,
       ...copy,
-      title: `${shoot.title || 'Shoot'} Copy`,
+      title: newTitle,
       assigned_operators: [],
       pending_operators: [],
-      status: shoot.status || 'upcoming',
+      status: 'upcoming',
+      phase_status: {},
     });
     setEditingShoot(null);
-    setEditingShootForm({ ...copy, title: `${shoot.title || 'Shoot'} Copy` });
+    setEditingShootForm({ ...copy, title: newTitle, phase_status: {} });
   };
 
 
@@ -1227,7 +1252,7 @@ export default function Calendar() {
             <div className="space-y-1.5">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Checked Shoots</p>
               {rigCheckMessageShoots.map((shoot) => {
-                const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot.client?.toLowerCase().trim());
+                const rig = findMatchingRig(shoot, rigSettings);
                 const teamName = getShootTeamName(shoot);
                 const label = getRigTypeLabel(shoot, rig) || 'Data';
                 return (

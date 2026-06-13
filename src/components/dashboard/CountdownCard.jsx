@@ -116,14 +116,17 @@ export default function CountdownCard({
   }, []);
 
   const matchedRig = useMemo(() => {
-    const client = shoot.client?.toLowerCase().trim();
-    const title = shoot.title?.toLowerCase().trim();
-
+    const client = (shoot.client || '').toLowerCase().trim();
+    const title = (shoot.title || '').toLowerCase().trim();
     return rigSettings.find((r) => {
-      const team = r.team?.toLowerCase().trim();
+      const team = (r.team || '').toLowerCase().trim();
       if (!team) return false;
-      return team === client || team === title;
-    });
+      return (
+        team === client || team === title ||
+        client.includes(team) || title.includes(team) ||
+        team.includes(client) || team.includes(title)
+      );
+    }) || null;
   }, [rigSettings, shoot.client, shoot.title]);
 
   const showAttention = matchedRig?.attention_enabled === true;
