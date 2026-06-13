@@ -311,11 +311,11 @@ export default function CountdownCard({
   };
 
   const dataHdValue = matchedRig?.data_enabled !== false && matchedRig?.data_hd ? formatCameraValue(matchedRig.data_hd) : null;
-  const dataWideValue = matchedRig?.data_enabled !== false && matchedRig?.data_wide ? formatCameraValue(matchedRig.data_wide) : null;
+  const dataWideValue = matchedRig?.data_enabled !== false && matchedRig?.data_wide_enabled !== false && matchedRig?.data_wide ? formatCameraValue(matchedRig.data_wide) : null;
   const fancamDayHdValue = matchedRig?.fancam_day_enabled && matchedRig?.fancam_day_hd ? formatCameraValue(matchedRig.fancam_day_hd) : null;
-  const fancamDayWideValue = matchedRig?.fancam_day_enabled && matchedRig?.fancam_day_wide ? formatCameraValue(matchedRig.fancam_day_wide) : null;
+  const fancamDayWideValue = matchedRig?.fancam_day_enabled && matchedRig?.fancam_day_wide_enabled !== false && matchedRig?.fancam_day_wide ? formatCameraValue(matchedRig.fancam_day_wide) : null;
   const fancamNightHdValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_hd ? formatCameraValue(matchedRig.fancam_night_hd) : null;
-  const fancamNightWideValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_wide ? formatCameraValue(matchedRig.fancam_night_wide) : null;
+  const fancamNightWideValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_wide_enabled !== false && matchedRig?.fancam_night_wide ? formatCameraValue(matchedRig.fancam_night_wide) : null;
   const attentionValue = showAttention && matchedRig?.attention_hd ? formatCameraValue(matchedRig.attention_hd) : null;
   const soundValue = showSound ? 'Enabled' : null;
 

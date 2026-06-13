@@ -19,12 +19,16 @@ const DEFAULT_FANCAM_NIGHT_HD = { shutter: '1/400', aperture: 'F5.6', iso: '5000
 const DEFAULT_FANCAM_NIGHT_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '3200' };
 const DEFAULT_ATTENTION_HD = { shutter: '1/100', aperture: 'F11', iso: 'Auto' };
 
+// Arena defaults — standard 1/200 | F5.6 | 3200 ISO for all cameras
+const ARENA_HD = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
+const ARENA_WIDE = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
+
 const emptyForm = {
   team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
   remote_rigs: [],
-  data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide: { ...DEFAULT_DATA_WIDE },
-  fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
-  fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
+  data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide_enabled: true, data_wide: { ...DEFAULT_DATA_WIDE },
+  fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide_enabled: true, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
+  fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide_enabled: true, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
   attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
   sound_enabled: false, notes: '',
 };
@@ -66,7 +70,7 @@ function CamSelect({ cam, onChange, readOnly, freeTextFields = [] }) {
   );
 }
 
-function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, onCamChange, readOnly, freeTextFields }) {
+function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, wideEnabled, onWideToggle, onCamChange, readOnly, freeTextFields }) {
   return (
     <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
       <div className="flex items-center justify-between mb-3">
@@ -79,17 +83,20 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
       {enabled && (
         <div className="space-y-3 mt-3">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400 font-medium">HD Camera</span>
             </div>
             <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
           </div>
           {camKeyWide && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-gray-400 font-medium">Wide Camera</span>
+                {onWideToggle && <Toggle enabled={wideEnabled} onChange={onWideToggle} readOnly={readOnly} />}
               </div>
-              <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
+              {wideEnabled !== false && (
+                <CamSelect cam={camWide} onChange={val => onCamChange(camKeyWide, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
+              )}
             </div>
           )}
         </div>
@@ -159,11 +166,25 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   {SPORTS.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={form.venue_type} onValueChange={v => setForm({ ...form, venue_type: v })} disabled={readOnly}>
+              <Select value={form.venue_type} onValueChange={v => {
+                  if (v === 'Arena') {
+                    setForm({ ...form, venue_type: v,
+                      data_hd: { ...ARENA_HD }, data_wide: { ...ARENA_WIDE },
+                      data_enabled: true, data_wide_enabled: true,
+                      fancam_day_enabled: true,
+                      fancam_day_hd: { ...ARENA_HD }, fancam_day_wide: { ...ARENA_WIDE },
+                      fancam_day_wide_enabled: true,
+                      fancam_night_enabled: false, fancam_night_wide_enabled: true,
+                    });
+                  } else {
+                    setForm({ ...form, venue_type: v });
+                  }
+                }} disabled={readOnly}>
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
                   <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
                   <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
+                  <SelectItem value="Arena" className="text-white">Arena</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })} disabled={readOnly}>
@@ -218,6 +239,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camKeyHd="data_hd" camKeyWide="data_wide"
                   camHd={form.data_hd || DEFAULT_DATA_HD}
                   camWide={form.data_wide || DEFAULT_DATA_WIDE}
+                  wideEnabled={form.data_wide_enabled !== false}
+                  onWideToggle={() => setForm({ ...form, data_wide_enabled: !form.data_wide_enabled })}
                   onCamChange={updateCam}
                   readOnly={readOnly}
                 />
@@ -231,6 +254,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camKeyHd="fancam_day_hd" camKeyWide="fancam_day_wide"
                   camHd={form.fancam_day_hd || DEFAULT_FANCAM_DAY_HD}
                   camWide={form.fancam_day_wide || DEFAULT_FANCAM_DAY_WIDE}
+                  wideEnabled={form.fancam_day_wide_enabled !== false}
+                  onWideToggle={() => setForm({ ...form, fancam_day_wide_enabled: !form.fancam_day_wide_enabled })}
                   onCamChange={updateCam}
                   readOnly={readOnly}
                   freeTextFields={['aperture', 'iso']}
@@ -245,6 +270,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   camKeyHd="fancam_night_hd" camKeyWide="fancam_night_wide"
                   camHd={form.fancam_night_hd || DEFAULT_FANCAM_NIGHT_HD}
                   camWide={form.fancam_night_wide || DEFAULT_FANCAM_NIGHT_WIDE}
+                  wideEnabled={form.fancam_night_wide_enabled !== false}
+                  onWideToggle={() => setForm({ ...form, fancam_night_wide_enabled: !form.fancam_night_wide_enabled })}
                   onCamChange={updateCam}
                   readOnly={readOnly}
                 />

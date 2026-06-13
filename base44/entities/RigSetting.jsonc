@@ -10,7 +10,8 @@
       "type": "string",
       "enum": [
         "Indoor",
-        "Outdoor"
+        "Outdoor",
+        "Arena"
       ],
       "default": "Indoor"
     },
@@ -48,6 +49,11 @@
       "type": "object",
       "description": "Data HD Camera: shutter, aperture, iso"
     },
+    "data_wide_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Data Wide Camera enabled"
+    },
     "data_wide": {
       "type": "object",
       "description": "Data Wide Camera: shutter, aperture, iso"
@@ -61,6 +67,11 @@
       "type": "object",
       "description": "Fancam Day HD Camera: shutter, aperture, iso"
     },
+    "fancam_day_wide_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Fancam Day Wide Camera enabled"
+    },
     "fancam_day_wide": {
       "type": "object",
       "description": "Fancam Day Wide Camera: shutter, aperture, iso"
@@ -73,6 +84,11 @@
     "fancam_night_hd": {
       "type": "object",
       "description": "Fancam Night HD Camera: shutter, aperture, iso"
+    },
+    "fancam_night_wide_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Fancam Night Wide Camera enabled"
     },
     "fancam_night_wide": {
       "type": "object",
