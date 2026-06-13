@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
@@ -20,6 +21,16 @@ import { cn } from "@/lib/utils";
 function LayoutContent({ children, currentPageName }) {
   const { user, isAdmin, isStandby, isAccounts, isLoading } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const didRedirect = useRef(false);
+
+  // Redirect accounts users to their dashboard if they land on "/"
+  useEffect(() => {
+    if (!isLoading && isAccounts && !didRedirect.current && (currentPageName === 'Dashboard' || currentPageName === null)) {
+      didRedirect.current = true;
+      navigate('/AccountsDashboard', { replace: true });
+    }
+  }, [isLoading, isAccounts, currentPageName]);
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
@@ -71,7 +82,7 @@ function LayoutContent({ children, currentPageName }) {
   ];
 
   const accountsNav = [
-    { name: 'Earnings', icon: Receipt, page: 'AccountsDashboard' },
+    { name: 'Dashboard', icon: Receipt, page: 'AccountsDashboard' },
   ];
 
   const navItems = isAdmin ? adminNav : isStandby ? standbyNav : isAccounts ? accountsNav : remoteNav;
@@ -102,9 +113,9 @@ function LayoutContent({ children, currentPageName }) {
         <div className="px-4 py-3 border-b border-gray-800">
           <span className={cn(
             "text-xs px-2.5 py-1 rounded-full font-medium",
-            isAdmin ? "bg-blue-600/20 text-blue-400" : isStandby ? "bg-yellow-600/20 text-yellow-400" : "bg-gray-700 text-gray-400"
+            isAdmin ? "bg-blue-600/20 text-blue-400" : isStandby ? "bg-yellow-600/20 text-yellow-400" : isAccounts ? "bg-green-600/20 text-green-400" : "bg-gray-700 text-gray-400"
           )}>
-            {isAdmin ? '⚡ Admin' : isStandby ? '🎯 Standby User' : '📡 Remote Operator'}
+            {isAdmin ? '⚡ Admin' : isStandby ? '🎯 Standby User' : isAccounts ? '💰 Accounts' : '📡 Remote Operator'}
           </span>
         </div>
 

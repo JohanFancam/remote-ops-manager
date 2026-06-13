@@ -1,19 +1,22 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Download, TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
-import { format, startOfYear, endOfYear, eachMonthOfInterval, parseISO } from 'date-fns';
+import {
+  ChevronLeft, ChevronRight, Download, TrendingUp, Users,
+  DollarSign, Calendar, CheckCircle2, Circle, StickyNote, X, Clock
+} from 'lucide-react';
+import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { getAdditionalShootIds } from '../components/utils/earningsUtils';
 
 function exportCSV(rows, month) {
-  const header = 'Operator,Email,Shoots,Amount (ZAR),Paid\n';
+  const header = 'Operator,Email,Shoots,Amount (ZAR),Paid,Paid Date,Note\n';
   const body = rows
-    .map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${r.paid ? 'Yes' : 'No'}`)
+    .map(r => `"${r.name}","${r.email}",${r.shoots},${r.total.toFixed(2)},${r.paid ? 'Yes' : 'No'},"${r.paidDate || ''}","${r.note || ''}"`)
     .join('\n');
   const blob = new Blob([header + body], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -24,11 +27,29 @@ function exportCSV(rows, month) {
   URL.revokeObjectURL(url);
 }
 
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="text-right">
+      <p className="text-lg font-mono font-bold text-white">{format(now, 'HH:mm:ss')}</p>
+      <p className="text-xs text-gray-400">{format(now, 'EEEE, d MMMM yyyy')}</p>
+    </div>
+  );
+}
+
 export default function AccountsDashboard() {
   const { user, isAccounts, isAdmin } = useApp();
   const canView = isAccounts || isAdmin;
+  const queryClient = useQueryClient();
 
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [noteEditing, setNoteEditing] = useState(null); // email being edited
+  const [noteInput, setNoteInput] = useState('');
+  const [saving, setSaving] = useState(null); // email currently saving
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -40,7 +61,7 @@ export default function AccountsDashboard() {
     queryFn: () => base44.entities.PendingUser.list(),
   });
 
-  const { data: paymentRecords = [] } = useQuery({
+  const { data: paymentRecords = [], refetch: refetchPayments } = useQuery({
     queryKey: ['paymentRecords'],
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 3000),
   });
@@ -59,27 +80,22 @@ export default function AccountsDashboard() {
     setFilterMonth(format(d, 'yyyy-MM'));
   };
 
-  // All remote users (non-admin)
   const remoteUsers = useMemo(() => {
     const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
     const knownEmails = new Set(knownUsers.map(u => u.email));
-
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
-
     const extraEmails = new Set();
     shoots.forEach(s => {
       (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
     });
-
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
     return [...knownUsers, ...extraUsers];
   }, [pendingUsers, shoots, paymentRecords]);
 
-  // Calculate fee for a shoot given records
   function calcFee(shoot, opRecords, autoAdditionalIds) {
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
     if (rec?.override_fee != null) return rec.override_fee;
@@ -87,7 +103,61 @@ export default function AccountsDashboard() {
     return isAdd ? additionalRate : baseRate;
   }
 
-  // Month summary rows
+  // Get or create the single month-level payment record for an operator
+  function getMonthRecord(email) {
+    return paymentRecords.find(r =>
+      r.operator_email === email &&
+      r.period_month === filterMonth &&
+      !r.shoot_id // month-level record has no shoot_id
+    );
+  }
+
+  const handleTogglePaid = async (row) => {
+    setSaving(row.email);
+    const existing = getMonthRecord(row.email);
+    const newPaid = !row.paid;
+    const paidDate = newPaid ? format(new Date(), 'yyyy-MM-dd') : null;
+
+    if (existing) {
+      await base44.entities.PaymentRecord.update(existing.id, {
+        paid: newPaid,
+        paid_date: paidDate,
+      });
+    } else {
+      await base44.entities.PaymentRecord.create({
+        operator_email: row.email,
+        operator_name: row.name,
+        period_month: filterMonth,
+        paid: newPaid,
+        paid_date: paidDate,
+        base_fee: row.total,
+      });
+    }
+    setSaving(null);
+    queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+  };
+
+  const handleSaveNote = async (row) => {
+    setSaving(row.email);
+    const existing = getMonthRecord(row.email);
+    if (existing) {
+      await base44.entities.PaymentRecord.update(existing.id, { notes: noteInput });
+    } else {
+      await base44.entities.PaymentRecord.create({
+        operator_email: row.email,
+        operator_name: row.name,
+        period_month: filterMonth,
+        paid: false,
+        notes: noteInput,
+        base_fee: row.total,
+      });
+    }
+    setSaving(null);
+    setNoteEditing(null);
+    setNoteInput('');
+    queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+  };
+
   const monthSummaryRows = useMemo(() => {
     const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
     return remoteUsers.map(op => {
@@ -100,46 +170,40 @@ export default function AccountsDashboard() {
       Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
 
       const total = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
-      const allPaid = opShoots.length > 0 && opShoots.every(sh => opRecords.find(r => r.shoot_id === sh.id)?.paid === true);
 
-      return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid: allPaid };
+      // Paid status comes from the month-level record
+      const monthRec = getMonthRecord(op.email);
+      const paid = monthRec?.paid === true;
+      const paidDate = monthRec?.paid_date || null;
+      const note = monthRec?.notes || '';
+
+      return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid, paidDate, note };
     }).filter(op => op.shoots > 0);
   }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
   const paidCount = monthSummaryRows.filter(r => r.paid).length;
 
-  // Year chart data — monthly totals for the current year
   const yearChartData = useMemo(() => {
     const yearNum = parseInt(filterMonth.split('-')[0]);
     const months = eachMonthOfInterval({
       start: startOfYear(new Date(yearNum, 0, 1)),
       end: endOfYear(new Date(yearNum, 0, 1)),
     });
-
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
-
       let total = 0;
       remoteUsers.forEach(op => {
         const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
         const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === monthKey);
-
         const byDate = {};
         opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
         const autoAdditionalIds = new Set();
         Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
-
         total += opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
       });
-
-      return {
-        month: format(monthDate, 'MMM'),
-        monthKey,
-        total,
-        isCurrentMonth: monthKey === filterMonth,
-      };
+      return { month: format(monthDate, 'MMM'), monthKey, total, isCurrentMonth: monthKey === filterMonth };
     });
   }, [shoots, remoteUsers, paymentRecords, filterMonth, baseRate, additionalRate]);
 
@@ -172,16 +236,19 @@ export default function AccountsDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-white">Earnings Overview</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Read-only · Standard: R{baseRate} · Additional: R{additionalRate}</p>
+            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Standard: R{baseRate} · Additional: R{additionalRate}</p>
           </div>
-          <Button
-            onClick={() => exportCSV(monthSummaryRows, filterMonth)}
-            className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          <div className="flex items-center gap-4 flex-wrap justify-end">
+            <LiveClock />
+            <Button
+              onClick={() => exportCSV(monthSummaryRows, filterMonth)}
+              className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Year chart */}
@@ -267,21 +334,86 @@ export default function AccountsDashboard() {
                 {monthSummaryRows
                   .sort((a, b) => b.total - a.total)
                   .map(row => (
-                  <div key={row.email} className="flex items-center justify-between px-5 py-3 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{row.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{row.email}</p>
+                  <div key={row.email} className="px-5 py-4 space-y-2">
+                    {/* Main row */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{row.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{row.email}</p>
+                        {row.paidDate && row.paid && (
+                          <p className="text-xs text-green-500 mt-0.5">Paid on {format(new Date(row.paidDate + 'T12:00:00'), 'd MMM yyyy')}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                        <span className="text-xs text-gray-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}</span>
+                        <span className="font-mono font-bold text-white text-sm">R{row.total.toLocaleString('en-ZA')}</span>
+
+                        {/* Note button */}
+                        <button
+                          onClick={() => {
+                            if (noteEditing === row.email) {
+                              setNoteEditing(null);
+                            } else {
+                              setNoteEditing(row.email);
+                              setNoteInput(row.note || '');
+                            }
+                          }}
+                          className="text-gray-500 hover:text-yellow-400 transition-colors"
+                          title="Add note (accounts only)"
+                        >
+                          <StickyNote className="h-4 w-4" />
+                        </button>
+
+                        {/* Paid toggle */}
+                        <button
+                          onClick={() => handleTogglePaid(row)}
+                          disabled={saving === row.email}
+                          className="flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                          title={row.paid ? 'Mark as unpaid' : 'Mark as paid'}
+                        >
+                          {row.paid
+                            ? <CheckCircle2 className="h-5 w-5 text-green-400" />
+                            : <Circle className="h-5 w-5 text-gray-500 hover:text-green-400" />
+                          }
+                          <Badge className={row.paid
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                          }>
+                            {row.paid ? 'Paid' : 'Unpaid'}
+                          </Badge>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-xs text-gray-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}</span>
-                      <span className="font-mono font-bold text-white text-sm">R{row.total.toLocaleString('en-ZA')}</span>
-                      <Badge className={row.paid
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                      }>
-                        {row.paid ? 'Paid' : 'Unpaid'}
-                      </Badge>
-                    </div>
+
+                    {/* Note inline */}
+                    {row.note && noteEditing !== row.email && (
+                      <div className="flex items-start gap-2 bg-yellow-950/20 border border-yellow-800/30 rounded px-3 py-2">
+                        <StickyNote className="h-3.5 w-3.5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-yellow-300">{row.note}</p>
+                      </div>
+                    )}
+
+                    {/* Note editor */}
+                    {noteEditing === row.email && (
+                      <div className="flex gap-2 items-end flex-wrap">
+                        <textarea
+                          value={noteInput}
+                          onChange={e => setNoteInput(e.target.value)}
+                          placeholder="Add a private note (accounts only)..."
+                          className="flex-1 min-w-[200px] bg-gray-800 border border-gray-700 text-white text-xs rounded-md px-3 py-2 resize-none h-16 placeholder:text-gray-600 focus:outline-none focus:border-yellow-600"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-yellow-700 hover:bg-yellow-600 text-xs h-8"
+                            onClick={() => handleSaveNote(row)} disabled={saving === row.email}>
+                            {saving === row.email ? 'Saving...' : 'Save'}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white h-8"
+                            onClick={() => setNoteEditing(null)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

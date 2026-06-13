@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
 
@@ -48,6 +48,15 @@ export default function RemoteEarnings({ user }) {
 
   const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate);
 
+  // Check if accounts has marked this month as paid
+  const monthPayRecord = paymentRecords.find(r =>
+    r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim() &&
+    r.period_month === monthStr &&
+    !r.shoot_id
+  );
+  const isPaidByAccounts = monthPayRecord?.paid === true;
+  const paidDate = monthPayRecord?.paid_date;
+
   // Apply payment record overrides
   const adjustedBreakdown = breakdown.map(item => {
     const rec = paymentRecords.find(r =>
@@ -88,6 +97,18 @@ export default function RemoteEarnings({ user }) {
               onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown, month: format(currentMonth, 'MMMM yyyy') })}>
               <Download className="h-3 w-3" /> PDF
             </Button>
+
+            {isPaidByAccounts ? (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1 text-xs h-7 px-2">
+                <CheckCircle2 className="h-3 w-3" />
+                Paid{paidDate ? ` · ${format(new Date(paidDate + 'T12:00:00'), 'd MMM')}` : ''}
+              </Badge>
+            ) : (
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1 text-xs h-7 px-2">
+                <Clock className="h-3 w-3" />
+                Unpaid
+              </Badge>
+            )}
 
             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs ml-1"
               onClick={() => setExpanded(!expanded)}>
