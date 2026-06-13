@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
 
 export default function Rigs() {
@@ -13,7 +13,9 @@ export default function Rigs() {
   const [sidePanelRig, setSidePanelRig] = useState(null); // rig object to edit, or {} for new, or null for closed
   const [viewOnly, setViewOnly] = useState(false); // true when viewing (not editing)
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const PER_PAGE = 9;
 
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
@@ -54,6 +56,9 @@ export default function Rigs() {
     r.rig_type?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const pageItems = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -73,7 +78,7 @@ export default function Rigs() {
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search by team, sport, rig type…"
             className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-blue-600 outline-none" />
           {search && (
@@ -83,9 +88,9 @@ export default function Rigs() {
           )}
         </div>
 
-        {/* 3-column tile grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {filtered.map(rig => {
+        {/* 3-column tile grid — 9 per page */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+          {pageItems.map(rig => {
             const isActive = sidePanelRig?.id === rig.id;
             return (
               <div key={rig.id} className={`rounded-xl border flex flex-col transition-all ${
@@ -183,6 +188,27 @@ export default function Rigs() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {rigSettings.length === 0 && !sidePanelRig && (
           <div className="text-center py-20 text-gray-500">
