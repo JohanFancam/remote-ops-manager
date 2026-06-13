@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -67,6 +67,14 @@ export default function AccountsDashboard() {
     queryKey: ['paymentRecords'],
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 3000),
   });
+
+  // Real-time sync — any accounts user's changes (paid toggle, notes) update all viewers instantly
+  useEffect(() => {
+    const unsub = base44.entities.PaymentRecord.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
+    });
+    return unsub;
+  }, [queryClient]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
