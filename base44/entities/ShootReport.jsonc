@@ -35,5 +35,61 @@
   "required": [
     "shoot_id",
     "shoot_title"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.operator_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.operator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accounts"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.operator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accounts"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.operator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "accounts"
+          }
+        }
+      ]
+    }
+  }
 }
