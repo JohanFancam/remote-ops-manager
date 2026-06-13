@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getDisplayName } from '../utils/nameUtils';
 
 const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com', 'mattswartuk@gmail.com'];
 
 export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = [], onConfirm, onClose }) {
-  const inactiveEmails = new Set(pendingUsers.filter(u => u.inactive).map(u => u.email));
+  // Build a unified list from pendingUsers (source of truth) enriched with live User data
+  const userMap = new Map((allUsers || []).map(u => [u.email?.toLowerCase(), u]));
 
-  const assignableUsers = (allUsers || [])
-    .filter(u => u && typeof u.email === 'string' && u.email.trim() !== '')
-    .filter(u => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
-    .filter(u => !inactiveEmails.has(u.email))
-    .filter(u => u.role !== 'admin')
-    .filter(u => !shoot.assigned_operators?.includes(u.email) && !shoot.pending_operators?.includes(u.email));
+  const assignableUsers = pendingUsers
+    .filter(pu => pu && typeof pu.email === 'string' && pu.email.trim() !== '')
+    .filter(pu => !EXCLUDED_EMAILS.includes(pu.email.trim().toLowerCase()))
+    .filter(pu => !pu.inactive)
+    .filter(pu => pu.role !== 'admin')
+    .filter(pu => {
+      const email = pu.email.trim().toLowerCase();
+      return !shoot.assigned_operators?.includes(email) && !shoot.pending_operators?.includes(email)
+        && !shoot.assigned_operators?.includes(pu.email) && !shoot.pending_operators?.includes(pu.email);
+    })
+    .map(pu => {
+      const live = userMap.get(pu.email.trim().toLowerCase());
+      return {
+        email: pu.email.trim().toLowerCase(),
+        full_name: live?.full_name || pu.full_name || pu.email,
+        role: live?.role || pu.role,
+      };
+    })
+    .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
 
   const [selectedEmail, setSelectedEmail] = useState('');
 
@@ -42,13 +55,13 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
               <option value="">Select person…</option>
               {assignableUsers.map(u => (
                 <option key={u.email} value={u.email}>
-                  {getDisplayName(u, u.email)} {u.role ? `(${u.role})` : ''}
+                  {u.full_name} {u.role ? `(${u.role === 'user' ? 'Operator' : u.role})` : ''}
                 </option>
               ))}
             </select>
           </div>
           {assignableUsers.length === 0 && (
-            <p className="text-xs text-gray-500">All users are already assigned.</p>
+            <p className="text-xs text-gray-500">All users are already assigned or no users have been added yet.</p>
           )}
         </div>
 

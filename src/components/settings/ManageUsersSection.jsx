@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Users, UserPlus, Edit2, Save, X, Send, Trash2 } from 'lucide-react';
-import { getDisplayName } from '../utils/nameUtils';
 
 const ROLE_OPTIONS = [
   { value: 'user', label: 'Remote Operator' },
@@ -37,9 +36,7 @@ function AddUserForm({ onClose, onAdded }) {
     setError('');
     setSaving(true);
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
-    // Create PendingUser record
     await base44.entities.PendingUser.create({ full_name, email: email.trim().toLowerCase(), role, invited: true });
-    // Send invite
     await base44.users.inviteUser(email.trim().toLowerCase(), role);
     setSaving(false);
     setDone(true);
@@ -91,13 +88,36 @@ function AddUserForm({ onClose, onAdded }) {
 
 function PendingUserRow({ pu, onRefresh }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ full_name: pu.full_name || '', role: pu.role || 'user', inactive: !!pu.inactive });
+
+  // Split full_name into first/last on open
+  const splitName = (full_name) => {
+    const parts = (full_name || '').trim().split(' ');
+    return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+  };
+
+  const [form, setForm] = useState(() => {
+    const { first, last } = splitName(pu.full_name);
+    return { firstName: first, lastName: last, email: pu.email || '', role: pu.role || 'user', inactive: !!pu.inactive };
+  });
+
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+  const openEdit = () => {
+    const { first, last } = splitName(pu.full_name);
+    setForm({ firstName: first, lastName: last, email: pu.email || '', role: pu.role || 'user', inactive: !!pu.inactive });
+    setEditing(true);
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.PendingUser.update(pu.id, { full_name: form.full_name, role: form.role, inactive: form.inactive });
+    const full_name = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
+    await base44.entities.PendingUser.update(pu.id, {
+      full_name,
+      email: form.email.trim().toLowerCase(),
+      role: form.role,
+      inactive: form.inactive,
+    });
     setSaving(false);
     setEditing(false);
     onRefresh();
@@ -116,9 +136,19 @@ function PendingUserRow({ pu, onRefresh }) {
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Full Name</label>
-              <Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })}
-                placeholder="Full name" className="bg-gray-800 border-gray-700 text-white h-8 text-sm" />
+              <label className="text-xs text-gray-400 block mb-1">First Name</label>
+              <Input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
+                placeholder="First name" className="bg-gray-800 border-gray-700 text-white h-8 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Last Name</label>
+              <Input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
+                placeholder="Last name" className="bg-gray-800 border-gray-700 text-white h-8 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Email</label>
+              <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                placeholder="user@example.com" type="email" className="bg-gray-800 border-gray-700 text-white h-8 text-sm" />
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Role</label>
@@ -131,7 +161,7 @@ function PendingUserRow({ pu, onRefresh }) {
           <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
             <input type="checkbox" checked={form.inactive} onChange={e => setForm({ ...form, inactive: e.target.checked })}
               className="w-4 h-4 accent-blue-500" />
-            Mark as "Not in use" (hidden from assignments, visible in accounts)
+            Mark as "Not in use"
           </label>
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 gap-1" onClick={handleSave} disabled={saving}>
@@ -160,7 +190,7 @@ function PendingUserRow({ pu, onRefresh }) {
             <Badge className={`text-xs border ${roleBadgeClass[pu.role] || roleBadgeClass.user}`}>
               {roleLabel[pu.role] || pu.role}
             </Badge>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => setEditing(true)}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={openEdit}>
               <Edit2 className="h-3.5 w-3.5" />
             </Button>
             {deleteConfirm ? (
