@@ -50,6 +50,8 @@ export default function AccountsDashboard() {
   const [noteEditing, setNoteEditing] = useState(null); // email being edited
   const [noteInput, setNoteInput] = useState('');
   const [saving, setSaving] = useState(null); // email currently saving
+  const [datePickerFor, setDatePickerFor] = useState(null); // email awaiting date choice
+  const [customDate, setCustomDate] = useState('');
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -112,16 +114,27 @@ export default function AccountsDashboard() {
     );
   }
 
-  const handleTogglePaid = async (row) => {
+  const handleTogglePaid = (row) => {
+    if (!row.paid) {
+      // Marking as paid — ask for date
+      setCustomDate(format(new Date(), 'yyyy-MM-dd'));
+      setDatePickerFor(row);
+    } else {
+      // Marking as unpaid — do it immediately
+      confirmTogglePaid(row, null);
+    }
+  };
+
+  const confirmTogglePaid = async (row, paidDate) => {
+    setDatePickerFor(null);
     setSaving(row.email);
     const existing = getMonthRecord(row.email);
     const newPaid = !row.paid;
-    const paidDate = newPaid ? format(new Date(), 'yyyy-MM-dd') : null;
 
     if (existing) {
       await base44.entities.PaymentRecord.update(existing.id, {
         paid: newPaid,
-        paid_date: paidDate,
+        paid_date: newPaid ? paidDate : null,
       });
     } else {
       await base44.entities.PaymentRecord.create({
@@ -129,7 +142,7 @@ export default function AccountsDashboard() {
         operator_name: row.name,
         period_month: filterMonth,
         paid: newPaid,
-        paid_date: paidDate,
+        paid_date: newPaid ? paidDate : null,
         base_fee: row.total,
       });
     }
@@ -444,6 +457,45 @@ export default function AccountsDashboard() {
           </Card>
         )}
       </div>
+
+    {/* Date picker modal */}
+    {datePickerFor && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+          <h3 className="text-white font-semibold text-base">Mark as Paid — {datePickerFor.name}</h3>
+          <p className="text-gray-400 text-sm">Choose the payment date:</p>
+
+          <div className="space-y-2">
+            <button
+              onClick={() => confirmTogglePaid(datePickerFor, format(new Date(), 'yyyy-MM-dd'))}
+              className="w-full text-left px-4 py-3 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 transition-colors text-sm font-medium"
+            >
+              ✓ Use today — {format(new Date(), 'd MMMM yyyy')}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customDate}
+                onChange={e => setCustomDate(e.target.value)}
+                className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500"
+              />
+              <Button
+                onClick={() => customDate && confirmTogglePaid(datePickerFor, customDate)}
+                disabled={!customDate}
+                className="bg-green-700 hover:bg-green-600 text-sm shrink-0"
+              >
+                Use this date
+              </Button>
+            </div>
+          </div>
+
+          <Button variant="ghost" className="w-full text-gray-500 hover:text-white" onClick={() => setDatePickerFor(null)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
