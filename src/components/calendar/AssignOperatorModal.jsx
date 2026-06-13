@@ -3,12 +3,16 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getDisplayName } from '../utils/nameUtils';
 
-const EXCLUDED_EMAILS = ['hano@fancam.com'];
+const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com', 'mattswartuk@gmail.com'];
 
-export default function AssignOperatorModal({ shoot, allUsers, onConfirm, onClose }) {
+export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = [], onConfirm, onClose }) {
+  const inactiveEmails = new Set(pendingUsers.filter(u => u.inactive).map(u => u.email));
+
   const assignableUsers = (allUsers || [])
     .filter(u => u && typeof u.email === 'string' && u.email.trim() !== '')
     .filter(u => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
+    .filter(u => !inactiveEmails.has(u.email))
+    .filter(u => u.role !== 'admin')
     .filter(u => !shoot.assigned_operators?.includes(u.email) && !shoot.pending_operators?.includes(u.email));
 
   const [selectedEmail, setSelectedEmail] = useState('');

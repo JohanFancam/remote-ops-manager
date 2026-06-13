@@ -401,6 +401,11 @@ export default function Calendar() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list(),
+  });
+
   const { data: presenceRecords = [] } = useQuery({
     queryKey: ['userPresence'],
     queryFn: () => base44.entities.UserPresence.list(),
@@ -1344,6 +1349,7 @@ export default function Calendar() {
         <AssignOperatorModal
           shoot={assignOperatorsModal}
           allUsers={allUsers}
+          pendingUsers={pendingUsers}
           onConfirm={handleConfirmAssignOperator}
           onClose={() => setAssignOperatorsModal(null)}
         />

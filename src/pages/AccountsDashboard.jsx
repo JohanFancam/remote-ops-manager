@@ -91,10 +91,11 @@ export default function AccountsDashboard() {
   };
 
   const remoteUsers = useMemo(() => {
-    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
+    // Only include role=user (remote operators), never admins or standby
+    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin' || u.role === 'standby').map(u => u.email));
     const knownUsers = pendingUsers
-      .filter(u => u.role === 'user' || u.role === 'standby')
-      .map(u => ({ email: u.email, full_name: u.full_name || u.email }));
+      .filter(u => u.role === 'user')
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: !!u.inactive }));
     const knownEmails = new Set(knownUsers.map(u => u.email));
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
@@ -102,7 +103,7 @@ export default function AccountsDashboard() {
     shoots.forEach(s => {
       (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
     });
-    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
+    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email, inactive: false }));
     return [...knownUsers, ...extraUsers];
   }, [pendingUsers, shoots, paymentRecords]);
 
@@ -198,7 +199,7 @@ export default function AccountsDashboard() {
       const paidDate = monthRec?.paid_date || null;
       const note = monthRec?.notes || '';
 
-      return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid, paidDate, note };
+      return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid, paidDate, note, inactive: !!op.inactive };
     }).filter(op => op.shoots > 0);
   }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
@@ -391,11 +392,14 @@ export default function AccountsDashboard() {
                 {monthSummaryRows
                   .sort((a, b) => b.total - a.total)
                   .map(row => (
-                  <div key={row.email} className="px-5 py-4 space-y-2">
+                  <div key={row.email} className={`px-5 py-4 space-y-2 ${row.inactive ? 'opacity-40' : ''}`}>
                     {/* Main row */}
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{row.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-white truncate">{row.name}</p>
+                          {row.inactive && <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full flex-shrink-0">Inactive</span>}
+                        </div>
                         <p className="text-xs text-gray-500 truncate">{row.email}</p>
                         {row.paidDate && row.paid && (
                           <p className="text-xs text-green-500 mt-0.5">Paid on {format(new Date(row.paidDate + 'T12:00:00'), 'd MMM yyyy')}</p>
