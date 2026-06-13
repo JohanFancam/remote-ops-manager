@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { getDisplayName } from '../components/utils/nameUtils';
 import RigTestChecklistSettings from '../components/settings/RigTestChecklistSettings';
+import ManageUsersSection from '../components/settings/ManageUsersSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,13 +198,6 @@ export default function Settings() {
   const [notifySaved, setNotifySaved] = useState(false);
   const [whatsappMsg, setWhatsappMsg] = useState("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
 
-  // Invite user
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('user');
-  const [inviting, setInviting] = useState(false);
-  const [inviteDone, setInviteDone] = useState(false);
-
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef();
@@ -339,19 +333,6 @@ export default function Settings() {
     }
     setLogoUploading(false);
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const handleInviteUser = async () => {
-    if (!inviteEmail) return;
-    setInviting(true);
-    await base44.users.inviteUser(inviteEmail, inviteRole);
-    setInviteEmail('');
-    setInviteRole('user');
-    setInviting(false);
-    setInviteDone(true);
-    setShowInviteForm(false);
-    setTimeout(() => setInviteDone(false), 3000);
-    refresh();
   };
 
   const [editingUserId, setEditingUserId] = useState(null);
@@ -646,55 +627,9 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Invite User — all admins */}
+        {/* Add / Manage Users — all admins */}
         {isAdmin && (
-          <Card className="bg-gray-900 border-gray-800 mb-6">
-            <CardHeader className="border-b border-gray-800 pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <UserPlus className="h-5 w-5 text-blue-400" /> Invite User
-                </CardTitle>
-                <Button size="sm" onClick={() => setShowInviteForm(!showInviteForm)}
-                  className="bg-blue-700 hover:bg-blue-600 gap-1.5 text-xs">
-                  <UserPlus className="h-3.5 w-3.5" /> {showInviteForm ? 'Cancel' : 'Invite User'}
-                </Button>
-              </div>
-            </CardHeader>
-            {showInviteForm && (
-              <CardContent className="pt-4">
-                <div className="flex flex-wrap gap-3 items-end">
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-xs text-gray-400 block mb-1">Email address</label>
-                    <Input
-                      placeholder="user@example.com"
-                      value={inviteEmail}
-                      onChange={e => setInviteEmail(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">Role</label>
-                    <select
-                      value={inviteRole}
-                      onChange={e => setInviteRole(e.target.value)}
-                      className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-9"
-                    >
-                      <option value="user">Remote Operator</option>
-                      <option value="standby">Standby User</option>
-                      <option value="accounts">Accounts</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  <Button onClick={handleInviteUser} disabled={inviting || !inviteEmail}
-                    className="bg-blue-700 hover:bg-blue-600 gap-2 h-9">
-                    <Send className="h-4 w-4" />
-                    {inviting ? 'Sending...' : 'Send Invite'}
-                  </Button>
-                </div>
-                {inviteDone && <p className="text-sm text-green-400 mt-3">✓ Invitation sent!</p>}
-              </CardContent>
-            )}
-          </Card>
+          <ManageUsersSection queryClient={queryClient} />
         )}
 
         {/* Active Team Members — all admins */}
