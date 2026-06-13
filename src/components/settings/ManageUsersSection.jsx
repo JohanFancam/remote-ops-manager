@@ -37,7 +37,9 @@ function AddUserForm({ onClose, onAdded }) {
     setSaving(true);
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
     await base44.entities.PendingUser.create({ full_name, email: email.trim().toLowerCase(), role, invited: true });
-    await base44.users.inviteUser(email.trim().toLowerCase(), role);
+    // inviteUser only accepts "user" or "admin" — map other roles to "user"
+    const inviteRole = role === 'admin' ? 'admin' : 'user';
+    await base44.users.inviteUser(email.trim().toLowerCase(), inviteRole);
     setSaving(false);
     setDone(true);
     onAdded();
