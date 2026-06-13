@@ -57,11 +57,15 @@ export default function AccountsDashboard() {
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 2000),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
     queryFn: () => base44.entities.PendingUser.list(),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: paymentRecords = [], refetch: refetchPayments } = useQuery({
