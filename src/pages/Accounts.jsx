@@ -267,6 +267,11 @@ export default function Accounts() {
       ...pendingUsers.filter(u => u.role === 'admin').map(u => u.email),
       ...users.filter(u => u.role === 'admin').map(u => u.email),
     ]);
+    // Only consider emails that exist in PendingUser or User as valid operators
+    const validEmails = new Set([
+      ...pendingUsers.map(u => u.email),
+      ...users.map(u => u.email),
+    ]);
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
@@ -275,8 +280,8 @@ export default function Accounts() {
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
     const extraEmails = new Set();
     shoots.forEach(s => {
-      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
-      (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e)) extraEmails.add(e); });
+      (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e); });
+      (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e); });
     });
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
     return [...knownUsers, ...extraUsers];
