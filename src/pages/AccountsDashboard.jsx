@@ -100,6 +100,12 @@ export default function AccountsDashboard() {
     };
   }, [queryClient]);
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60_000,
+  });
+
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
@@ -121,7 +127,11 @@ export default function AccountsDashboard() {
   };
 
   const remoteUsers = useMemo(() => {
-    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
+    // Combine admin emails from both PendingUser and platform User entities
+    const adminEmails = new Set([
+      ...pendingUsers.filter(u => u.role === 'admin').map(u => u.email),
+      ...users.filter(u => u.role === 'admin').map(u => u.email),
+    ]);
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
@@ -134,7 +144,7 @@ export default function AccountsDashboard() {
     });
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email, inactive: false }));
     return [...knownUsers, ...extraUsers];
-  }, [pendingUsers, shoots, paymentRecords]);
+  }, [pendingUsers, shoots, paymentRecords, users]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
     const rec = opRecords.find(r => r.shoot_id === shoot.id);

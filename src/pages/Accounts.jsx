@@ -232,6 +232,12 @@ export default function Accounts() {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 2000),
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60_000,
+  });
+
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
@@ -256,7 +262,11 @@ export default function Accounts() {
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
 
   const remoteUsers = useMemo(() => {
-    const adminEmails = new Set(pendingUsers.filter(u => u.role === 'admin').map(u => u.email));
+    // Combine admin emails from both PendingUser and platform User entities
+    const adminEmails = new Set([
+      ...pendingUsers.filter(u => u.role === 'admin').map(u => u.email),
+      ...users.filter(u => u.role === 'admin').map(u => u.email),
+    ]);
     const knownUsers = pendingUsers
       .filter(u => u.role === 'user' || u.role === 'standby')
       .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
@@ -270,7 +280,7 @@ export default function Accounts() {
     });
     const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
     return [...knownUsers, ...extraUsers];
-  }, [pendingUsers, shoots, paymentRecords]);
+  }, [pendingUsers, shoots, paymentRecords, users]);
 
   const summaryRows = useMemo(() => {
     return remoteUsers.map(op => {
