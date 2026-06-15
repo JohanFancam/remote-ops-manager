@@ -55,18 +55,18 @@ export default function AccountsDashboard() {
   const [customDate, setCustomDate] = useState('');
   const [exportMonthOpen, setExportMonthOpen] = useState(false);
 
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    shoots.forEach(s => { if (s.date) months.add(s.date.substring(0, 7)); });
-    return [...months].sort().reverse();
-  }, [shoots]);
-
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 2000),
     staleTime: 0,
     refetchOnMount: 'always',
   });
+
+  const availableMonths = useMemo(() => {
+    const months = new Set();
+    shoots.forEach(s => { if (s.date) months.add(s.date.substring(0, 7)); });
+    return [...months].sort().reverse();
+  }, [shoots]);
 
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
