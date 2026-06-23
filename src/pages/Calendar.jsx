@@ -347,10 +347,10 @@ function ShootCalendarEntry({
             return Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes);
           });
           const partner = candidates[0];
-          // Re-check the limit for the partner shoot — after the main shoot was (optimistically) assigned above,
-          // the cache count has incremented, so re-read it to decide if partner goes to assigned or pending.
-          const partnerApprovedCount = getApprovedCount(user.email);
-          const partnerWithinLimit = withinLimit && (partnerApprovedCount < AUTO_APPROVE_LIMIT);
+          // For partner: count is approvedCount + 1 (main shoot just assigned above) if withinLimit,
+          // or just approvedCount if main went to pending. Use local arithmetic to avoid cache race conditions.
+          const countAfterMain = withinLimit ? approvedCount + 1 : approvedCount;
+          const partnerWithinLimit = withinLimit && (countAfterMain < AUTO_APPROVE_LIMIT);
           if (partnerWithinLimit) {
             await onUpdate(partner.id, {
               assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
@@ -1078,16 +1078,9 @@ export default function Calendar() {
             return Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins);
           });
           const partner = candidates[0];
-          // Re-check limit after main shoot was optimistically assigned
-          const freshAfter = queryClient.getQueryData(['shoots']) || shoots;
-          const partnerCountCM = freshAfter.filter(s =>
-            s.id !== partner.id &&
-            s.date >= todayStrLocal &&
-            s.status !== 'cancelled' &&
-            s.status !== 'completed' &&
-            (s.assigned_operators || []).includes(user.email)
-          ).length;
-          const partnerWithinLimitCM = withinLimitCM && (partnerCountCM < AUTO_APPROVE_LIMIT);
+          // Use local arithmetic to avoid cache race conditions from the preceding onUpdate+refetch
+          const countAfterMainCM = withinLimitCM ? approvedCount + 1 : approvedCount;
+          const partnerWithinLimitCM = withinLimitCM && (countAfterMainCM < AUTO_APPROVE_LIMIT);
           if (partnerWithinLimitCM) {
             await handleShootUpdate(partner.id, {
               assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
