@@ -75,6 +75,13 @@
         "type": "string"
       }
     },
+    "auto_assigned_for": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of operators auto-assigned to this shoot (does not count toward pre-approval limit)"
+    },
     "rig_ids": {
       "type": "array",
       "items": {

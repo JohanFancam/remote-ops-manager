@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import {
@@ -83,7 +83,13 @@ async function createShootTimeEntry(shoot, email, name, entryType, notes) {
   });
 }
 
-export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, onUpdate }) {
+function getShootGameMinutes(s) {
+  const t = s.game_time || '19:00';
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, appSettings = [], onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
   const schedule = getSchedule(shoot);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -92,8 +98,38 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   const isApproved = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
 
+  // Auto-assign config from appSettings
+  const autoAssignTeams = React.useMemo(() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+    return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+  }, [appSettings]);
+  const autoAssignUsers = React.useMemo(() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value;
+    return raw ? JSON.parse(raw) : [];
+  }, [appSettings]);
+  const autoAssignWindowMinutes = React.useMemo(() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+    return (raw ? Number(raw) : 2) * 60;
+  }, [appSettings]);
+
+  // Is this shoot one of the linked teams?
+  const isLinkedTeam = (s) => autoAssignTeams.some(t =>
+    (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
+  );
+
+  // Does this user qualify for auto-assign?
+  const userEligibleForAutoAssign = !isAdmin && user && (
+    autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
+  );
+
+  // Count only non-auto-assigned shoots toward the 5-game limit
   const getApprovedCount = (email) =>
-    allShoots.filter(s => s.id !== shoot.id && s.date >= todayStr && s.assigned_operators?.includes(email)).length;
+    allShoots.filter(s =>
+      s.id !== shoot.id &&
+      s.date >= todayStr &&
+      s.assigned_operators?.includes(email) &&
+      !(s.auto_assigned_for || []).includes(email)
+    ).length;
 
   const matchedRig = rigSettings?.find(r =>
     r.team && shoot.client &&
@@ -123,10 +159,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user?.email) });
     } else if (isAdmin) {
       await onUpdate(shoot.id, { assigned_operators: [...(shoot.assigned_operators || []), user?.email] });
-      // Auto-create timesheet entry for admin
       await createShootTimeEntry(shoot, user.email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
     } else {
-      if (shootFull) return; // blocked — slot taken
+      if (shootFull) return;
       const approvedCount = getApprovedCount(user?.email);
       const current = shoot.pending_operators || [];
       if (!current.includes(user?.email)) {
@@ -134,6 +169,24 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user?.email])] });
         } else {
           await onUpdate(shoot.id, { pending_operators: [...current, user?.email] });
+        }
+      }
+
+      // Auto-assign linked shoots if eligible
+      if (userEligibleForAutoAssign && isLinkedTeam(shoot)) {
+        const shootMinutes = getShootGameMinutes(shoot);
+        const linkedShoots = allShoots.filter(s =>
+          s.id !== shoot.id &&
+          s.date === shoot.date &&
+          isLinkedTeam(s) &&
+          !s.assigned_operators?.includes(user.email) &&
+          Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
+        );
+        for (const linked of linkedShoots) {
+          await onUpdate(linked.id, {
+            assigned_operators: [...new Set([...(linked.assigned_operators || []), user.email])],
+            auto_assigned_for: [...new Set([...(linked.auto_assigned_for || []), user.email])],
+          });
         }
       }
     }

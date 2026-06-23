@@ -5,6 +5,7 @@ import { useApp } from '../components/AppContext';
 import { getDisplayName } from '../components/utils/nameUtils';
 import RigTestChecklistSettings from '../components/settings/RigTestChecklistSettings';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
+import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,6 +206,12 @@ export default function Settings() {
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: isAdmin,
   });
 
 
@@ -590,6 +597,11 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Auto-Assignment Rules — Admin only */}
+        {isAdmin && (
+          <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
         )}
 
         {/* Add / Manage Users — all admins */}
