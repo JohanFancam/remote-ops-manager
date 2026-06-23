@@ -328,8 +328,6 @@ function ShootCalendarEntry({
       }
 
       // Auto-pair: find the closest shoot within the time window (max 1 partner)
-      // If clicked shoot is a linked team → pair with closest any shoot
-      // If clicked shoot is not a linked team → pair with closest linked-team shoot
       if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
         const clickedIsLinked = isLinkedTeam(shoot);
@@ -342,7 +340,6 @@ function ShootCalendarEntry({
           (clickedIsLinked ? true : isLinkedTeam(s))
         );
         if (candidates.length > 0) {
-          // Prefer linked-team partners first, then closest by time
           candidates.sort((a, b) => {
             const aLinked = isLinkedTeam(a) ? 0 : 1;
             const bLinked = isLinkedTeam(b) ? 0 : 1;
@@ -350,14 +347,16 @@ function ShootCalendarEntry({
             return Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes);
           });
           const partner = candidates[0];
-          if (withinLimit) {
-            // Main shoot was approved → partner also goes straight to assigned
+          // Re-check the limit for the partner shoot — after the main shoot was (optimistically) assigned above,
+          // the cache count has incremented, so re-read it to decide if partner goes to assigned or pending.
+          const partnerApprovedCount = getApprovedCount(user.email);
+          const partnerWithinLimit = withinLimit && (partnerApprovedCount < AUTO_APPROVE_LIMIT);
+          if (partnerWithinLimit) {
             await onUpdate(partner.id, {
               assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
               auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
             });
           } else {
-            // Main shoot went to pending → partner also goes to pending, tagged auto_assigned_for
             await onUpdate(partner.id, {
               pending_operators: [...new Set([...(partner.pending_operators || []), user.email])],
               auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
@@ -1077,7 +1076,15 @@ export default function Calendar() {
             return Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins);
           });
           const partner = candidates[0];
-          if (withinLimitCM) {
+          // Re-check limit after main shoot was optimistically assigned
+          const freshAfter = queryClient.getQueryData(['shoots']) || shoots;
+          const partnerCountCM = freshAfter.filter(s =>
+            s.id !== partner.id &&
+            s.date >= todayStrLocal &&
+            (s.assigned_operators || []).includes(user.email)
+          ).length;
+          const partnerWithinLimitCM = withinLimitCM && (partnerCountCM < AUTO_APPROVE_LIMIT);
+          if (partnerWithinLimitCM) {
             await handleShootUpdate(partner.id, {
               assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
               auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
