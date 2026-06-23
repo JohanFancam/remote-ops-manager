@@ -65,7 +65,7 @@ export default function RigCheckUsersSettings({ appSettings, allUsers = [] }) {
               <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${
                 u.role === 'admin' ? 'bg-blue-900/40 text-blue-400' :
                 u.role === 'standby' ? 'bg-yellow-900/40 text-yellow-400' :
-                'bg-gray-800 text-gray-500'
+                'bg-green-900/40 text-green-400'
               }`}>{u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : 'Remote'}</span>
             </label>
           ))}

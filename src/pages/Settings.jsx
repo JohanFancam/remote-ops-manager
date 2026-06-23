@@ -233,7 +233,9 @@ export default function Settings() {
       const email = u.email?.trim().toLowerCase();
       if (!email) return;
       const existing = map.get(email);
-      map.set(email, { ...u, email, full_name: existing?.full_name || u.full_name || '', role: existing?.role || u.role || 'user', inactive: existing?.inactive || false });
+      // Use PendingUser role only if it's a non-empty string; otherwise fall back to User entity role
+      const resolvedRole = (existing?.role && existing.role !== '') ? existing.role : (u.role || 'user');
+      map.set(email, { ...u, email, full_name: existing?.full_name || u.full_name || '', role: resolvedRole, inactive: existing?.inactive || false });
     });
     return Array.from(map.values());
   }, [rawUsers, pendingUsers]);

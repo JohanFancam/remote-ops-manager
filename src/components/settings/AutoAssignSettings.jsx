@@ -64,7 +64,7 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
     );
   };
 
-  // Only show non-admin operators
+  // Show all non-admin, non-inactive users (remote operators + standby)
   const operators = allUsers.filter(u => u.role !== 'admin' && !u.inactive);
 
   return (
@@ -141,6 +141,9 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
                 />
                 <span className="text-sm text-gray-300">{u.full_name || u.email}</span>
                 <span className="text-xs text-gray-600">{u.email}</span>
+                <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${u.role === 'standby' ? 'bg-yellow-900/40 text-yellow-400' : 'bg-green-900/40 text-green-400'}`}>
+                  {u.role === 'standby' ? 'Standby' : 'Remote'}
+                </span>
               </label>
             ))}
             {operators.length === 0 && <p className="text-xs text-gray-600 px-2">No operators found.</p>}
