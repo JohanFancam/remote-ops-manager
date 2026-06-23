@@ -77,6 +77,8 @@ export default function ShootSidePanel({
     return freshShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
+      s.status !== 'cancelled' &&
+      s.status !== 'completed' &&
       (s.assigned_operators || []).includes(email)
     ).length;
   };

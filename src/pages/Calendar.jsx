@@ -253,15 +253,15 @@ function ShootCalendarEntry({
       return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
     });
 
-  // Count upcoming shoots where this user is already in assigned_operators.
-  // Pending shoots do NOT count — they haven't been approved yet.
-  // Both main and auto-paired partner shoots count (3 paired days = 6 assigned = at limit).
-  // Always read from live query cache so optimistic updates are reflected immediately.
+  // Count upcoming assigned shoots toward the 6-shoot pre-approval limit.
+  // Excludes: current shoot, past shoots, cancelled/completed shoots, pending-only shoots.
   const getApprovedCount = (email) => {
     const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
     return freshShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
+      s.status !== 'cancelled' &&
+      s.status !== 'completed' &&
       (s.assigned_operators || []).includes(email)
     ).length;
   };
@@ -1036,11 +1036,13 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce AUTO_APPROVE_LIMIT — count only assigned (not pending) upcoming shoots.
+      // Remote user: enforce AUTO_APPROVE_LIMIT — count only assigned (not pending/cancelled/completed) upcoming shoots.
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
       const approvedCount = freshShoots.filter(s =>
         s.id !== shoot.id &&
         s.date >= todayStrLocal &&
+        s.status !== 'cancelled' &&
+        s.status !== 'completed' &&
         (s.assigned_operators || []).includes(user.email)
       ).length;
       const withinLimitCM = approvedCount < AUTO_APPROVE_LIMIT;
@@ -1081,6 +1083,8 @@ export default function Calendar() {
           const partnerCountCM = freshAfter.filter(s =>
             s.id !== partner.id &&
             s.date >= todayStrLocal &&
+            s.status !== 'cancelled' &&
+            s.status !== 'completed' &&
             (s.assigned_operators || []).includes(user.email)
           ).length;
           const partnerWithinLimitCM = withinLimitCM && (partnerCountCM < AUTO_APPROVE_LIMIT);
