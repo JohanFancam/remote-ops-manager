@@ -77,7 +77,7 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
       <CardContent className="pt-4 space-y-5">
         <p className="text-xs text-gray-500">
           When an eligible user assigns themselves to any shoot, the system will automatically assign them to any linked-team shoot on the same day within the time window.
-          Auto-assigned shoots do <strong className="text-gray-400">not</strong> count toward the 5-game pre-approval limit.
+          Auto-assigned shoots do <strong className="text-gray-400">not</strong> count toward the 6-game pre-approval limit (3 pairs).
         </p>
 
         {/* Time window */}

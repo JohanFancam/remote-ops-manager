@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { getDisplayName } from '../components/utils/nameUtils';
 import RigTestChecklistSettings from '../components/settings/RigTestChecklistSettings';
+import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -561,6 +562,11 @@ export default function Settings() {
         {/* Rig Test Checklist — Admin only */}
         {isAdmin && (
           <RigTestChecklistSettings appSettings={appSettings} />
+        )}
+
+        {/* Rig Check Permissions — Admin only */}
+        {isAdmin && (
+          <RigCheckUsersSettings appSettings={appSettings} allUsers={allUsers} />
         )}
 
         {/* App Version / Refresh Reminder — Admin only */}

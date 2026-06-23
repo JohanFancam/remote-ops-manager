@@ -339,12 +339,52 @@ export default function Accounts() {
     const newPending = (shoot.pending_operators || []).filter(e => e !== email);
     const newAssigned = [...(shoot.assigned_operators || []), email];
     await base44.entities.Shoot.update(shoot.id, { pending_operators: newPending, assigned_operators: newAssigned });
+
+    // If this is a paired shoot, also approve the partner (where auto_assigned_for includes email)
+    const autoAssignWindowMinutes = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
+    const shootMins = shoot.game_time ? shoot.game_time.split(':').map(Number).reduce((h, m) => h * 60 + m) : 19 * 60;
+    const partner = shoots.find(s =>
+      s.id !== shoot.id &&
+      s.date === shoot.date &&
+      (s.auto_assigned_for || []).includes(email) &&
+      (s.pending_operators || []).includes(email) &&
+      Math.abs((s.game_time ? s.game_time.split(':').map(Number).reduce((h, m) => h * 60 + m) : 19 * 60) - shootMins) <= autoAssignWindowMinutes
+    );
+    if (partner) {
+      await base44.entities.Shoot.update(partner.id, {
+        pending_operators: (partner.pending_operators || []).filter(e => e !== email),
+        assigned_operators: [...(partner.assigned_operators || []), email],
+      });
+    }
     refresh();
   };
 
   const handleReject = async (shoot, email) => {
     const newPending = (shoot.pending_operators || []).filter(e => e !== email);
     await base44.entities.Shoot.update(shoot.id, { pending_operators: newPending });
+
+    // Also remove from paired shoot if pending there too
+    const autoAssignWindowMinutes = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
+    const shootMins = shoot.game_time ? shoot.game_time.split(':').map(Number).reduce((h, m) => h * 60 + m) : 19 * 60;
+    const partner = shoots.find(s =>
+      s.id !== shoot.id &&
+      s.date === shoot.date &&
+      (s.auto_assigned_for || []).includes(email) &&
+      (s.pending_operators || []).includes(email) &&
+      Math.abs((s.game_time ? s.game_time.split(':').map(Number).reduce((h, m) => h * 60 + m) : 19 * 60) - shootMins) <= autoAssignWindowMinutes
+    );
+    if (partner) {
+      await base44.entities.Shoot.update(partner.id, {
+        pending_operators: (partner.pending_operators || []).filter(e => e !== email),
+        auto_assigned_for: (partner.auto_assigned_for || []).filter(e => e !== email),
+      });
+    }
     refresh();
   };
 

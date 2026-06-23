@@ -29,7 +29,7 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
-const AUTO_APPROVE_LIMIT = 5;
+const AUTO_APPROVE_LIMIT = 6;
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
@@ -199,12 +199,21 @@ function ShootCalendarEntry({
   const rigCheckDone = !!shoot.rig_check_completed;
   const isInMessageQueue = rigCheckMessageShootIds.includes(shoot.id);
   const gearIsGreen = rigCheckDone || (isInMessageQueue && rigCheckMessageCopied);
-  const canCheckStandbyRig = !!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage && !isPast;
+
+  const rigCheckUsersRaw = appSettings?.find(s => s.key === 'rig_check_users')?.value;
+  const rigCheckUsers = rigCheckUsersRaw ? JSON.parse(rigCheckUsersRaw) : [];
+  const isPermittedRigChecker = user?.email && rigCheckUsers.includes(user.email);
+
+  // Standby/admin: only for their own standby coverage; permitted users: any shoot on same day
+  const canCheckStandbyRig = !isPast && (
+    (!!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage) ||
+    isPermittedRigChecker
+  );
 
   const handleRigCheckToggle = async (e) => {
     e.stopPropagation();
     if (!canCheckStandbyRig) return;
-    await onRigCheckToggle?.(shoot, standbyCoverage);
+    await onRigCheckToggle?.(shoot, standbyCoverage || null);
   };
 
   const handleRigCheckCancel = async (e) => {
@@ -306,7 +315,8 @@ function ShootCalendarEntry({
     } else {
       if (shootFull) return;
       const approvedCount = getApprovedCount(user.email);
-      if (approvedCount < AUTO_APPROVE_LIMIT) {
+      const withinLimit = approvedCount < AUTO_APPROVE_LIMIT;
+      if (withinLimit) {
         await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
@@ -322,6 +332,7 @@ function ShootCalendarEntry({
           s.id !== shoot.id &&
           s.date === shoot.date &&
           !s.assigned_operators?.includes(user.email) &&
+          !s.pending_operators?.includes(user.email) &&
           Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes &&
           (clickedIsLinked ? true : isLinkedTeam(s))
         );
@@ -334,10 +345,19 @@ function ShootCalendarEntry({
             return Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes);
           });
           const partner = candidates[0];
-          await onUpdate(partner.id, {
-            assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
-            auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
-          });
+          if (withinLimit) {
+            // Main shoot was approved → partner also goes straight to assigned
+            await onUpdate(partner.id, {
+              assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
+              auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
+            });
+          } else {
+            // Main shoot went to pending → partner also goes to pending, tagged auto_assigned_for
+            await onUpdate(partner.id, {
+              pending_operators: [...new Set([...(partner.pending_operators || []), user.email])],
+              auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
+            });
+          }
         }
       }
     }
@@ -1007,14 +1027,15 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce 5-shoot pre-approval limit (exclude auto-assigned from count)
+      // Remote user: enforce AUTO_APPROVE_LIMIT pre-approval (exclude auto-assigned from count)
       const approvedCount = shoots.filter(s =>
         s.id !== shoot.id &&
         s.date >= todayStrLocal &&
         s.assigned_operators?.includes(user.email) &&
         !(s.auto_assigned_for || []).includes(user.email)
       ).length;
-      if (approvedCount < AUTO_APPROVE_LIMIT) {
+      const withinLimitCM = approvedCount < AUTO_APPROVE_LIMIT;
+      if (withinLimitCM) {
         await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await handleShootUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
@@ -1034,6 +1055,7 @@ export default function Calendar() {
           s.id !== shoot.id &&
           s.date === shoot.date &&
           !s.assigned_operators?.includes(user.email) &&
+          !s.pending_operators?.includes(user.email) &&
           Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM &&
           (clickedIsLinkedCM ? true : isLinkedTeamCM(s))
         );
@@ -1045,10 +1067,17 @@ export default function Calendar() {
             return Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins);
           });
           const partner = candidates[0];
-          await handleShootUpdate(partner.id, {
-            assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
-            auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
-          });
+          if (withinLimitCM) {
+            await handleShootUpdate(partner.id, {
+              assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
+              auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
+            });
+          } else {
+            await handleShootUpdate(partner.id, {
+              pending_operators: [...new Set([...(partner.pending_operators || []), user.email])],
+              auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), user.email])],
+            });
+          }
         }
       }
     }
