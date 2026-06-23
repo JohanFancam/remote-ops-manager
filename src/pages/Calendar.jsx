@@ -213,8 +213,9 @@ function ShootCalendarEntry({
     await onRigCheckCancel?.(shoot);
   };
 
-  // shootFull only applies to remote users, not standby
+  // shootFull only applies to remote users, not standby — exclude current user's own email
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
+    if (email === user?.email) return false;
     const u = allUsers.find(u2 => u2.email === email);
     return !u || u.role !== 'admin';
   });
@@ -1467,6 +1468,8 @@ export default function Calendar() {
           isStandby={isStandby}
           rigSettings={rigSettings}
           allUsers={allUsers}
+          allShoots={shoots}
+          appSettings={appSettings}
           onUpdate={handleShootUpdate}
           onEdit={startEdit}
           onDuplicate={duplicateShoot}

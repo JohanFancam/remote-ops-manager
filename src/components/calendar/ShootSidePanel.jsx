@@ -42,6 +42,8 @@ const getRigTypeLabel = (shoot, rig) => {
   return parts.length > 0 ? parts.join('/') : null;
 };
 
+const AUTO_APPROVE_LIMIT = 5;
+
 export default function ShootSidePanel({
   shoot,
   user,
@@ -49,6 +51,8 @@ export default function ShootSidePanel({
   isStandby,
   rigSettings,
   allUsers = [],
+  allShoots = [],
+  appSettings = [],
   onUpdate,
   onEdit,
   onDuplicate,
@@ -57,6 +61,44 @@ export default function ShootSidePanel({
   onClose,
 }) {
   if (!shoot) return null;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isPast = shoot.date < todayStr;
+  const isAssigned = shoot.assigned_operators?.includes(user?.email);
+  const isPending = shoot.pending_operators?.includes(user?.email);
+
+  // Only count a different non-admin operator as "filling" the slot
+  const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
+    if (e === user?.email) return false;
+    const u = allUsers.find(u2 => u2.email === e);
+    return !u || u.role !== 'admin';
+  });
+  const shootFull = !isAdmin && !isStandby && nonAdminAssigned.length > 0 && !isAssigned;
+
+  const getApprovedCount = (email) =>
+    allShoots.filter(s =>
+      s.id !== shoot.id &&
+      s.date >= todayStr &&
+      s.assigned_operators?.includes(email) &&
+      !(s.auto_assigned_for || []).includes(email)
+    ).length;
+
+  const handleSelfAssign = async () => {
+    if (!user?.email || isPast) return;
+    if (isPending) {
+      await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
+    } else if (isAssigned) {
+      await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
+    } else {
+      if (shootFull) return;
+      const approvedCount = getApprovedCount(user.email);
+      if (approvedCount < AUTO_APPROVE_LIMIT) {
+        await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      } else if (!(shoot.pending_operators || []).includes(user.email)) {
+        await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
+      }
+    }
+  };
 
   const shootDate = new Date(shoot.date + 'T12:00:00');
   const dayName = format(shootDate, 'EEEE');
@@ -238,6 +280,21 @@ export default function ShootSidePanel({
           {(isAdmin || isStandby) && onAssignRigTest && (
             <Button size="sm" onClick={() => onAssignRigTest(shoot)} className="bg-teal-600 hover:bg-teal-700 text-xs h-8">
               🔧 Assign Rig Test
+            </Button>
+          )}
+          {!isAdmin && !isStandby && !isPast && (
+            <Button
+              size="sm"
+              onClick={handleSelfAssign}
+              disabled={shootFull}
+              className={`text-xs h-8 w-full ${
+                isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
+                : isPending ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20'
+                : shootFull ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              {isAssigned ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Slot Taken' : '+ Assign Myself'}
             </Button>
           )}
         </div>
