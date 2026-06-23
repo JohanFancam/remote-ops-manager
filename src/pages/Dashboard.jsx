@@ -49,7 +49,6 @@ export default function Dashboard() {
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
-    enabled: isAdmin,
     staleTime: 5 * 60_000,
   });
 
