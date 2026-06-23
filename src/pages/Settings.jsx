@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -208,11 +208,34 @@ export default function Settings() {
     queryFn: () => base44.entities.AppSettings.list(),
   });
 
-  const { data: allUsers = [] } = useQuery({
+  const { data: rawUsers = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
     enabled: isAdmin,
   });
+
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list(),
+    enabled: isAdmin,
+  });
+
+  // Merge PendingUser (admin-defined names/roles) with User entity records
+  const allUsers = useMemo(() => {
+    const map = new Map();
+    pendingUsers.forEach(pu => {
+      const email = pu.email?.trim().toLowerCase();
+      if (!email) return;
+      map.set(email, { email, full_name: pu.full_name || '', role: pu.role || 'user', inactive: pu.inactive || false });
+    });
+    rawUsers.forEach(u => {
+      const email = u.email?.trim().toLowerCase();
+      if (!email) return;
+      const existing = map.get(email);
+      map.set(email, { ...u, email, full_name: existing?.full_name || u.full_name || '', role: existing?.role || u.role || 'user', inactive: existing?.inactive || false });
+    });
+    return Array.from(map.values());
+  }, [rawUsers, pendingUsers]);
 
 
 
