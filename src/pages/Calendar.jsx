@@ -213,7 +213,13 @@ function ShootCalendarEntry({
     await onRigCheckCancel?.(shoot);
   };
 
-  // Shoots are never "full" — multiple operators can be assigned
+  // For remote users: grey out shoots that already have another non-admin operator assigned
+  const takenByOther = !isAdmin && !isStandby && !isAssigned && !isPending &&
+    (shoot.assigned_operators || []).some(email => {
+      if (email === user?.email) return false;
+      const u = allUsers.find(u2 => u2.email === email);
+      return !u || u.role !== 'admin';
+    });
   const shootFull = false;
 
   const dotColor = shouldGrey
@@ -320,7 +326,7 @@ function ShootCalendarEntry({
         e.preventDefault();
         onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')} ${shootFull ? 'opacity-45' : ''}`}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-gray-900/60' : takenByOther ? 'opacity-40 bg-gray-900/60' : 'bg-gray-900/80 hover:bg-gray-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-gray-800' : 'border-gray-800 hover:border-gray-700')}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
