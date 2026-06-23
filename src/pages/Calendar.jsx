@@ -899,9 +899,23 @@ export default function Calendar() {
     if (!assignOperatorsModal?.id || !email) return;
     const current = assignOperatorsModal.assigned_operators || [];
     if (!current.includes(email)) {
-      await handleShootUpdate(assignOperatorsModal.id, { assigned_operators: [...current, email] });
+      const updated = { ...assignOperatorsModal, assigned_operators: [...current, email] };
+      await handleShootUpdate(assignOperatorsModal.id, { assigned_operators: updated.assigned_operators });
+      setAssignOperatorsModal(updated);
     }
-    setAssignOperatorsModal(null);
+  };
+
+  const handleUnassignOperator = async (email, type) => {
+    if (!assignOperatorsModal?.id) return;
+    let updated;
+    if (type === 'assigned') {
+      updated = { ...assignOperatorsModal, assigned_operators: (assignOperatorsModal.assigned_operators || []).filter(e => e !== email) };
+      await handleShootUpdate(assignOperatorsModal.id, { assigned_operators: updated.assigned_operators });
+    } else {
+      updated = { ...assignOperatorsModal, pending_operators: (assignOperatorsModal.pending_operators || []).filter(e => e !== email) };
+      await handleShootUpdate(assignOperatorsModal.id, { pending_operators: updated.pending_operators });
+    }
+    setAssignOperatorsModal(updated);
   };
 
   const handleConfirmRigTest = async (data) => {
@@ -1248,9 +1262,14 @@ export default function Calendar() {
           <div className="flex gap-2 flex-wrap items-center">
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
-              <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
-                <Upload className="h-4 w-4 mr-1" /> Import CSV
-              </Button>
+              <>
+                <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
+                  <Plus className="h-4 w-4 mr-1" /> Add Shoot
+                </Button>
+                <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
+                  <Upload className="h-4 w-4 mr-1" /> Import CSV
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -1420,6 +1439,7 @@ export default function Calendar() {
           allUsers={allUsers}
           pendingUsers={pendingUsers}
           onConfirm={handleConfirmAssignOperator}
+          onUnassign={handleUnassignOperator}
           onClose={() => setAssignOperatorsModal(null)}
         />
       )}
