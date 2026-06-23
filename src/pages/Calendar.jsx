@@ -252,13 +252,13 @@ function ShootCalendarEntry({
       return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
     });
 
-  // Only count non-auto-assigned shoots toward the 5-game limit
+  // Count all upcoming shoots where user is assigned OR pending (excluding auto-assigned pairs)
   const getApprovedCount = (email) =>
     allShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
-      s.assigned_operators?.includes(email) &&
-      !(s.auto_assigned_for || []).includes(email)
+      !(s.auto_assigned_for || []).includes(email) &&
+      (s.assigned_operators?.includes(email) || s.pending_operators?.includes(email))
     ).length;
 
   // Auto-assign config from appSettings (passed down via allShoots context)
@@ -1027,12 +1027,12 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce AUTO_APPROVE_LIMIT pre-approval (exclude auto-assigned from count)
+      // Remote user: enforce AUTO_APPROVE_LIMIT — count assigned + pending (exclude auto-assigned pairs)
       const approvedCount = shoots.filter(s =>
         s.id !== shoot.id &&
         s.date >= todayStrLocal &&
-        s.assigned_operators?.includes(user.email) &&
-        !(s.auto_assigned_for || []).includes(user.email)
+        !(s.auto_assigned_for || []).includes(user.email) &&
+        (s.assigned_operators?.includes(user.email) || s.pending_operators?.includes(user.email))
       ).length;
       const withinLimitCM = approvedCount < AUTO_APPROVE_LIMIT;
       if (withinLimitCM) {
