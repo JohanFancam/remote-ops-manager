@@ -1570,6 +1570,7 @@ export default function Calendar() {
           onDelete={handleDeleteShoot}
           onAssignRigTest={handleAssignRigTest}
           onClose={() => setSelectedShoot(null)}
+          queryClient={queryClient}
         />
       )}
 

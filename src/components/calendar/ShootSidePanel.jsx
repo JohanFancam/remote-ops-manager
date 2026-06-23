@@ -42,7 +42,7 @@ const getRigTypeLabel = (shoot, rig) => {
   return parts.length > 0 ? parts.join('/') : null;
 };
 
-const AUTO_APPROVE_LIMIT = 5;
+const AUTO_APPROVE_LIMIT = 6;
 
 export default function ShootSidePanel({
   shoot,
@@ -59,6 +59,7 @@ export default function ShootSidePanel({
   onDelete,
   onAssignRigTest,
   onClose,
+  queryClient,
 }) {
   if (!shoot) return null;
 
@@ -70,13 +71,15 @@ export default function ShootSidePanel({
   // Shoots are never "full" — multiple operators can be assigned
   const shootFull = false;
 
-  const getApprovedCount = (email) =>
-    allShoots.filter(s =>
+  // Count upcoming assigned shoots — read from live cache for accuracy
+  const getApprovedCount = (email) => {
+    const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
+    return freshShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
-      s.assigned_operators?.includes(email) &&
-      !(s.auto_assigned_for || []).includes(email)
+      (s.assigned_operators || []).includes(email)
     ).length;
+  };
 
   const handleSelfAssign = async () => {
     if (!user?.email || isPast) return;
