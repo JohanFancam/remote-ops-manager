@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { X } from 'lucide-react';
 
 export default function ShootEditPanel({
   shoot,
@@ -16,7 +17,12 @@ export default function ShootEditPanel({
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
         <SheetHeader className="px-4 py-3 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
-          <SheetTitle className="text-base text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-base text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </SheetHeader>
 
         {/* Content */}
