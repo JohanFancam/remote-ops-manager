@@ -162,6 +162,7 @@ function ShootCalendarEntry({
   operatorAvailabilityForDay = [],
   rigCheckMessageCopied = false,
   rigCheckMessageShootIds = [],
+  queryClient,
 }) {
   // Grey out past shoots (by date) for admin and standby; for remote users grey out by date too
   // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
@@ -253,13 +254,16 @@ function ShootCalendarEntry({
     });
 
   // Count all upcoming shoots where user is assigned OR pending (excluding auto-assigned pairs)
-  const getApprovedCount = (email) =>
-    allShoots.filter(s =>
+  // Always read from live query cache to get the most up-to-date count after optimistic updates
+  const getApprovedCount = (email) => {
+    const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
+    return freshShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
       !(s.auto_assigned_for || []).includes(email) &&
       (s.assigned_operators?.includes(email) || s.pending_operators?.includes(email))
     ).length;
+  };
 
   // Auto-assign config from appSettings (passed down via allShoots context)
   const autoAssignTeams = (() => {
@@ -1199,6 +1203,7 @@ export default function Calendar() {
       operatorAvailabilityForDay={getUnavailableForDay(day)}
       rigCheckMessageCopied={rigCheckCopied}
       rigCheckMessageShootIds={rigCheckMessageShootIds}
+      queryClient={queryClient}
     />
   );
 
