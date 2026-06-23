@@ -285,6 +285,21 @@ function ShootCalendarEntry({
       await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(email => email !== user.email) });
     } else if (isAssigned) {
       await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(email => email !== user.email) });
+      // Also unassign from any auto-paired shoot on the same day in the same time window
+      const shootMinutes = getShootGameMinutes(shoot);
+      const paired = allShoots.filter(s =>
+        s.id !== shoot.id &&
+        s.date === shoot.date &&
+        (s.auto_assigned_for || []).includes(user.email) &&
+        s.assigned_operators?.includes(user.email) &&
+        Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
+      );
+      for (const p of paired) {
+        await onUpdate(p.id, {
+          assigned_operators: (p.assigned_operators || []).filter(e => e !== user.email),
+          auto_assigned_for: (p.auto_assigned_for || []).filter(e => e !== user.email),
+        });
+      }
     } else if (isAdmin) {
       await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
@@ -297,22 +312,27 @@ function ShootCalendarEntry({
         await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
 
-      // Auto-assign a paired linked-team shoot (max 1 partner, closest by time)
+      // Auto-pair: find the closest shoot within the time window (max 1 partner)
+      // If clicked shoot is a linked team → pair with closest any shoot
+      // If clicked shoot is not a linked team → pair with closest linked-team shoot
       if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
-        // Find all linked-team shoots on the same day within the window, not yet assigned
+        const clickedIsLinked = isLinkedTeam(shoot);
         const candidates = allShoots.filter(s =>
           s.id !== shoot.id &&
           s.date === shoot.date &&
-          isLinkedTeam(s) &&
           !s.assigned_operators?.includes(user.email) &&
-          Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
+          Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes &&
+          (clickedIsLinked ? true : isLinkedTeam(s))
         );
-        // Take only the closest one (max 1 partner = max 2 shoots total)
         if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes)
-          );
+          // Prefer linked-team partners first, then closest by time
+          candidates.sort((a, b) => {
+            const aLinked = isLinkedTeam(a) ? 0 : 1;
+            const bLinked = isLinkedTeam(b) ? 0 : 1;
+            if (aLinked !== bLinked) return aLinked - bLinked;
+            return Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes);
+          });
           const partner = candidates[0];
           await onUpdate(partner.id, {
             assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
@@ -1000,7 +1020,7 @@ export default function Calendar() {
         await handleShootUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
 
-      // Auto-assign a paired linked-team shoot (max 1 partner, closest by time)
+      // Auto-pair: find the closest shoot within the time window (max 1 partner)
       const autoAssignTeamsCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : []; })();
       const autoAssignUsersCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value; return raw ? JSON.parse(raw) : []; })();
       const autoAssignWindowCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
@@ -1009,17 +1029,21 @@ export default function Calendar() {
 
       if (userEligibleCM && autoAssignTeamsCM.length > 0) {
         const shootMins = timeToMinutes(shoot.game_time || '19:00');
+        const clickedIsLinkedCM = isLinkedTeamCM(shoot);
         const candidates = shoots.filter(s =>
           s.id !== shoot.id &&
           s.date === shoot.date &&
-          isLinkedTeamCM(s) &&
           !s.assigned_operators?.includes(user.email) &&
-          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM
+          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM &&
+          (clickedIsLinkedCM ? true : isLinkedTeamCM(s))
         );
         if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins)
-          );
+          candidates.sort((a, b) => {
+            const aLinked = isLinkedTeamCM(a) ? 0 : 1;
+            const bLinked = isLinkedTeamCM(b) ? 0 : 1;
+            if (aLinked !== bLinked) return aLinked - bLinked;
+            return Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins);
+          });
           const partner = candidates[0];
           await handleShootUpdate(partner.id, {
             assigned_operators: [...new Set([...(partner.assigned_operators || []), user.email])],
@@ -1037,6 +1061,22 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
     } else {
       await handleShootUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
+      // Also unassign from any auto-paired shoots on the same day in the same time window
+      const windowMins = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
+      const shootMins = timeToMinutes(shoot.game_time || '19:00');
+      const paired = shoots.filter(s =>
+        s.id !== shoot.id &&
+        s.date === shoot.date &&
+        (s.auto_assigned_for || []).includes(user.email) &&
+        s.assigned_operators?.includes(user.email) &&
+        Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= windowMins
+      );
+      for (const p of paired) {
+        await handleShootUpdate(p.id, {
+          assigned_operators: (p.assigned_operators || []).filter(e => e !== user.email),
+          auto_assigned_for: (p.auto_assigned_for || []).filter(e => e !== user.email),
+        });
+      }
     }
   };
 
