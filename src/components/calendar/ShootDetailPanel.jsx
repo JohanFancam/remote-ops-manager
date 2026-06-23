@@ -146,7 +146,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
 
   // Check if shoot already has a non-admin operator assigned (one user per shoot rule)
+  // Only consider it "full" if there's a *different* non-admin already assigned
   const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
+    if (e === user?.email) return false; // don't count ourselves
     const u = allUsers.find(u2 => u2.email === e);
     return !u || u.role !== 'admin';
   });
