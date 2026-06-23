@@ -253,15 +253,16 @@ function ShootCalendarEntry({
       return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
     });
 
-  // Count all upcoming shoots where user is assigned OR pending.
-  // Both the main shoot AND the auto-paired partner count separately — 3 paired days = 6 shoots = at limit.
-  // Always read from live query cache to get the most up-to-date count after optimistic updates.
+  // Count upcoming shoots where this user is already in assigned_operators.
+  // Pending shoots do NOT count — they haven't been approved yet.
+  // Both main and auto-paired partner shoots count (3 paired days = 6 assigned = at limit).
+  // Always read from live query cache so optimistic updates are reflected immediately.
   const getApprovedCount = (email) => {
     const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
     return freshShoots.filter(s =>
       s.id !== shoot.id &&
       s.date >= todayStr &&
-      (s.assigned_operators?.includes(email) || s.pending_operators?.includes(email))
+      (s.assigned_operators || []).includes(email)
     ).length;
   };
 
@@ -1036,13 +1037,12 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce AUTO_APPROVE_LIMIT — use optimistic cache for accurate count.
-      // Both main and auto-paired partner shoots count — 3 paired days = 6 shoots = at limit.
+      // Remote user: enforce AUTO_APPROVE_LIMIT — count only assigned (not pending) upcoming shoots.
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
       const approvedCount = freshShoots.filter(s =>
         s.id !== shoot.id &&
         s.date >= todayStrLocal &&
-        (s.assigned_operators?.includes(user.email) || s.pending_operators?.includes(user.email))
+        (s.assigned_operators || []).includes(user.email)
       ).length;
       const withinLimitCM = approvedCount < AUTO_APPROVE_LIMIT;
       if (withinLimitCM) {
