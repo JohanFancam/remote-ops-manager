@@ -61,12 +61,19 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   const breakdown = [];
 
   Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, dayShots]) => {
-    const additionalIds = getAdditionalShootIds(dayShots);
+    // Use auto_assigned_for as the authoritative source for "additional"
+    // Fall back to time-proximity logic for shoots without that field
+    const autoAdditionalIds = new Set(
+      dayShots.filter(s => (s.auto_assigned_for || []).some(e => e?.toLowerCase()?.trim() === safeEmail)).map(s => s.id)
+    );
+    const nonAutoShots = dayShots.filter(s => !autoAdditionalIds.has(s.id));
+    const proximityAdditionalIds = getAdditionalShootIds(nonAutoShots);
+
     const sorted = [...dayShots].sort((a, b) =>
       (timeToMinutes(a.game_time || a.start_time) || 0) - (timeToMinutes(b.game_time || b.start_time) || 0)
     );
     sorted.forEach(shoot => {
-      const isAdditional = additionalIds.has(shoot.id);
+      const isAdditional = autoAdditionalIds.has(shoot.id) || proximityAdditionalIds.has(shoot.id);
       const amount = isAdditional ? additionalRate : baseRate;
       total += amount;
       breakdown.push({ date, shoot, amount, isAdditional });

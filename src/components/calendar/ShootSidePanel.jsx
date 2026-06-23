@@ -67,13 +67,8 @@ export default function ShootSidePanel({
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
 
-  // Only count a different non-admin operator as "filling" the slot
-  const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
-    if (e === user?.email) return false;
-    const u = allUsers.find(u2 => u2.email === e);
-    return !u || u.role !== 'admin';
-  });
-  const shootFull = !isAdmin && !isStandby && nonAdminAssigned.length > 0 && !isAssigned;
+  // Shoots are never "full" — multiple operators can be assigned
+  const shootFull = false;
 
   const getApprovedCount = (email) =>
     allShoots.filter(s =>

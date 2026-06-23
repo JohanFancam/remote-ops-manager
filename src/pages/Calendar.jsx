@@ -213,13 +213,8 @@ function ShootCalendarEntry({
     await onRigCheckCancel?.(shoot);
   };
 
-  // shootFull only applies to remote users, not standby — exclude current user's own email
-  const nonAdminAssigned = (shoot.assigned_operators || []).filter(email => {
-    if (email === user?.email) return false;
-    const u = allUsers.find(u2 => u2.email === email);
-    return !u || u.role !== 'admin';
-  });
-  const shootFull = !isAdmin && !isStandby && nonAdminAssigned.length > 0 && !isAssigned;
+  // Shoots are never "full" — multiple operators can be assigned
+  const shootFull = false;
 
   const dotColor = shouldGrey
     ? 'bg-gray-600'
