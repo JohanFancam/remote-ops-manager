@@ -143,21 +143,7 @@
       }
     },
     "read": {},
-    "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "data.assigned_operators": "{{user.email}}"
-        },
-        {
-          "data.pending_operators": "{{user.email}}"
-        }
-      ]
-    },
+    "update": {},
     "delete": {
       "user_condition": {
         "role": "admin"
