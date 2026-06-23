@@ -295,8 +295,8 @@ function ShootCalendarEntry({
         await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
 
-      // Auto-assign linked shoots
-      if (userEligibleForAutoAssign && isLinkedTeam(shoot)) {
+      // Auto-assign any linked-team shoots on the same day within the time window
+      if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
         const linkedShoots = allShoots.filter(s =>
           s.id !== shoot.id &&
@@ -897,10 +897,48 @@ export default function Calendar() {
 
   const handleConfirmAssignOperator = async (email) => {
     if (!assignOperatorsModal?.id || !email) return;
-    const current = assignOperatorsModal.assigned_operators || [];
+    const shoot = assignOperatorsModal;
+    const current = shoot.assigned_operators || [];
     if (!current.includes(email)) {
-      const updated = { ...assignOperatorsModal, assigned_operators: [...current, email] };
-      await handleShootUpdate(assignOperatorsModal.id, { assigned_operators: updated.assigned_operators });
+      const updated = { ...shoot, assigned_operators: [...current, email] };
+      await handleShootUpdate(shoot.id, { assigned_operators: updated.assigned_operators });
+
+      // Trigger auto-assign for the assigned user if they are eligible
+      const autoAssignTeams = (() => {
+        const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+        return raw ? JSON.parse(raw) : [];
+      })();
+      const autoAssignUsers = (() => {
+        const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value;
+        return raw ? JSON.parse(raw) : [];
+      })();
+      const autoAssignWindowMinutes = (() => {
+        const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+        return (raw ? Number(raw) : 2) * 60;
+      })();
+      const isLinkedTeam = (s) => autoAssignTeams.some(t =>
+        (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
+      );
+      const userEligible = autoAssignUsers.length === 0 || autoAssignUsers.includes(email);
+
+      if (userEligible && autoAssignTeams.length > 0) {
+        const shootMins = timeToMinutes(shoot.game_time || '19:00');
+        const linkedShoots = shoots.filter(s =>
+          s.id !== shoot.id &&
+          s.date === shoot.date &&
+          isLinkedTeam(s) &&
+          !(s.assigned_operators || []).includes(email) &&
+          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowMinutes
+        );
+        for (const linked of linkedShoots) {
+          await handleShootUpdate(linked.id, {
+            assigned_operators: [...new Set([...(linked.assigned_operators || []), email])],
+            auto_assigned_for: [...new Set([...(linked.auto_assigned_for || []), email])],
+          });
+          updated.assigned_operators = updated.assigned_operators; // keep modal in sync
+        }
+      }
+
       setAssignOperatorsModal(updated);
     }
   };
@@ -949,6 +987,30 @@ export default function Calendar() {
         await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await handleShootUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
+      }
+
+      // Auto-assign linked shoots
+      const autoAssignTeamsCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : []; })();
+      const autoAssignUsersCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value; return raw ? JSON.parse(raw) : []; })();
+      const autoAssignWindowCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
+      const isLinkedTeamCM = (s) => autoAssignTeamsCM.some(t => (s.client || s.title || '').toLowerCase().includes(t.toLowerCase()));
+      const userEligibleCM = autoAssignUsersCM.length === 0 || autoAssignUsersCM.includes(user.email);
+
+      if (userEligibleCM && autoAssignTeamsCM.length > 0) {
+        const shootMins = timeToMinutes(shoot.game_time || '19:00');
+        const linkedShoots = shoots.filter(s =>
+          s.id !== shoot.id &&
+          s.date === shoot.date &&
+          isLinkedTeamCM(s) &&
+          !s.assigned_operators?.includes(user.email) &&
+          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM
+        );
+        for (const linked of linkedShoots) {
+          await handleShootUpdate(linked.id, {
+            assigned_operators: [...new Set([...(linked.assigned_operators || []), user.email])],
+            auto_assigned_for: [...new Set([...(linked.auto_assigned_for || []), user.email])],
+          });
+        }
       }
     }
   };

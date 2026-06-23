@@ -172,8 +172,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         }
       }
 
-      // Auto-assign linked shoots if eligible
-      if (userEligibleForAutoAssign && isLinkedTeam(shoot)) {
+      // Auto-assign any linked-team shoots on the same day within the time window
+      if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
         const linkedShoots = allShoots.filter(s =>
           s.id !== shoot.id &&
