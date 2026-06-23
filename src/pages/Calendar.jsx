@@ -917,6 +917,11 @@ export default function Calendar() {
         payload.phase_status = restPhase;
       }
     }
+    // Optimistic update: immediately reflect changes in the cache so the limit counter
+    // is accurate on the very next assignment click (before the async refetch completes)
+    queryClient.setQueryData(['shoots'], (old = []) =>
+      old.map(s => s.id === id ? { ...s, ...payload } : s)
+    );
     await base44.entities.Shoot.update(id, payload);
     refresh();
     setSelectedShoot(prev => prev && prev.id === id ? { ...prev, ...payload } : prev);
@@ -1027,8 +1032,9 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce AUTO_APPROVE_LIMIT — count assigned + pending (exclude auto-assigned pairs)
-      const approvedCount = shoots.filter(s =>
+      // Remote user: enforce AUTO_APPROVE_LIMIT — use optimistic cache for accurate count
+      const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
+      const approvedCount = freshShoots.filter(s =>
         s.id !== shoot.id &&
         s.date >= todayStrLocal &&
         !(s.auto_assigned_for || []).includes(user.email) &&
