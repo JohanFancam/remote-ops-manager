@@ -176,8 +176,11 @@ function LayoutContent({ children, currentPageName }) {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 h-14" style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Wifi className="h-4 w-4 text-white" />
+          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+              : <Wifi className="h-4 w-4 text-white" />
+            }
           </div>
           <span className="text-white font-bold text-sm">Remote Ops</span>
         </div>

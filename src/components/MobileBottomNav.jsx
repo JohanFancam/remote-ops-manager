@@ -132,23 +132,26 @@ export default function MobileBottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors select-none',
+                'flex-1 flex flex-col items-center justify-center transition-colors select-none',
                 isActive ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
               )}
             >
               <item.icon className="h-5 w-5" />
-              {item.label}
             </Link>
           );
         })}
 
-        {/* Center App Icon */}
+        {/* Center Grid Menu Button */}
         <button
           onClick={() => setMenuOpen(true)}
-          className="flex-none w-16 flex flex-col items-center justify-center gap-1 -mt-4 select-none"
+          className="flex-none w-16 flex flex-col items-center justify-center -mt-4 select-none"
         >
-          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/40">
-            <Wifi className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40">
+            <div className="grid grid-cols-3 gap-[3px] p-[3px]">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="w-[6px] h-[6px] bg-white rounded-[1px]" />
+              ))}
+            </div>
           </div>
         </button>
 
@@ -159,12 +162,11 @@ export default function MobileBottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors select-none',
+                'flex-1 flex flex-col items-center justify-center transition-colors select-none',
                 isActive ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
               )}
             >
               <item.icon className="h-5 w-5" />
-              {item.label}
             </Link>
           );
         })}
