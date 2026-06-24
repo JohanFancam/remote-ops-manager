@@ -351,12 +351,13 @@ function ShootCalendarEntry({
       // Auto-pair logic
       if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
+        const clickedIsLinked = isLinkedTeam(shoot);
         const candidates = allShoots.filter(s =>
           s.id !== shoot.id &&
           s.date === shoot.date &&
           !hasEmail(s.assigned_operators, email) &&
           !hasEmail(s.pending_operators, email) &&
-          isLinkedTeam(s) &&
+          (clickedIsLinked || isLinkedTeam(s)) &&
           Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
         );
         if (candidates.length > 0) {
@@ -1128,15 +1129,16 @@ export default function Calendar() {
       const userEligibleCM = autoAssignUsersCM.length === 0 || autoAssignUsersCM.includes(email);
 
       if (userEligibleCM && autoAssignTeamsCM.length > 0) {
-        const shootMins = timeToMinutes(shoot.game_time || '19:00');
-        const candidates = shoots.filter(s =>
-          s.id !== shoot.id &&
-          s.date === shoot.date &&
-          !hasEmail(s.assigned_operators, email) &&
-          !hasEmail(s.pending_operators, email) &&
-          isLinkedTeamCM(s) &&
-          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM
-        );
+      const shootMins = timeToMinutes(shoot.game_time || '19:00');
+      const clickedIsLinkedCM = isLinkedTeamCM(shoot);
+      const candidates = shoots.filter(s =>
+        s.id !== shoot.id &&
+        s.date === shoot.date &&
+        !hasEmail(s.assigned_operators, email) &&
+        !hasEmail(s.pending_operators, email) &&
+        (clickedIsLinkedCM || isLinkedTeamCM(s)) &&
+        Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM
+      );
         if (candidates.length > 0) {
           candidates.sort((a, b) =>
             Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins)

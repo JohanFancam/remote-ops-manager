@@ -213,10 +213,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       // Auto-pair: only the closest linked shoot within the time window
       if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
+        const clickedIsLinked = isLinkedTeam(shoot);
         const candidates = allShoots.filter(s =>
           s.id !== shoot.id &&
           s.date === shoot.date &&
-          isLinkedTeam(s) &&
+          (clickedIsLinked || isLinkedTeam(s)) &&
           !hasEmail(s.assigned_operators, email) &&
           !hasEmail(s.pending_operators, email) &&
           Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes

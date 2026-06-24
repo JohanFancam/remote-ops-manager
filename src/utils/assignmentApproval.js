@@ -81,7 +81,7 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
     (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
   );
 
-  if (!isLinkedTeam(shoot)) return null;
+  const clickedIsLinked = isLinkedTeam(shoot);
 
   const shootMins = (() => {
     const t = shoot.game_time || '19:00';
@@ -100,7 +100,7 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
     s.date === shoot.date &&
     s.status !== 'cancelled' &&
     s.status !== 'completed' &&
-    isLinkedTeam(s) &&
+    (clickedIsLinked || isLinkedTeam(s)) &&
     !hasEmail(s.assigned_operators, email) &&
     !hasEmail(s.pending_operators, email) &&
     Math.abs(getGameMins(s) - shootMins) <= windowMinutes
