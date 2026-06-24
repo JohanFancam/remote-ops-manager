@@ -3,7 +3,7 @@ import { Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findAutoAssignedPair } from '@/utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -107,8 +107,8 @@ export default function ShootSidePanel({
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
       });
-      // Cascade unassign to auto-paired shoot
-      const paired = findAutoAssignedPair(shoot, allShoots, autoAssignWindowMinutes, email);
+      // Bidirectional cascade unassign to paired shoot
+      const paired = findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
       if (paired) {
         await onUpdate(paired.id, {
           assigned_operators: removeEmail(paired.assigned_operators, email),
@@ -155,6 +155,7 @@ export default function ShootSidePanel({
               pending_operators: addEmail(partner.pending_operators, email),
               assigned_operators: removeEmail(partner.assigned_operators, email),
               pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
+              auto_assigned_for: removeEmail(partner.auto_assigned_for, email),
             });
           }
         }

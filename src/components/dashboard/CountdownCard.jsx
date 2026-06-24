@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
-import { removeEmail, hasEmail, findAutoAssignedPair } from '@/utils/assignmentApproval';
+import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -287,17 +287,27 @@ export default function CountdownCard({
 
   const handleUnassignSelf = async () => {
     if (!userEmail || !onUpdate) return;
+    const autoAssignTeams = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+      return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+    })();
     const windowMins = (() => {
       const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
       return (raw ? Number(raw) : 2) * 60;
     })();
+
+    const paired = findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMins, userEmail);
+    const confirmMsg = paired
+      ? `Are you sure you want to unassign from this shoot and its paired shoot?`
+      : `Are you sure you want to unassign from this shoot?`;
+    if (!window.confirm(confirmMsg)) return;
+
     await onUpdate(shoot.id, {
       assigned_operators: removeEmail(shoot.assigned_operators, userEmail),
       pending_operators: removeEmail(shoot.pending_operators, userEmail),
       pre_approved_operators: removeEmail(shoot.pre_approved_operators, userEmail),
       auto_assigned_for: removeEmail(shoot.auto_assigned_for, userEmail),
     });
-    const paired = findAutoAssignedPair(shoot, allShoots, windowMins, userEmail);
     if (paired) {
       await onUpdate(paired.id, {
         assigned_operators: removeEmail(paired.assigned_operators, userEmail),

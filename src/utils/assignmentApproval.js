@@ -118,21 +118,31 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
 /**
  * Find the shoot that was auto-paired to `email` alongside `shoot`.
  * Used for cascaded unassign.
- *
- * @param {Object} shoot        - the shoot being unassigned from
- * @param {Array}  allShoots    - full shoot list
- * @param {number} windowMinutes
- * @param {string} email
- * @returns {Object|null}
+ * @deprecated Use findPairedShootForUnassign for bidirectional unassign.
  */
 export function findAutoAssignedPair(shoot, allShoots, windowMinutes, email) {
-  if (!shoot || !allShoots) return null;
+  return findPairedShootForUnassign(shoot, allShoots, [], windowMinutes, email);
+}
 
-  const shootMins = (() => {
-    const t = shoot.game_time || '19:00';
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  })();
+/**
+ * Find the paired shoot for bidirectional unassign.
+ * Works whether the clicked shoot is the main shoot OR the auto-paired shoot.
+ * Returns the other shoot that the operator is assigned/pending on, if it:
+ *   - is on the same date
+ *   - is a configured linked team
+ *   - is within the time window
+ *   - is not cancelled or completed
+ *   - has the operator assigned or pending
+ *
+ * @param {Object} shoot            - the shoot being unassigned from
+ * @param {Array}  allShoots        - full shoot list
+ * @param {Array}  autoAssignTeams  - configured linked team names
+ * @param {number} windowMinutes    - pairing window in minutes
+ * @param {string} email            - operator email
+ * @returns {Object|null}
+ */
+export function findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMinutes, email) {
+  if (!shoot || !allShoots) return null;
 
   const getGameMins = (s) => {
     const t = s.game_time || '19:00';
@@ -140,12 +150,40 @@ export function findAutoAssignedPair(shoot, allShoots, windowMinutes, email) {
     return h * 60 + m;
   };
 
-  const paired = allShoots.filter(s =>
+  const shootMins = getGameMins(shoot);
+
+  const isLinkedTeam = autoAssignTeams && autoAssignTeams.length > 0
+    ? (s) => autoAssignTeams.some(t => (s.client || s.title || '').toLowerCase().includes(t.toLowerCase()))
+    : () => true; // if no teams configured, fall back to any nearby shoot with auto_assigned_for
+
+  // If teams are configured, both shoots must be linked teams
+  const shootIsLinked = autoAssignTeams && autoAssignTeams.length > 0 ? isLinkedTeam(shoot) : true;
+
+  const candidates = allShoots.filter(s =>
     s.id !== shoot.id &&
     s.date === shoot.date &&
-    hasEmail(s.auto_assigned_for, email) &&
-    Math.abs(getGameMins(s) - shootMins) <= windowMinutes
+    s.status !== 'cancelled' &&
+    s.status !== 'completed' &&
+    (hasEmail(s.assigned_operators, email) || hasEmail(s.pending_operators, email)) &&
+    Math.abs(getGameMins(s) - shootMins) <= windowMinutes &&
+    (
+      // Either both are linked teams (standard pairing)
+      (shootIsLinked && isLinkedTeam(s)) ||
+      // Or fallback: find by auto_assigned_for marker on either shoot
+      hasEmail(s.auto_assigned_for, email) ||
+      hasEmail(shoot.auto_assigned_for, email)
+    )
   );
 
-  return paired.length > 0 ? paired[0] : null;
+  if (candidates.length === 0) return null;
+
+  // Prefer the one with auto_assigned_for set (the secondary shoot), or closest by time
+  candidates.sort((a, b) => {
+    const aHasMarker = hasEmail(a.auto_assigned_for, email) ? 0 : 1;
+    const bHasMarker = hasEmail(b.auto_assigned_for, email) ? 0 : 1;
+    if (aHasMarker !== bHasMarker) return aHasMarker - bHasMarker;
+    return Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins);
+  });
+
+  return candidates[0];
 }
