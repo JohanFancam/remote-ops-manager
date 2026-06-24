@@ -10,6 +10,7 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
+import { AUTO_APPROVE_LIMIT, getApprovedAssignmentCount } from '../../utils/assignmentApproval';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -45,7 +46,6 @@ function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType 
 const SHUTTER_OPTIONS = ['1/100', '1/125', '1/160', '1/200', '1/250', '1/320', '1/400'];
 const APERTURE_OPTIONS = ['F5.6', 'F6.3', 'F7.1', 'F8', 'F9', 'F10', 'F11'];
 const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
-const AUTO_APPROVE_LIMIT = 5;
 
 function ScheduleRow({ Icon, label, time, highlight }) {
   return (
@@ -122,14 +122,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
   );
 
-  // Count only non-auto-assigned shoots toward the 5-game limit
-  const getApprovedCount = (email) =>
-    allShoots.filter(s =>
-      s.id !== shoot.id &&
-      s.date >= todayStr &&
-      s.assigned_operators?.includes(email) &&
-      !(s.auto_assigned_for || []).includes(email)
-    ).length;
+  // Count using shared helper (respects cancelled/completed exclusions and the 6-shoot limit)
+  const getApprovedCount = (email) => getApprovedAssignmentCount(allShoots, email, shoot.id, todayStr);
 
   const matchedRig = rigSettings?.find(r =>
     r.team && shoot.client &&
