@@ -1,10 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Clock, XCircle, MapPin, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { removeEmail } from '@/utils/assignmentApproval';
 
+const PAGE_SIZE = 4;
+
+function PendingShootTile({ shoot, onCancel }) {
+  return (
+    <div className="bg-gray-900 border border-yellow-800/30 rounded-xl overflow-hidden hover:border-yellow-700/50 transition-colors">
+      <div className="px-4 py-3">
+        {/* Status pill */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="flex items-center gap-1 text-[11px] bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded-full font-medium">
+            <Clock className="h-3 w-3" /> Pending Approval
+          </span>
+          <button
+            onClick={() => onCancel(shoot)}
+            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-2 py-1 rounded-lg transition-colors"
+          >
+            <XCircle className="h-3.5 w-3.5" /> Cancel
+          </button>
+        </div>
+
+        {/* Title */}
+        <p className="text-sm font-semibold text-white truncate mb-1">{shoot.title}</p>
+
+        {/* Meta */}
+        <div className="space-y-0.5 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
+            {shoot.game_time && <span className="font-mono text-gray-500">· {shoot.game_time}</span>}
+          </div>
+          {shoot.location && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{shoot.location}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
+  const [page, setPage] = useState(0);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const pendingShoots = shoots
@@ -16,7 +57,10 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
     )
     .sort((a, b) => a.date.localeCompare(b.date) || (a.game_time || '').localeCompare(b.game_time || ''));
 
-  const handleCancelPending = async (shoot) => {
+  const totalPages = Math.max(1, Math.ceil(pendingShoots.length / PAGE_SIZE));
+  const visibleShoots = pendingShoots.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  const handleCancel = async (shoot) => {
     const email = user?.email;
     if (!email) return;
     await onUpdate(shoot.id, {
@@ -27,44 +71,45 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
 
   if (pendingShoots.length === 0) {
     return (
-      <p className="text-sm text-gray-500 py-3 text-center">No pending shoots awaiting approval.</p>
+      <p className="py-8 text-center text-sm italic text-gray-500">No pending shoots awaiting approval.</p>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {pendingShoots.map(shoot => (
-        <div key={shoot.id} className="flex items-start justify-between gap-3 rounded-lg border border-yellow-700/30 bg-yellow-950/20 px-3 py-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-sm font-semibold text-white truncate">{shoot.title}</p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-400">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}
-                {shoot.game_time ? ` · ${shoot.game_time}` : ''}
-              </span>
-              {shoot.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {shoot.location}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <span className="flex items-center gap-1 text-[11px] bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded-full">
-              <Clock className="h-3 w-3" /> Pending Approval
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleCancelPending(shoot)}
-              className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 px-2"
-            >
-              <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
-            </Button>
-          </div>
+    <div>
+      <div className="mb-3 flex items-center justify-end">
+        <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
+          Showing max 4
         </div>
-      ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        {visibleShoots.map(shoot => (
+          <PendingShootTile key={shoot.id} shoot={shoot} onCancel={handleCancel} />
+        ))}
+      </div>
+
+      {pendingShoots.length > PAGE_SIZE && (
+        <div className="mt-3 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="rounded-md border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:bg-gray-800 disabled:opacity-30"
+          >
+            Previous
+          </button>
+          <span className="text-[10px] font-bold text-gray-600">
+            SHOWING {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, pendingShoots.length)} OF {pendingShoots.length}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="rounded-md border border-blue-800/60 bg-blue-950/25 px-2.5 py-1 text-xs font-semibold text-blue-300 hover:bg-blue-900/30 disabled:opacity-30"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
