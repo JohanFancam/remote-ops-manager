@@ -3,6 +3,7 @@ import { Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
+import { AUTO_APPROVE_LIMIT, getApprovedAssignmentCount } from '@/utils/assignmentApproval';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -42,8 +43,6 @@ const getRigTypeLabel = (shoot, rig) => {
   return parts.length > 0 ? parts.join('/') : null;
 };
 
-const AUTO_APPROVE_LIMIT = 6;
-
 export default function ShootSidePanel({
   shoot,
   user,
@@ -71,17 +70,15 @@ export default function ShootSidePanel({
   // Shoots are never "full" — multiple operators can be assigned
   const shootFull = false;
 
-  // Count upcoming assigned shoots — read from live cache for accuracy
+  // Count using shared helper — reads live cache when available
   const getApprovedCount = (email) => {
     const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
-    return freshShoots.filter(s =>
-      s.id !== shoot.id &&
-      s.date >= todayStr &&
-      s.status !== 'cancelled' &&
-      s.status !== 'completed' &&
-      (s.assigned_operators || []).includes(email)
-    ).length;
+    return getApprovedAssignmentCount(freshShoots, email, shoot.id, todayStr);
   };
+
+  const approvedCount = !isAdmin && !isStandby && user?.email ? getApprovedCount(user.email) : 0;
+  const withinLimit = approvedCount < AUTO_APPROVE_LIMIT;
+  const remaining = AUTO_APPROVE_LIMIT - approvedCount;
 
   const handleSelfAssign = async () => {
     if (!user?.email || isPast) return;
@@ -91,9 +88,11 @@ export default function ShootSidePanel({
       await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
     } else {
       if (shootFull) return;
-      const approvedCount = getApprovedCount(user.email);
-      if (approvedCount < AUTO_APPROVE_LIMIT) {
-        await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+      if (withinLimit) {
+        // Move from pending → assigned if needed, then add to assigned
+        const newAssigned = [...new Set([...(shoot.assigned_operators || []), user.email])];
+        const newPending = (shoot.pending_operators || []).filter(e => e !== user.email);
+        await onUpdate(shoot.id, { assigned_operators: newAssigned, pending_operators: newPending });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
@@ -283,19 +282,33 @@ export default function ShootSidePanel({
             </Button>
           )}
           {!isAdmin && !isStandby && !isPast && (
-            <Button
-              size="sm"
-              onClick={handleSelfAssign}
-              disabled={shootFull}
-              className={`text-xs h-8 w-full ${
-                isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
-                : isPending ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20'
-                : shootFull ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isAssigned ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Slot Taken' : '+ Assign Myself'}
-            </Button>
+            <div className="flex flex-col gap-1.5 w-full">
+              <Button
+                size="sm"
+                onClick={handleSelfAssign}
+                disabled={shootFull}
+                className={`text-xs h-8 w-full ${
+                  isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
+                  : isPending ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20'
+                  : shootFull ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : withinLimit ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-600/50 text-yellow-300'
+                }`}
+              >
+                {isAssigned ? 'Unassign Myself'
+                  : isPending ? 'Pending — Cancel'
+                  : shootFull ? 'Slot Taken'
+                  : withinLimit ? '+ Assign Myself'
+                  : '+ Request Approval'}
+              </Button>
+              {!isAssigned && !isPending && (
+                <p className="text-[11px] text-center text-gray-500">
+                  {withinLimit
+                    ? `${remaining} auto-approval${remaining === 1 ? '' : 's'} remaining`
+                    : 'Requires admin approval'}
+                </p>
+              )}
+            </div>
           )}
         </div>
 

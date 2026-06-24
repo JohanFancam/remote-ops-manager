@@ -16,6 +16,7 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
+import { AUTO_APPROVE_LIMIT, getApprovedAssignmentCount } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
@@ -29,7 +30,6 @@ const statusColors = {
   cancelled: 'bg-red-700',
 };
 
-const AUTO_APPROVE_LIMIT = 6;
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
@@ -253,17 +253,10 @@ function ShootCalendarEntry({
       return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
     });
 
-  // Count upcoming assigned shoots toward the 6-shoot pre-approval limit.
-  // Excludes: current shoot, past shoots, cancelled/completed shoots, pending-only shoots.
+  // Count upcoming approved assignments using the shared helper (reads live cache when available)
   const getApprovedCount = (email) => {
     const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
-    return freshShoots.filter(s =>
-      s.id !== shoot.id &&
-      s.date >= todayStr &&
-      s.status !== 'cancelled' &&
-      s.status !== 'completed' &&
-      (s.assigned_operators || []).includes(email)
-    ).length;
+    return getApprovedAssignmentCount(freshShoots, email, shoot.id, todayStr);
   };
 
   // Auto-assign config from appSettings (passed down via allShoots context)
@@ -322,7 +315,10 @@ function ShootCalendarEntry({
       const approvedCount = getApprovedCount(user.email);
       const withinLimit = approvedCount < AUTO_APPROVE_LIMIT;
       if (withinLimit) {
-        await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+        // Remove from pending if present, then add to assigned
+        const newAssigned = [...new Set([...(shoot.assigned_operators || []), user.email])];
+        const newPending = (shoot.pending_operators || []).filter(e => e !== user.email);
+        await onUpdate(shoot.id, { assigned_operators: newAssigned, pending_operators: newPending });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
@@ -1036,18 +1032,15 @@ export default function Calendar() {
       await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
       await createShootTimeEntry(shoot, user.email, user.full_name || user.email, `Shoot: ${shoot.title}`);
     } else {
-      // Remote user: enforce AUTO_APPROVE_LIMIT — count only assigned (not pending/cancelled/completed) upcoming shoots.
+      // Remote user: enforce AUTO_APPROVE_LIMIT using shared helper
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
-      const approvedCount = freshShoots.filter(s =>
-        s.id !== shoot.id &&
-        s.date >= todayStrLocal &&
-        s.status !== 'cancelled' &&
-        s.status !== 'completed' &&
-        (s.assigned_operators || []).includes(user.email)
-      ).length;
+      const approvedCount = getApprovedAssignmentCount(freshShoots, user.email, shoot.id, todayStrLocal);
       const withinLimitCM = approvedCount < AUTO_APPROVE_LIMIT;
       if (withinLimitCM) {
-        await handleShootUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user.email])] });
+        // Remove from pending if present, then add to assigned
+        const newAssigned = [...new Set([...(shoot.assigned_operators || []), user.email])];
+        const newPending = (shoot.pending_operators || []).filter(e => e !== user.email);
+        await handleShootUpdate(shoot.id, { assigned_operators: newAssigned, pending_operators: newPending });
       } else if (!(shoot.pending_operators || []).includes(user.email)) {
         await handleShootUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
       }
