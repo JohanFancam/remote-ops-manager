@@ -73,13 +73,7 @@ export default function MobileBottomNav() {
       {/* Full Menu Drawer */}
       {menuOpen && (
         <div className="md:hidden fixed inset-0 z-[60] bg-gray-900 flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Wifi className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-white font-bold">Remote Ops</span>
-            </div>
+          <div className="flex items-center justify-end px-4 py-3 border-b border-gray-800">
             <button onClick={() => setMenuOpen(false)} className="text-gray-400 hover:text-white p-2">
               <X className="h-6 w-6" />
             </button>
