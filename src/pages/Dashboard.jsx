@@ -148,6 +148,8 @@ export default function Dashboard() {
               onUpdate={handleShootUpdate}
               userEmail={user?.email}
               allUsers={allUsers}
+              allShoots={shoots}
+              appSettings={appSettings}
             />
           </div>
         </section>

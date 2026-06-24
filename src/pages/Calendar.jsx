@@ -16,7 +16,7 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail } from '../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findAutoAssignedPair } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
@@ -296,32 +296,37 @@ function ShootCalendarEntry({
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
       });
     } else if (isAssigned) {
-      // Unassign — remove from all three arrays
+      // Unassign — remove from all arrays + cascade to auto-paired shoot
       await onUpdate(shoot.id, {
         assigned_operators: removeEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
       });
-      // Also unassign any auto-paired shoot on the same day within the time window
-      const shootMinutes = getShootGameMinutes(shoot);
-      const paired = allShoots.filter(s =>
-        s.id !== shoot.id &&
-        s.date === shoot.date &&
-        hasEmail(s.auto_assigned_for, email) &&
-        Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
-      );
-      for (const p of paired) {
-        await onUpdate(p.id, {
-          assigned_operators: removeEmail(p.assigned_operators, email),
-          pending_operators: removeEmail(p.pending_operators, email),
-          pre_approved_operators: removeEmail(p.pre_approved_operators, email),
-          auto_assigned_for: removeEmail(p.auto_assigned_for, email),
+      const paired = findAutoAssignedPair(shoot, allShoots, autoAssignWindowMinutes, email);
+      if (paired) {
+        await onUpdate(paired.id, {
+          assigned_operators: removeEmail(paired.assigned_operators, email),
+          pending_operators: removeEmail(paired.pending_operators, email),
+          pre_approved_operators: removeEmail(paired.pre_approved_operators, email),
+          auto_assigned_for: removeEmail(paired.auto_assigned_for, email),
         });
       }
     } else if (isAdmin) {
-      await onUpdate(shoot.id, { assigned_operators: addEmail(shoot.assigned_operators, email) });
+      // Admin self-assign: no limit check, auto-pair linked shoot
+      await onUpdate(shoot.id, {
+        assigned_operators: addEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+      });
       await createShootTimeEntry(shoot, email, user.full_name || email, `Shoot: ${shoot.title}`);
+      const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+      if (partner) {
+        await onUpdate(partner.id, {
+          assigned_operators: addEmail(partner.assigned_operators, email),
+          pending_operators: removeEmail(partner.pending_operators, email),
+          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+        });
+      }
     } else {
       // Remote user self-assign
       const preCount = getPreApproved(email);
@@ -976,52 +981,35 @@ export default function Calendar() {
   const handleConfirmAssignOperator = async (email) => {
     if (!assignOperatorsModal?.id || !email) return;
     const shoot = assignOperatorsModal;
-    const current = shoot.assigned_operators || [];
-    if (!current.includes(email)) {
-      const updated = { ...shoot, assigned_operators: [...current, email] };
-      await handleShootUpdate(shoot.id, { assigned_operators: updated.assigned_operators });
+    if (hasEmail(shoot.assigned_operators, email)) return;
 
-      // Trigger auto-assign for the assigned user if they are eligible
-      const autoAssignTeams = (() => {
-        const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
-        return raw ? JSON.parse(raw) : [];
-      })();
-      const autoAssignUsers = (() => {
-        const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value;
-        return raw ? JSON.parse(raw) : [];
-      })();
-      const autoAssignWindowMinutes = (() => {
-        const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
-        return (raw ? Number(raw) : 2) * 60;
-      })();
-      const isLinkedTeam = (s) => autoAssignTeams.some(t =>
-        (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
-      );
-      const userEligible = autoAssignUsers.length === 0 || autoAssignUsers.includes(email);
+    // Admin assignment: add to assigned + remove from pending (no limit check)
+    await handleShootUpdate(shoot.id, {
+      assigned_operators: addEmail(shoot.assigned_operators, email),
+      pending_operators: removeEmail(shoot.pending_operators, email),
+    });
 
-      if (userEligible && autoAssignTeams.length > 0) {
-        const shootMins = timeToMinutes(shoot.game_time || '19:00');
-        const candidates = shoots.filter(s =>
-          s.id !== shoot.id &&
-          s.date === shoot.date &&
-          isLinkedTeam(s) &&
-          !(s.assigned_operators || []).includes(email) &&
-          Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowMinutes
-        );
-        if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins)
-          );
-          const partner = candidates[0];
-          await handleShootUpdate(partner.id, {
-            assigned_operators: [...new Set([...(partner.assigned_operators || []), email])],
-            auto_assigned_for: [...new Set([...(partner.auto_assigned_for || []), email])],
-          });
-        }
-      }
+    // Admin auto-pair: find linked paired shoot and assign without limit check
+    const autoAssignTeamsCfg = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+      return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+    })();
+    const autoAssignWindowCfg = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
 
-      setAssignOperatorsModal(updated);
+    const partner = findPairedShoot(shoot, shoots, autoAssignTeamsCfg, autoAssignWindowCfg, email);
+    if (partner) {
+      await handleShootUpdate(partner.id, {
+        assigned_operators: addEmail(partner.assigned_operators, email),
+        pending_operators: removeEmail(partner.pending_operators, email),
+        auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+      });
     }
+
+    const updated = { ...shoot, assigned_operators: addEmail(shoot.assigned_operators, email), pending_operators: removeEmail(shoot.pending_operators, email) };
+    setAssignOperatorsModal(updated);
   };
 
   const handleUnassignOperator = async (email, type) => {
@@ -1051,6 +1039,9 @@ export default function Calendar() {
     const isAssigned = hasEmail(shoot.assigned_operators, email);
     const isPendingCM = hasEmail(shoot.pending_operators, email);
 
+    const cmWindowMins = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
+    const cmAutoTeams = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers']; })();
+
     if (isAssigned) {
       // Unassign: remove from all arrays + cascade to auto-paired
       await handleShootUpdate(shoot.id, {
@@ -1059,20 +1050,13 @@ export default function Calendar() {
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
       });
-      const windowMins = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
-      const shootMins = timeToMinutes(shoot.game_time || '19:00');
-      const paired = shoots.filter(s =>
-        s.id !== shoot.id &&
-        s.date === shoot.date &&
-        hasEmail(s.auto_assigned_for, email) &&
-        Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= windowMins
-      );
-      for (const p of paired) {
-        await handleShootUpdate(p.id, {
-          assigned_operators: removeEmail(p.assigned_operators, email),
-          pending_operators: removeEmail(p.pending_operators, email),
-          pre_approved_operators: removeEmail(p.pre_approved_operators, email),
-          auto_assigned_for: removeEmail(p.auto_assigned_for, email),
+      const paired = findAutoAssignedPair(shoot, shoots, cmWindowMins, email);
+      if (paired) {
+        await handleShootUpdate(paired.id, {
+          assigned_operators: removeEmail(paired.assigned_operators, email),
+          pending_operators: removeEmail(paired.pending_operators, email),
+          pre_approved_operators: removeEmail(paired.pre_approved_operators, email),
+          auto_assigned_for: removeEmail(paired.auto_assigned_for, email),
         });
       }
     } else if (isPendingCM) {
@@ -1081,8 +1065,20 @@ export default function Calendar() {
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
       });
     } else if (isAdmin) {
-      await handleShootUpdate(shoot.id, { assigned_operators: addEmail(shoot.assigned_operators, email) });
+      // Admin: no limit, auto-pair linked shoot
+      await handleShootUpdate(shoot.id, {
+        assigned_operators: addEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+      });
       await createShootTimeEntry(shoot, email, user.full_name || email, `Shoot: ${shoot.title}`);
+      const partner = findPairedShoot(shoot, shoots, cmAutoTeams, cmWindowMins, email);
+      if (partner) {
+        await handleShootUpdate(partner.id, {
+          assigned_operators: addEmail(partner.assigned_operators, email),
+          pending_operators: removeEmail(partner.pending_operators, email),
+          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+        });
+      }
     } else {
       // Remote user
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;

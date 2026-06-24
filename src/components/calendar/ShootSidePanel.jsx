@@ -3,7 +3,7 @@ import { Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail } from '@/utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findAutoAssignedPair } from '@/utils/assignmentApproval';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -67,6 +67,23 @@ export default function ShootSidePanel({
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
 
+  // Auto-assign config
+  const autoAssignTeams = (() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+    return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+  })();
+  const autoAssignWindowMinutes = (() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+    return (raw ? Number(raw) : 2) * 60;
+  })();
+  const autoAssignUsers = (() => {
+    const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value;
+    return raw ? JSON.parse(raw) : [];
+  })();
+  const userEligibleForAutoAssign = !isAdmin && !isStandby && user && (
+    autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
+  );
+
   // Count pre-approved slots (reads live cache when available)
   const preCount = !isAdmin && !isStandby && user?.email
     ? getPreApprovedCount(queryClient?.getQueryData(['shoots']) || allShoots, user.email, shoot.id, todayStr)
@@ -79,26 +96,69 @@ export default function ShootSidePanel({
     const email = user.email;
 
     if (isPending) {
-      // Cancel pending
       await onUpdate(shoot.id, {
         pending_operators: removeEmail(shoot.pending_operators, email),
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
       });
     } else if (isAssigned) {
-      // Unassign
       await onUpdate(shoot.id, {
         assigned_operators: removeEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
       });
+      // Cascade unassign to auto-paired shoot
+      const paired = findAutoAssignedPair(shoot, allShoots, autoAssignWindowMinutes, email);
+      if (paired) {
+        await onUpdate(paired.id, {
+          assigned_operators: removeEmail(paired.assigned_operators, email),
+          pending_operators: removeEmail(paired.pending_operators, email),
+          pre_approved_operators: removeEmail(paired.pre_approved_operators, email),
+          auto_assigned_for: removeEmail(paired.auto_assigned_for, email),
+        });
+      }
+    } else if (isAdmin) {
+      // Admin: no limit check, auto-pair
+      await onUpdate(shoot.id, {
+        assigned_operators: addEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+      });
+      const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+      if (partner) {
+        await onUpdate(partner.id, {
+          assigned_operators: addEmail(partner.assigned_operators, email),
+          pending_operators: removeEmail(partner.pending_operators, email),
+          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+        });
+      }
     } else if (withinLimit) {
-      // Approved
+      // Remote approved
       await onUpdate(shoot.id, {
         assigned_operators: addEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
         pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
       });
+      // Auto-pair for remote
+      if (userEligibleForAutoAssign) {
+        const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+        if (partner) {
+          const countAfter = preCount + 1;
+          if (countAfter < AUTO_APPROVE_LIMIT) {
+            await onUpdate(partner.id, {
+              assigned_operators: addEmail(partner.assigned_operators, email),
+              pending_operators: removeEmail(partner.pending_operators, email),
+              pre_approved_operators: addEmail(partner.pre_approved_operators, email),
+              auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+            });
+          } else {
+            await onUpdate(partner.id, {
+              pending_operators: addEmail(partner.pending_operators, email),
+              assigned_operators: removeEmail(partner.assigned_operators, email),
+              pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
+            });
+          }
+        }
+      }
     } else if (!hasEmail(shoot.pending_operators, email)) {
       // Over limit → pending
       await onUpdate(shoot.id, {

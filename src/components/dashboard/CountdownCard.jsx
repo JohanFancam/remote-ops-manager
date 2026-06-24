@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Copy, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Copy, Check, UserX } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
+import { removeEmail, hasEmail, findAutoAssignedPair } from '@/utils/assignmentApproval';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -99,6 +100,8 @@ export default function CountdownCard({
   onUpdate,
   userEmail,
   allUsers = [],
+  allShoots = [],
+  appSettings = [],
   showReadyMessage = true,
   onContextMenu,
   onCardClick,
@@ -282,6 +285,29 @@ export default function CountdownCard({
     },
   ].filter(Boolean);
 
+  const handleUnassignSelf = async () => {
+    if (!userEmail || !onUpdate) return;
+    const windowMins = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
+    await onUpdate(shoot.id, {
+      assigned_operators: removeEmail(shoot.assigned_operators, userEmail),
+      pending_operators: removeEmail(shoot.pending_operators, userEmail),
+      pre_approved_operators: removeEmail(shoot.pre_approved_operators, userEmail),
+      auto_assigned_for: removeEmail(shoot.auto_assigned_for, userEmail),
+    });
+    const paired = findAutoAssignedPair(shoot, allShoots, windowMins, userEmail);
+    if (paired) {
+      await onUpdate(paired.id, {
+        assigned_operators: removeEmail(paired.assigned_operators, userEmail),
+        pending_operators: removeEmail(paired.pending_operators, userEmail),
+        pre_approved_operators: removeEmail(paired.pre_approved_operators, userEmail),
+        auto_assigned_for: removeEmail(paired.auto_assigned_for, userEmail),
+      });
+    }
+  };
+
   const handleRigTypeChange = async (type) => {
     if (!onUpdate) return;
 
@@ -461,6 +487,16 @@ export default function CountdownCard({
                 className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-blue-700 bg-blue-950/35 px-2.5 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-900/45 hover:text-blue-100"
               >
                 {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
+              </button>
+            )}
+
+            {isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+              <button
+                type="button"
+                onClick={handleUnassignSelf}
+                className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-red-700/60 bg-red-950/20 px-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-950/40 hover:text-red-300"
+              >
+                <UserX className="mr-1 h-3.5 w-3.5" />Unassign Me
               </button>
             )}
           </div>

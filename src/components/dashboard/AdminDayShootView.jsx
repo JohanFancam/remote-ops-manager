@@ -43,6 +43,8 @@ export default function AdminDayShootView({
   onUpdate,
   userEmail,
   allUsers,
+  allShoots = [],
+  appSettings = [],
   onShootContextMenu,
   onShootClick,
 }) {
@@ -101,6 +103,8 @@ export default function AdminDayShootView({
       onUpdate={onUpdate}
       userEmail={userEmail}
       allUsers={allUsers}
+      allShoots={allShoots}
+      appSettings={appSettings}
       onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
       onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
     />

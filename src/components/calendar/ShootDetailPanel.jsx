@@ -10,7 +10,7 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail } from '../../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findAutoAssignedPair } from '../../utils/assignmentApproval';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -168,9 +168,31 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
       });
+      // Cascade unassign to auto-paired shoot
+      const paired = findAutoAssignedPair(shoot, allShoots, autoAssignWindowMinutes, email);
+      if (paired) {
+        await onUpdate(paired.id, {
+          assigned_operators: removeEmail(paired.assigned_operators, email),
+          pending_operators: removeEmail(paired.pending_operators, email),
+          pre_approved_operators: removeEmail(paired.pre_approved_operators, email),
+          auto_assigned_for: removeEmail(paired.auto_assigned_for, email),
+        });
+      }
     } else if (isAdmin) {
-      await onUpdate(shoot.id, { assigned_operators: addEmail(shoot.assigned_operators, email) });
+      // Admin: no limit check, auto-pair linked shoot
+      await onUpdate(shoot.id, {
+        assigned_operators: addEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+      });
       await createShootTimeEntry(shoot, email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
+      const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+      if (partner) {
+        await onUpdate(partner.id, {
+          assigned_operators: addEmail(partner.assigned_operators, email),
+          pending_operators: removeEmail(partner.pending_operators, email),
+          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+        });
+      }
     } else {
       if (withinLimit && !hasEmail(shoot.assigned_operators, email)) {
         // Approved
