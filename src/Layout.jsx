@@ -184,9 +184,7 @@ function LayoutContent({ children, currentPageName }) {
           </div>
           <span className="text-white font-bold text-sm">Remote Ops</span>
         </div>
-        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+
       </div>
 
       {/* Mobile Nav Drawer */}

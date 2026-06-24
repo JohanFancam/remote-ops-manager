@@ -144,14 +144,15 @@ export default function MobileBottomNav() {
         {/* Center Grid Menu Button */}
         <button
           onClick={() => setMenuOpen(true)}
-          className="flex-none w-16 flex flex-col items-center justify-center -mt-4 select-none"
+          className={cn(
+            'flex-1 flex flex-col items-center justify-center transition-colors select-none',
+            menuOpen ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
+          )}
         >
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/40">
-            <div className="grid grid-cols-3 gap-[3px] p-[3px]">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="w-[6px] h-[6px] bg-white rounded-[1px]" />
-              ))}
-            </div>
+          <div className="grid grid-cols-3 gap-[3px]">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className={cn('w-[5px] h-[5px] rounded-[1px]', menuOpen ? 'bg-blue-400' : 'bg-gray-500')} />
+            ))}
           </div>
         </button>
 
