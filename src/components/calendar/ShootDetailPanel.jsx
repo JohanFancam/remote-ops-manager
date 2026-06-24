@@ -83,11 +83,6 @@ async function createShootTimeEntry(shoot, email, name, entryType, notes) {
   });
 }
 
-function getShootGameMinutes(s) {
-  const t = s.game_time || '19:00';
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
 
 export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, appSettings = [], onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
@@ -210,23 +205,10 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         });
       }
 
-      // Auto-pair: only the closest linked shoot within the time window
+      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
       if (userEligibleForAutoAssign) {
-        const shootMinutes = getShootGameMinutes(shoot);
-        const clickedIsLinked = isLinkedTeam(shoot);
-        const candidates = allShoots.filter(s =>
-          s.id !== shoot.id &&
-          s.date === shoot.date &&
-          (clickedIsLinked || isLinkedTeam(s)) &&
-          !hasEmail(s.assigned_operators, email) &&
-          !hasEmail(s.pending_operators, email) &&
-          Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
-        );
-        if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes)
-          );
-          const partner = candidates[0];
+        const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+        if (partner) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {

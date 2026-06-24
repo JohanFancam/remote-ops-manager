@@ -348,26 +348,12 @@ function ShootCalendarEntry({
         });
       }
 
-      // Auto-pair logic
+      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
       if (userEligibleForAutoAssign) {
-        const shootMinutes = getShootGameMinutes(shoot);
-        const clickedIsLinked = isLinkedTeam(shoot);
-        const candidates = allShoots.filter(s =>
-          s.id !== shoot.id &&
-          s.date === shoot.date &&
-          !hasEmail(s.assigned_operators, email) &&
-          !hasEmail(s.pending_operators, email) &&
-          (clickedIsLinked || isLinkedTeam(s)) &&
-          Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
-        );
-        if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes)
-          );
-          const partner = candidates[0];
+        const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
+        if (partner) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
-
           if (partnerWithinLimit) {
             await onUpdate(partner.id, {
               assigned_operators: addEmail(partner.assigned_operators, email),
@@ -1121,29 +1107,13 @@ export default function Calendar() {
         });
       }
 
-      // Auto-pair
-      const autoAssignTeamsCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : []; })();
+      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
+      const autoAssignTeamsCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers']; })();
       const autoAssignUsersCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value; return raw ? JSON.parse(raw) : []; })();
-      const autoAssignWindowCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value; return (raw ? Number(raw) : 2) * 60; })();
-      const isLinkedTeamCM = (s) => autoAssignTeamsCM.some(t => (s.client || s.title || '').toLowerCase().includes(t.toLowerCase()));
       const userEligibleCM = autoAssignUsersCM.length === 0 || autoAssignUsersCM.includes(email);
-
       if (userEligibleCM && autoAssignTeamsCM.length > 0) {
-      const shootMins = timeToMinutes(shoot.game_time || '19:00');
-      const clickedIsLinkedCM = isLinkedTeamCM(shoot);
-      const candidates = shoots.filter(s =>
-        s.id !== shoot.id &&
-        s.date === shoot.date &&
-        !hasEmail(s.assigned_operators, email) &&
-        !hasEmail(s.pending_operators, email) &&
-        (clickedIsLinkedCM || isLinkedTeamCM(s)) &&
-        Math.abs(timeToMinutes(s.game_time || '19:00') - shootMins) <= autoAssignWindowCM
-      );
-        if (candidates.length > 0) {
-          candidates.sort((a, b) =>
-            Math.abs(timeToMinutes(a.game_time || '19:00') - shootMins) - Math.abs(timeToMinutes(b.game_time || '19:00') - shootMins)
-          );
-          const partner = candidates[0];
+        const partner = findPairedShoot(shoot, shoots, autoAssignTeamsCM, cmWindowMins, email);
+        if (partner) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {

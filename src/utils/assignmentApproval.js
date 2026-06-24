@@ -108,9 +108,14 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
 
   if (candidates.length === 0) return null;
 
-  candidates.sort((a, b) =>
-    Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins)
-  );
+  candidates.sort((a, b) => {
+    // Priority 0: both clicked and candidate are linked teams (linked+linked pairs first)
+    // Priority 1: only one is a linked team
+    const aPriority = (clickedIsLinked && isLinkedTeam(a)) ? 0 : 1;
+    const bPriority = (clickedIsLinked && isLinkedTeam(b)) ? 0 : 1;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins);
+  });
 
   return candidates[0];
 }
