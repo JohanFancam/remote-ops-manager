@@ -81,43 +81,57 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
     (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
   );
 
-  const clickedIsLinked = isLinkedTeam(shoot);
-
-  const shootMins = (() => {
-    const t = shoot.game_time || '19:00';
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  })();
-
   const getGameMins = (s) => {
     const t = s.game_time || '19:00';
     const [h, m] = t.split(':').map(Number);
     return h * 60 + m;
   };
 
-  const candidates = allShoots.filter(s =>
+  const shootMins = getGameMins(shoot);
+  const clickedIsLinked = isLinkedTeam(shoot);
+
+  // All nearby shoots on the same date within the time window (excluding self, cancelled, completed, already assigned)
+  const nearby = allShoots.filter(s =>
     s.id !== shoot.id &&
     s.date === shoot.date &&
     s.status !== 'cancelled' &&
     s.status !== 'completed' &&
-    (clickedIsLinked || isLinkedTeam(s)) &&
     !hasEmail(s.assigned_operators, email) &&
     !hasEmail(s.pending_operators, email) &&
     Math.abs(getGameMins(s) - shootMins) <= windowMinutes
   );
 
-  if (candidates.length === 0) return null;
+  // Count how many linked teams are in the nearby window (excluding the clicked shoot itself)
+  const linkedNearby = nearby.filter(s => isLinkedTeam(s));
+  const linkedNearbyCount = linkedNearby.length;
 
-  candidates.sort((a, b) => {
-    // Priority 0: both clicked and candidate are linked teams (linked+linked pairs first)
-    // Priority 1: only one is a linked team
-    const aPriority = (clickedIsLinked && isLinkedTeam(a)) ? 0 : 1;
-    const bPriority = (clickedIsLinked && isLinkedTeam(b)) ? 0 : 1;
-    if (aPriority !== bPriority) return aPriority - bPriority;
-    return Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins);
-  });
+  if (!clickedIsLinked) {
+    // Rule 3: clicked is NOT a linked team
+    // - if 2+ linked teams in the window → block pairing entirely
+    if (linkedNearbyCount >= 2) return null;
+    // - if exactly 1 linked team → pair with it
+    // - if 0 linked teams → no pairing (non-linked + non-linked not allowed)
+    const linkedCandidate = linkedNearby[0];
+    if (!linkedCandidate) return null;
+    return linkedCandidate;
+  }
 
-  return candidates[0];
+  // Rule 4: clicked IS a linked team
+  // First try to pair with another linked team
+  if (linkedNearbyCount > 0) {
+    linkedNearby.sort((a, b) =>
+      Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins)
+    );
+    return linkedNearby[0];
+  }
+
+  // No other linked team exists — pair with the closest non-linked shoot
+  const nonLinkedNearby = nearby.filter(s => !isLinkedTeam(s));
+  if (nonLinkedNearby.length === 0) return null;
+  nonLinkedNearby.sort((a, b) =>
+    Math.abs(getGameMins(a) - shootMins) - Math.abs(getGameMins(b) - shootMins)
+  );
+  return nonLinkedNearby[0];
 }
 
 /**
