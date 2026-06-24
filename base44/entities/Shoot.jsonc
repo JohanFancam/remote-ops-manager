@@ -75,12 +75,19 @@
         "type": "string"
       }
     },
+    "pre_approved_operators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of operators whose assignment counts toward the 6-slot pre-approval limit"
+    },
     "auto_assigned_for": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Emails of operators auto-assigned to this shoot (does not count toward pre-approval limit)"
+      "description": "Emails of operators auto-paired to this shoot"
     },
     "rig_ids": {
       "type": "array",

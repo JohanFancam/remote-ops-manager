@@ -3,7 +3,7 @@ import { Edit2, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
-import { AUTO_APPROVE_LIMIT, getApprovedAssignmentCount } from '@/utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail } from '@/utils/assignmentApproval';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -67,35 +67,45 @@ export default function ShootSidePanel({
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
 
-  // Shoots are never "full" — multiple operators can be assigned
-  const shootFull = false;
-
-  // Count using shared helper — reads live cache when available
-  const getApprovedCount = (email) => {
-    const freshShoots = queryClient?.getQueryData(['shoots']) || allShoots;
-    return getApprovedAssignmentCount(freshShoots, email, shoot.id, todayStr);
-  };
-
-  const approvedCount = !isAdmin && !isStandby && user?.email ? getApprovedCount(user.email) : 0;
-  const withinLimit = approvedCount < AUTO_APPROVE_LIMIT;
-  const remaining = AUTO_APPROVE_LIMIT - approvedCount;
+  // Count pre-approved slots (reads live cache when available)
+  const preCount = !isAdmin && !isStandby && user?.email
+    ? getPreApprovedCount(queryClient?.getQueryData(['shoots']) || allShoots, user.email, shoot.id, todayStr)
+    : 0;
+  const withinLimit = preCount < AUTO_APPROVE_LIMIT;
+  const remaining = AUTO_APPROVE_LIMIT - preCount;
 
   const handleSelfAssign = async () => {
     if (!user?.email || isPast) return;
+    const email = user.email;
+
     if (isPending) {
-      await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user.email) });
+      // Cancel pending
+      await onUpdate(shoot.id, {
+        pending_operators: removeEmail(shoot.pending_operators, email),
+        pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+      });
     } else if (isAssigned) {
-      await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user.email) });
-    } else {
-      if (shootFull) return;
-      if (withinLimit) {
-        // Move from pending → assigned if needed, then add to assigned
-        const newAssigned = [...new Set([...(shoot.assigned_operators || []), user.email])];
-        const newPending = (shoot.pending_operators || []).filter(e => e !== user.email);
-        await onUpdate(shoot.id, { assigned_operators: newAssigned, pending_operators: newPending });
-      } else if (!(shoot.pending_operators || []).includes(user.email)) {
-        await onUpdate(shoot.id, { pending_operators: [...(shoot.pending_operators || []), user.email] });
-      }
+      // Unassign
+      await onUpdate(shoot.id, {
+        assigned_operators: removeEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+        pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+        auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
+      });
+    } else if (withinLimit) {
+      // Approved
+      await onUpdate(shoot.id, {
+        assigned_operators: addEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+        pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
+      });
+    } else if (!hasEmail(shoot.pending_operators, email)) {
+      // Over limit → pending
+      await onUpdate(shoot.id, {
+        pending_operators: addEmail(shoot.pending_operators, email),
+        assigned_operators: removeEmail(shoot.assigned_operators, email),
+        pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+      });
     }
   };
 
@@ -286,18 +296,16 @@ export default function ShootSidePanel({
               <Button
                 size="sm"
                 onClick={handleSelfAssign}
-                disabled={shootFull}
+                disabled={false}
                 className={`text-xs h-8 w-full ${
                   isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
                   : isPending ? 'border border-yellow-700 text-yellow-400 bg-transparent hover:bg-yellow-900/20'
-                  : shootFull ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : withinLimit ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-600/50 text-yellow-300'
                 }`}
               >
                 {isAssigned ? 'Unassign Myself'
                   : isPending ? 'Pending — Cancel'
-                  : shootFull ? 'Slot Taken'
                   : withinLimit ? '+ Assign Myself'
                   : '+ Request Approval'}
               </Button>

@@ -10,7 +10,7 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
-import { AUTO_APPROVE_LIMIT, getApprovedAssignmentCount } from '../../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail } from '../../utils/assignmentApproval';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -122,8 +122,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
   );
 
-  // Count using shared helper (respects cancelled/completed exclusions and the 6-shoot limit)
-  const getApprovedCount = (email) => getApprovedAssignmentCount(allShoots, email, shoot.id, todayStr);
+  // Count pre-approved slots using the shared helper
+  const getApprovedCount = (email) => getPreApprovedCount(allShoots, email, shoot.id, todayStr);
 
   const matchedRig = rigSettings?.find(r =>
     r.team && shoot.client &&
@@ -148,48 +148,82 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   });
   const shootFull = !isAdmin && nonAdminAssigned.length > 0 && !isApproved;
 
+  const preCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
+  const withinLimit = preCount < AUTO_APPROVE_LIMIT;
+  const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - preCount);
+
   const handleSelfAssign = async () => {
+    const email = user?.email;
+    if (!email) return;
+
     if (isPending) {
-      await onUpdate(shoot.id, { pending_operators: (shoot.pending_operators || []).filter(e => e !== user?.email) });
+      await onUpdate(shoot.id, {
+        pending_operators: removeEmail(shoot.pending_operators, email),
+        pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+      });
     } else if (isApproved) {
-      await onUpdate(shoot.id, { assigned_operators: (shoot.assigned_operators || []).filter(e => e !== user?.email) });
+      await onUpdate(shoot.id, {
+        assigned_operators: removeEmail(shoot.assigned_operators, email),
+        pending_operators: removeEmail(shoot.pending_operators, email),
+        pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+        auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
+      });
     } else if (isAdmin) {
-      await onUpdate(shoot.id, { assigned_operators: [...(shoot.assigned_operators || []), user?.email] });
-      await createShootTimeEntry(shoot, user.email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
+      await onUpdate(shoot.id, { assigned_operators: addEmail(shoot.assigned_operators, email) });
+      await createShootTimeEntry(shoot, email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
     } else {
-      if (shootFull) return;
-      const approvedCount = getApprovedCount(user?.email);
-      const current = shoot.pending_operators || [];
-      if (!current.includes(user?.email)) {
-        if (approvedCount < AUTO_APPROVE_LIMIT) {
-          await onUpdate(shoot.id, { assigned_operators: [...new Set([...(shoot.assigned_operators || []), user?.email])] });
-        } else {
-          await onUpdate(shoot.id, { pending_operators: [...current, user?.email] });
-        }
+      if (withinLimit && !hasEmail(shoot.assigned_operators, email)) {
+        // Approved
+        await onUpdate(shoot.id, {
+          assigned_operators: addEmail(shoot.assigned_operators, email),
+          pending_operators: removeEmail(shoot.pending_operators, email),
+          pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
+        });
+      } else if (!withinLimit && !hasEmail(shoot.pending_operators, email)) {
+        // Over limit → pending
+        await onUpdate(shoot.id, {
+          pending_operators: addEmail(shoot.pending_operators, email),
+          assigned_operators: removeEmail(shoot.assigned_operators, email),
+          pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
+        });
       }
 
-      // Auto-assign any linked-team shoots on the same day within the time window
+      // Auto-pair: only the closest linked shoot within the time window
       if (userEligibleForAutoAssign) {
         const shootMinutes = getShootGameMinutes(shoot);
-        const linkedShoots = allShoots.filter(s =>
+        const candidates = allShoots.filter(s =>
           s.id !== shoot.id &&
           s.date === shoot.date &&
           isLinkedTeam(s) &&
-          !s.assigned_operators?.includes(user.email) &&
+          !hasEmail(s.assigned_operators, email) &&
+          !hasEmail(s.pending_operators, email) &&
           Math.abs(getShootGameMinutes(s) - shootMinutes) <= autoAssignWindowMinutes
         );
-        for (const linked of linkedShoots) {
-          await onUpdate(linked.id, {
-            assigned_operators: [...new Set([...(linked.assigned_operators || []), user.email])],
-            auto_assigned_for: [...new Set([...(linked.auto_assigned_for || []), user.email])],
-          });
+        if (candidates.length > 0) {
+          candidates.sort((a, b) =>
+            Math.abs(getShootGameMinutes(a) - shootMinutes) - Math.abs(getShootGameMinutes(b) - shootMinutes)
+          );
+          const partner = candidates[0];
+          const countAfterMain = withinLimit ? preCount + 1 : preCount;
+          const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
+          if (partnerWithinLimit) {
+            await onUpdate(partner.id, {
+              assigned_operators: addEmail(partner.assigned_operators, email),
+              pending_operators: removeEmail(partner.pending_operators, email),
+              pre_approved_operators: addEmail(partner.pre_approved_operators, email),
+              auto_assigned_for: addEmail(partner.auto_assigned_for, email),
+            });
+          } else {
+            await onUpdate(partner.id, {
+              pending_operators: addEmail(partner.pending_operators, email),
+              assigned_operators: removeEmail(partner.assigned_operators, email),
+              pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
+            });
+          }
         }
       }
     }
   };
-
-  const approvedCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
-  const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - approvedCount);
 
   return (
     <div className="space-y-4">
