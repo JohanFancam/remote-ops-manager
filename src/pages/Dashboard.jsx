@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { format } from 'date-fns';
 import AdminDayShootView from '../components/dashboard/AdminDayShootView';
+import RemotePendingShoots from '../components/dashboard/RemotePendingShoots';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
@@ -194,6 +195,18 @@ export default function Dashboard() {
         )}
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
+
+        {(!isAdmin && !isStandby) && (
+          <section className="mb-8">
+            <div className="mb-3">
+              <h2 className="text-lg font-semibold text-white">Pending Approval</h2>
+              <p className="text-xs text-gray-500">Shoots you've requested but are awaiting admin approval.</p>
+            </div>
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+              <RemotePendingShoots shoots={shoots} user={user} onUpdate={handleShootUpdate} />
+            </div>
+          </section>
+        )}
 
         {(!isAdmin && !isStandby) && (
           <div className="mt-6">
