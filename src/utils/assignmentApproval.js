@@ -64,8 +64,21 @@ export function getPreApprovedCount(shoots, email, currentShootId, todayStr) {
 export const getApprovedAssignmentCount = getPreApprovedCount;
 
 /**
+ * Check if a shoot is fully available (no assigned or pending operators from anyone).
+ * Used as a safety gate before auto-pairing.
+ */
+export function isShootAvailableForAutoAssign(shoot) {
+  if (!shoot) return false;
+  return (
+    (!shoot.assigned_operators || shoot.assigned_operators.length === 0) &&
+    (!shoot.pending_operators || shoot.pending_operators.length === 0)
+  );
+}
+
+/**
  * Find the paired shoot for auto-assign pairing logic.
- * Returns the closest unassigned/unpending paired shoot within the time window, or null.
+ * Returns the closest fully-available paired shoot within the time window, or null.
+ * A shoot is only returned if it has NO assigned and NO pending operators (by anyone).
  *
  * @param {Object} shoot               - the current shoot
  * @param {Array}  allShoots           - full shoot list
@@ -90,14 +103,14 @@ export function findPairedShoot(shoot, allShoots, autoAssignTeams, windowMinutes
   const shootMins = getGameMins(shoot);
   const clickedIsLinked = isLinkedTeam(shoot);
 
-  // All nearby shoots on the same date within the time window (excluding self, cancelled, completed, already assigned)
+  // All nearby shoots on the same date within the time window that are fully available
+  // (no assigned or pending operators from anyone — not just the current user)
   const nearby = allShoots.filter(s =>
     s.id !== shoot.id &&
     s.date === shoot.date &&
     s.status !== 'cancelled' &&
     s.status !== 'completed' &&
-    !hasEmail(s.assigned_operators, email) &&
-    !hasEmail(s.pending_operators, email) &&
+    isShootAvailableForAutoAssign(s) &&
     Math.abs(getGameMins(s) - shootMins) <= windowMinutes
   );
 

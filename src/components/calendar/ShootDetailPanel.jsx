@@ -174,20 +174,12 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         });
       }
     } else if (isAdmin) {
-      // Admin: no limit check, auto-pair linked shoot
+      // Admin: update only the selected shoot — no auto-pairing
       await onUpdate(shoot.id, {
         assigned_operators: addEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
       });
       await createShootTimeEntry(shoot, email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
-      const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
-      if (partner) {
-        await onUpdate(partner.id, {
-          assigned_operators: addEmail(partner.assigned_operators, email),
-          pending_operators: removeEmail(partner.pending_operators, email),
-          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-        });
-      }
     } else {
       if (withinLimit && !hasEmail(shoot.assigned_operators, email)) {
         // Approved
@@ -197,35 +189,29 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
         });
       } else if (!withinLimit && !hasEmail(shoot.pending_operators, email)) {
-        // Over limit → pending
+        // Over limit → pending (no auto-pair when over limit)
         await onUpdate(shoot.id, {
           pending_operators: addEmail(shoot.pending_operators, email),
           assigned_operators: removeEmail(shoot.assigned_operators, email),
           pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
         });
+        return; // do not auto-pair when over limit
       }
 
-      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
-      if (userEligibleForAutoAssign) {
+      // Auto-pair only if within limit: findPairedShoot already ensures partner is fully available
+      if (userEligibleForAutoAssign && withinLimit) {
         const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
         if (partner) {
-          const countAfterMain = withinLimit ? preCount + 1 : preCount;
-          const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
-          if (partnerWithinLimit) {
+          const countAfterMain = preCount + 1;
+          if (countAfterMain < AUTO_APPROVE_LIMIT) {
             await onUpdate(partner.id, {
               assigned_operators: addEmail(partner.assigned_operators, email),
               pending_operators: removeEmail(partner.pending_operators, email),
               pre_approved_operators: addEmail(partner.pre_approved_operators, email),
               auto_assigned_for: addEmail(partner.auto_assigned_for, email),
             });
-          } else {
-            await onUpdate(partner.id, {
-              pending_operators: addEmail(partner.pending_operators, email),
-              assigned_operators: removeEmail(partner.assigned_operators, email),
-              pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
-              auto_assigned_for: removeEmail(partner.auto_assigned_for, email),
-            });
           }
+          // If partner would push over limit, skip it — do not assign pending to an already-available shoot
         }
       }
     }

@@ -118,19 +118,11 @@ export default function ShootSidePanel({
         });
       }
     } else if (isAdmin) {
-      // Admin: no limit check, auto-pair
+      // Admin: update only the selected shoot — no auto-pairing
       await onUpdate(shoot.id, {
         assigned_operators: addEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
       });
-      const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
-      if (partner) {
-        await onUpdate(partner.id, {
-          assigned_operators: addEmail(partner.assigned_operators, email),
-          pending_operators: removeEmail(partner.pending_operators, email),
-          auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-        });
-      }
     } else if (withinLimit) {
       // Remote approved
       await onUpdate(shoot.id, {
@@ -138,7 +130,7 @@ export default function ShootSidePanel({
         pending_operators: removeEmail(shoot.pending_operators, email),
         pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
       });
-      // Auto-pair for remote
+      // Auto-pair only if partner is fully available — findPairedShoot enforces this
       if (userEligibleForAutoAssign) {
         const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
         if (partner) {
@@ -150,18 +142,12 @@ export default function ShootSidePanel({
               pre_approved_operators: addEmail(partner.pre_approved_operators, email),
               auto_assigned_for: addEmail(partner.auto_assigned_for, email),
             });
-          } else {
-            await onUpdate(partner.id, {
-              pending_operators: addEmail(partner.pending_operators, email),
-              assigned_operators: removeEmail(partner.assigned_operators, email),
-              pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
-              auto_assigned_for: removeEmail(partner.auto_assigned_for, email),
-            });
           }
+          // If over limit after main, skip partner — do not write pending to an available shoot
         }
       }
     } else if (!hasEmail(shoot.pending_operators, email)) {
-      // Over limit → pending
+      // Over limit → pending on selected shoot only, no auto-pair
       await onUpdate(shoot.id, {
         pending_operators: addEmail(shoot.pending_operators, email),
         assigned_operators: removeEmail(shoot.assigned_operators, email),
