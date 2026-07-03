@@ -26,11 +26,11 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
+  // Lightweight inline loading indicator while checking app public settings or auth — no full-screen overlay
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center pt-24">
+        <div className="w-6 h-6 border-2 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }

@@ -87,7 +87,6 @@
     @apply bg-background text-foreground;
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
-    background-color: #2563EB; /* splash color — overridden by bg-background once React loads */
   }
 }
 
