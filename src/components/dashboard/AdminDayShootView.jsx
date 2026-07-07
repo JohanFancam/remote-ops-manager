@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, History } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucide-react';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
 
@@ -53,22 +53,12 @@ export default function AdminDayShootView({
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
   const [page, setPage] = useState(0);
-  const [showPast, setShowPast] = useState(false);
 
   const sortedShoots = useMemo(() => {
-    const now = new Date();
-    const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-
     return [...shoots]
-      .filter((shoot) => {
-        if (isShootCancelled(shoot)) return false;
-        const primaryDate = getPrimaryDateTime(shoot);
-        const gameDate = getScheduleDateTimes(shoot).game || primaryDate;
-        const isPast = isShootComplete(shoot) || gameDate < relevanceWindowStart;
-        return showPast ? true : !isPast;
-      })
+      .filter((shoot) => !isShootCancelled(shoot))
       .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-  }, [shoots, showPast]);
+  }, [shoots]);
 
   const pageSize = viewMode === 'tile' ? 4 : 3;
 
@@ -83,9 +73,9 @@ export default function AdminDayShootView({
 
   useEffect(() => {
     // Default to the page that starts at the first upcoming shoot, so past
-    // games are only reached by clicking "Previous".
-    setPage(showPast ? Math.floor(pastCount / pageSize) : 0);
-  }, [viewMode, monthSelectedDate, shoots.length, showPast, pageSize, pastCount]);
+    // games are reached by clicking "Previous".
+    setPage(Math.floor(pastCount / pageSize));
+  }, [viewMode, monthSelectedDate, shoots.length, pageSize, pastCount]);
 
   const totalPages = Math.max(1, Math.ceil(sortedShoots.length / pageSize));
   const visibleShoots = sortedShoots.slice(page * pageSize, page * pageSize + pageSize);
@@ -138,15 +128,6 @@ export default function AdminDayShootView({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowPast((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-              showPast ? 'border-blue-800/60 bg-blue-950/25 text-blue-300' : 'border-gray-800 bg-gray-900 text-gray-500 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <History className="h-3.5 w-3.5" />
-            {showPast ? 'Hide Past' : 'Show Past'}
-          </button>
           <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
             {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
           </div>
