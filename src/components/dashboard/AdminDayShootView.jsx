@@ -62,10 +62,10 @@ export default function AdminDayShootView({
     return [...shoots]
       .filter((shoot) => {
         if (isShootCancelled(shoot)) return false;
-        if (isShootComplete(shoot)) return showPast;
         const primaryDate = getPrimaryDateTime(shoot);
         const gameDate = getScheduleDateTimes(shoot).game || primaryDate;
-        return gameDate >= relevanceWindowStart;
+        const isPast = isShootComplete(shoot) || gameDate < relevanceWindowStart;
+        return showPast ? true : !isPast;
       })
       .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
   }, [shoots, showPast]);
@@ -96,22 +96,26 @@ export default function AdminDayShootView({
 
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const renderCard = (shoot) => (
-    <div key={shoot.id} className={isShootComplete(shoot) ? 'opacity-50 grayscale-[0.3]' : ''}>
-      <CountdownCard
-        shoot={shoot}
-        isAdmin={isAdmin}
-        rigSettings={rigSettings}
-        onUpdate={onUpdate}
-        userEmail={userEmail}
-        allUsers={allUsers}
-        allShoots={allShoots}
-        appSettings={appSettings}
-        onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
-        onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
-      />
-    </div>
-  );
+  const renderCard = (shoot) => {
+    const gameDate = getScheduleDateTimes(shoot).game || getPrimaryDateTime(shoot);
+    const isPast = isShootComplete(shoot) || gameDate < new Date();
+    return (
+      <div key={shoot.id} className={isPast ? 'opacity-50 grayscale-[0.3]' : ''}>
+        <CountdownCard
+          shoot={shoot}
+          isAdmin={isAdmin}
+          rigSettings={rigSettings}
+          onUpdate={onUpdate}
+          userEmail={userEmail}
+          allUsers={allUsers}
+          allShoots={allShoots}
+          appSettings={appSettings}
+          onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
+          onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
+        />
+      </div>
+    );
+  };
 
   return (
     <div>
