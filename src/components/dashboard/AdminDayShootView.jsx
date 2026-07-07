@@ -72,9 +72,20 @@ export default function AdminDayShootView({
 
   const pageSize = viewMode === 'tile' ? 4 : 3;
 
+  const pastCount = useMemo(() => {
+    const now = new Date();
+    const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    return sortedShoots.filter((shoot) => {
+      const gameDate = getScheduleDateTimes(shoot).game || getPrimaryDateTime(shoot);
+      return isShootComplete(shoot) || gameDate < relevanceWindowStart;
+    }).length;
+  }, [sortedShoots]);
+
   useEffect(() => {
-    setPage(0);
-  }, [viewMode, monthSelectedDate, shoots.length]);
+    // Default to the page that starts at the first upcoming shoot, so past
+    // games are only reached by clicking "Previous".
+    setPage(showPast ? Math.floor(pastCount / pageSize) : 0);
+  }, [viewMode, monthSelectedDate, shoots.length, showPast, pageSize, pastCount]);
 
   const totalPages = Math.max(1, Math.ceil(sortedShoots.length / pageSize));
   const visibleShoots = sortedShoots.slice(page * pageSize, page * pageSize + pageSize);
