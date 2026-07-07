@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, History } from 'lucide-react';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
 
@@ -53,6 +53,7 @@ export default function AdminDayShootView({
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
   const [page, setPage] = useState(0);
+  const [showPast, setShowPast] = useState(false);
 
   const sortedShoots = useMemo(() => {
     const now = new Date();
@@ -60,13 +61,14 @@ export default function AdminDayShootView({
 
     return [...shoots]
       .filter((shoot) => {
-        if (isShootCancelled(shoot) || isShootComplete(shoot)) return false;
+        if (isShootCancelled(shoot)) return false;
+        if (isShootComplete(shoot)) return showPast;
         const primaryDate = getPrimaryDateTime(shoot);
         const gameDate = getScheduleDateTimes(shoot).game || primaryDate;
         return gameDate >= relevanceWindowStart;
       })
       .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-  }, [shoots]);
+  }, [shoots, showPast]);
 
   const pageSize = viewMode === 'tile' ? 4 : 3;
 
@@ -95,19 +97,20 @@ export default function AdminDayShootView({
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => (
-    <CountdownCard
-      key={shoot.id}
-      shoot={shoot}
-      isAdmin={isAdmin}
-      rigSettings={rigSettings}
-      onUpdate={onUpdate}
-      userEmail={userEmail}
-      allUsers={allUsers}
-      allShoots={allShoots}
-      appSettings={appSettings}
-      onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
-      onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
-    />
+    <div key={shoot.id} className={isShootComplete(shoot) ? 'opacity-50 grayscale-[0.3]' : ''}>
+      <CountdownCard
+        shoot={shoot}
+        isAdmin={isAdmin}
+        rigSettings={rigSettings}
+        onUpdate={onUpdate}
+        userEmail={userEmail}
+        allUsers={allUsers}
+        allShoots={allShoots}
+        appSettings={appSettings}
+        onContextMenu={onShootContextMenu ? (e) => onShootContextMenu(e, shoot) : undefined}
+        onCardClick={onShootClick ? () => onShootClick(shoot) : undefined}
+      />
+    </div>
   );
 
   return (
@@ -119,8 +122,19 @@ export default function AdminDayShootView({
           <ViewButton active={viewMode === 'tile'} icon={LayoutGrid} onClick={() => setViewMode('tile')}>Tile</ViewButton>
         </div>
 
-        <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
-          {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPast((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              showPast ? 'border-blue-800/60 bg-blue-950/25 text-blue-300' : 'border-gray-800 bg-gray-900 text-gray-500 hover:text-white hover:bg-gray-800'
+            }`}
+          >
+            <History className="h-3.5 w-3.5" />
+            {showPast ? 'Hide Past' : 'Show Past'}
+          </button>
+          <div className="rounded-lg border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-500">
+            {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
+          </div>
         </div>
       </div>
 
@@ -144,7 +158,7 @@ export default function AdminDayShootView({
             {Array.from({ length: startPadding }).map((_, i) => <div key={`pad-${i}`} />)}
             {monthDays.map((day) => {
               const ds = format(day, 'yyyy-MM-dd');
-              const dayShoots = (shootsByDate[ds] || []).filter((shoot) => !isShootCancelled(shoot));
+              const dayShoots = shootsByDate[ds] || [];
               const isToday = ds === todayStr;
               const isSelected = ds === monthSelectedDate;
               return (
