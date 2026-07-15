@@ -1,39 +1,58 @@
-**Welcome to your Base44 project** 
+# Remote Ops Manager (ROM)
 
-**About**
+Independent rebuild of the sports remote-ops console — dark UI, role-based access, server-enforced assignment and payment rules.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Roles (this phase)
 
-This project contains everything you need to run your app locally.
+| Role | Home | Access |
+|------|------|--------|
+| `admin` | `/dashboard` | Ops dashboard, calendar, users, settings, view accounts |
+| `operator` | `/dashboard` | Own dashboard, calendar/self-assign, own earnings |
+| `accounts` | `/accounts` | Accounts dashboard only |
 
-**Edit the code in your local development environment**
+`standby` is reserved in the permission system for a later phase. Legacy Base44 role `user` maps to `operator`.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Stack
 
-**Prerequisites:** 
+- **Web:** React 18 + Vite + Tailwind (dark, blue primary, mobile bottom nav, desktop sidebar)
+- **API:** Express + SQLite (`node:sqlite`)
+- **Auth:** JWT; every mutating route checks role/permissions
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+## Run
 
+```bash
+npm install
+npm run seed
+npm run test
+npm run dev
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+- Web http://localhost:5173
+- API http://localhost:4000
+
+### Demo credentials
+
+Password: `rom123`
+
+- `admin@rom.demo`
+- `operator@rom.demo`
+- `accounts@rom.demo`
+
+## Business rules (server)
+
+Centralised in `server/src/services/assignments.js` and `server/src/services/pay.js`:
+
+- Pre-approved limit (default 6, configurable)
+- Auto-pair priority teams (Reds / Red Sox / Rangers) with explicit `assignment_group_id`
+- Admin manual assign does **not** auto-pair
+- Paired withdraw / approve / reject in one transaction
+- Accounts-only pay settle; admin can view but not mark paid
+- Finalised payments keep snapshot amounts after rate changes
+
+## Tests
+
+```bash
+npm run test
 ```
 
-Run the app: `npm run dev`
-
-**Publish your changes**
-
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+Covers limit, pairing directions, Charlotte/Mariners priority, partner occupied/pending, withdraw pair, admin no-pair, approve/reject pair, unavailable, pay settle permissions, CSV escape.
