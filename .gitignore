@@ -1,6 +1,7 @@
-#env
+# env
 .env
 .env.*
+!.env.example
 
 # Logs
 logs
@@ -16,7 +17,7 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -27,5 +28,9 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
-base44/.app.jsonc
+# Local data / uploads
+server/data/
+uploads/
+*.db
+*.db-shm
+*.db-wal

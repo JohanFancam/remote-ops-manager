@@ -1,39 +1,67 @@
-**Welcome to your Base44 project** 
+# Remote Ops Manager
 
-**About**
+Operations app for remote sports-camera / broadcast shoot crews. Schedule shoots, assign operators, track shoot phases, manage rig settings, standby coverage, timesheets, and accounts.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+This project was rebuilt as a **standalone React + Express app** with **no Base44 dependency**.
 
-This project contains everything you need to run your app locally.
+## Stack
 
-**Edit the code in your local development environment**
+| Layer | Tech |
+|-------|------|
+| Frontend | React 18, Vite, Tailwind CSS, shadcn/ui, TanStack Query |
+| Backend | Express (Node.js) |
+| Database | SQLite (`better-sqlite3`) |
+| Auth | Email/password + JWT |
+| Files | Local `uploads/` directory |
+| Realtime | Server-Sent Events (SSE) |
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Quick start
 
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+```bash
+npm install
+npm run dev
 ```
 
-Run the app: `npm run dev`
+- Web UI: http://localhost:5173  
+- API: http://localhost:3001  
 
-**Publish your changes**
+### Demo accounts (seeded automatically)
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@example.com` | `admin123` |
+| Operator | `operator@example.com` | `operator123` |
 
-**Docs & Support**
+## Environment (optional)
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+Create `.env` / export vars before starting the API:
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+```bash
+PORT=3001
+JWT_SECRET=change-me-in-production
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+ADMIN_NAME=Admin User
+DATABASE_PATH=./server/data/remote-ops.db
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | API + Vite together |
+| `npm run dev:api` | API only |
+| `npm run dev:web` | Frontend only (proxies `/api` → `:3001`) |
+| `npm run build` | Production frontend build |
+| `npm run lint` | ESLint |
+
+## Data model
+
+Entity schemas (JSON Schema style) live under `server/schemas/` for reference. Runtime storage is document-style JSON rows in SQLite (`entities` table) plus a dedicated `users` table for auth.
+
+## Migrating from Base44
+
+1. Export entity data from your Base44 app.
+2. Insert records via the REST API (`POST /api/entities/:Type`) or a one-off import script.
+3. Re-upload files that previously lived on the Base44 CDN (logos, reference images).
+4. Invite users in Settings, then have them register at `/register` with the invited email.
