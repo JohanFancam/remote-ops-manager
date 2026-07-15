@@ -1,6 +1,5 @@
-import { migrate, db, setSetting } from './db.js';
+import { migrate, db, setSetting, newId, todayStr } from './db.js';
 import { hashPassword } from './middleware/auth.js';
-import { addAssignment } from './services/domain.js';
 
 function addDays(base, days) {
   const d = new Date(`${base}T12:00:00Z`);
@@ -8,269 +7,146 @@ function addDays(base, days) {
   return d.toISOString().slice(0, 10);
 }
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function seedIfEmpty() {
   migrate();
   const count = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
   if (count > 0) return;
-  seed();
+  seed({ force: false });
 }
 
 export function seed({ force = false } = {}) {
   migrate();
   if (force) {
     db.exec(`
-      DELETE FROM pay_records;
-      DELETE FROM shoot_phases;
-      DELETE FROM shoot_assignments;
-      DELETE FROM shoots;
-      DELETE FROM rig_tests;
-      DELETE FROM standby_windows;
-      DELETE FROM rig_settings;
-      DELETE FROM settings;
-      DELETE FROM users;
+      DELETE FROM payment_line_overrides; DELETE FROM payment_records;
+      DELETE FROM notifications; DELETE FROM assignment_audit; DELETE FROM assignments;
+      DELETE FROM shoot_status_events; DELETE FROM shoots; DELETE FROM operator_availability;
+      DELETE FROM user_presence; DELETE FROM rigs; DELETE FROM settings; DELETE FROM users;
     `);
+  } else if (db.prepare('SELECT COUNT(*) AS c FROM users').get().c > 0) {
+    return;
   }
 
   const password = hashPassword('rom123');
+  const adminId = newId();
+  const op1 = newId();
+  const op2 = newId();
+  const accountsId = newId();
 
-  const users = [
-    { id: crypto.randomUUID(), email: 'admin@rom.demo', name: 'Alex Admin', role: 'admin' },
-    { id: crypto.randomUUID(), email: 'standby@rom.demo', name: 'Sam Standby', role: 'standby' },
-    { id: crypto.randomUUID(), email: 'accounts@rom.demo', name: 'Casey Accounts', role: 'accounts' },
-    { id: crypto.randomUUID(), email: 'operator@rom.demo', name: 'Jordan Operator', role: 'user' },
-    { id: crypto.randomUUID(), email: 'operator2@rom.demo', name: 'Riley Cam', role: 'user' },
-  ];
-
-  const insertUser = db.prepare(`
-    INSERT INTO users (id, email, password_hash, full_name, role)
-    VALUES (?, ?, ?, ?, ?)
+  const ins = db.prepare(`
+    INSERT INTO users (id, email, password_hash, full_name, role, active)
+    VALUES (?, ?, ?, ?, ?, 1)
   `);
-  for (const u of users) {
-    insertUser.run(u.id, u.email, password, u.name, u.role);
-  }
+  ins.run(adminId, 'admin@rom.demo', password, 'Alex Admin', 'admin');
+  ins.run(op1, 'operator@rom.demo', password, 'Jordan Operator', 'operator');
+  ins.run(op2, 'operator2@rom.demo', password, 'Riley Cam', 'operator');
+  ins.run(accountsId, 'accounts@rom.demo', password, 'Casey Accounts', 'accounts');
 
-  setSetting('auto_assign_teams', ['Reds', 'Red Sox', 'Rangers']);
-  setSetting('auto_assign_window_minutes', 120);
+  setSetting('application_name', 'Remote Ops Manager');
+  setSetting('currency', 'ZAR');
   setSetting('base_rate', 1000);
   setSetting('additional_rate', 250);
-  setSetting('phase_messages', {
-    setup_complete: 'Setup complete for {team}',
-    pre_shoot_started: 'Pre-shoot started — {team}',
-    attention_started: 'Attention rolling — {team}',
-    sound_started: 'Sound live — {team}',
-    shoot_complete: 'Shoot complete — {team}',
-  });
+  setSetting('pre_approved_limit', 6);
+  setSetting('auto_pair_teams', ['Reds', 'Red Sox', 'Rangers']);
+  setSetting('auto_pair_window_minutes', 120);
+  setSetting('notification_lead_hours', 48);
 
-  const rigInsert = db.prepare(`
-    INSERT INTO rig_settings (
-      id, team, venue_type, sport, rig_type, shoot_plan, remote_rigs,
-      data_enabled, data_hd, data_wide_enabled, data_wide,
-      attention_enabled, attention_hd, sound_enabled, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?, ?)
+  const rigIns = db.prepare(`
+    INSERT INTO rigs (id, name, team_name, venue_type, shoot_type, recipe_json, active)
+    VALUES (?, ?, ?, ?, ?, ?, 1)
   `);
-
   const teams = [
-    {
-      team: 'Reds',
-      venue: 'Outdoor',
-      sport: 'MLB',
-      attention: 1,
-      sound: 1,
-      plan: 'Centerfield data + first-base fancam',
-      hd: { shutter: '1/1000', aperture: 'f/4', iso: '800' },
-      wide: { shutter: '1/500', aperture: 'f/2.8', iso: '400' },
-    },
-    {
-      team: 'Red Sox',
-      venue: 'Outdoor',
-      sport: 'MLB',
-      attention: 1,
-      sound: 0,
-      plan: 'Plate angle data, night fancam ready',
-      hd: { shutter: '1/800', aperture: 'f/3.5', iso: '1000' },
-      wide: { shutter: '1/400', aperture: 'f/2.8', iso: '640' },
-    },
-    {
-      team: 'Rangers',
-      venue: 'Outdoor',
-      sport: 'MLB',
-      attention: 0,
-      sound: 1,
-      plan: 'Dual data sticks on RF corner',
-      hd: { shutter: '1/1000', aperture: 'f/4', iso: '640' },
-      wide: { shutter: '1/500', aperture: 'f/2.8', iso: '400' },
-    },
-    {
-      team: 'Lakers',
-      venue: 'Arena',
-      sport: 'NBA',
-      attention: 1,
-      sound: 1,
-      plan: 'Baseline data / crowd fancam',
-      hd: { shutter: '1/500', aperture: 'f/2.8', iso: '1600' },
-      wide: { shutter: '1/250', aperture: 'f/2', iso: '1250' },
-    },
-    {
-      team: 'Knicks',
-      venue: 'Arena',
-      sport: 'NBA',
-      attention: 0,
-      sound: 0,
-      plan: 'Tunnel exit data only',
-      hd: { shutter: '1/500', aperture: 'f/2.8', iso: '2000' },
-      wide: { shutter: '1/250', aperture: 'f/2', iso: '1600' },
-    },
+    { team: 'Reds', venue: 'Outdoor', type: 'Data/Fancam' },
+    { team: 'Red Sox', venue: 'Outdoor', type: 'Data/Fancam' },
+    { team: 'Rangers', venue: 'Outdoor', type: 'Data' },
+    { team: 'Lakers', venue: 'Arena', type: 'Data/Fancam' },
+    { team: 'Knicks', venue: 'Arena', type: 'Data' },
   ];
-
+  const rigIds = {};
   for (const t of teams) {
-    rigInsert.run(
-      crypto.randomUUID(),
+    const id = newId();
+    rigIds[t.team] = id;
+    rigIns.run(
+      id,
+      `${t.team} House`,
       t.team,
       t.venue,
-      t.sport,
-      'Data/Fancam',
-      t.plan,
-      JSON.stringify([`${t.team}-Remote-A`, `${t.team}-Remote-B`]),
-      JSON.stringify(t.hd),
-      JSON.stringify(t.wide),
-      t.attention,
-      JSON.stringify({ shutter: '1/250', aperture: 'f/2.8', iso: '800' }),
-      t.sound,
-      `${t.team} house look — cool white balance`
+      t.type,
+      JSON.stringify({
+        plan: `${t.team} remote package`,
+        dataHd: { shutter: '1/1000', aperture: 'f/4', iso: '800' },
+      })
     );
   }
 
   const today = todayStr();
-  const shootInsert = db.prepare(`
+  const shootIns = db.prepare(`
     INSERT INTO shoots (
-      id, title, client, location, date, game_time, status, notes, standby_admin
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, title, team_name, opponent, date, setup_time, game_time, expected_end_time,
+      venue, shoot_type, rig_id, status, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const schedule = [
-    // Today — operator focus
-    { title: 'Reds @ Guardians', client: 'Reds', location: 'Progressive Field', day: 0, time: '19:10', status: 'confirmed' },
-    { title: 'Red Sox @ Yankees', client: 'Red Sox', location: 'Yankee Stadium', day: 0, time: '19:05', status: 'confirmed' },
-    { title: 'Lakers @ Suns', client: 'Lakers', location: 'Footprint Center', day: 0, time: '21:00', status: 'upcoming' },
-    { title: 'Knicks @ Nets', client: 'Knicks', location: 'Barclays Center', day: 0, time: '19:30', status: 'upcoming' },
-    // Pair candidate for Reds
-    { title: 'Rangers @ Astros', client: 'Rangers', location: 'Minute Maid Park', day: 0, time: '20:10', status: 'upcoming' },
-    // Rest of week
-    { title: 'Reds @ Tigers', client: 'Reds', location: 'Comerica Park', day: 1, time: '18:40', status: 'upcoming' },
-    { title: 'Red Sox @ Orioles', client: 'Red Sox', location: 'Camden Yards', day: 1, time: '19:05', status: 'upcoming' },
-    { title: 'Lakers @ Warriors', client: 'Lakers', location: 'Chase Center', day: 2, time: '20:00', status: 'upcoming' },
-    { title: 'Rangers @ Mariners', client: 'Rangers', location: 'T-Mobile Park', day: 2, time: '18:40', status: 'upcoming' },
-    { title: 'Knicks @ Celtics', client: 'Knicks', location: 'TD Garden', day: 3, time: '19:30', status: 'upcoming' },
-    { title: 'Reds @ Brewers', client: 'Reds', location: 'American Family Field', day: 3, time: '19:10', status: 'upcoming' },
-    { title: 'Red Sox @ Rays', client: 'Red Sox', location: 'Tropicana Field', day: 4, time: '18:40', status: 'upcoming' },
-    { title: 'Lakers @ Nuggets', client: 'Lakers', location: 'Ball Arena', day: 5, time: '21:00', status: 'upcoming' },
-    { title: 'Rangers @ Angels', client: 'Rangers', location: 'Angel Stadium', day: 5, time: '18:38', status: 'upcoming' },
-    { title: 'Knicks @ Heat', client: 'Knicks', location: 'Kaseya Center', day: 6, time: '19:00', status: 'upcoming' },
-    // Past completed for pay demo
-    { title: 'Reds @ Cubs', client: 'Reds', location: 'Wrigley Field', day: -2, time: '19:20', status: 'completed' },
-    { title: 'Red Sox @ Blue Jays', client: 'Red Sox', location: 'Rogers Centre', day: -2, time: '19:07', status: 'completed' },
-    { title: 'Lakers @ Clippers', client: 'Lakers', location: 'Crypto.com Arena', day: -1, time: '20:00', status: 'completed' },
+    { team: 'Reds', opp: 'Guardians', venue: 'Progressive Field', day: 0, setup: '16:40', game: '19:10', status: 'scheduled' },
+    { team: 'Red Sox', opp: 'Yankees', venue: 'Yankee Stadium', day: 0, setup: '16:35', game: '19:05', status: 'scheduled' },
+    { team: 'Rangers', opp: 'Astros', venue: 'Minute Maid Park', day: 0, setup: '17:40', game: '20:10', status: 'scheduled' },
+    { team: 'Lakers', opp: 'Suns', venue: 'Footprint Center', day: 0, setup: '18:30', game: '21:00', status: 'scheduled' },
+    { team: 'Knicks', opp: 'Nets', venue: 'Barclays Center', day: 0, setup: '17:00', game: '19:30', status: 'scheduled' },
+    { team: 'Reds', opp: 'Tigers', venue: 'Comerica Park', day: 1, setup: '16:10', game: '18:40', status: 'scheduled' },
+    { team: 'Red Sox', opp: 'Orioles', venue: 'Camden Yards', day: 1, setup: '16:35', game: '19:05', status: 'scheduled' },
+    { team: 'Lakers', opp: 'Warriors', venue: 'Chase Center', day: 2, setup: '17:30', game: '20:00', status: 'scheduled' },
+    { team: 'Rangers', opp: 'Mariners', venue: 'T-Mobile Park', day: 2, setup: '16:10', game: '18:40', status: 'scheduled' },
+    { team: 'Knicks', opp: 'Celtics', venue: 'TD Garden', day: 3, setup: '17:00', game: '19:30', status: 'scheduled' },
+    { team: 'Reds', opp: 'Cubs', venue: 'Wrigley Field', day: -2, setup: '16:50', game: '19:20', status: 'completed' },
+    { team: 'Lakers', opp: 'Clippers', venue: 'Crypto.com Arena', day: -1, setup: '17:30', game: '20:00', status: 'completed' },
   ];
 
   const created = [];
   for (const s of schedule) {
-    const id = crypto.randomUUID();
+    const id = newId();
     const date = addDays(today, s.day);
-    shootInsert.run(
+    shootIns.run(
       id,
-      s.title,
-      s.client,
-      s.location,
+      `${s.team} @ ${s.opp}`,
+      s.team,
+      s.opp,
       date,
-      s.time,
-      s.status,
+      s.setup,
+      s.game,
       null,
-      'standby@rom.demo'
+      s.venue,
+      'Data/Fancam',
+      rigIds[s.team],
+      s.status,
+      adminId
     );
     created.push({ ...s, id, date });
   }
 
-  const op = 'operator@rom.demo';
-  const redsToday = created.find((s) => s.client === 'Reds' && s.day === 0);
-  if (redsToday) {
-    addAssignment(redsToday.id, op, 'assigned');
-    addAssignment(redsToday.id, op, 'pre_approved');
-  }
-
-  const past = created.filter((s) => s.day < 0);
-  for (const s of past) {
-    addAssignment(s.id, op, 'assigned');
-    addAssignment(s.id, op, 'pre_approved');
-  }
-
-  // Fill operator2 toward the 6-cap (leave Rangers today open for auto-pair demo)
-  const op2 = 'operator2@rom.demo';
-  const forOp2 = created
-    .filter(
-      (s) =>
-        s.day >= 0 &&
-        !(s.client === 'Reds' && s.day === 0) &&
-        s.client !== 'Knicks' &&
-        !(s.client === 'Rangers' && s.day === 0) &&
-        !(s.client === 'Red Sox' && s.day === 0)
-    )
-    .slice(0, 7);
-  forOp2.forEach((s, i) => {
-    if (i < 6) {
-      addAssignment(s.id, op2, 'assigned');
-      addAssignment(s.id, op2, 'pre_approved');
-    } else {
-      addAssignment(s.id, op2, 'pending');
-    }
-  });
-
-  db.prepare(`
-    INSERT INTO standby_windows (id, start_date, start_time, end_date, end_time, admin_email, admin_name, notes)
-    VALUES (?, ?, '08:00', ?, '08:00', ?, ?, ?)
-  `).run(
-    crypto.randomUUID(),
-    today,
-    addDays(today, 2),
-    'standby@rom.demo',
-    'Sam Standby',
-    'Primary standby window'
-  );
-
-  db.prepare(`
-    INSERT INTO rig_tests (id, title, scheduled_date, due_date, assigned_to, assigned_name, status, notes)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
-  `).run(
-    crypto.randomUUID(),
-    'Weekly Remote Rig Sweep',
-    today,
-    addDays(today, 1),
-    'standby@rom.demo',
-    'Sam Standby',
-    'Focus on MLB outdoor units'
-  );
-
-  const phaseStmt = db.prepare(`
-    INSERT INTO shoot_phases (shoot_id, phase, completed_at, completed_by)
-    VALUES (?, ?, ?, ?)
+  // Assign operator to today's Reds + past completed (for pay)
+  const asg = db.prepare(`
+    INSERT INTO assignments (
+      id, shoot_id, operator_id, status, source, is_pre_approved, is_additional, assigned_by, created_at, updated_at
+    ) VALUES (?, ?, ?, 'assigned', 'admin', ?, 0, ?, datetime('now'), datetime('now'))
   `);
-  for (const s of past) {
-    for (const phase of ['setup_complete', 'pre_shoot_started', 'shoot_complete']) {
-      phaseStmt.run(s.id, phase, new Date().toISOString(), op);
-    }
+
+  const redsToday = created.find((s) => s.team === 'Reds' && s.day === 0);
+  if (redsToday) {
+    asg.run(newId(), redsToday.id, op1, 1, adminId);
+    // Also assign admin to reds for admin dashboard focus
+    asg.run(newId(), redsToday.id, adminId, 1, adminId);
+  }
+  for (const s of created.filter((x) => x.day < 0)) {
+    asg.run(newId(), s.id, op1, 1, adminId);
   }
 
-  console.log('ROM (Remote Ops Manager) demo seed complete.');
+  console.log('ROM demo seed complete.');
   console.log('  admin@rom.demo / rom123');
   console.log('  operator@rom.demo / rom123');
-  console.log('  standby@rom.demo / rom123');
   console.log('  accounts@rom.demo / rom123');
 }
 
-const isDirect = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
-if (isDirect || process.argv[1]?.endsWith('seed.js')) {
+if (process.argv[1]?.endsWith('seed.js')) {
   seed({ force: true });
 }

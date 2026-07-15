@@ -1,198 +1,346 @@
-import { db, getSetting } from '../db.js';
-import { normalizeEmail } from '../middleware/auth.js';
-import { timeToMinutes } from './domain.js';
+import {
+  db,
+  withTransaction,
+  getSetting,
+  newId,
+  nowIso,
+  timeToMinutes,
+} from '../db.js';
+import { ROLES, normalizeRole } from '../permissions.js';
 
 export const DEFAULT_BASE_RATE = 1000;
 export const DEFAULT_ADDITIONAL_RATE = 250;
 export const ADDITIONAL_WINDOW_HOURS = 2;
 
+export function getRates() {
+  return {
+    baseRate: Number(getSetting('base_rate', DEFAULT_BASE_RATE)),
+    additionalRate: Number(getSetting('additional_rate', DEFAULT_ADDITIONAL_RATE)),
+    currency: getSetting('currency', 'ZAR'),
+  };
+}
+
 function getAdditionalShootIds(dayShots) {
   const sorted = [...dayShots].sort(
     (a, b) => timeToMinutes(a.game_time) - timeToMinutes(b.game_time)
   );
-  const additionalIds = new Set();
+  const ids = new Set();
   for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    const diffHours = (timeToMinutes(curr.game_time) - timeToMinutes(prev.game_time)) / 60;
-    if (diffHours <= ADDITIONAL_WINDOW_HOURS) {
-      additionalIds.add(curr.id);
-    }
+    const diff =
+      (timeToMinutes(sorted[i].game_time) - timeToMinutes(sorted[i - 1].game_time)) / 60;
+    if (diff <= ADDITIONAL_WINDOW_HOURS) ids.add(sorted[i].id);
   }
-  return additionalIds;
+  return ids;
 }
 
-export function calculateOperatorEarnings(operatorEmail, { month = null } = {}) {
-  const email = normalizeEmail(operatorEmail);
-  const baseRate = getSetting('base_rate', DEFAULT_BASE_RATE);
-  const additionalRate = getSetting('additional_rate', DEFAULT_ADDITIONAL_RATE);
+/**
+ * Calculate earnings for an operator in a month from assigned shoots only.
+ * Honour assignment.is_additional and payment_line_overrides.
+ */
+export function calculateOperatorMonth(operatorId, month, { rates = null } = {}) {
+  const { baseRate, additionalRate, currency } = rates || getRates();
 
-  let sql = `
-    SELECT s.*, sa.auto_paired
+  const shoots = db.prepare(`
+    SELECT s.*, a.is_additional AS asg_additional, a.id AS assignment_id
     FROM shoots s
-    JOIN shoot_assignments sa ON sa.shoot_id = s.id
-    WHERE sa.operator_email = ?
-      AND sa.state = 'assigned'
+    JOIN assignments a ON a.shoot_id = s.id
+    WHERE a.operator_id = ?
+      AND a.status = 'assigned'
       AND s.status != 'cancelled'
-  `;
-  const params = [email];
-  if (month) {
-    sql += ` AND substr(s.date, 1, 7) = ?`;
-    params.push(month);
-  }
-  sql += ` ORDER BY s.date, s.game_time`;
+      AND substr(s.date, 1, 7) = ?
+    ORDER BY s.date, s.game_time
+  `).all(operatorId, month);
 
-  const assigned = db.prepare(sql).all(...params);
+  const overrides = db.prepare(`
+    SELECT * FROM payment_line_overrides
+    WHERE operator_id = ? AND period_month = ?
+  `).all(operatorId, month);
+  const overrideByShoot = Object.fromEntries(overrides.map((o) => [o.shoot_id, o]));
+
   const byDate = {};
-  for (const s of assigned) {
+  for (const s of shoots) {
     if (!byDate[s.date]) byDate[s.date] = [];
     byDate[s.date].push(s);
   }
 
+  const lines = [];
   let total = 0;
-  const breakdown = [];
 
-  for (const [date, dayShots] of Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b))) {
-    const autoAdditionalIds = new Set(
-      dayShots.filter((s) => s.auto_paired).map((s) => s.id)
-    );
-    const nonAuto = dayShots.filter((s) => !autoAdditionalIds.has(s.id));
-    const proximityAdditionalIds = getAdditionalShootIds(nonAuto);
+  for (const [, dayShots] of Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b))) {
+    const flagged = new Set(dayShots.filter((s) => s.asg_additional).map((s) => s.id));
+    const proximity = getAdditionalShootIds(dayShots.filter((s) => !flagged.has(s.id)));
 
     for (const shoot of dayShots) {
-      const isAdditional =
-        autoAdditionalIds.has(shoot.id) || proximityAdditionalIds.has(shoot.id);
-      const amount = isAdditional ? additionalRate : baseRate;
-      total += amount;
-      breakdown.push({
-        date,
+      const ov = overrideByShoot[shoot.id];
+      let isAdditional =
+        ov?.is_additional_override != null
+          ? !!ov.is_additional_override
+          : flagged.has(shoot.id) || proximity.has(shoot.id);
+      let fee =
+        ov?.fee_override != null
+          ? Number(ov.fee_override)
+          : isAdditional
+            ? additionalRate
+            : baseRate;
+
+      total += fee;
+      lines.push({
         shootId: shoot.id,
         title: shoot.title,
-        client: shoot.client,
+        teamName: shoot.team_name,
+        date: shoot.date,
         gameTime: shoot.game_time,
-        amount,
         isAdditional,
+        fee,
+        overridden: !!ov,
       });
     }
   }
 
-  return { total, breakdown, baseRate, additionalRate };
+  return { total, lines, baseRate, additionalRate, currency, shootCount: lines.length };
 }
 
-export function ensurePayRecordsForMonth(month) {
-  const baseRate = getSetting('base_rate', DEFAULT_BASE_RATE);
-  const additionalRate = getSetting('additional_rate', DEFAULT_ADDITIONAL_RATE);
+export function ensureMonthRecord(operatorId, month) {
+  const existing = db.prepare(
+    `SELECT * FROM payment_records WHERE operator_id = ? AND period_month = ?`
+  ).get(operatorId, month);
 
+  // If already finalised/paid, keep snapshot amount
+  if (existing?.paid || existing?.finalised_at) {
+    return existing;
+  }
+
+  const calc = calculateOperatorMonth(operatorId, month);
+  if (existing) {
+    db.prepare(`
+      UPDATE payment_records SET amount = ?, base_rate_snapshot = ?, additional_rate_snapshot = ?,
+        updated_at = ? WHERE id = ?
+    `).run(calc.total, calc.baseRate, calc.additionalRate, nowIso(), existing.id);
+    return db.prepare(`SELECT * FROM payment_records WHERE id = ?`).get(existing.id);
+  }
+
+  if (calc.shootCount === 0) return null;
+
+  const id = newId();
+  db.prepare(`
+    INSERT INTO payment_records (
+      id, operator_id, period_month, amount, paid,
+      base_rate_snapshot, additional_rate_snapshot, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)
+  `).run(
+    id,
+    operatorId,
+    month,
+    calc.total,
+    calc.baseRate,
+    calc.additionalRate,
+    nowIso(),
+    nowIso()
+  );
+  return db.prepare(`SELECT * FROM payment_records WHERE id = ?`).get(id);
+}
+
+export function getAccountsDashboard(month) {
   const operators = db.prepare(`
-    SELECT DISTINCT sa.operator_email, u.full_name
-    FROM shoot_assignments sa
-    JOIN shoots s ON s.id = sa.shoot_id
-    LEFT JOIN users u ON u.email = sa.operator_email
-    WHERE sa.state = 'assigned'
+    SELECT DISTINCT u.id, u.full_name, u.email, u.active
+    FROM users u
+    JOIN assignments a ON a.operator_id = u.id
+    JOIN shoots s ON s.id = a.shoot_id
+    WHERE a.status = 'assigned'
       AND s.status != 'cancelled'
       AND substr(s.date, 1, 7) = ?
-  `).all(month);
+    UNION
+    SELECT u.id, u.full_name, u.email, u.active
+    FROM users u
+    JOIN payment_records p ON p.operator_id = u.id
+    WHERE p.period_month = ?
+  `).all(month, month);
+
+  const rows = [];
+  let monthlyTotal = 0;
+  let paidCount = 0;
+  let unpaidCount = 0;
 
   for (const op of operators) {
-    const { breakdown } = calculateOperatorEarnings(op.operator_email, { month });
-    for (const row of breakdown) {
-      const existing = db.prepare(
-        'SELECT id FROM pay_records WHERE operator_email = ? AND shoot_id = ?'
-      ).get(normalizeEmail(op.operator_email), row.shootId);
-      if (existing) continue;
-      db.prepare(`
-        INSERT INTO pay_records (
-          id, operator_email, operator_name, period_month, shoot_id,
-          shoot_title, shoot_date, is_additional, base_fee, paid
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-      `).run(
-        crypto.randomUUID(),
-        normalizeEmail(op.operator_email),
-        op.full_name || op.operator_email,
-        month,
-        row.shootId,
-        row.title,
-        row.date,
-        row.isAdditional ? 1 : 0,
-        row.isAdditional ? additionalRate : baseRate
-      );
-    }
-  }
-}
-
-export function getPaySurface(user, month) {
-  ensurePayRecordsForMonth(month);
-  const isSettleRole = user.role === 'admin' || user.role === 'accounts';
-
-  if (isSettleRole) {
-    const records = db.prepare(`
-      SELECT * FROM pay_records
-      WHERE period_month = ?
-      ORDER BY operator_email, shoot_date, shoot_title
-    `).all(month);
-
-    const byOperator = {};
-    for (const r of records) {
-      if (!byOperator[r.operator_email]) {
-        byOperator[r.operator_email] = {
-          email: r.operator_email,
-          name: r.operator_name,
-          unpaid: 0,
-          paid: 0,
-          lines: [],
-        };
-      }
-      const fee = r.override_fee ?? r.base_fee;
-      if (r.paid) byOperator[r.operator_email].paid += fee;
-      else byOperator[r.operator_email].unpaid += fee;
-      byOperator[r.operator_email].lines.push({
-        id: r.id,
-        shootId: r.shoot_id,
-        title: r.shoot_title,
-        date: r.shoot_date,
-        isAdditional: !!r.is_additional,
-        fee,
-        paid: !!r.paid,
-        paidDate: r.paid_date,
-      });
-    }
-    return {
-      mode: 'settle',
-      month,
-      operators: Object.values(byOperator),
-    };
+    const record = ensureMonthRecord(op.id, month);
+    const calc = calculateOperatorMonth(op.id, month);
+    const amount = record?.paid || record?.finalised_at ? record.amount : calc.total;
+    const paid = !!(record?.paid);
+    if (paid) paidCount += 1;
+    else unpaidCount += 1;
+    monthlyTotal += amount;
+    rows.push({
+      operatorId: op.id,
+      fullName: op.full_name,
+      email: op.email,
+      active: !!op.active,
+      shootCount: calc.shootCount,
+      amount,
+      paid,
+      paidDate: record?.paid_date || null,
+      note: record?.note || null,
+      paymentRecordId: record?.id || null,
+      lines: calc.lines,
+    });
   }
 
-  const records = db.prepare(`
-    SELECT * FROM pay_records
-    WHERE period_month = ? AND operator_email = ?
-    ORDER BY shoot_date
-  `).all(month, normalizeEmail(user.email));
-
-  let unpaid = 0;
-  let paid = 0;
-  const lines = records.map((r) => {
-    const fee = r.override_fee ?? r.base_fee;
-    if (r.paid) paid += fee;
-    else unpaid += fee;
-    return {
-      id: r.id,
-      shootId: r.shoot_id,
-      title: r.shoot_title,
-      date: r.shoot_date,
-      isAdditional: !!r.is_additional,
-      fee,
-      paid: !!r.paid,
-      paidDate: r.paid_date,
-    };
-  });
+  rows.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   return {
-    mode: 'earnings',
     month,
-    unpaid,
-    paid,
-    total: unpaid + paid,
-    lines,
+    currency: getRates().currency,
+    monthlyTotal,
+    operatorCount: rows.length,
+    paidCount,
+    unpaidCount,
+    operators: rows,
+  };
+}
+
+export function getOperatorEarnings(operatorId, month) {
+  const calc = calculateOperatorMonth(operatorId, month);
+  const record = ensureMonthRecord(operatorId, month);
+  return {
+    month,
+    currency: calc.currency,
+    total: record?.paid || record?.finalised_at ? record.amount : calc.total,
+    shootCount: calc.shootCount,
+    normalCount: calc.lines.filter((l) => !l.isAdditional).length,
+    additionalCount: calc.lines.filter((l) => l.isAdditional).length,
+    paid: !!(record?.paid),
+    paidDate: record?.paid_date || null,
+    lines: calc.lines,
+  };
+}
+
+export function markMonthPaid({
+  operatorId,
+  month,
+  paidDate,
+  actorId,
+  note = undefined,
+}) {
+  return withTransaction(() => {
+    const actor = db.prepare('SELECT * FROM users WHERE id = ?').get(actorId);
+    if (!actor || normalizeRole(actor.role) !== ROLES.ACCOUNTS) {
+      const err = new Error('Only Accounts can mark paid');
+      err.status = 403;
+      throw err;
+    }
+
+    const calc = calculateOperatorMonth(operatorId, month);
+    let record = ensureMonthRecord(operatorId, month);
+    if (!record) {
+      // create even if zero? skip
+      if (calc.shootCount === 0) {
+        const err = new Error('No qualifying shoots for this period');
+        err.status = 400;
+        throw err;
+      }
+      record = ensureMonthRecord(operatorId, month);
+    }
+
+    const date = paidDate || todayDate();
+    db.prepare(`
+      UPDATE payment_records SET
+        paid = 1,
+        paid_date = ?,
+        amount = ?,
+        note = COALESCE(?, note),
+        base_rate_snapshot = ?,
+        additional_rate_snapshot = ?,
+        finalised_at = ?,
+        finalised_by = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      date,
+      calc.total,
+      note !== undefined ? note : null,
+      calc.baseRate,
+      calc.additionalRate,
+      nowIso(),
+      actorId,
+      nowIso(),
+      record.id
+    );
+
+    return getAccountsDashboard(month);
+  });
+}
+
+export function markMonthUnpaid({ operatorId, month, actorId }) {
+  return withTransaction(() => {
+    const actor = db.prepare('SELECT * FROM users WHERE id = ?').get(actorId);
+    if (!actor || normalizeRole(actor.role) !== ROLES.ACCOUNTS) {
+      const err = new Error('Only Accounts can mark unpaid');
+      err.status = 403;
+      throw err;
+    }
+    const record = db.prepare(
+      `SELECT * FROM payment_records WHERE operator_id = ? AND period_month = ?`
+    ).get(operatorId, month);
+    if (!record) {
+      const err = new Error('Payment record not found');
+      err.status = 404;
+      throw err;
+    }
+    // Recalculate live amount after unfinalising
+    const calc = calculateOperatorMonth(operatorId, month);
+    db.prepare(`
+      UPDATE payment_records SET
+        paid = 0, paid_date = NULL, finalised_at = NULL, finalised_by = NULL,
+        amount = ?, updated_at = ?
+      WHERE id = ?
+    `).run(calc.total, nowIso(), record.id);
+    return getAccountsDashboard(month);
+  });
+}
+
+export function updateAccountsNote({ operatorId, month, note, actorId }) {
+  const actor = db.prepare('SELECT * FROM users WHERE id = ?').get(actorId);
+  if (!actor || normalizeRole(actor.role) !== ROLES.ACCOUNTS) {
+    const err = new Error('Only Accounts can edit notes');
+    err.status = 403;
+    throw err;
+  }
+  ensureMonthRecord(operatorId, month);
+  db.prepare(`
+    UPDATE payment_records SET note = ?, updated_at = ?
+    WHERE operator_id = ? AND period_month = ?
+  `).run(note, nowIso(), operatorId, month);
+  return { ok: true };
+}
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function csvEscape(value) {
+  const s = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+export function exportMonthCsv(month) {
+  const dash = getAccountsDashboard(month);
+  const header = ['Operator', 'Email', 'Shoots', 'Amount (ZAR)', 'Paid', 'Paid Date', 'Note'];
+  const lines = [header.join(',')];
+  for (const op of dash.operators) {
+    lines.push(
+      [
+        csvEscape(op.fullName),
+        csvEscape(op.email),
+        csvEscape(op.shootCount),
+        csvEscape(op.amount),
+        csvEscape(op.paid ? 'Yes' : 'No'),
+        csvEscape(op.paidDate || ''),
+        csvEscape(op.note || ''),
+      ].join(',')
+    );
+  }
+  return {
+    filename: `Earnings_${month}.csv`,
+    content: lines.join('\n') + '\n',
   };
 }

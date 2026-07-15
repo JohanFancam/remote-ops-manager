@@ -6,20 +6,21 @@ export default {
     extend: {
       colors: {
         ink: {
-          950: '#05080f',
-          900: '#0a1220',
-          800: '#101c30',
-          700: '#1a2a45',
-          600: '#243656',
+          950: '#070b14',
+          900: '#0c1424',
+          800: '#132038',
+          700: '#1c2f4d',
+          600: '#2a4066',
         },
-        lime: {
-          DEFAULT: '#c8f531',
-          dim: '#9fc41f',
-          glow: '#d9ff5c',
+        blue: {
+          DEFAULT: '#3b82f6',
+          bright: '#60a5fa',
+          deep: '#2563eb',
+          soft: 'rgba(59,130,246,0.15)',
         },
         mist: {
-          DEFAULT: '#c5d0e0',
-          muted: '#8a9bb3',
+          DEFAULT: '#c9d4e8',
+          muted: '#8b9bb8',
         },
       },
       fontFamily: {
@@ -27,30 +28,20 @@ export default {
         body: ['"IBM Plex Sans"', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'monospace'],
       },
-      boxShadow: {
-        cue: '0 0 0 1px rgba(200,245,49,0.18)',
-      },
-      minHeight: {
-        dvh: '100dvh',
-      },
+      minHeight: { dvh: '100dvh' },
       keyframes: {
-        pulseGlow: {
+        riseIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseSoft: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.55' },
         },
-        riseIn: {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        phaseFlash: {
-          '0%': { backgroundColor: 'rgba(200,245,49,0.35)' },
-          '100%': { backgroundColor: 'transparent' },
-        },
       },
       animation: {
-        'pulse-glow': 'pulseGlow 1.6s ease-in-out infinite',
-        'rise-in': 'riseIn 0.45s ease-out both',
-        'phase-flash': 'phaseFlash 0.7s ease-out',
+        'rise-in': 'riseIn 0.4s ease-out both',
+        'pulse-soft': 'pulseSoft 1.6s ease-in-out infinite',
       },
     },
   },

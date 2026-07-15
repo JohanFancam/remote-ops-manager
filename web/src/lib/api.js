@@ -9,7 +9,7 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-export async function api(path, { method = 'GET', body, token } = {}) {
+export async function api(path, { method = 'GET', body, token, raw = false } = {}) {
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const auth = token ?? getToken();
@@ -21,6 +21,8 @@ export async function api(path, { method = 'GET', body, token } = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
+  if (raw) return res;
+
   const text = await res.text();
   let data = null;
   try {
@@ -28,10 +30,11 @@ export async function api(path, { method = 'GET', body, token } = {}) {
   } catch {
     data = { error: text || 'Invalid response' };
   }
-
   if (!res.ok) {
     const err = new Error(data?.error || `Request failed (${res.status})`);
     err.status = res.status;
+    err.code = data?.code;
+    err.warnings = data?.warnings;
     err.data = data;
     throw err;
   }

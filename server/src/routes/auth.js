@@ -1,17 +1,19 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { db, setSetting, getSetting, newId, nowIso, todayStr } from '../db.js';
 import {
   hashPassword,
   verifyPassword,
   signToken,
+  publicUser,
   authRequired,
-  normalizeEmail,
+  requireActive,
 } from '../middleware/auth.js';
+import { homePathForRole, normalizeRole, ROLES } from '../permissions.js';
 
 const router = Router();
 
 router.post('/login', (req, res) => {
-  const email = normalizeEmail(req.body?.email);
+  const email = String(req.body?.email || '').trim().toLowerCase();
   const password = req.body?.password || '';
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
@@ -20,24 +22,27 @@ router.post('/login', (req, res) => {
   if (!user || !verifyPassword(password, user.password_hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
+  if (!user.active) {
+    return res.status(403).json({ error: 'Account is inactive', code: 'INACTIVE' });
+  }
+  // migrate legacy role in response
+  if (user.role === 'user') {
+    db.prepare(`UPDATE users SET role = 'operator', updated_at = ? WHERE id = ?`).run(nowIso(), user.id);
+    user.role = 'operator';
+  }
   const token = signToken(user);
   res.json({
     token,
-    user: {
-      id: user.id,
-      email: user.email,
-      fullName: user.full_name,
-      role: user.role,
-    },
+    user: publicUser(user),
+    homePath: homePathForRole(user.role),
   });
 });
 
 router.get('/me', authRequired, (req, res) => {
   res.json({
-    id: req.user.id,
-    email: req.user.email,
-    fullName: req.user.full_name,
-    role: req.user.role,
+    ...publicUser(req.user),
+    homePath: homePathForRole(req.user.role),
+    appName: getSetting('application_name', 'Remote Ops Manager'),
   });
 });
 
