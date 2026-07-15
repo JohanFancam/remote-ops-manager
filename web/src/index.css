@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink-950: #05080f;
+  --ink-900: #0a1220;
+  --lime: #c8f531;
+  --mist: #c5d0e0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--ink-950);
+  color: var(--mist);
+}
+
+/* Ambient broadcast console atmosphere */
+.cue-atmosphere {
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(200, 245, 49, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 88% 8%, rgba(56, 120, 200, 0.18), transparent 50%),
+    linear-gradient(165deg, #07111f 0%, #05080f 45%, #0a1528 100%);
+}
+
+.cue-grain::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.045;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.cue-content {
+  position: relative;
+  z-index: 1;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #243656;
+  border-radius: 4px;
+}
