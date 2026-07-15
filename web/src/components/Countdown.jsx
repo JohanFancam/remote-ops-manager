@@ -23,7 +23,7 @@ export default function Countdown({ targetIso }) {
         {past ? 'Game clock' : 'Countdown to game'}
       </p>
       <p
-        className={`mt-2 font-mono text-5xl font-medium tracking-tight md:text-6xl ${
+        className={`mt-2 font-mono text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl ${
           past ? 'text-mist' : 'animate-pulse-glow text-lime'
         }`}
       >

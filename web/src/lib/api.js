@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'cueboard_token';
+const TOKEN_KEY = 'rom_token';
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);

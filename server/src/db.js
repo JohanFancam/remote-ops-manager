@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
-const dbPath = process.env.CUEBOARD_DB || path.join(dataDir, 'cueboard.db');
+const dbPath = process.env.ROM_DB || process.env.CUEBOARD_DB || path.join(dataDir, 'rom.db');
 
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });

@@ -170,11 +170,11 @@ export default function Board() {
       {!board ? (
         <p className="mt-10 text-mist-muted">Loading week…</p>
       ) : (
-        <div className="mt-8 flex gap-3 overflow-x-auto pb-4">
+        <div className="mt-8 -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 snap-x snap-mandatory md:mx-0 md:px-0">
           {days.map((date) => (
             <div
               key={date}
-              className="min-w-[220px] flex-1 border-t border-ink-600 pt-3"
+              className="min-w-[72vw] max-w-[280px] flex-shrink-0 snap-start border-t border-ink-600 pt-3 sm:min-w-[220px] md:max-w-none md:flex-1"
             >
               <p className="font-mono text-xs uppercase tracking-wider text-mist-muted">
                 {fmtDay(date)}
@@ -254,9 +254,12 @@ function ClaimSheet({
   const canSelfClaim = user.role === 'user' && !mine;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-950/70 p-0 md:items-center md:p-6">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-950/80 p-0 md:items-center md:p-6">
       <button type="button" className="absolute inset-0 cursor-default" aria-label="Close" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg animate-rise-in border border-ink-600 bg-ink-900 p-5 shadow-cue md:rounded-sm">
+      <div
+        className="relative z-10 max-h-[90dvh] w-full max-w-lg animate-rise-in overflow-y-auto border border-ink-600 bg-ink-900 p-5 shadow-cue md:rounded-sm"
+        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+      >
         <p className="font-mono text-xs uppercase tracking-widest text-mist-muted">
           {shoot.date} · {shoot.gameTime}
         </p>
@@ -265,7 +268,7 @@ function ClaimSheet({
           {shoot.location} · {shoot.client}
         </p>
 
-        <div className="mt-5 space-y-1 text-sm">
+        <div className="mt-5 space-y-1 text-sm break-all">
           <p>
             Assigned:{' '}
             <span className="text-mist">
@@ -286,7 +289,7 @@ function ClaimSheet({
               type="button"
               disabled={busy}
               onClick={onClaim}
-              className="bg-lime px-4 py-3 font-display text-sm font-bold text-ink-950 disabled:opacity-60"
+              className="touch-target bg-lime px-4 py-3 font-display text-sm font-bold text-ink-950 disabled:opacity-60"
             >
               Claim
             </button>
@@ -296,7 +299,7 @@ function ClaimSheet({
               type="button"
               disabled={busy}
               onClick={onUnclaim}
-              className="border border-ink-600 px-4 py-3 text-sm text-mist disabled:opacity-60"
+              className="touch-target border border-ink-600 px-4 py-3 text-sm text-mist disabled:opacity-60"
             >
               Release
             </button>
@@ -308,15 +311,15 @@ function ClaimSheet({
                   type="button"
                   disabled={busy}
                   onClick={() => onApprove(email)}
-                  className="bg-lime px-4 py-3 font-display text-sm font-bold text-ink-950"
+                  className="touch-target bg-lime px-4 py-3 font-display text-sm font-bold text-ink-950"
                 >
-                  Approve {email}
+                  Approve {email.split('@')[0]}
                 </button>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => onReject(email)}
-                  className="border border-ink-600 px-4 py-3 text-sm"
+                  className="touch-target border border-ink-600 px-4 py-3 text-sm"
                 >
                   Reject
                 </button>
@@ -325,7 +328,7 @@ function ClaimSheet({
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto border border-ink-600 px-4 py-3 text-sm text-mist-muted"
+            className="touch-target ml-auto border border-ink-600 px-4 py-3 text-sm text-mist-muted"
           >
             Close
           </button>

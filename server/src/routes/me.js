@@ -66,7 +66,7 @@ function buildOperatorToday(email, date) {
   return {
     surface: 'my_cue',
     date,
-    brand: 'CUEBOARD',
+    brand: 'ROM',
     headline: 'My Cue',
     focus: next
       ? {
@@ -116,7 +116,7 @@ function buildStandbyToday(email, date) {
   return {
     surface: 'coverage',
     date,
-    brand: 'CUEBOARD',
+    brand: 'ROM',
     headline: 'Coverage',
     quota,
     windowShoots: serialized,
@@ -183,7 +183,7 @@ function buildAdminToday(date) {
   return {
     surface: 'gaps',
     date,
-    brand: 'CUEBOARD',
+    brand: 'ROM',
     headline: 'Gaps',
     exceptions: {
       unassignedTonight: unassignedTonight.map((s) => ({

@@ -35,14 +35,14 @@ export function seed({ force = false } = {}) {
     `);
   }
 
-  const password = hashPassword('cueboard123');
+  const password = hashPassword('rom123');
 
   const users = [
-    { id: crypto.randomUUID(), email: 'admin@cueboard.demo', name: 'Alex Admin', role: 'admin' },
-    { id: crypto.randomUUID(), email: 'standby@cueboard.demo', name: 'Sam Standby', role: 'standby' },
-    { id: crypto.randomUUID(), email: 'accounts@cueboard.demo', name: 'Casey Accounts', role: 'accounts' },
-    { id: crypto.randomUUID(), email: 'operator@cueboard.demo', name: 'Jordan Operator', role: 'user' },
-    { id: crypto.randomUUID(), email: 'operator2@cueboard.demo', name: 'Riley Cam', role: 'user' },
+    { id: crypto.randomUUID(), email: 'admin@rom.demo', name: 'Alex Admin', role: 'admin' },
+    { id: crypto.randomUUID(), email: 'standby@rom.demo', name: 'Sam Standby', role: 'standby' },
+    { id: crypto.randomUUID(), email: 'accounts@rom.demo', name: 'Casey Accounts', role: 'accounts' },
+    { id: crypto.randomUUID(), email: 'operator@rom.demo', name: 'Jordan Operator', role: 'user' },
+    { id: crypto.randomUUID(), email: 'operator2@rom.demo', name: 'Riley Cam', role: 'user' },
   ];
 
   const insertUser = db.prepare(`
@@ -189,12 +189,12 @@ export function seed({ force = false } = {}) {
       s.time,
       s.status,
       null,
-      'standby@cueboard.demo'
+      'standby@rom.demo'
     );
     created.push({ ...s, id, date });
   }
 
-  const op = 'operator@cueboard.demo';
+  const op = 'operator@rom.demo';
   const redsToday = created.find((s) => s.client === 'Reds' && s.day === 0);
   if (redsToday) {
     addAssignment(redsToday.id, op, 'assigned');
@@ -208,7 +208,7 @@ export function seed({ force = false } = {}) {
   }
 
   // Fill operator2 toward the 6-cap (leave Rangers today open for auto-pair demo)
-  const op2 = 'operator2@cueboard.demo';
+  const op2 = 'operator2@rom.demo';
   const forOp2 = created
     .filter(
       (s) =>
@@ -235,7 +235,7 @@ export function seed({ force = false } = {}) {
     crypto.randomUUID(),
     today,
     addDays(today, 2),
-    'standby@cueboard.demo',
+    'standby@rom.demo',
     'Sam Standby',
     'Primary standby window'
   );
@@ -248,7 +248,7 @@ export function seed({ force = false } = {}) {
     'Weekly Remote Rig Sweep',
     today,
     addDays(today, 1),
-    'standby@cueboard.demo',
+    'standby@rom.demo',
     'Sam Standby',
     'Focus on MLB outdoor units'
   );
@@ -263,11 +263,11 @@ export function seed({ force = false } = {}) {
     }
   }
 
-  console.log('Cueboard demo seed complete.');
-  console.log('  admin@cueboard.demo / cueboard123');
-  console.log('  operator@cueboard.demo / cueboard123');
-  console.log('  standby@cueboard.demo / cueboard123');
-  console.log('  accounts@cueboard.demo / cueboard123');
+  console.log('ROM (Remote Ops Manager) demo seed complete.');
+  console.log('  admin@rom.demo / rom123');
+  console.log('  operator@rom.demo / rom123');
+  console.log('  standby@rom.demo / rom123');
+  console.log('  accounts@rom.demo / rom123');
 }
 
 const isDirect = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));

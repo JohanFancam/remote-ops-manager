@@ -1,8 +1,8 @@
 {
-  "name": "cueboard",
+  "name": "remote-ops-manager",
   "private": true,
   "version": "1.0.0",
-  "description": "Cueboard — shift console for remote sports-camera crews",
+  "description": "Remote Ops Manager (ROM) — shift console for remote sports-camera crews",
   "workspaces": [
     "server",
     "web"

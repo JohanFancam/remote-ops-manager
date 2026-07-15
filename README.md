@@ -1,6 +1,8 @@
-# Cueboard
+# Remote Ops Manager (ROM)
 
 Shift console for remote sports-camera crews. Organized by **time** and **role** — not a dense CRUD dashboard.
+
+Dark mode · mobile-first for operators · desktop-capable for Board / Pay.
 
 ## Stack
 
@@ -32,22 +34,22 @@ Open http://localhost:5173
 
 ### Demo credentials
 
-Password for all accounts: `cueboard123`
+Password for all accounts: `rom123`
 
 | Email | Role |
 |-------|------|
-| `operator@cueboard.demo` | Remote operator (My Cue) |
-| `admin@cueboard.demo` | Admin (Gaps) |
-| `standby@cueboard.demo` | Standby (Coverage) |
-| `accounts@cueboard.demo` | Accounts (Pay settle) |
+| `operator@rom.demo` | Remote operator (My Cue) |
+| `admin@rom.demo` | Admin (Gaps) |
+| `standby@rom.demo` | Standby (Coverage) |
+| `accounts@rom.demo` | Accounts (Pay settle) |
 
 ## Working flow
 
-1. Sign in as **operator@cueboard.demo**
-2. **Today** shows Reds on My Cue — countdown + advance phase CTA
+1. Sign in as **operator@rom.demo**
+2. **Today** shows your next shoot — countdown + advance phase CTA
 3. Open **Board** → claim another open shoot (6-cap + auto-pair enforced server-side)
 4. Advance phases from Today; copy Slack/WhatsApp message
-5. Sign in as **accounts@cueboard.demo** → **Pay** → mark paid
+5. Sign in as **accounts@rom.demo** → **Pay** → mark paid
 
 ## Command API (selected)
 
@@ -73,5 +75,3 @@ Business rules (6-slot pre-approval, auto-pair/linked teams, phase order, fees, 
 server/   Express + SQLite
 web/      Vite React client
 ```
-
-This replaces the previous Base44 / Remote Ops Manager product UI.

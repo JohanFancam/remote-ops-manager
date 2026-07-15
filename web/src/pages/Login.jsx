@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
+import BrandMark, { BrandSubline } from '../components/BrandMark.jsx';
 
 const DEMOS = [
-  { email: 'operator@cueboard.demo', label: 'Operator' },
-  { email: 'admin@cueboard.demo', label: 'Admin' },
-  { email: 'standby@cueboard.demo', label: 'Standby' },
-  { email: 'accounts@cueboard.demo', label: 'Accounts' },
+  { email: 'operator@rom.demo', label: 'Operator' },
+  { email: 'admin@rom.demo', label: 'Admin' },
+  { email: 'standby@rom.demo', label: 'Standby' },
+  { email: 'accounts@rom.demo', label: 'Accounts' },
 ];
 
 export default function Login() {
   const { user, login } = useAuth();
-  const [email, setEmail] = useState('operator@cueboard.demo');
-  const [password, setPassword] = useState('cueboard123');
+  const [email, setEmail] = useState('operator@rom.demo');
+  const [password, setPassword] = useState('rom123');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -32,11 +33,10 @@ export default function Login() {
   }
 
   return (
-    <div className="cue-atmosphere cue-grain flex min-h-screen items-center justify-center px-4">
-      <div className="cue-content w-full max-w-md">
-        <p className="mb-2 font-display text-5xl font-extrabold tracking-[0.12em] text-lime md:text-6xl">
-          CUEBOARD
-        </p>
+    <div className="rom-atmosphere rom-grain flex min-h-dvh items-center justify-center px-4 py-[max(1.5rem,env(safe-area-inset-top))]">
+      <div className="rom-content w-full max-w-md pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <BrandMark size="lg" className="mb-2" />
+        <BrandSubline className="mb-3" />
         <p className="mb-10 max-w-sm text-mist-muted">
           Shift console for remote sports-camera crews — organized by time and role.
         </p>
@@ -45,27 +45,30 @@ export default function Login() {
           <label className="block">
             <span className="mb-1 block text-xs uppercase tracking-wider text-mist-muted">Email</span>
             <input
-              className="w-full border border-ink-600 bg-ink-900/70 px-3 py-3 font-body text-mist outline-none transition focus:border-lime/50"
+              className="w-full border border-ink-600 bg-ink-900/70 px-3 py-3.5 font-body text-base text-mist outline-none transition focus:border-lime/50 md:text-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
+              inputMode="email"
+              enterKeyHint="next"
             />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs uppercase tracking-wider text-mist-muted">Password</span>
             <input
               type="password"
-              className="w-full border border-ink-600 bg-ink-900/70 px-3 py-3 font-body text-mist outline-none transition focus:border-lime/50"
+              className="w-full border border-ink-600 bg-ink-900/70 px-3 py-3.5 font-body text-base text-mist outline-none transition focus:border-lime/50 md:text-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              enterKeyHint="go"
             />
           </label>
           {error && <p className="text-sm text-red-300">{error}</p>}
           <button
             type="submit"
             disabled={busy}
-            className="w-full bg-lime py-3 font-display text-sm font-bold tracking-wide text-ink-950 transition hover:bg-lime-glow disabled:opacity-60"
+            className="touch-target w-full bg-lime py-3.5 font-display text-sm font-bold tracking-wide text-ink-950 transition hover:bg-lime-glow disabled:opacity-60"
           >
             {busy ? 'Signing in…' : 'Enter shift'}
           </button>
@@ -78,9 +81,9 @@ export default function Login() {
               type="button"
               onClick={() => {
                 setEmail(d.email);
-                setPassword('cueboard123');
+                setPassword('rom123');
               }}
-              className="border border-ink-600 px-2.5 py-1 text-xs text-mist-muted transition hover:border-lime/40 hover:text-mist"
+              className="touch-target border border-ink-600 px-3 py-2 text-xs text-mist-muted transition hover:border-lime/40 hover:text-mist"
             >
               {d.label}
             </button>

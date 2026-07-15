@@ -17,7 +17,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, product: 'cueboard', version: '1.0.0' });
+  res.json({ ok: true, product: 'remote-ops-manager', shortName: 'ROM', version: '1.0.0' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -30,6 +30,6 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Cueboard API listening on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`ROM API listening on http://localhost:${PORT}`);
 });

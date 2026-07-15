@@ -1,10 +1,10 @@
-import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, useLocation, Routes, Route } from 'react-router-dom';
 import { useAuth } from './lib/auth.jsx';
 import Login from './pages/Login.jsx';
 import Today from './pages/Today.jsx';
 import Board from './pages/Board.jsx';
 import Pay from './pages/Pay.jsx';
-import { Routes, Route } from 'react-router-dom';
+import BrandMark from './components/BrandMark.jsx';
 
 function Shell() {
   const { user, logout } = useAuth();
@@ -12,15 +12,14 @@ function Shell() {
   const showPay = user.role !== 'standby';
 
   return (
-    <div className="cue-atmosphere cue-grain min-h-screen">
-      <div className="cue-content mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-24 pt-4 md:px-6 md:pb-8">
-        <header className="mb-6 flex items-center justify-between gap-3">
+    <div className="rom-atmosphere rom-grain min-h-dvh">
+      <div
+        className="rom-content mx-auto flex min-h-dvh max-w-6xl flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] md:px-6"
+        style={{ paddingBottom: 'calc(5.5rem + var(--safe-bottom))' }}
+      >
+        <header className="mb-5 flex items-center justify-between gap-3 md:mb-6">
           <div className="min-w-0">
-            {location.pathname !== '/' && (
-              <p className="font-display text-sm font-bold tracking-[0.18em] text-lime">
-                CUEBOARD
-              </p>
-            )}
+            {location.pathname !== '/' && <BrandMark size="sm" />}
             <p className="truncate text-xs text-mist-muted">
               {user.fullName} · {user.role}
             </p>
@@ -28,24 +27,36 @@ function Shell() {
           <button
             type="button"
             onClick={logout}
-            className="rounded-sm border border-ink-600 px-3 py-1.5 text-xs uppercase tracking-wider text-mist-muted transition hover:border-lime/40 hover:text-mist"
+            className="touch-target rounded-sm border border-ink-600 px-3 py-2 text-xs uppercase tracking-wider text-mist-muted transition hover:border-lime/40 hover:text-mist"
           >
             Sign out
           </button>
         </header>
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <Outlet />
         </main>
-
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-700/80 bg-ink-950/90 backdrop-blur-md md:static md:mt-8 md:border-0 md:bg-transparent md:backdrop-blur-none">
-          <div className="mx-auto flex max-w-6xl items-stretch justify-around px-2 py-2 md:justify-start md:gap-2 md:px-0">
-            <Tab to="/" label="Today" />
-            <Tab to="/board" label="Board" />
-            {showPay && <Tab to="/pay" label="Pay" />}
-          </div>
-        </nav>
       </div>
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-700/80 bg-ink-950/95 backdrop-blur-md md:hidden"
+        style={{ paddingBottom: 'var(--safe-bottom)' }}
+      >
+        <div className="mx-auto flex max-w-6xl items-stretch justify-around px-1 py-1.5">
+          <Tab to="/" label="Today" />
+          <Tab to="/board" label="Board" />
+          {showPay && <Tab to="/pay" label="Pay" />}
+        </div>
+      </nav>
+
+      {/* Desktop nav */}
+      <nav className="rom-content mx-auto hidden max-w-6xl px-6 pb-8 md:block">
+        <div className="flex gap-2 border-t border-ink-700/60 pt-6">
+          <Tab to="/" label="Today" />
+          <Tab to="/board" label="Board" />
+          {showPay && <Tab to="/pay" label="Pay" />}
+        </div>
+      </nav>
     </div>
   );
 }
@@ -56,10 +67,10 @@ function Tab({ to, label }) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `flex-1 rounded-sm px-4 py-3 text-center font-display text-sm font-semibold tracking-wide transition md:flex-none ${
+        `touch-target flex flex-1 items-center justify-center rounded-sm px-4 py-3 text-center font-display text-sm font-semibold tracking-wide transition md:flex-none ${
           isActive
             ? 'bg-lime text-ink-950'
-            : 'text-mist-muted hover:bg-ink-800 hover:text-mist'
+            : 'text-mist-muted hover:bg-ink-800 hover:text-mist active:bg-ink-800'
         }`
       }
     >
@@ -72,8 +83,8 @@ function RequireAuth({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="cue-atmosphere flex min-h-screen items-center justify-center">
-        <p className="animate-pulse-glow font-display text-lime tracking-[0.2em]">CUEBOARD</p>
+      <div className="rom-atmosphere flex min-h-dvh items-center justify-center">
+        <BrandMark size="loading" className="animate-pulse-glow" />
       </div>
     );
   }

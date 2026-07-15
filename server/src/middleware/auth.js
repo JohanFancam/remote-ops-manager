@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cueboard-dev-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'rom-dev-secret-change-me';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
 
 export function hashPassword(password) {

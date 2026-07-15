@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
@@ -28,6 +29,9 @@ export default {
       },
       boxShadow: {
         cue: '0 0 0 1px rgba(200,245,49,0.18)',
+      },
+      minHeight: {
+        dvh: '100dvh',
       },
       keyframes: {
         pulseGlow: {

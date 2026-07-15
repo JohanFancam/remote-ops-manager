@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth.jsx';
 import Countdown from '../components/Countdown.jsx';
 import RigRecipe from '../components/RigRecipe.jsx';
 import PhaseMessage from '../components/PhaseMessage.jsx';
+import BrandMark, { BrandSubline } from '../components/BrandMark.jsx';
 
 export default function Today() {
   const { user } = useAuth();
@@ -95,11 +96,7 @@ export default function Today() {
   }
 
   if (!data && !error) {
-    return (
-      <p className="animate-pulse-glow font-display text-2xl tracking-[0.2em] text-lime">
-        CUEBOARD
-      </p>
-    );
+    return <BrandMark size="loading" className="animate-pulse-glow" />;
   }
 
   if (error && !data) {
@@ -128,10 +125,14 @@ export default function Today() {
   }
   return (
     <div className="animate-rise-in">
-      <p className="font-display text-5xl font-extrabold tracking-[0.12em] text-lime">CUEBOARD</p>
+      <BrandMark size="lg" />
+      <BrandSubline className="mt-3" />
       <h1 className="mt-4 font-display text-3xl font-bold text-mist">{data.headline}</h1>
       <p className="mt-2 text-mist-muted">{data.message}</p>
-      <Link to="/pay" className="mt-8 inline-block bg-lime px-5 py-3 font-display text-sm font-bold text-ink-950">
+      <Link
+        to="/pay"
+        className="touch-target mt-8 inline-flex items-center bg-lime px-5 py-3 font-display text-sm font-bold text-ink-950"
+      >
         Open Pay
       </Link>
     </div>
@@ -144,11 +145,10 @@ function OperatorToday({ data, flash, busy, error, message, onClearMessage, onAd
   return (
     <div>
       {/* First viewport: brand + next shoot only */}
-      <section className="flex min-h-[78vh] flex-col justify-center pb-10">
-        <p className="font-display text-5xl font-extrabold leading-none tracking-[0.14em] text-lime md:text-7xl">
-          CUEBOARD
-        </p>
-        <p className="mt-3 text-sm uppercase tracking-[0.28em] text-mist-muted">{data.headline}</p>
+      <section className="flex min-h-[min(78vh,calc(100dvh-8rem))] flex-col justify-center pb-10">
+        <BrandMark size="lg" />
+        <BrandSubline className="mt-3" />
+        <p className="mt-2 text-sm uppercase tracking-[0.28em] text-mist-muted">{data.headline}</p>
 
         {!focus ? (
           <div className="mt-14 max-w-lg animate-rise-in">
@@ -158,13 +158,13 @@ function OperatorToday({ data, flash, busy, error, message, onClearMessage, onAd
             </p>
             <Link
               to="/board"
-              className="mt-8 inline-block bg-lime px-5 py-3 font-display text-sm font-bold text-ink-950"
+              className="touch-target mt-8 inline-flex items-center bg-lime px-5 py-3 font-display text-sm font-bold text-ink-950"
             >
               Open Board
             </Link>
           </div>
         ) : (
-          <div className={`mt-12 max-w-xl animate-rise-in ${flash ? 'animate-phase-flash' : ''}`}>
+          <div className={`mt-10 max-w-xl animate-rise-in sm:mt-12 ${flash ? 'animate-phase-flash' : ''}`}>
             <p className="font-mono text-xs uppercase tracking-widest text-mist-muted">
               {focus.shoot.client} · {focus.shoot.gameTime}
             </p>
@@ -182,7 +182,7 @@ function OperatorToday({ data, flash, busy, error, message, onClearMessage, onAd
                 type="button"
                 disabled={busy}
                 onClick={onAdvance}
-                className="mt-10 w-full bg-lime py-4 font-display text-base font-bold tracking-wide text-ink-950 transition hover:bg-lime-glow disabled:opacity-60 md:w-auto md:min-w-[280px]"
+                className="touch-target mt-10 w-full bg-lime py-4 font-display text-base font-bold tracking-wide text-ink-950 transition hover:bg-lime-glow disabled:opacity-60 md:w-auto md:min-w-[280px]"
               >
                 {busy ? 'Updating…' : `Advance · ${focus.primaryLabel}`}
               </button>
@@ -231,9 +231,8 @@ function OperatorToday({ data, flash, busy, error, message, onClearMessage, onAd
 function StandbyToday({ data }) {
   return (
     <div className="animate-rise-in">
-      <p className="font-display text-5xl font-extrabold tracking-[0.12em] text-lime md:text-6xl">
-        CUEBOARD
-      </p>
+      <BrandMark size="lg" />
+      <BrandSubline className="mt-3" />
       <h1 className="mt-4 font-display text-3xl font-bold text-mist">{data.headline}</h1>
       <p className="mt-2 text-mist-muted">
         {data.quota.covered}/{data.quota.total} covered · {data.quota.gaps} gaps · {data.quota.pending} pending
@@ -320,9 +319,8 @@ function AdminToday({ data }) {
 
   return (
     <div className="animate-rise-in">
-      <p className="font-display text-5xl font-extrabold tracking-[0.12em] text-lime md:text-6xl">
-        CUEBOARD
-      </p>
+      <BrandMark size="lg" />
+      <BrandSubline className="mt-3" />
       <h1 className="mt-4 font-display text-3xl font-bold text-mist">{data.headline}</h1>
       <p className="mt-2 text-mist-muted">Exceptions only — quiet when the shift is clean.</p>
 
