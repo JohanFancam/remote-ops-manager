@@ -92,6 +92,16 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
   };
 
   const handleAdd = async (item) => {
+    // Final safety check: never create a shoot that already exists with the same title, date and time.
+    const existing = await base44.entities.Shoot.filter({ date: item.form.date });
+    const isDuplicate = existing.some(s =>
+      (s.title || '').trim().toLowerCase() === item.form.title.trim().toLowerCase() &&
+      (s.game_time || '') === (item.form.game_time || '')
+    );
+    if (isDuplicate) {
+      setResults(prev => prev.map(i => i.key === item.key ? { ...i, status: 'skipped' } : i));
+      return;
+    }
     await base44.entities.Shoot.create({
       title: item.form.title,
       client: item.form.title,
