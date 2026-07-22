@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { parseGoogleCalendarCSV, toIsoDate, toIsoTime, namesMatch } from './googleCalendarCsv';
+import { parseScanCSV, normalizeRigType, isTeamMatch } from './scanCsv';
 import CalendarScanResultItem from './CalendarScanResultItem';
 
 const MONTHS = [
@@ -35,30 +35,34 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
     setError('');
     try {
       const text = await file.text();
-      const rows = parseGoogleCalendarCSV(text);
+      const rows = parseScanCSV(text);
       const monthPrefix = `${year}-${month}`;
 
       const events = rows
+        .filter(r => r.date && r.date.startsWith(monthPrefix))
         .map(r => ({
-          subject: r.subject,
-          date: toIsoDate(r['start date']),
-          time: toIsoTime(r['start time']),
-          location: r.location || '',
-        }))
-        .filter(e => e.date && e.date.startsWith(monthPrefix));
+          team: r.team,
+          opponent: r.opponent || '',
+          date: r.date,
+          time: r.time || '',
+          venue: r.venue || '',
+          rigType: normalizeRigType(r.type || r.rig_type || r.format),
+        }));
 
       const monthShoots = (shoots || []).filter(s => s.date && s.date.startsWith(monthPrefix));
 
       const items = events
         .map(evt => {
-          const matched = monthShoots.find(s => namesMatch(evt.subject, s.title) || namesMatch(evt.subject, s.client));
+          const matched = monthShoots.find(s => isTeamMatch(evt, s));
+          const title = evt.opponent ? `${evt.team} vs ${evt.opponent}` : evt.team;
+
           if (!matched) {
             return {
-              key: `new-${evt.date}-${evt.subject}`,
+              key: `new-${evt.date}-${title}`,
               type: 'new',
               event: evt,
               shoot: null,
-              form: { title: evt.subject, date: evt.date, game_time: evt.time, location: evt.location },
+              form: { title, date: evt.date, game_time: evt.time, location: evt.venue, rigType: evt.rigType },
               status: 'pending',
             };
           }
@@ -69,7 +73,7 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
             type: 'changed',
             event: evt,
             shoot: matched,
-            form: { title: matched.title, date: evt.date, game_time: evt.time, location: matched.location },
+            form: { title: matched.title, date: evt.date, game_time: evt.time, location: matched.location, rigType: evt.rigType },
             status: 'pending',
           };
         })
@@ -95,6 +99,7 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
       date: item.form.date,
       game_time: item.form.game_time || '',
       status: 'upcoming',
+      ...(item.form.rigType ? { rig_type_override: item.form.rigType } : {}),
     });
     setResults(prev => prev.map(i => i.key === item.key ? { ...i, status: 'done' } : i));
     onImported?.();
@@ -104,6 +109,7 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
     await base44.entities.Shoot.update(item.shoot.id, {
       date: item.form.date,
       game_time: item.form.game_time || '',
+      ...(item.form.rigType ? { rig_type_override: item.form.rigType } : {}),
     });
     setResults(prev => prev.map(i => i.key === item.key ? { ...i, status: 'done' } : i));
     onImported?.();
@@ -120,14 +126,19 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
     <Dialog open={open} onOpenChange={() => { reset(); onClose(); }}>
       <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Scan Google Calendar CSV</DialogTitle>
+          <DialogTitle className="text-white">Scan Calendar CSV</DialogTitle>
         </DialogHeader>
 
         {!results ? (
           <div className="space-y-4">
             <p className="text-sm text-gray-400">
-              Upload your Google Calendar CSV export and pick the month to compare against the app calendar. Nothing is created or changed until you review and confirm each item.
+              Upload a CSV and pick the month to compare against the app calendar. Matching is done by team vs opponent, date and time. Nothing is created or changed until you review and confirm each item.
             </p>
+
+            <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3">
+              <p className="font-semibold text-gray-300 mb-1">Expected CSV columns:</p>
+              <code className="text-xs text-blue-300">team, opponent, date (YYYY-MM-DD), time (HH:MM), venue, type (Data / Fancam / Data/Fancam)</code>
+            </div>
 
             <div className="flex gap-3">
               <Select value={month} onValueChange={setMonth}>
@@ -150,7 +161,7 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
               {file ? (
                 <><FileText className="h-10 w-10 text-blue-400" /><p className="text-white font-medium">{file.name}</p></>
               ) : (
-                <><Upload className="h-10 w-10 text-gray-600" /><p className="text-gray-400">Click to select your Google Calendar CSV export</p></>
+                <><Upload className="h-10 w-10 text-gray-600" /><p className="text-gray-400">Click to select your calendar CSV export</p></>
               )}
             </label>
 

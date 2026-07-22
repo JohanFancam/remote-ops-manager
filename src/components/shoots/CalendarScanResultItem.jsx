@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, RefreshCw, X, Check } from 'lucide-react';
 
 export default function CalendarScanResultItem({ item, onChange, onAdd, onUpdate, onSkip }) {
@@ -38,6 +39,15 @@ export default function CalendarScanResultItem({ item, onChange, onAdd, onUpdate
             />
             <Input type="date" value={item.form.date} onChange={(e) => onChange(item.key, 'date', e.target.value)} className="bg-gray-900 border-gray-700 text-white text-sm" />
             <Input type="time" value={item.form.game_time} onChange={(e) => onChange(item.key, 'game_time', e.target.value)} className="bg-gray-900 border-gray-700 text-white text-sm" />
+            <Select value={item.form.rigType || 'none'} onValueChange={(v) => onChange(item.key, 'rigType', v === 'none' ? '' : v)}>
+              <SelectTrigger className="bg-gray-900 border-gray-700 text-white text-sm col-span-2"><SelectValue placeholder="Rig type" /></SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                <SelectItem value="none">No rig type</SelectItem>
+                <SelectItem value="Data">Data</SelectItem>
+                <SelectItem value="Fancam">Fancam</SelectItem>
+                <SelectItem value="Data/Fancam">Data/Fancam</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2">
             {item.type === 'new' ? (
