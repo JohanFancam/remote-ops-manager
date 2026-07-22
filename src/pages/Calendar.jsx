@@ -5,7 +5,7 @@ import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, ScanLine } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -13,6 +13,7 @@ import {
   endOfWeek, addWeeks, subWeeks, addDays
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
+import CalendarScanModal from '../components/shoots/CalendarScanModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
@@ -469,6 +470,7 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 'week' : 'month');
   const [showCSV, setShowCSV] = useState(false);
+  const [showScan, setShowScan] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingShoot, setEditingShoot] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -1445,6 +1447,9 @@ export default function Calendar() {
                 <Button onClick={() => setShowCSV(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
                   <Upload className="h-4 w-4 mr-1" /> Import CSV
                 </Button>
+                <Button onClick={() => setShowScan(true)} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800" size="sm">
+                  <ScanLine className="h-4 w-4 mr-1" /> Scan Calendar
+                </Button>
               </>
             )}
           </div>
@@ -1554,6 +1559,8 @@ export default function Calendar() {
       </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
+
+      <CalendarScanModal open={showScan} onClose={() => setShowScan(false)} shoots={shoots} onImported={refresh} />
 
       {contextMenu && (
         <CalendarContextMenu
