@@ -119,8 +119,24 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
     setResults(prev => prev.map(i => i.key === item.key ? { ...i, status: 'skipped' } : i));
   };
 
+  const handleSkipAll = () => {
+    setResults(prev => prev.map(i => i.status === 'pending' ? { ...i, status: 'skipped' } : i));
+  };
+
+  const handleAddAll = async () => {
+    const pending = results.filter(i => i.status === 'pending' && i.type === 'new');
+    for (const item of pending) await handleAdd(item);
+  };
+
+  const handleUpdateAll = async () => {
+    const pending = results.filter(i => i.status === 'pending' && i.type === 'changed');
+    for (const item of pending) await handleUpdate(item);
+  };
+
   const reset = () => { setFile(null); setResults(null); setError(''); };
   const pendingCount = results?.filter(i => i.status === 'pending').length || 0;
+  const pendingNewCount = results?.filter(i => i.status === 'pending' && i.type === 'new').length || 0;
+  const pendingChangedCount = results?.filter(i => i.status === 'pending' && i.type === 'changed').length || 0;
 
   return (
     <Dialog open={open} onOpenChange={() => { reset(); onClose(); }}>
@@ -190,6 +206,17 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
             ) : (
               <>
                 <p className="text-sm text-gray-400">Found {results.length} item{results.length !== 1 ? 's' : ''} to review. {pendingCount} pending.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleAddAll} disabled={!pendingNewCount} className="bg-green-600 hover:bg-green-700">
+                    Add All ({pendingNewCount})
+                  </Button>
+                  <Button size="sm" onClick={handleUpdateAll} disabled={!pendingChangedCount} className="bg-blue-600 hover:bg-blue-700">
+                    Update All ({pendingChangedCount})
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleSkipAll} disabled={!pendingCount} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                    Skip All
+                  </Button>
+                </div>
                 <div className="space-y-3">
                   {results.map(item => (
                     <CalendarScanResultItem
