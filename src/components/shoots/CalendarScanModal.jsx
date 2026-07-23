@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { parseScanCSV, normalizeRigType, isTeamMatch } from './scanCsv';
+import { parseScanCSV, normalizeRigType, isTeamMatch, normalizeTime } from './scanCsv';
 import CalendarScanResultItem from './CalendarScanResultItem';
 
 const MONTHS = [
@@ -66,7 +66,7 @@ export default function CalendarScanModal({ open, onClose, shoots, onImported })
               status: 'pending',
             };
           }
-          const changed = matched.date !== evt.date || (matched.game_time || '') !== (evt.time || '');
+          const changed = matched.date !== evt.date || normalizeTime(matched.game_time) !== normalizeTime(evt.time);
           if (!changed) return { key: matched.id, type: 'matched', status: 'ok' };
           return {
             key: matched.id,

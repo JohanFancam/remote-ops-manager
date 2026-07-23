@@ -70,7 +70,7 @@ function isExempt(team) {
   return KEEP_FULL_TEAMS.some((e) => e.toLowerCase() === team.trim().toLowerCase());
 }
 
-function stripCityFromTeam(team) {
+export function stripCityFromTeam(team) {
   const trimmed = team.trim();
   if (isExempt(trimmed)) return trimmed;
   const words = trimmed.split(/\s+/);
