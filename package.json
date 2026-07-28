@@ -14,6 +14,7 @@
     "seed": "npm run seed -w server",
     "build": "npm run build -w web",
     "start": "npm run start -w server",
+    "start:test": "npm run build && npm run seed && npm run start -w server",
     "test": "npm run test -w server"
   },
   "devDependencies": {

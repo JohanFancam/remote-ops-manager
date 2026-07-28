@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { migrate } from './db.js';
 import { seedIfEmpty } from './seed.js';
 import authRoutes from './routes/auth.js';
@@ -10,8 +13,15 @@ import adminRoutes from './routes/admin.js';
 migrate();
 seedIfEmpty();
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+// Prefer monorepo web/dist; allow override for packaged deploys
+const webDist =
+  process.env.ROM_WEB_DIST ||
+  path.resolve(__dirname, '../../web/dist');
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
@@ -25,11 +35,24 @@ app.use('/api', dashboardRoutes);
 app.use('/api', opsRoutes);
 app.use('/api', adminRoutes);
 
+// Single-port test/prod mode: serve the built SPA from the same process
+if (fs.existsSync(webDist)) {
+  app.use(express.static(webDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(webDist, 'index.html'));
+  });
+  console.log(`Serving web UI from ${webDist}`);
+} else {
+  console.log(`No web build at ${webDist} — API only. Run: npm run build`);
+}
+
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`ROM API listening on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`ROM listening on http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log('Bound on 0.0.0.0 — reachable via port forward / tunnel / LAN');
 });

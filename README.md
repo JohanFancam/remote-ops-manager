@@ -20,6 +20,8 @@ Independent rebuild of the sports remote-ops console — dark UI, role-based acc
 
 ## Run
 
+### Local development (two processes)
+
 ```bash
 npm install
 npm run seed
@@ -29,6 +31,33 @@ npm run dev
 
 - Web http://localhost:5173
 - API http://localhost:4000
+
+### Single-port test mode (run from anywhere)
+
+Builds the UI and serves it **from the API** on one port (`0.0.0.0:4000` by default):
+
+```bash
+npm install
+npm run start:test
+```
+
+Then open:
+
+- Local: http://localhost:4000  
+- Cursor Cloud: use the **Ports** panel → forward **4000** → Open in Browser  
+- Public share (temporary tunnel):
+
+```bash
+# after start:test is running
+npx --yes cloudflared tunnel --url http://localhost:4000
+# or: npx --yes localtunnel --port 4000
+```
+
+Optional env:
+
+- `PORT=8080` — change listen port  
+- `HOST=0.0.0.0` — already the default (needed for remote access)  
+- `ROM_WEB_DIST=/path/to/web/dist` — override static UI path  
 
 ### Demo credentials
 
