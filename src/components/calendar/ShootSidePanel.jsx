@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import { getSchedule } from '../utils/scheduleUtils';
+import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -159,7 +161,8 @@ export default function ShootSidePanel({
   const shootDate = new Date(shoot.date + 'T12:00:00');
   const dayName = format(shootDate, 'EEEE');
   const dateStr = format(shootDate, 'MMM d, yyyy');
-  const timeStr = shoot.game_time || 'TBA';
+  const timeStr = displayShootTime(shoot) || 'TBA';
+  const schedule = getSchedule(shoot);
 
   const client = (shoot.client || '').toLowerCase().trim();
   const titleLower = (shoot.title || '').toLowerCase().trim();
@@ -181,7 +184,7 @@ export default function ShootSidePanel({
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold text-white truncate">{shoot.title}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {dayName}, {dateStr} · {timeStr}
+              {dayName}, {dateStr} · {timeStr} <span className="text-gray-600">({tzAbbrev()})</span>
             </p>
           </div>
         </div>
@@ -286,33 +289,33 @@ export default function ShootSidePanel({
           <div className="mt-3 pt-3 border-t border-gray-700">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Schedule</p>
             <div className="space-y-2">
-              {shoot.setup_offset !== undefined && (
+              {schedule?.setup && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Setup</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule.setup}</span>
                 </div>
               )}
-              {shoot.pre_shoot_offset !== undefined && (
+              {schedule?.pre_shoot && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pre-Shoot</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule.pre_shoot}</span>
                 </div>
               )}
-              {shoot.attention_offset !== undefined && (
+              {schedule?.attention && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Attention</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule.attention}</span>
                 </div>
               )}
-              {shoot.sound_offset !== undefined && (
+              {schedule?.sound && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Sound Check</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule.sound}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-xs border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">Game Time</span>
-                <span className="text-gray-200 font-mono">{shoot.game_time || 'TBA'}</span>
+                <span className="text-gray-200 font-mono">{schedule?.game || 'TBA'}</span>
               </div>
             </div>
           </div>

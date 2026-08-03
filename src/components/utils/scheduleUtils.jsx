@@ -11,12 +11,16 @@ export function minutesToTime(totalMinutes) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// Shoot times are stored in South African Standard Time (SAST = UTC+2, no DST).
+const SA_OFFSET_MIN = 120;
+
 export function getGameDateTime(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!shoot?.date || !gameTime) return null;
   const [year, month, day] = shoot.date.split('-').map(Number);
   const [h, m] = gameTime.split(':').map(Number);
-  return new Date(year, month - 1, day, h, m, 0, 0);
+  // Interpret the stored SAST wall-clock as the true UTC instant.
+  return new Date(Date.UTC(year, month - 1, day, h, m, 0, 0) - SA_OFFSET_MIN * 60000);
 }
 
 export function getScheduleDateTimes(shoot) {
@@ -46,16 +50,18 @@ export function getScheduleDateTimes(shoot) {
   };
 }
 
+import { formatInTz } from '@/components/utils/timezoneUtils';
+
 export function getSchedule(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
   const dates = getScheduleDateTimes(shoot);
   return {
-    setup: dates.setup ? minutesToTime(dates.setup.getHours() * 60 + dates.setup.getMinutes()) : null,
-    pre_shoot: dates.pre_shoot ? minutesToTime(dates.pre_shoot.getHours() * 60 + dates.pre_shoot.getMinutes()) : null,
-    attention: dates.attention ? minutesToTime(dates.attention.getHours() * 60 + dates.attention.getMinutes()) : null,
-    sound: dates.sound ? minutesToTime(dates.sound.getHours() * 60 + dates.sound.getMinutes()) : null,
-    game: gameTime,
+    setup: dates.setup ? formatInTz(dates.setup, 'HH:mm') : null,
+    pre_shoot: dates.pre_shoot ? formatInTz(dates.pre_shoot, 'HH:mm') : null,
+    attention: dates.attention ? formatInTz(dates.attention, 'HH:mm') : null,
+    sound: dates.sound ? formatInTz(dates.sound, 'HH:mm') : null,
+    game: formatInTz(dates.game, 'HH:mm'),
   };
 }
 

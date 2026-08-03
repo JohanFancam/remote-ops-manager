@@ -3,6 +3,7 @@ import { Clock, ChevronLeft, ChevronRight, X, Edit2, Check, XCircle, Trash2 } fr
 import { Button } from "@/components/ui/button";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
+import { displayShootTime, formatInTz, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 
 function formatDuration(ms) {
@@ -208,7 +209,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-white truncate">{shortenTitle(s.title)}</p>
                     <p className="text-xs text-gray-500 font-mono mt-0.5">
-                      {format(s.start, 'HH:mm')} → {format(s.end, 'HH:mm')}
+                      {formatInTz(s.start, 'HH:mm')} → {formatInTz(s.end, 'HH:mm')} ({tzAbbrev()})
                     </p>
                   </div>
                   <div className={`ml-3 px-2.5 py-1 rounded-lg text-white text-sm font-bold ${getDurationColor(s.durationMs)}`}>
@@ -262,7 +263,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                         {s.game_time && (
                           <div className="flex gap-2 text-xs">
                             <span className="text-gray-500 w-20">Game Time</span>
-                            <span className="text-gray-300 font-mono">{s.game_time}</span>
+                            <span className="text-gray-300 font-mono">{displayShootTime(s)}</span>
                           </div>
                         )}
                         {s.location && (
@@ -273,11 +274,11 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                         )}
                         <div className="flex gap-2 text-xs">
                           <span className="text-gray-500 w-20">Setup</span>
-                          <span className="text-gray-300 font-mono">{format(s.start, 'HH:mm')}</span>
+                          <span className="text-gray-300 font-mono">{formatInTz(s.start, 'HH:mm')}</span>
                         </div>
                         <div className="flex gap-2 text-xs">
                           <span className="text-gray-500 w-20">Complete</span>
-                          <span className="text-gray-300 font-mono">{format(s.end, 'HH:mm')}</span>
+                          <span className="text-gray-300 font-mono">{formatInTz(s.end, 'HH:mm')}</span>
                         </div>
                         {s.assigned_operators?.length > 0 && (
                           <div className="flex gap-2 text-xs">

@@ -1,29 +1,9 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle2, Copy } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-  return lines.slice(1).map(line => {
-    // Handle quoted fields
-    const cols = [];
-    let inQ = false, cur = '';
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQ = !inQ; continue; }
-      if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
-      cur += ch;
-    }
-    cols.push(cur.trim());
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = cols[i] || ''; });
-    return obj;
-  });
-}
+import { parseCSV, normalizeRigType, normalizeTime, buildTitle, isDuplicateRow } from './csvMatch';
 
 export default function CSVImportModal({ open, onClose, onImported }) {
   const [file, setFile] = useState(null);
@@ -42,7 +22,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
     reader.onload = (ev) => {
       try {
         const rows = parseCSV(ev.target.result);
-        setPreview(rows.slice(0, 5));
+        setPreview(rows.slice(0, 8));
       } catch {
         setError('Could not parse CSV file.');
       }
@@ -57,23 +37,44 @@ export default function CSVImportModal({ open, onClose, onImported }) {
     try {
       const text = await file.text();
       const rows = parseCSV(text);
-      let success = 0, failed = 0;
+
+      // Fetch existing shoots to detect duplicates.
+      const existing = await base44.entities.Shoot.list('-date', 500);
+
+      let success = 0, skipped = 0, failed = 0;
+      const batchSeen = new Set();
+
       for (const row of rows) {
         if (!row.team || !row.date) { failed++; continue; }
+
+        const title = buildTitle(row);
+        const gameTime = normalizeTime(row.time || '');
+        const rigType = normalizeRigType(row.type || row.rig_type || row.format);
+
+        // Duplicate against existing calendar records (same title + date + time).
+        if (isDuplicateRow({ ...row, time: gameTime }, existing)) { skipped++; continue; }
+
+        // Duplicate within this same CSV batch.
+        const batchKey = `${title.toLowerCase()}|${row.date}|${gameTime}`;
+        if (batchSeen.has(batchKey)) { skipped++; continue; }
+        batchSeen.add(batchKey);
+
         try {
-          const title = row.opponent ? `${row.team} vs ${row.opponent}` : row.team;
           await base44.entities.Shoot.create({
             title,
             client: row.team || '',
-            location: row.venue || '',
+            location: row.stadium || row.venue || '',
             date: row.date,
-            game_time: row.time || '',
+            game_time: gameTime,
             status: 'upcoming',
+            ...(rigType ? { rig_type_override: rigType } : {}),
+            ...(row.calendar ? { calendar_source: row.calendar } : {}),
           });
           success++;
         } catch { failed++; }
       }
-      setResult({ success, failed });
+
+      setResult({ success, skipped, failed });
       if (success > 0) onImported?.();
     } catch {
       setError('Failed to import file.');
@@ -91,9 +92,16 @@ export default function CSVImportModal({ open, onClose, onImported }) {
           <DialogTitle className="text-white">Import Shoots from CSV</DialogTitle>
         </DialogHeader>
 
-        <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-gray-300 mb-1">Expected CSV columns:</p>
-          <code className="text-xs text-blue-300">team, opponent, date (YYYY-MM-DD), time (HH:MM), venue</code>
+        <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4 space-y-2">
+          <p className="font-semibold text-gray-300">Expected CSV columns:</p>
+          <code className="text-xs text-blue-300 block">team, opponent, date (YYYY-MM-DD), time (HH:MM), stadium, type, calendar</code>
+          <ul className="text-xs text-gray-400 space-y-0.5 mt-1">
+            <li><b>time</b> must be in South African time (SAST).</li>
+            <li><b>stadium</b> is the stadium name only — no addresses.</li>
+            <li><b>type</b> is Data, Fancam or Data/Fancam.</li>
+            <li><b>calendar</b> is which calendar this game was loaded from.</li>
+          </ul>
+          <p className="text-xs text-gray-500 mt-1">Only games not already on the calendar are imported — duplicates are skipped automatically.</p>
         </div>
 
         {!result ? (
@@ -125,7 +133,9 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                       <th className="text-left pb-1 pr-3">Opponent</th>
                       <th className="text-left pb-1 pr-3">Date</th>
                       <th className="text-left pb-1 pr-3">Time</th>
-                      <th className="text-left pb-1">Venue</th>
+                      <th className="text-left pb-1 pr-3">Stadium</th>
+                      <th className="text-left pb-1 pr-3">Type</th>
+                      <th className="text-left pb-1">Calendar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -135,7 +145,9 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                         <td className="py-1.5 pr-3">{row.opponent}</td>
                         <td className="py-1.5 pr-3">{row.date}</td>
                         <td className="py-1.5 pr-3">{row.time || '—'}</td>
-                        <td className="py-1.5">{row.venue}</td>
+                        <td className="py-1.5 pr-3">{row.stadium || row.venue || '—'}</td>
+                        <td className="py-1.5 pr-3">{row.type || '—'}</td>
+                        <td className="py-1.5">{row.calendar || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -163,7 +175,8 @@ export default function CSVImportModal({ open, onClose, onImported }) {
           <div className="text-center py-8">
             <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
             <p className="text-xl font-bold text-white mb-1">{result.success} shoots imported</p>
-            {result.failed > 0 && <p className="text-yellow-400 text-sm">{result.failed} rows failed (missing title or date)</p>}
+            {result.skipped > 0 && <p className="text-yellow-400 text-sm">{result.skipped} skipped as duplicates</p>}
+            {result.failed > 0 && <p className="text-red-400 text-sm">{result.failed} rows failed (missing team or date)</p>}
             <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-blue-600 hover:bg-blue-700">Done</Button>
           </div>
         )}

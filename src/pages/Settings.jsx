@@ -7,6 +7,7 @@ import RigTestChecklistSettings from '../components/settings/RigTestChecklistSet
 import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
+import TimezoneSettings from '../components/settings/TimezoneSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -383,6 +384,9 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Time Zone — all users */}
+        <TimezoneSettings />
 
         {/* App Logo — Admin only */}
         {isAdmin && (

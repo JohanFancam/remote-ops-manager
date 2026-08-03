@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Phone, Copy, Check, UserX } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
+import { displayShootTime, formatInTz, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
@@ -228,7 +229,7 @@ export default function CountdownCard({
 
   const buildReadyMessage = () => {
     const team = matchedRig?.team || shoot.client || shoot.title || 'Unknown Team';
-    const timeLabel = (value) => value ? format(value, 'HH:mm') : 'TBC';
+    const timeLabel = (value) => value ? formatInTz(value, 'HH:mm') : 'TBC';
     const lines = [
       'Shoots ready for today :',
       '',
@@ -256,31 +257,31 @@ export default function CountdownCard({
   const quickPhases = [
     {
       label: 'Setup',
-      time: phaseDates.setup ? format(phaseDates.setup, 'HH:mm') : null,
+      time: phaseDates.setup ? formatInTz(phaseDates.setup, 'HH:mm') : null,
       doneKey: 'setup_complete',
     },
     {
       label: 'Pre-Shoot',
-      time: phaseDates.pre_shoot ? format(phaseDates.pre_shoot, 'HH:mm') : null,
+      time: phaseDates.pre_shoot ? formatInTz(phaseDates.pre_shoot, 'HH:mm') : null,
       doneKey: 'pre_shoot_started',
     },
     showAttention
       ? {
           label: 'Attention',
-          time: phaseDates.attention ? format(phaseDates.attention, 'HH:mm') : null,
+          time: phaseDates.attention ? formatInTz(phaseDates.attention, 'HH:mm') : null,
           doneKey: 'attention_started',
         }
       : null,
     showSound
       ? {
           label: 'Sound Check',
-          time: phaseDates.sound ? format(phaseDates.sound, 'HH:mm') : null,
+          time: phaseDates.sound ? formatInTz(phaseDates.sound, 'HH:mm') : null,
           doneKey: 'sound_started',
         }
       : null,
     {
       label: 'Game Start',
-      time: gameDate ? format(gameDate, 'HH:mm') : null,
+      time: gameDate ? formatInTz(gameDate, 'HH:mm') : null,
       doneKey: 'game_started',
     },
   ].filter(Boolean);
@@ -405,10 +406,11 @@ export default function CountdownCard({
 
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                 <span>{format(new Date(`${shoot.date}T12:00:00`), 'EEE, MMM d')}</span>
-                {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
+                {(() => { const t = displayShootTime(shoot); return t ? <span className="font-mono">{t}</span> : null; })()}
+                <span className="text-gray-600">({tzAbbrev()})</span>
                 {phaseDates.setup && (
                   <span className="rounded bg-purple-950/30 px-1.5 py-0.5 font-mono text-purple-300">
-                    setup {format(phaseDates.setup, 'EEE HH:mm')}
+                    setup {formatInTz(phaseDates.setup, 'EEE HH:mm')}
                   </span>
                 )}
                 {isAdmin && !isAssigned && shoot.assigned_operators?.length > 0 ? (

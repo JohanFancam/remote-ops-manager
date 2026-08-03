@@ -60,6 +60,10 @@
       ],
       "description": "Per-shoot rig type override (overrides rig setting default)"
     },
+    "calendar_source": {
+      "type": "string",
+      "description": "Which calendar this shoot was imported from (CSV import)"
+    },
     "description": {
       "type": "string"
     },
