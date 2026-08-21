@@ -107,18 +107,21 @@ export default function Dashboard() {
     return standbyDays.filter((sd) => sd.admin_email === user.email);
   }, [standbyDays, isAdmin, isStandby, user?.email]);
 
+  const firstName =
+    user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator');
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold text-white">
-            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator')}`}
-          </h1>
-        </div>
+    <div className="rom-page">
+      <div className="rom-page-inner">
+        <header className="mb-8">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-400 mb-2">Dashboard</p>
+          <h1 className="rom-title">Welcome, {firstName}</h1>
+          <p className="rom-subtitle">Your assigned shoots and coverage for today.</p>
+        </header>
 
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
 
-        <section className="mb-6">
+        <section className="mb-8 rom-enter-delay">
           <DashboardBanner
             user={user}
             isAdmin={isAdmin}
@@ -129,19 +132,14 @@ export default function Dashboard() {
           />
         </section>
 
-        {/* Standby user quota tracker */}
-        {isStandby && (
-          <StandbyUserQuota user={user} shoots={shoots} />
-        )}
+        {isStandby && <StandbyUserQuota user={user} shoots={shoots} />}
 
         <section className="mb-8">
           <div className="mb-3 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-white">My Assigned Shoots</h2>
-            </div>
-            <p className="hidden text-xs text-gray-500 sm:block">Current or next shoot shows first.</p>
+            <h2 className="rom-section-title">My Assigned Shoots</h2>
+            <p className="hidden text-xs text-zinc-400 sm:block">Current or next shoot shows first.</p>
           </div>
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+          <div className="rom-panel">
             <AdminDayShootView
               shoots={(isAdmin || isStandby) ? selfAssignedShoots : remoteShoots}
               isAdmin={isAdmin || isStandby}
@@ -158,12 +156,10 @@ export default function Dashboard() {
         {(isAdmin || isStandby) && (
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Standby Coverage Shoots</h2>
-              </div>
-              <p className="hidden text-xs text-gray-500 sm:block">Uses your 18:00 - 06:00 standby windows from the main calendar.</p>
+              <h2 className="rom-section-title">Standby Coverage Shoots</h2>
+              <p className="hidden text-xs text-zinc-400 sm:block">18:00 – 06:00 standby windows.</p>
             </div>
-            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+            <div className="rom-panel">
               <AdminStandbyShootList
                 shoots={visibleShoots}
                 allUsers={allUsers}
@@ -177,18 +173,18 @@ export default function Dashboard() {
           </section>
         )}
 
-        <div className="mt-8" />
-
         {(isAdmin || isStandby) && (
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-white">Rig Tests</h2>
-                <p className="text-xs text-gray-500">Scheduled rig testing checklist.</p>
+                <h2 className="rom-section-title">Rig Tests</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Scheduled rig testing checklist.</p>
               </div>
-              <a href="/RigTestLog" className="text-xs text-blue-400 hover:text-blue-300">View Full Log →</a>
+              <a href="/RigTestLog" className="text-xs text-teal-700 hover:text-teal-800 font-medium">
+                View full log →
+              </a>
             </div>
-            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+            <div className="rom-panel">
               <RigTestPanel user={user} isAdmin={isAdmin} isStandby={isStandby} allUsers={allUsers} />
             </div>
           </section>
@@ -199,10 +195,10 @@ export default function Dashboard() {
         {(!isAdmin && !isStandby) && (
           <section className="mb-8">
             <div className="mb-3">
-              <h2 className="text-lg font-semibold text-white">Pending Approval</h2>
-              <p className="text-xs text-gray-500">Shoots you've requested but are awaiting admin approval.</p>
+              <h2 className="rom-section-title">Pending Approval</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">Requests waiting for admin approval.</p>
             </div>
-            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-3 md:p-4">
+            <div className="rom-panel">
               <RemotePendingShoots shoots={shoots} user={user} onUpdate={handleShootUpdate} />
             </div>
           </section>

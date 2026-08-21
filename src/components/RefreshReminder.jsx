@@ -34,19 +34,19 @@ export default function RefreshReminder() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-blue-600 rounded-2xl shadow-2xl px-5 py-4 flex items-center gap-4 animate-in slide-in-from-bottom-4 max-w-sm w-full mx-4">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-100 border border-teal-700 rounded-2xl shadow-2xl px-5 py-4 flex items-center gap-4 animate-in slide-in-from-bottom-4 max-w-sm w-full mx-4">
       <div className="flex-1">
-        <p className="text-white font-semibold text-sm">Update Available</p>
-        <p className="text-gray-400 text-xs mt-0.5">The app has been updated. Refresh to see the latest changes.</p>
+        <p className="text-zinc-900 font-semibold text-sm">Update Available</p>
+        <p className="text-zinc-500 text-xs mt-0.5">The app has been updated. Refresh to see the latest changes.</p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => window.location.reload()}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+          className="bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
         >
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
-        <button onClick={() => setShow(false)} className="text-gray-500 hover:text-white">
+        <button onClick={() => setShow(false)} className="text-zinc-400 hover:text-zinc-900">
           <X className="h-4 w-4" />
         </button>
       </div>

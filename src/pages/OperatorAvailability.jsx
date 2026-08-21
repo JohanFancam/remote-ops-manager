@@ -15,13 +15,13 @@ export default function OperatorAvailability() {
   }, [users, presenceRecords]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
+    <div className="min-h-screen bg-zinc-100 text-zinc-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Users className="h-6 w-6 text-green-400" />
-          <h1 className="text-2xl font-bold text-white">Operator Availability</h1>
+          <Users className="h-6 w-6 text-emerald-700" />
+          <h1 className="text-2xl font-bold text-zinc-900">Operator Availability</h1>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="bg-white border border-zinc-200 rounded-xl p-5">
           <AdminAvailabilityView allUsers={allUsers} />
         </div>
       </div>

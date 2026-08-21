@@ -36,7 +36,7 @@ const emptyForm = {
 function Toggle({ enabled, onChange, readOnly }) {
   return (
     <button type="button" onClick={onChange} disabled={readOnly}
-      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-blue-600' : 'bg-gray-700'} ${readOnly ? 'cursor-default opacity-60' : ''}`}>
+      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-teal-700' : 'bg-zinc-200'} ${readOnly ? 'cursor-default opacity-60' : ''}`}>
       <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
   );
@@ -53,14 +53,14 @@ function CamSelect({ cam, onChange, readOnly, freeTextFields = [] }) {
     <div className="grid grid-cols-3 gap-2">
       {fields.map(f => (
         <div key={f.field}>
-          <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+          <label className="text-xs text-zinc-400 block mb-1">{f.label}</label>
           {freeTextFields.includes(f.field) ? (
             <input type="text" value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
-              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60 placeholder:text-gray-500"
+              className="w-full bg-zinc-200 border border-zinc-300 text-zinc-900 text-sm rounded px-2 py-1.5 disabled:opacity-60 placeholder:text-zinc-400"
               placeholder={f.options[0]} />
           ) : (
             <select value={cam?.[f.field] || ''} onChange={e => set(f.field, e.target.value)} disabled={readOnly}
-              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded px-2 py-1.5 disabled:opacity-60">
+              className="w-full bg-zinc-200 border border-zinc-300 text-zinc-900 text-sm rounded px-2 py-1.5 disabled:opacity-60">
               {f.options.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           )}
@@ -72,11 +72,11 @@ function CamSelect({ cam, onChange, readOnly, freeTextFields = [] }) {
 
 function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, camHd, camWide, wideEnabled, onWideToggle, onCamChange, readOnly, freeTextFields }) {
   return (
-    <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-gray-600 bg-gray-800/60' : 'border-gray-800 bg-gray-900/40'}`}>
+    <div className={`rounded-lg border p-4 transition-colors ${enabled ? 'border-zinc-300 bg-zinc-100/60' : 'border-zinc-200 bg-white/40'}`}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <span className="text-sm font-semibold text-white">{title}</span>
-          {note && <p className="text-[10px] text-gray-500 mt-0.5">{note}</p>}
+          <span className="text-sm font-semibold text-zinc-900">{title}</span>
+          {note && <p className="text-[10px] text-zinc-400 mt-0.5">{note}</p>}
         </div>
         <Toggle enabled={enabled} onChange={onToggle} readOnly={readOnly} />
       </div>
@@ -84,14 +84,14 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
         <div className="space-y-3 mt-3">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-medium">HD Camera</span>
+              <span className="text-xs text-zinc-500 font-medium">HD Camera</span>
             </div>
             <CamSelect cam={camHd} onChange={val => onCamChange(camKeyHd, val)} readOnly={readOnly} freeTextFields={freeTextFields} />
           </div>
           {camKeyWide && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-400 font-medium">Wide Camera</span>
+                <span className="text-xs text-zinc-500 font-medium">Wide Camera</span>
                 {onWideToggle && <Toggle enabled={wideEnabled} onChange={onWideToggle} readOnly={readOnly} />}
               </div>
               {wideEnabled !== false && (
@@ -145,11 +145,11 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-lg bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-lg bg-white border-l border-zinc-200 p-0 [&_button[type='button']]:text-zinc-500 overflow-y-auto">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <h2 className="text-lg font-semibold text-white">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-200">
+            <h2 className="text-lg font-semibold text-zinc-900">
               {readOnly ? `Viewing: ${rig?.team || '…'}` : isNew ? 'New Rig Setting' : `Editing: ${rig?.team || '…'}`}
             </h2>
           </div>
@@ -159,11 +159,11 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             {/* Basic fields */}
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} disabled={readOnly}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 disabled:opacity-60" />
+                className="bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 disabled:opacity-60" />
               <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })} disabled={readOnly}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue placeholder="Sport" /></SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  {SPORTS.map(s => <SelectItem key={s} value={s} className="text-white">{s}</SelectItem>)}
+                <SelectTrigger className="bg-zinc-100 border-zinc-200 text-zinc-900 disabled:opacity-60"><SelectValue placeholder="Sport" /></SelectTrigger>
+                <SelectContent className="bg-white border-zinc-200">
+                  {SPORTS.map(s => <SelectItem key={s} value={s} className="text-zinc-900">{s}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={form.venue_type} onValueChange={v => {
@@ -180,47 +180,47 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     setForm({ ...form, venue_type: v });
                   }
                 }} disabled={readOnly}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  <SelectItem value="Indoor" className="text-white">Indoor</SelectItem>
-                  <SelectItem value="Outdoor" className="text-white">Outdoor</SelectItem>
-                  <SelectItem value="Arena" className="text-white">Arena</SelectItem>
+                <SelectTrigger className="bg-zinc-100 border-zinc-200 text-zinc-900 disabled:opacity-60"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white border-zinc-200">
+                  <SelectItem value="Indoor" className="text-zinc-900">Indoor</SelectItem>
+                  <SelectItem value="Outdoor" className="text-zinc-900">Outdoor</SelectItem>
+                  <SelectItem value="Arena" className="text-zinc-900">Arena</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={form.rig_type || 'Data'} onValueChange={v => setForm({ ...form, rig_type: v })} disabled={readOnly}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white disabled:opacity-60"><SelectValue placeholder="Rig Type" /></SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
+                <SelectTrigger className="bg-zinc-100 border-zinc-200 text-zinc-900 disabled:opacity-60"><SelectValue placeholder="Rig Type" /></SelectTrigger>
+                <SelectContent className="bg-white border-zinc-200">
+                  {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-zinc-900">{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             {/* Shoot Plan */}
             <div>
-              <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Shoot Plan</label>
+              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Shoot Plan</label>
               <textarea value={form.shoot_plan} onChange={e => setForm({ ...form, shoot_plan: e.target.value })} disabled={readOnly}
                 placeholder="Describe the shoot plan..." rows={3}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none disabled:opacity-60" />
+                className="w-full bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-md px-3 py-2 text-sm placeholder:text-zinc-400 resize-none disabled:opacity-60" />
             </div>
 
             {/* Remote Rigs */}
             <div>
-              <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Remote Rigs</label>
+              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Remote Rigs</label>
               <div className="flex gap-2 mb-2">
                 {!readOnly && (
                   <>
                     <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addRig()}
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500" />
-                    <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-700">Add</Button>
+                      className="bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400" />
+                    <Button type="button" onClick={addRig} size="sm" className="bg-teal-700 hover:bg-teal-800">Add</Button>
                   </>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {form.remote_rigs?.map((r, i) => (
-                  <span key={i} className="flex items-center gap-1 bg-blue-900/40 text-blue-300 border border-blue-700/40 text-sm px-2 py-1 rounded-full">
+                  <span key={i} className="flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 text-sm px-2 py-1 rounded-full">
                     {r}
-                    <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
+                    <button type="button" onClick={() => removeRig(i)} className="hover:text-red-600 ml-1"><X className="h-3 w-3" /></button>
                   </span>
                 ))}
               </div>
@@ -228,7 +228,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
 
             {/* Camera Settings — 5 Sections */}
             <div>
-              <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-3 block">Camera Settings</label>
               <div className="space-y-3">
                 {/* 1. Data Settings */}
                 <CameraSection
@@ -290,13 +290,13 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                 />
 
                 {/* 5. Sound Recording */}
-                <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.sound_enabled ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.sound_enabled ? 'border-green-700 bg-emerald-50' : 'border-zinc-200 bg-white/40'}`}>
                   <div>
                     <div className="flex items-center gap-2">
-                      <Volume2 className={`h-4 w-4 ${form.sound_enabled ? 'text-green-400' : 'text-gray-600'}`} />
-                      <span className="text-sm font-semibold text-white">Sound Recording</span>
+                      <Volume2 className={`h-4 w-4 ${form.sound_enabled ? 'text-emerald-700' : 'text-gray-600'}`} />
+                      <span className="text-sm font-semibold text-zinc-900">Sound Recording</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-0.5 ml-6">Sound enabled for this rig</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5 ml-6">Sound enabled for this rig</p>
                   </div>
                   <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} readOnly={readOnly} />
                 </div>
@@ -305,30 +305,30 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
 
             {/* Notes */}
             <div>
-              <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Notes</label>
+              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Notes</label>
               <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} disabled={readOnly}
                 placeholder="Any additional notes..." rows={2}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 resize-none disabled:opacity-60" />
+                className="w-full bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-md px-3 py-2 text-sm placeholder:text-zinc-400 resize-none disabled:opacity-60" />
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="p-4 border-t border-gray-800 flex gap-2">
+          <div className="p-4 border-t border-zinc-200 flex gap-2">
             {readOnly ? (
-              <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800 flex-1">
+              <Button variant="outline" onClick={onClose} className="border-zinc-200 text-zinc-600 hover:bg-zinc-100 flex-1">
                 Close
               </Button>
             ) : (
               <>
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 flex-1">
+                <Button onClick={handleSave} className="bg-teal-700 hover:bg-teal-800 flex-1">
                   {isNew ? 'Create Rig Setting' : 'Save Changes'}
                 </Button>
                 {!isNew && (
-                  <Button onClick={() => { onDelete(rig.id); onClose(); }} variant="outline" className="border-red-700/60 text-red-300 hover:bg-red-950/30">
+                  <Button onClick={() => { onDelete(rig.id); onClose(); }} variant="outline" className="border-red-700/60 text-red-700 hover:bg-red-950/30">
                     Delete
                   </Button>
                 )}
-                <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                <Button variant="outline" onClick={onClose} className="border-zinc-200 text-zinc-600 hover:bg-zinc-100">
                   Cancel
                 </Button>
               </>

@@ -15,11 +15,11 @@ export default function ShootEditPanel({
 }) {
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
-        <SheetHeader className="px-4 py-3 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+      <SheetContent side="right" className="w-full bg-white border-l border-zinc-200 p-0 [&_button[type='button']]:text-zinc-500 overflow-y-auto transition-all duration-300">
+        <SheetHeader className="px-4 py-3 border-b border-zinc-200 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-base text-white">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white" onClick={onClose}>
+            <SheetTitle className="text-base text-zinc-900">{shoot ? 'Edit Shoot' : 'New Shoot'}</SheetTitle>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-900" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -30,33 +30,33 @@ export default function ShootEditPanel({
           <div className="space-y-4">
             {/* Title */}
             <div>
-              <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Title *</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Title *</label>
               <Input
                 placeholder="Shoot title"
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"
               />
             </div>
 
             {/* Client & Location */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Client / Team</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Client / Team</label>
                 <Input
                   placeholder="Client"
                   value={form.client}
                   onChange={e => setForm({ ...form, client: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Location</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Location</label>
                 <Input
                   placeholder="Venue / Location"
                   value={form.location}
                   onChange={e => setForm({ ...form, location: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -64,35 +64,35 @@ export default function ShootEditPanel({
             {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Date *</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Date *</label>
                 <Input
                   type="date"
                   value={form.date}
                   onChange={e => setForm({ ...form, date: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-zinc-100 border-zinc-200 text-zinc-900"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Game Time</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Game Time</label>
                 <input
                   type="time"
                   value={form.game_time}
                   onChange={e => setForm({ ...form, game_time: e.target.value })}
-                  className="bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 h-9 text-sm w-full"
+                  className="bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-md px-3 py-2 h-9 text-sm w-full"
                 />
               </div>
             </div>
 
             {/* Status */}
             <div>
-              <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Status</label>
               <Select value={form.status || 'upcoming'} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-zinc-100 border-zinc-200 text-zinc-900">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
+                <SelectContent className="bg-white border-zinc-200">
                   {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
-                    <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
+                    <SelectItem key={s} value={s} className="text-zinc-900 capitalize">{s.replace('_', ' ')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -100,18 +100,18 @@ export default function ShootEditPanel({
 
             {/* Description */}
             <div>
-              <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Description</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Description</label>
               <textarea
                 placeholder="Notes and description"
                 value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm placeholder:text-gray-500 h-20"
+                className="w-full bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-md px-3 py-2 text-sm placeholder:text-zinc-400 h-20"
               />
             </div>
 
             {/* Schedule Offsets */}
-            <div className="bg-gray-800/60 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-3 font-medium uppercase tracking-wider">Schedule Offsets (minutes before game time)</p>
+            <div className="bg-zinc-100/60 rounded-lg p-3">
+              <p className="text-xs text-zinc-500 mb-3 font-medium uppercase tracking-wider">Schedule Offsets (minutes before game time)</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { key: 'setup_offset', label: 'Setup' },
@@ -120,12 +120,12 @@ export default function ShootEditPanel({
                   { key: 'sound_offset', label: 'Sound' },
                 ].map(({ key, label }) => (
                   <div key={key}>
-                    <label className="text-xs text-gray-500 block mb-1">{label}</label>
+                    <label className="text-xs text-zinc-400 block mb-1">{label}</label>
                     <Input
                       type="number"
                       value={form[key]}
                       onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}
-                      className="bg-gray-700 border-gray-600 text-white h-8 text-sm"
+                      className="bg-zinc-200 border-zinc-300 text-zinc-900 h-8 text-sm"
                     />
                   </div>
                 ))}
@@ -135,11 +135,11 @@ export default function ShootEditPanel({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-800 p-4 flex-shrink-0 flex gap-2 sticky bottom-0 bg-gray-900 z-10">
-          <Button onClick={onSave} className="flex-1 bg-blue-600 hover:bg-blue-700">
+        <div className="border-t border-zinc-200 p-4 flex-shrink-0 flex gap-2 sticky bottom-0 bg-white z-10">
+          <Button onClick={onSave} className="flex-1 bg-teal-700 hover:bg-teal-800">
             {shoot ? 'Save Changes' : 'Create Shoot'}
           </Button>
-          <Button onClick={onCancel} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+          <Button onClick={onCancel} variant="outline" className="border-zinc-200 text-zinc-600 hover:bg-zinc-100">
             Cancel
           </Button>
         </div>

@@ -74,17 +74,17 @@ export function AdminAvailabilityView({ allUsers = [] }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-purple-400" />
-          <span className="text-white font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
+          <span className="text-zinc-900 font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
           <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full">
             {entryCount} entries
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
             onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); }}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
             onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); }}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -93,7 +93,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
 
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1 text-center mb-1">
-        {DOW.map(d => <div key={d} className="text-xs text-gray-400 py-2 font-semibold uppercase tracking-wider">{d}</div>)}
+        {DOW.map(d => <div key={d} className="text-xs text-zinc-500 py-2 font-semibold uppercase tracking-wider">{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1 mb-4">
         {calDays.map(day => {
@@ -115,7 +115,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                 ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
               style={{ background: bg }}
             >
-              <span className={`text-sm font-bold block mb-1.5 ${isToday ? 'text-blue-400' : unavail.length > 0 ? 'text-red-300' : avail.length > 0 ? 'text-green-300' : 'text-gray-400'}`}>
+              <span className={`text-sm font-bold block mb-1.5 ${isToday ? 'text-teal-700' : unavail.length > 0 ? 'text-red-700' : avail.length > 0 ? 'text-green-300' : 'text-zinc-500'}`}>
                 {format(day, 'd')}
               </span>
               <div className="flex-1 space-y-0.5">
@@ -129,7 +129,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                         </div>
                       );
                     })}
-                    {unavail.length > 3 && <div className="text-xs text-red-400 font-medium">+{unavail.length - 3} more</div>}
+                    {unavail.length > 3 && <div className="text-xs text-red-600 font-medium">+{unavail.length - 3} more</div>}
                   </>
                 )}
                 {inMonth && avail.length > 0 && unavail.length === 0 && (
@@ -142,11 +142,11 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                         </div>
                       );
                     })}
-                    {avail.length > 3 && <div className="text-xs text-green-400 font-medium">+{avail.length - 3} more</div>}
+                    {avail.length > 3 && <div className="text-xs text-emerald-700 font-medium">+{avail.length - 3} more</div>}
                   </>
                 )}
               </div>
-              {isToday && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1" />}
+              {isToday && <div className="w-1.5 h-1.5 rounded-full bg-teal-600 mt-1" />}
             </button>
           );
         })}
@@ -154,43 +154,43 @@ export function AdminAvailabilityView({ allUsers = [] }) {
 
       {/* Legend */}
       <div className="flex items-center gap-4 mb-4 flex-wrap">
-        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
           <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
         </span>
-        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
           <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
         </span>
-        <span className="flex items-center gap-1.5 text-xs text-gray-400 italic">Click a day to expand</span>
+        <span className="flex items-center gap-1.5 text-xs text-zinc-500 italic">Click a day to expand</span>
       </div>
 
       {/* Day detail panel */}
       {selectedDay && (
-        <div className="bg-gray-800/60 border border-purple-700/40 rounded-xl p-4">
+        <div className="bg-zinc-100/60 border border-purple-700/40 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-zinc-900">
               {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
             </p>
-            <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-white">
+            <button onClick={() => setSelectedDay(null)} className="text-zinc-400 hover:text-zinc-900">
               <X className="h-4 w-4" />
             </button>
           </div>
           {selectedDayEntries.length === 0 ? (
-            <p className="text-xs text-gray-500">No availability entries for this day.</p>
+            <p className="text-xs text-zinc-400">No availability entries for this day.</p>
           ) : (
             <div className="space-y-3">
               {unavailSelected.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">❌ Unavailable ({unavailSelected.length})</p>
+                  <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1.5">❌ Unavailable ({unavailSelected.length})</p>
                   <div className="space-y-1">
                     {unavailSelected.map(e => {
                       const u = allUsers.find(u => u.email === e.operator_email);
                       return (
                         <div key={e.id} className="flex items-center justify-between bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
                           <div>
-                            <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
-                            <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                            <p className="text-sm text-zinc-900 font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                            <p className="text-xs text-zinc-400">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
                           </div>
-                          <span className="text-xs bg-red-700/30 text-red-300 px-2 py-0.5 rounded-full">OUT</span>
+                          <span className="text-xs bg-red-700/30 text-red-700 px-2 py-0.5 rounded-full">OUT</span>
                         </div>
                       );
                     })}
@@ -199,15 +199,15 @@ export function AdminAvailabilityView({ allUsers = [] }) {
               )}
               {availSelected.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-1.5">✅ Available ({availSelected.length})</p>
+                  <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1.5">✅ Available ({availSelected.length})</p>
                   <div className="space-y-1">
                     {availSelected.map(e => {
                       const u = allUsers.find(u => u.email === e.operator_email);
                       return (
-                        <div key={e.id} className="flex items-center justify-between bg-green-950/30 border border-green-800/30 rounded-lg px-3 py-2">
+                        <div key={e.id} className="flex items-center justify-between bg-emerald-50 border border-green-800/30 rounded-lg px-3 py-2">
                           <div>
-                            <p className="text-sm text-white font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
-                            <p className="text-xs text-gray-500">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
+                            <p className="text-sm text-zinc-900 font-medium">{getDisplayName(u, e.operator_email, e.operator_name)}</p>
+                            <p className="text-xs text-zinc-400">{e.start_date} → {e.end_date}{e.notes ? ` · ${e.notes}` : ''}</p>
                           </div>
                           <span className="text-xs bg-green-700/30 text-green-300 px-2 py-0.5 rounded-full">IN</span>
                         </div>
@@ -316,12 +316,12 @@ export function OperatorAvailabilityPanel({ user }) {
   const selectedEntries = selectedDay ? myEntries.filter(e => entryCoversDate(e, selectedDay)) : [];
 
   return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-white font-semibold text-base hover:text-blue-400 transition-colors">
+    <Card className="bg-white border-zinc-200 mb-6">
+      <CardHeader className="border-b border-zinc-200 pb-3">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-zinc-900 font-semibold text-base hover:text-teal-700 transition-colors">
           <CalendarDays className="h-4 w-4 text-purple-400" />
           My Availability
-          {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
           <span className="text-xs bg-purple-600/20 text-purple-400 border border-purple-700/40 px-2 py-0.5 rounded-full ml-1">
             {upcoming.length} upcoming
           </span>
@@ -330,7 +330,7 @@ export function OperatorAvailabilityPanel({ user }) {
 
       {expanded && (
         <CardContent className="pt-4 space-y-4">
-          <p className="text-xs text-gray-500">Let admins know when you're in or out. Click a day or select a range.</p>
+          <p className="text-xs text-zinc-400">Let admins know when you're in or out. Click a day or select a range.</p>
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -345,13 +345,13 @@ export function OperatorAvailabilityPanel({ user }) {
             </Button>
             <Button size="sm" variant={selectMode ? 'default' : 'outline'}
               className={selectMode
-                ? 'h-7 text-xs gap-1 bg-blue-700 hover:bg-blue-600 border-blue-600'
-                : 'h-7 text-xs gap-1 border-blue-700/50 text-blue-400 hover:bg-blue-900/30'}
+                ? 'h-7 text-xs gap-1 bg-teal-700 hover:bg-teal-700 border-teal-700'
+                : 'h-7 text-xs gap-1 border-teal-200 text-teal-700 hover:bg-teal-50'}
               onClick={() => { setSelectMode(!selectMode); setShowForm(false); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               {selectMode ? <><Check className="h-3 w-3" /> Selecting…</> : 'Select Range'}
             </Button>
             {selectMode && (
-              <span className="text-xs text-blue-300">
+              <span className="text-xs text-teal-700">
                 {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end` : `${rangeStart} → ${rangeEnd}`}
               </span>
             )}
@@ -359,51 +359,51 @@ export function OperatorAvailabilityPanel({ user }) {
 
           {/* Form */}
           {showForm && (
-            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
+            <div className="bg-zinc-100/60 border border-zinc-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-medium text-purple-300">
                 {editingEntry ? 'Edit Entry' : rangeStart && rangeEnd ? `${rangeStart} → ${rangeEnd}` : 'New Entry'}
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setForm({ ...form, type: 'unavailable' })}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.type === 'unavailable' ? 'bg-red-700/40 border-red-600/50 text-red-300' : 'border-gray-700 text-gray-500 hover:text-white'}`}>
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.type === 'unavailable' ? 'bg-red-700/40 border-red-600/50 text-red-700' : 'border-zinc-200 text-zinc-400 hover:text-zinc-900'}`}>
                   OUT (Unavailable)
                 </button>
                 <button onClick={() => setForm({ ...form, type: 'available' })}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.type === 'available' ? 'bg-green-700/40 border-green-600/50 text-green-300' : 'border-gray-700 text-gray-500 hover:text-white'}`}>
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.type === 'available' ? 'bg-green-700/40 border-green-600/50 text-green-300' : 'border-zinc-200 text-zinc-400 hover:text-zinc-900'}`}>
                   IN (Available)
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">From</label>
+                  <label className="text-xs text-zinc-500 block mb-1">From</label>
                   <Input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })}
-                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+                    className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">To</label>
+                  <label className="text-xs text-zinc-500 block mb-1">To</label>
                   <Input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })}
-                    className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+                    className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
                 </div>
               </div>
               <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                className="bg-gray-900 border-gray-700 text-white h-8 text-xs" />
+                className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
               <div className="flex gap-2">
                 <Button size="sm" className="h-7 text-xs bg-purple-700 hover:bg-purple-600 px-4 gap-1" onClick={handleSave}>
                   <Save className="h-3 w-3" /> {editingEntry ? 'Update' : 'Save'}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500" onClick={closeForm}>Cancel</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400" onClick={closeForm}>Cancel</Button>
               </div>
             </div>
           )}
 
           {/* Month nav */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
               onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-gray-300 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white"
+            <span className="text-sm text-zinc-600 font-medium w-28 text-center">{format(calMonth, 'MMMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
               onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -411,7 +411,7 @@ export function OperatorAvailabilityPanel({ user }) {
 
           {/* Calendar */}
           <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-            {DOW.map(d => <div key={d} className="text-xs text-gray-500 py-1">{d}</div>)}
+            {DOW.map(d => <div key={d} className="text-xs text-zinc-400 py-1">{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-0.5">
             {calDays.map(day => {
@@ -438,15 +438,15 @@ export function OperatorAvailabilityPanel({ user }) {
                     ${isToday ? 'ring-1 ring-blue-500' : ''}`}
                   style={{ background: bg }}
                 >
-                  <span className={`text-xs font-medium ${isToday ? 'text-blue-400 font-bold' : myDay?.type === 'unavailable' ? 'text-red-300' : myDay?.type === 'available' ? 'text-green-300' : 'text-gray-500'}`}>
+                  <span className={`text-xs font-medium ${isToday ? 'text-teal-700 font-bold' : myDay?.type === 'unavailable' ? 'text-red-700' : myDay?.type === 'available' ? 'text-green-300' : 'text-zinc-400'}`}>
                     {format(day, 'd')}
                   </span>
                   {inMonth && myDay && (
-                    <div className={`text-xs mt-0.5 ${myDay.type === 'unavailable' ? 'text-red-400' : 'text-green-400'}`}>
+                    <div className={`text-xs mt-0.5 ${myDay.type === 'unavailable' ? 'text-red-600' : 'text-emerald-700'}`}>
                       {myDay.type === 'unavailable' ? 'OUT' : 'IN'}
                     </div>
                   )}
-                  {isToday && <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 mx-auto" />}
+                  {isToday && <div className="w-1 h-1 rounded-full bg-teal-600 mt-0.5 mx-auto" />}
                 </button>
               );
             })}
@@ -454,19 +454,19 @@ export function OperatorAvailabilityPanel({ user }) {
 
           {/* Legend */}
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-3 h-3 rounded bg-red-700/50 inline-block" /> Unavailable
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-3 h-3 rounded bg-green-700/50 inline-block" /> Available
             </span>
           </div>
 
           {/* Day detail panel */}
           {selectedDay && (
-            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4">
+            <div className="bg-zinc-100/60 border border-zinc-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-zinc-900">
                   {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
                 </p>
                 <Button size="sm" variant="outline"
@@ -476,28 +476,28 @@ export function OperatorAvailabilityPanel({ user }) {
                 </Button>
               </div>
               {selectedEntries.length === 0 ? (
-                <p className="text-xs text-gray-500">Nothing set for this day — click "Add Here" to add an entry.</p>
+                <p className="text-xs text-zinc-400">Nothing set for this day — click "Add Here" to add an entry.</p>
               ) : (
                 <div className="space-y-2">
                   {selectedEntries.map(entry => (
                     <div key={entry.id} className={`rounded-lg px-3 py-2.5 border flex items-start justify-between gap-2 ${
-                      entry.type === 'unavailable' ? 'bg-red-950/40 border-red-800/40' : 'bg-green-950/40 border-green-800/40'
+                      entry.type === 'unavailable' ? 'bg-red-950/40 border-red-800/40' : 'bg-emerald-50 border-green-800/40'
                     }`}>
                       <div>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          entry.type === 'unavailable' ? 'bg-red-700/30 text-red-300' : 'bg-green-700/30 text-green-300'
+                          entry.type === 'unavailable' ? 'bg-red-700/30 text-red-700' : 'bg-green-700/30 text-green-300'
                         }`}>
                           {entry.type === 'unavailable' ? 'OUT' : 'IN'}
                         </span>
-                        <p className="text-xs text-gray-300 mt-1">{entry.start_date} → {entry.end_date}</p>
-                        {entry.notes && <p className="text-xs text-gray-500 italic mt-0.5">{entry.notes}</p>}
+                        <p className="text-xs text-zinc-600 mt-1">{entry.start_date} → {entry.end_date}</p>
+                        {entry.notes && <p className="text-xs text-zinc-400 italic mt-0.5">{entry.notes}</p>}
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-500 hover:text-blue-400"
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-zinc-400 hover:text-teal-700"
                           onClick={() => openEdit(entry)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-600"
                           onClick={() => handleRemove(entry.id)}>
                           <X className="h-3 w-3" />
                         </Button>
@@ -511,28 +511,28 @@ export function OperatorAvailabilityPanel({ user }) {
 
           {/* Upcoming list */}
           {upcoming.length > 0 && !selectedDay && !showForm && (
-            <div className="border-t border-gray-800 pt-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">All Upcoming Entries</p>
+            <div className="border-t border-zinc-200 pt-3">
+              <p className="text-xs text-zinc-400 uppercase tracking-wider mb-2">All Upcoming Entries</p>
               <div className="space-y-1.5">
                 {upcoming.map(entry => (
                   <div key={entry.id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg border ${
-                    entry.type === 'unavailable' ? 'bg-red-950/30 border-red-800/40' : 'bg-green-950/30 border-green-800/40'
+                    entry.type === 'unavailable' ? 'bg-red-950/30 border-red-800/40' : 'bg-emerald-50 border-green-800/40'
                   }`}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        entry.type === 'unavailable' ? 'bg-red-700/30 text-red-300' : 'bg-green-700/30 text-green-300'
+                        entry.type === 'unavailable' ? 'bg-red-700/30 text-red-700' : 'bg-green-700/30 text-green-300'
                       }`}>
                         {entry.type === 'unavailable' ? 'OUT' : 'IN'}
                       </span>
-                      <span className="text-xs text-gray-300">{entry.start_date} → {entry.end_date}</span>
-                      {entry.notes && <span className="text-xs text-gray-500 italic">{entry.notes}</span>}
+                      <span className="text-xs text-zinc-600">{entry.start_date} → {entry.end_date}</span>
+                      {entry.notes && <span className="text-xs text-zinc-400 italic">{entry.notes}</span>}
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-500 hover:text-blue-400"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-zinc-400 hover:text-teal-700"
                         onClick={() => openEdit(entry)}>
                         <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-600"
                         onClick={() => handleRemove(entry.id)}>
                         <X className="h-3 w-3" />
                       </Button>

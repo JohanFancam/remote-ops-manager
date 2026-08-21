@@ -16,13 +16,13 @@ export default function TeamSchedule() {
   }, [users, presenceRecords]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
+    <div className="min-h-screen bg-zinc-100 text-zinc-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <CalendarRange className="h-6 w-6 text-blue-400" />
-          <h1 className="text-2xl font-bold text-white">Team Schedule</h1>
+          <CalendarRange className="h-6 w-6 text-teal-700" />
+          <h1 className="text-2xl font-bold text-zinc-900">Team Schedule</h1>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="bg-white border border-zinc-200 rounded-xl p-5">
           <WeeklyTeamPanel shoots={shoots} allUsers={allUsers} />
         </div>
       </div>

@@ -47,13 +47,13 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+      <div className="bg-white border border-zinc-200 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+        <div className="flex items-center justify-between p-4 border-b border-zinc-200">
           <div>
-            <h2 className="text-base font-semibold text-white">Manage Operators</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{shoot?.title}</p>
+            <h2 className="text-base font-semibold text-zinc-900">Manage Operators</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">{shoot?.title}</p>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white" onClick={onClose}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-900" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -62,14 +62,14 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
           {/* Currently assigned */}
           {assignedRemoteUsers.length > 0 && (
             <div>
-              <p className="text-xs text-gray-400 font-medium mb-2">Assigned Operators</p>
+              <p className="text-xs text-zinc-500 font-medium mb-2">Assigned Operators</p>
               <div className="space-y-1">
                 {assignedRemoteUsers.map(u => (
-                  <div key={u.email} className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2">
-                    <span className="text-sm text-white">{u.full_name}</span>
+                  <div key={u.email} className="flex items-center justify-between bg-zinc-100 rounded-lg px-3 py-2">
+                    <span className="text-sm text-zinc-900">{u.full_name}</span>
                     <button
                       onClick={() => { onUnassign?.(u.email, 'assigned'); }}
-                      className="text-red-400 hover:text-red-300 transition-colors"
+                      className="text-red-600 hover:text-red-700 transition-colors"
                       title="Unassign"
                     >
                       <UserMinus className="h-4 w-4" />
@@ -83,14 +83,14 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
           {/* Pending operators */}
           {pendingRemoteUsers.length > 0 && (
             <div>
-              <p className="text-xs text-yellow-400 font-medium mb-2">Pending Approval</p>
+              <p className="text-xs text-amber-700 font-medium mb-2">Pending Approval</p>
               <div className="space-y-1">
                 {pendingRemoteUsers.map(u => (
-                  <div key={u.email} className="flex items-center justify-between bg-yellow-950/30 border border-yellow-800/40 rounded-lg px-3 py-2">
+                  <div key={u.email} className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <span className="text-sm text-yellow-200">{u.full_name}</span>
                     <button
                       onClick={() => { onUnassign?.(u.email, 'pending'); }}
-                      className="text-red-400 hover:text-red-300 transition-colors"
+                      className="text-red-600 hover:text-red-700 transition-colors"
                       title="Remove pending"
                     >
                       <UserMinus className="h-4 w-4" />
@@ -103,11 +103,11 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
 
           {/* Assign new */}
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Assign Operator</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block font-medium">Assign Operator</label>
             <select
               value={selectedEmail}
               onChange={e => setSelectedEmail(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-9"
+              className="w-full bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-md px-3 py-2 text-sm h-9"
             >
               <option value="">Select operator…</option>
               {assignableUsers.map(u => (
@@ -115,20 +115,20 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
               ))}
             </select>
             {assignableUsers.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">All operators are already assigned.</p>
+              <p className="text-xs text-zinc-400 mt-1">All operators are already assigned.</p>
             )}
           </div>
         </div>
 
-        <div className="flex gap-2 p-4 border-t border-gray-800">
+        <div className="flex gap-2 p-4 border-t border-zinc-200">
           <Button
             onClick={() => { if (selectedEmail) { onConfirm(selectedEmail); setSelectedEmail(''); } }}
             disabled={!selectedEmail}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 bg-teal-700 hover:bg-teal-800 text-white"
           >
             Assign
           </Button>
-          <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+          <Button variant="outline" onClick={onClose} className="border-zinc-200 text-zinc-600 hover:bg-zinc-100">
             Done
           </Button>
         </div>

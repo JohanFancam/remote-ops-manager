@@ -1,98 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    color-scheme: dark;
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    color-scheme: light;
+    --background: 40 6% 96%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 173 80% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 10% 93%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 40 8% 93%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 173 40% 94%;
+    --accent-foreground: 173 80% 22%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 40 8% 88%;
+    --input: 40 8% 88%;
+    --ring: 173 80% 26%;
+    --chart-1: 173 60% 36%;
+    --chart-2: 199 70% 40%;
+    --chart-3: 32 80% 48%;
+    --chart-4: 250 40% 48%;
+    --chart-5: 340 55% 48%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 173 80% 26%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 40 10% 95%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 40 8% 90%;
+    --sidebar-ring: 173 80% 26%;
+    --rom-canvas: #f3f2ef;
+    --rom-ink: #18181b;
+    --rom-muted: #71717a;
+    --rom-accent: #0f766e;
+    --rom-surface: #ffffff;
+    --rom-line: #e4e2dc;
   }
-}
 
-
-
-@layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
+  html {
+    font-family: 'Figtree', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
+    background-color: var(--rom-canvas);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.07), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(24, 24, 27, 0.04), transparent 50%),
+      linear-gradient(180deg, #f7f6f3 0%, #f0efeb 100%);
+    background-attachment: fixed;
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .rom-page {
+    @apply min-h-screen p-4 md:p-8 text-zinc-900;
+  }
+
+  .rom-page-inner {
+    @apply max-w-6xl mx-auto;
+  }
+
+  .rom-title {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900;
+  }
+
+  .rom-subtitle {
+    @apply text-sm text-zinc-500 mt-1;
+  }
+
+  .rom-section-title {
+    @apply text-base font-semibold text-zinc-900;
+  }
+
+  .rom-panel {
+    @apply rounded-xl border border-zinc-200/80 bg-white p-4 md:p-5;
+    box-shadow: 0 1px 0 rgba(24, 24, 27, 0.04);
+  }
+
+  .rom-input {
+    @apply w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900
+      placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-700/25 focus:border-teal-700/40
+      transition;
+  }
+
+  .rom-btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-teal-700 hover:bg-teal-800
+      disabled:opacity-60 text-white text-sm font-medium px-4 py-2.5 transition;
+  }
+
+  .rom-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-900
+      hover:bg-zinc-100 text-sm font-medium px-3 py-2 transition;
   }
 }
 
 /* Smooth sheet transitions */
 [data-radix-dialog-content] {
-  animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 @keyframes slideIn {
@@ -104,4 +132,23 @@
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+@keyframes rom-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rom-enter {
+  animation: rom-fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rom-enter-delay {
+  animation: rom-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }

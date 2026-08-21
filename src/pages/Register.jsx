@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Camera } from 'lucide-react';
+import { Wifi } from 'lucide-react';
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth();
@@ -32,69 +32,72 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900/80 backdrop-blur shadow-2xl p-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4">
-            <Camera className="w-7 h-7 text-blue-400" />
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-[400px] rom-enter">
+        <div className="flex items-center gap-2.5 mb-8">
+          <div className="w-9 h-9 rounded-lg bg-teal-700 flex items-center justify-center">
+            <Wifi className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Create account</h1>
-          <p className="text-sm text-slate-400 mt-1">Join Remote Ops Manager</p>
+          <div>
+            <p className="font-semibold text-zinc-900 tracking-tight">Remote Ops</p>
+            <p className="text-xs text-zinc-400">Manager</p>
+          </div>
         </div>
+
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Create account</h1>
+        <p className="text-sm text-zinc-500 mt-1 mb-8">
+          Register with an invited email to join the crew.
+        </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Full name</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Full name</label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="rom-input"
               placeholder="Jane Doe"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="rom-input"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Password</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="rom-input"
               placeholder="At least 6 characters"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm px-3 py-2">
+            <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-3 py-2">
               {error}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-medium py-2.5 transition"
-          >
+          <button type="submit" disabled={loading} className="rom-btn-primary w-full">
             {loading ? 'Creating…' : 'Create account'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-slate-400 mt-6">
+        <p className="text-center text-sm text-zinc-500 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-400 hover:text-blue-300">
+          <Link to="/login" className="text-teal-700 hover:text-teal-800 font-medium">
             Sign in
           </Link>
         </p>

@@ -14,18 +14,18 @@ const PHASES = [
 function CopyableMessage({ message, onClose }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="bg-gray-800/80 border border-gray-700 rounded-lg p-3 mt-2">
+    <div className="bg-zinc-100 border border-zinc-200 rounded-lg p-3 mt-2">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs text-gray-400">📢 Copy to Slack:</p>
+        <p className="text-xs text-zinc-500">📢 Copy to Slack:</p>
         <div className="flex gap-1">
-          <Button size="sm" variant="ghost" className="h-5 text-xs text-gray-400 hover:text-white px-2"
+          <Button size="sm" variant="ghost" className="h-5 text-xs text-zinc-500 hover:text-zinc-900 px-2"
             onClick={() => { navigator.clipboard.writeText(message); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-            {copied ? <><Check className="h-3 w-3 mr-1 text-green-400" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+            {copied ? <><Check className="h-3 w-3 mr-1 text-emerald-700" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
           </Button>
-          <Button size="sm" variant="ghost" className="h-5 text-xs text-gray-500 hover:text-white px-1" onClick={onClose}>✕</Button>
+          <Button size="sm" variant="ghost" className="h-5 text-xs text-zinc-400 hover:text-zinc-900 px-1" onClick={onClose}>✕</Button>
         </div>
       </div>
-      <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">{message}</pre>
+      <pre className="text-xs text-zinc-600 whitespace-pre-wrap font-mono">{message}</pre>
     </div>
   );
 }
@@ -63,8 +63,8 @@ export default function ShootPhaseButtons({ shoot, user, rigSetting, slackMessag
   });
 
   return (
-    <div className="space-y-2 mt-3 pt-3 border-t border-gray-700">
-      <p className="text-xs text-gray-500 uppercase tracking-wider">Phase Updates</p>
+    <div className="space-y-2 mt-3 pt-3 border-t border-zinc-200">
+      <p className="text-xs text-zinc-400 uppercase tracking-wider">Phase Updates</p>
       {visiblePhases.map(phase => {
         const done = !!phases[phase.key];
         const isLast = phase.isComplete;
@@ -77,14 +77,14 @@ export default function ShootPhaseButtons({ shoot, user, rigSetting, slackMessag
                 ${done
                   ? isLast
                     ? 'bg-green-900/60 border border-green-700 text-green-300 cursor-default'
-                    : 'bg-gray-700/40 border border-gray-700 text-gray-500 cursor-default'
+                    : 'bg-zinc-200/40 border border-zinc-200 text-zinc-400 cursor-default'
                   : isLast
-                    ? 'bg-red-900/30 border border-red-800 text-red-300 hover:bg-red-900/50'
-                    : 'bg-gray-800 border border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-blue-700'
+                    ? 'bg-red-900/30 border border-red-800 text-red-700 hover:bg-red-900/50'
+                    : 'bg-zinc-100 border border-zinc-200 text-gray-200 hover:bg-zinc-200 hover:border-teal-700'
                 }`}
             >
               <span className="flex items-center gap-2"><phase.Icon className="h-3.5 w-3.5 flex-shrink-0" />{phase.label}</span>
-              {done && !isLast && <span className="text-xs text-green-400">✓ Done</span>}
+              {done && !isLast && <span className="text-xs text-emerald-700">✓ Done</span>}
             </button>
             {activeMessage?.key === phase.key && (
               <CopyableMessage message={activeMessage.msg} onClose={() => setActiveMessage(null)} />

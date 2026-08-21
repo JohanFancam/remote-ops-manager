@@ -86,41 +86,41 @@ export default function CSVImportModal({ open, onClose, onImported }) {
 
   return (
     <Dialog open={open} onOpenChange={() => { reset(); onClose(); }}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-white border-zinc-200 text-zinc-900 max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Import Shoots from CSV</DialogTitle>
+          <DialogTitle className="text-zinc-900">Import Shoots from CSV</DialogTitle>
         </DialogHeader>
 
-        <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-gray-300 mb-1">Expected CSV columns:</p>
-          <code className="text-xs text-blue-300">team, opponent, date (YYYY-MM-DD), time (HH:MM), venue</code>
+        <div className="text-sm text-zinc-500 bg-zinc-100 rounded-lg p-3 mb-4">
+          <p className="font-semibold text-zinc-600 mb-1">Expected CSV columns:</p>
+          <code className="text-xs text-teal-700">team, opponent, date (YYYY-MM-DD), time (HH:MM), venue</code>
         </div>
 
         {!result ? (
           <>
             <label className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors
-              ${file ? 'border-blue-600 bg-blue-950/20' : 'border-gray-700 hover:border-gray-600'}`}>
+              ${file ? 'border-teal-700 bg-teal-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
               <input type="file" accept=".csv" className="hidden" onChange={handleFile} />
               {file ? (
                 <>
-                  <FileText className="h-10 w-10 text-blue-400" />
-                  <p className="text-white font-medium">{file.name}</p>
-                  <p className="text-gray-400 text-sm">{preview.length} rows previewed</p>
+                  <FileText className="h-10 w-10 text-teal-700" />
+                  <p className="text-zinc-900 font-medium">{file.name}</p>
+                  <p className="text-zinc-500 text-sm">{preview.length} rows previewed</p>
                 </>
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-gray-600" />
-                  <p className="text-gray-400">Click to select a CSV file</p>
+                  <p className="text-zinc-500">Click to select a CSV file</p>
                 </>
               )}
             </label>
 
             {preview.length > 0 && (
               <div className="overflow-x-auto">
-                <p className="text-xs text-gray-500 mb-2">Preview (first {preview.length} rows):</p>
+                <p className="text-xs text-zinc-400 mb-2">Preview (first {preview.length} rows):</p>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-gray-500 border-b border-gray-700">
+                    <tr className="text-zinc-400 border-b border-zinc-200">
                       <th className="text-left pb-1 pr-3">Team</th>
                       <th className="text-left pb-1 pr-3">Opponent</th>
                       <th className="text-left pb-1 pr-3">Date</th>
@@ -130,7 +130,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {preview.map((row, i) => (
-                      <tr key={i} className="text-gray-300">
+                      <tr key={i} className="text-zinc-600">
                         <td className="py-1.5 pr-3">{row.team}</td>
                         <td className="py-1.5 pr-3">{row.opponent}</td>
                         <td className="py-1.5 pr-3">{row.date}</td>
@@ -144,27 +144,27 @@ export default function CSVImportModal({ open, onClose, onImported }) {
             )}
 
             {error && (
-              <div className="flex items-center gap-2 text-red-400 text-sm">
+              <div className="flex items-center gap-2 text-red-600 text-sm">
                 <AlertCircle className="h-4 w-4" />
                 {error}
               </div>
             )}
 
             <div className="flex gap-3 mt-2">
-              <Button onClick={handleImport} disabled={!file || loading} className="bg-blue-600 hover:bg-blue-700 flex-1">
+              <Button onClick={handleImport} disabled={!file || loading} className="bg-teal-700 hover:bg-teal-800 flex-1">
                 {loading ? 'Importing...' : 'Import Shoots'}
               </Button>
-              <Button variant="outline" onClick={() => { reset(); onClose(); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button variant="outline" onClick={() => { reset(); onClose(); }} className="border-zinc-200 text-zinc-600 hover:bg-zinc-100">
                 Cancel
               </Button>
             </div>
           </>
         ) : (
           <div className="text-center py-8">
-            <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
-            <p className="text-xl font-bold text-white mb-1">{result.success} shoots imported</p>
-            {result.failed > 0 && <p className="text-yellow-400 text-sm">{result.failed} rows failed (missing title or date)</p>}
-            <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-blue-600 hover:bg-blue-700">Done</Button>
+            <CheckCircle2 className="h-14 w-14 text-emerald-700 mx-auto mb-4" />
+            <p className="text-xl font-bold text-zinc-900 mb-1">{result.success} shoots imported</p>
+            {result.failed > 0 && <p className="text-amber-700 text-sm">{result.failed} rows failed (missing title or date)</p>}
+            <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-teal-700 hover:bg-teal-800">Done</Button>
           </div>
         )}
       </DialogContent>

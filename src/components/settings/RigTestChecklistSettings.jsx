@@ -60,26 +60,26 @@ export default function RigTestChecklistSettings({ appSettings }) {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-4">
-        <CardTitle className="text-white flex items-center gap-2">
+    <Card className="bg-white border-zinc-200 mb-6">
+      <CardHeader className="border-b border-zinc-200 pb-4">
+        <CardTitle className="text-zinc-900 flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-teal-400" /> Rig Test Checklist
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-zinc-400">
           These items will be pre-loaded whenever a rig test is assigned from the calendar or dashboard.
         </p>
 
         <div className="space-y-1.5">
           {items.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-gray-800/60 rounded-lg px-3 py-2">
+            <div key={idx} className="flex items-center gap-2 bg-zinc-100/60 rounded-lg px-3 py-2">
               <div className="flex flex-col gap-0.5 mr-1">
-                <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-gray-600 hover:text-gray-300 disabled:opacity-20 leading-none">▲</button>
-                <button onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-gray-600 hover:text-gray-300 disabled:opacity-20 leading-none">▼</button>
+                <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-gray-600 hover:text-zinc-600 disabled:opacity-20 leading-none">▲</button>
+                <button onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-gray-600 hover:text-zinc-600 disabled:opacity-20 leading-none">▼</button>
               </div>
-              <span className="text-sm text-gray-300 flex-1">{idx + 1}. {item}</span>
-              <button onClick={() => removeItem(idx)} className="text-gray-600 hover:text-red-400 transition-colors">
+              <span className="text-sm text-zinc-600 flex-1">{idx + 1}. {item}</span>
+              <button onClick={() => removeItem(idx)} className="text-gray-600 hover:text-red-600 transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -92,9 +92,9 @@ export default function RigTestChecklistSettings({ appSettings }) {
             onChange={e => setNewItem(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
             placeholder="Add checklist item…"
-            className="bg-gray-800 border-gray-700 text-white text-sm placeholder:text-gray-500"
+            className="bg-zinc-100 border-zinc-200 text-zinc-900 text-sm placeholder:text-zinc-400"
           />
-          <Button size="sm" variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 px-3" onClick={addItem}>
+          <Button size="sm" variant="outline" className="border-zinc-200 text-zinc-600 hover:bg-zinc-100 px-3" onClick={addItem}>
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>

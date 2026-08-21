@@ -25,9 +25,9 @@ function formatCountdown(ms) {
 
 function InfoPill({ children, tone = 'default' }) {
   const toneClasses = {
-    default: 'bg-gray-800 text-gray-300 border-gray-700/70',
-    blue: 'bg-blue-950/40 text-blue-300 border-blue-800/50',
-    yellow: 'bg-yellow-950/30 text-yellow-300 border-yellow-800/40',
+    default: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+    blue: 'bg-teal-50 text-teal-800 border-teal-200',
+    yellow: 'bg-amber-50 text-amber-800 border-amber-200',
   };
   return (
     <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${toneClasses[tone] || toneClasses.default}`}>
@@ -36,14 +36,14 @@ function InfoPill({ children, tone = 'default' }) {
   );
 }
 
-function Section({ label, accent = 'text-gray-400', children, withDivider = true }) {
+function Section({ label, accent = 'text-zinc-400', children, withDivider = true }) {
   return (
     <div className="flex min-w-0 flex-1 items-stretch">
       <div className="min-w-0 flex-1 px-1 sm:px-3">
-        <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${accent}`}>{label}</p>
+        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${accent}`}>{label}</p>
         {children}
       </div>
-      {withDivider && <div className="hidden lg:block w-px bg-gray-800/80" />}
+      {withDivider && <div className="hidden lg:block w-px bg-zinc-200" />}
     </div>
   );
 }
@@ -106,26 +106,26 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   const nextShootCountdown = nextShootTarget ? formatCountdown(nextShootTarget - now) : '-';
 
   return (
-    <div className="mb-6 rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-900/80 px-4 py-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:px-5">
-      <div className="grid gap-4 lg:grid-cols-4">
-        <Section label="Realtime / Date" accent="text-white">
-          <div className="font-mono text-2xl font-bold tracking-tight text-white sm:text-3xl">
+    <div className="rounded-xl border border-zinc-200/80 bg-white px-4 py-5 sm:px-5">
+      <div className="grid gap-5 lg:grid-cols-4">
+        <Section label="Now" accent="text-zinc-400">
+          <div className="font-mono text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl tabular-nums">
             {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-gray-400">
+          <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-zinc-400">
             {format(now, 'EEE, d MMM yyyy')}
           </div>
         </Section>
 
-        <Section label="On Standby Now" accent="text-yellow-400">
+        <Section label="On Standby" accent="text-amber-700">
           {currentStandby.length > 0 ? (
             <div className="space-y-2">
               {currentStandby.map((sd) => {
                 const startDate = sd.start_date || sd.date;
                 return (
                   <div key={`${sd.admin_email}-${startDate}-${sd.start_time || ''}`} className="space-y-1">
-                    <div className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
-                      <Phone className="h-4 w-4 text-yellow-400" />
+                    <div className="flex items-center gap-2 text-base font-semibold text-zinc-900 sm:text-lg">
+                      <Phone className="h-4 w-4 text-amber-600" />
                       <span className="truncate">{getStandbyName(sd)}</span>
                     </div>
                     <div className="pl-6">
@@ -136,15 +136,15 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               })}
             </div>
           ) : (
-            <div className="pt-1 text-sm italic text-gray-500">No one on standby right now</div>
+            <div className="pt-1 text-sm text-zinc-400">No one on standby</div>
           )}
         </Section>
 
-        <Section label="Next On Standby" accent="text-gray-400">
+        <Section label="Next Standby" accent="text-zinc-400">
           {nextStandby ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
-                <ArrowRight className="h-4 w-4 text-gray-500" />
+              <div className="flex items-center gap-2 text-base font-semibold text-zinc-900 sm:text-lg">
+                <ArrowRight className="h-4 w-4 text-zinc-400" />
                 <span className="truncate">{getStandbyName(nextStandby)}</span>
               </div>
               <div className="pl-6">
@@ -152,25 +152,25 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
               </div>
             </div>
           ) : (
-            <div className="pt-1 text-sm italic text-gray-500">No upcoming standby scheduled</div>
+            <div className="pt-1 text-sm text-zinc-400">None scheduled</div>
           )}
         </Section>
 
-        <Section label="Your Next Shoot" accent="text-blue-400" withDivider={false}>
+        <Section label="Your Next Shoot" accent="text-teal-700" withDivider={false}>
           {nextShoot ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
-                <Camera className="h-4 w-4 text-blue-400" />
+              <div className="flex items-center gap-2 text-base font-semibold text-zinc-900 sm:text-lg">
+                <Camera className="h-4 w-4 text-teal-700" />
                 <span className="truncate">{shortenTitle(nextShoot.title)}</span>
               </div>
               <div className="flex flex-wrap gap-1.5 pl-6">
                 <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'EEE, MMM d')}</InfoPill>
                 {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
               </div>
-              <div className="pl-6 font-mono text-lg font-bold text-blue-400">{nextShootCountdown}</div>
+              <div className="pl-6 font-mono text-lg font-semibold text-teal-700 tabular-nums">{nextShootCountdown}</div>
             </div>
           ) : (
-            <div className="pt-1 text-sm italic text-gray-500">No upcoming assigned shoot</div>
+            <div className="pt-1 text-sm text-zinc-400">No upcoming shoot</div>
           )}
         </Section>
       </div>

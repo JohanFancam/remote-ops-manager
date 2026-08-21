@@ -6,10 +6,10 @@ import { format } from 'date-fns';
 
 const PHASES = [
   { key: 'setup_complete', label: 'Setup', icon: Zap, color: 'text-orange-400' },
-  { key: 'pre_shoot_started', label: 'Pre-Shoot', icon: Camera, color: 'text-blue-400' },
-  { key: 'attention_started', label: 'Attention', icon: AlertTriangle, color: 'text-yellow-400' },
-  { key: 'sound_started', label: 'Sound', icon: Volume2, color: 'text-green-400' },
-  { key: 'shoot_complete', label: 'Complete', icon: CheckCircle, color: 'text-green-400' },
+  { key: 'pre_shoot_started', label: 'Pre-Shoot', icon: Camera, color: 'text-teal-700' },
+  { key: 'attention_started', label: 'Attention', icon: AlertTriangle, color: 'text-amber-700' },
+  { key: 'sound_started', label: 'Sound', icon: Volume2, color: 'text-emerald-700' },
+  { key: 'shoot_complete', label: 'Complete', icon: CheckCircle, color: 'text-emerald-700' },
 ];
 
 function getLatestPhase(phaseStatus = {}) {
@@ -30,10 +30,10 @@ export default function LiveActivityPanel({ shoots = [], allUsers = [] }) {
   if (todayShoots.length === 0) return null;
 
   return (
-    <Card className="bg-gray-900 border-gray-800 mt-6">
-      <CardHeader className="border-b border-gray-800 pb-3">
-        <CardTitle className="text-white text-base flex items-center gap-2">
-          <Activity className="h-4 w-4 text-green-400 animate-pulse" />
+    <Card className="bg-white border-zinc-200 mt-6">
+      <CardHeader className="border-b border-zinc-200 pb-3">
+        <CardTitle className="text-zinc-900 text-base flex items-center gap-2">
+          <Activity className="h-4 w-4 text-emerald-700 animate-pulse" />
           Live Activity — Today's Shoots
         </CardTitle>
       </CardHeader>
@@ -44,24 +44,24 @@ export default function LiveActivityPanel({ shoots = [], allUsers = [] }) {
           const PhaseIcon = latestPhase?.icon || Clock;
 
           return (
-            <div key={shoot.id} className="bg-gray-800/50 rounded-lg p-3">
+            <div key={shoot.id} className="bg-zinc-50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white truncate">{shoot.title}</span>
+                <span className="text-sm font-medium text-zinc-900 truncate">{shoot.title}</span>
                 {shoot.game_time && (
-                  <span className="text-xs font-mono text-gray-500 ml-2 flex-shrink-0">{shoot.game_time}</span>
+                  <span className="text-xs font-mono text-zinc-400 ml-2 flex-shrink-0">{shoot.game_time}</span>
                 )}
               </div>
 
               {/* Phase indicator */}
               <div className="flex items-center gap-2 mb-2">
                 {latestPhase ? (
-                  <Badge className={`text-xs gap-1 border-0 ${isComplete ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-300'}`}>
+                  <Badge className={`text-xs gap-1 border-0 ${isComplete ? 'bg-green-500/20 text-emerald-700' : 'bg-teal-600/20 text-teal-700'}`}>
                     <PhaseIcon className="h-3 w-3" />
                     {latestPhase.label}
                     {isComplete ? ' ✓' : ''}
                   </Badge>
                 ) : (
-                  <Badge className="text-xs bg-gray-700/50 text-gray-500 border-0">
+                  <Badge className="text-xs bg-zinc-200/50 text-zinc-400 border-0">
                     Waiting for start
                   </Badge>
                 )}
@@ -73,8 +73,8 @@ export default function LiveActivityPanel({ shoots = [], allUsers = [] }) {
                   const done = !!shoot.phase_status?.[phase.key];
                   return (
                     <React.Fragment key={phase.key}>
-                      <div className={`h-2 w-2 rounded-full flex-shrink-0 ${done ? 'bg-green-400' : 'bg-gray-700'}`} title={phase.label} />
-                      {i < PHASES.length - 1 && <div className={`h-px flex-1 ${done ? 'bg-green-800' : 'bg-gray-700'}`} />}
+                      <div className={`h-2 w-2 rounded-full flex-shrink-0 ${done ? 'bg-green-400' : 'bg-zinc-200'}`} title={phase.label} />
+                      {i < PHASES.length - 1 && <div className={`h-px flex-1 ${done ? 'bg-green-800' : 'bg-zinc-200'}`} />}
                     </React.Fragment>
                   );
                 })}
@@ -86,7 +86,7 @@ export default function LiveActivityPanel({ shoots = [], allUsers = [] }) {
                   const u = allUsers.find(u2 => u2.email === email);
                   const isRemote = !u || u.role !== 'admin';
                   return (
-                    <span key={email} className={`text-xs px-2 py-0.5 rounded-full border ${isRemote ? 'bg-blue-950/40 border-blue-800/50 text-blue-300' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
+                    <span key={email} className={`text-xs px-2 py-0.5 rounded-full border ${isRemote ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-zinc-100 border-zinc-200 text-zinc-500'}`}>
                       {u?.full_name?.split(' ')[0] || email.split('@')[0]}
                       {!isRemote && ' (admin)'}
                     </span>

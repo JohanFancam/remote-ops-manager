@@ -58,20 +58,20 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
   };
 
   const statusBadge = {
-    pending: <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-xs">Pending</Badge>,
-    in_progress: <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-xs">In Progress</Badge>,
-    completed: <Badge className="bg-green-500/15 text-green-400 border-green-500/30 text-xs">Completed</Badge>,
+    pending: <Badge className="bg-yellow-500/15 text-amber-700 border-yellow-500/30 text-xs">Pending</Badge>,
+    in_progress: <Badge className="bg-teal-600/15 text-teal-700 border-teal-200 text-xs">In Progress</Badge>,
+    completed: <Badge className="bg-green-500/15 text-emerald-700 border-green-500/30 text-xs">Completed</Badge>,
   }[test.status] || null;
 
   return (
-    <div className={`rounded-xl border transition-colors ${test.status === 'completed' ? 'border-green-800/50 bg-green-950/10' : 'border-gray-800 bg-gray-900'}`}>
+    <div className={`rounded-xl border transition-colors ${test.status === 'completed' ? 'border-green-800/50 bg-emerald-50' : 'border-zinc-200 bg-white'}`}>
       <button className="w-full flex items-center gap-3 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-white text-sm">{test.title}</p>
+            <p className="font-semibold text-zinc-900 text-sm">{test.title}</p>
             {statusBadge}
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             {format(new Date(test.scheduled_date + 'T12:00:00'), 'EEE, MMM d yyyy')}
             {test.assigned_name ? ` · ${test.assigned_name}` : ''}
             {test.due_date && (
@@ -79,30 +79,30 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
             )}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 bg-gray-800 rounded-full h-1.5 max-w-[120px]">
+            <div className="flex-1 bg-zinc-100 rounded-full h-1.5 max-w-[120px]">
               <div
-                className="bg-blue-500 rounded-full h-1.5 transition-all"
+                className="bg-teal-600 rounded-full h-1.5 transition-all"
                 style={{ width: `${(checkedCount / checklist.length) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-gray-500">{checkedCount}/{checklist.length}</span>
+            <span className="text-xs text-zinc-400">{checkedCount}/{checklist.length}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isAdmin && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(test.id); }}
-              className="h-7 w-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-gray-800 transition-colors"
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-600 hover:bg-zinc-100 transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
-          {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-4">
+        <div className="px-4 pb-4 border-t border-zinc-200 pt-3 space-y-4">
           {/* Checklist */}
           <div className="space-y-2">
             {checklist.map((item, idx) => (
@@ -110,13 +110,13 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
                 key={idx}
                 onClick={() => handleToggleItem(idx)}
                 disabled={!canEdit}
-                className={`flex items-start gap-2.5 w-full text-left rounded-lg px-3 py-2 transition-colors ${item.checked ? 'bg-green-950/20 border border-green-800/40' : 'bg-gray-800/50 border border-gray-800 hover:bg-gray-800'} ${!canEdit ? 'cursor-default opacity-70' : ''}`}
+                className={`flex items-start gap-2.5 w-full text-left rounded-lg px-3 py-2 transition-colors ${item.checked ? 'bg-emerald-50 border border-green-800/40' : 'bg-zinc-50 border border-zinc-200 hover:bg-zinc-100'} ${!canEdit ? 'cursor-default opacity-70' : ''}`}
               >
                 {item.checked
-                  ? <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                  ? <CheckCircle2 className="h-4 w-4 text-emerald-700 flex-shrink-0 mt-0.5" />
                   : <Circle className="h-4 w-4 text-gray-600 flex-shrink-0 mt-0.5" />
                 }
-                <span className={`text-sm ${item.checked ? 'line-through text-gray-500' : 'text-gray-200'}`}>
+                <span className={`text-sm ${item.checked ? 'line-through text-zinc-400' : 'text-gray-200'}`}>
                   {item.item}
                 </span>
               </button>
@@ -125,19 +125,19 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
 
           {/* Comments */}
           <div>
-            <label className="text-xs text-gray-400 font-medium mb-1.5 block">Comments / Issues</label>
+            <label className="text-xs text-zinc-500 font-medium mb-1.5 block">Comments / Issues</label>
             <textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
               disabled={!canEdit}
               placeholder="Log any issues or notes here..."
               rows={3}
-              className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 resize-none placeholder:text-gray-600 focus:outline-none focus:border-blue-600 disabled:opacity-60"
+              className="w-full bg-zinc-100 border border-zinc-200 text-zinc-900 text-sm rounded-lg px-3 py-2 resize-none placeholder:text-gray-600 focus:outline-none focus:border-teal-700 disabled:opacity-60"
             />
             {canEdit && (
               <Button
                 size="sm"
-                className="mt-1.5 h-7 text-xs bg-gray-700 hover:bg-gray-600"
+                className="mt-1.5 h-7 text-xs bg-zinc-200 hover:bg-gray-600"
                 onClick={handleSaveComment}
                 disabled={savingComment}
               >
@@ -162,7 +162,7 @@ function RigTestCard({ test, user, isAdmin, onUpdate, onDelete }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs gap-1"
+                  className="border-zinc-200 text-zinc-500 hover:bg-zinc-100 text-xs gap-1"
                   onClick={handleMarkPending}
                 >
                   <X className="h-3.5 w-3.5" /> Reset to Pending
@@ -246,31 +246,31 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
     <div className="space-y-3">
       {isAdmin && (
         <div className="flex justify-end">
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-xs" onClick={() => setShowAdd(!showAdd)}>
+          <Button size="sm" className="bg-teal-700 hover:bg-teal-800 gap-1.5 text-xs" onClick={() => setShowAdd(!showAdd)}>
             <Plus className="h-3.5 w-3.5" /> Schedule Rig Test
           </Button>
         </div>
       )}
 
       {showAdd && isAdmin && (
-        <div className="bg-gray-800/60 border border-blue-700/40 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-medium text-white">New Rig Test</p>
-          <Input placeholder="Title e.g. Weekly Rig Check" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 h-8 text-sm" />
+        <div className="bg-zinc-100/60 border border-teal-200 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium text-zinc-900">New Rig Test</p>
+          <Input placeholder="Title e.g. Weekly Rig Check" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="bg-zinc-200 border-zinc-300 text-zinc-900 placeholder:text-zinc-400 h-8 text-sm" />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-500 block mb-0.5">Scheduled Date</label>
-              <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+              <label className="text-[10px] text-zinc-400 block mb-0.5">Scheduled Date</label>
+              <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="bg-zinc-200 border-zinc-300 text-zinc-900 h-8 text-sm" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 block mb-0.5">Due Date (optional)</label>
-              <Input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+              <label className="text-[10px] text-zinc-400 block mb-0.5">Due Date (optional)</label>
+              <Input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="bg-zinc-200 border-zinc-300 text-zinc-900 h-8 text-sm" />
             </div>
           </div>
           {assignableUsers.length > 0 && (
             <select
               value={newAssigned}
               onChange={e => setNewAssigned(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm h-8"
+              className="w-full bg-zinc-200 border border-zinc-300 text-zinc-900 rounded-md px-3 py-2 text-sm h-8"
             >
               {assignableUsers.map(u => (
                 <option key={u.email} value={u.email}>{u.full_name || u.email}</option>
@@ -278,14 +278,14 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
             </select>
           )}
           <div className="flex gap-2">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs" onClick={handleAdd}>Create</Button>
-            <Button size="sm" variant="ghost" className="text-gray-400 text-xs" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button size="sm" className="bg-teal-700 hover:bg-teal-800 text-xs" onClick={handleAdd}>Create</Button>
+            <Button size="sm" variant="ghost" className="text-zinc-500 text-xs" onClick={() => setShowAdd(false)}>Cancel</Button>
           </div>
         </div>
       )}
 
       {upcoming.length === 0 && completed.length === 0 && (
-        <p className="text-sm text-gray-500 text-center py-4">No rig tests scheduled.</p>
+        <p className="text-sm text-zinc-400 text-center py-4">No rig tests scheduled.</p>
       )}
 
       {upcoming.length > 0 && (
@@ -298,7 +298,7 @@ export default function RigTestPanel({ user, isAdmin, isStandby, allUsers = [] }
 
       {completed.length > 0 && (
         <details className="group">
-          <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1.5 py-1 select-none list-none">
+          <summary className="cursor-pointer text-xs text-zinc-400 hover:text-zinc-600 flex items-center gap-1.5 py-1 select-none list-none">
             <ChevronDown className="h-3.5 w-3.5 group-open:rotate-180 transition-transform" />
             {completed.length} completed
           </summary>

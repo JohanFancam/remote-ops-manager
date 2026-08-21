@@ -17,7 +17,7 @@ function formatDuration(ms) {
 function getDurationColor(ms) {
   const mins = ms / 60000;
   if (mins < 90) return 'bg-green-600';
-  if (mins < 180) return 'bg-blue-600';
+  if (mins < 180) return 'bg-teal-700';
   if (mins < 300) return 'bg-yellow-600';
   return 'bg-orange-600';
 }
@@ -107,27 +107,27 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
     <div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+        <div className="bg-zinc-50 rounded-lg p-3 text-center">
           <p className="text-xl font-bold text-purple-400">{monthShoots.length}</p>
-          <p className="text-xs text-gray-400">This Month</p>
+          <p className="text-xs text-zinc-500">This Month</p>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-          <p className="text-xl font-bold text-blue-400">{formatDuration(monthAvg)}</p>
-          <p className="text-xs text-gray-400">Avg Duration</p>
+        <div className="bg-zinc-50 rounded-lg p-3 text-center">
+          <p className="text-xl font-bold text-teal-700">{formatDuration(monthAvg)}</p>
+          <p className="text-xs text-zinc-500">Avg Duration</p>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-          <p className="text-xl font-bold text-green-400">{formatDuration(avgMs)}</p>
-          <p className="text-xs text-gray-400">All-Time Avg</p>
+        <div className="bg-zinc-50 rounded-lg p-3 text-center">
+          <p className="text-xl font-bold text-emerald-700">{formatDuration(avgMs)}</p>
+          <p className="text-xs text-zinc-500">All-Time Avg</p>
         </div>
       </div>
 
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-3">
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={() => { setCurrentMonth(m => subMonths(m, 1)); setSelectedDay(null); }}>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-zinc-900" onClick={() => { setCurrentMonth(m => subMonths(m, 1)); setSelectedDay(null); }}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-semibold text-white">{format(currentMonth, 'MMMM yyyy')}</span>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={() => { setCurrentMonth(m => addMonths(m, 1)); setSelectedDay(null); }}>
+        <span className="text-sm font-semibold text-zinc-900">{format(currentMonth, 'MMMM yyyy')}</span>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-zinc-900" onClick={() => { setCurrentMonth(m => addMonths(m, 1)); setSelectedDay(null); }}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -151,18 +151,18 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
               onClick={() => hasShoots ? setSelectedDay(isSameDay(day, selectedDay) ? null : day) : null}
               className={`min-h-[88px] p-1.5 rounded-lg border transition-all ${
                 isSelected ? 'border-purple-500 bg-purple-950/40' :
-                hasShoots ? 'border-gray-700 hover:border-gray-500 cursor-pointer hover:bg-gray-800/40' :
-                'border-gray-800/40'
+                hasShoots ? 'border-zinc-200 hover:border-gray-500 cursor-pointer hover:bg-zinc-100/40' :
+                'border-zinc-200/40'
               } ${today ? 'ring-1 ring-blue-500' : ''}`}
             >
-              <div className={`text-xs mb-1.5 font-medium ${today ? 'text-blue-400' : 'text-gray-500'}`}>
+              <div className={`text-xs mb-1.5 font-medium ${today ? 'text-teal-700' : 'text-zinc-400'}`}>
                 {format(day, 'd')}
               </div>
               <div className="space-y-0.5">
                 {dayShoots.length > 0 && (
                   <div className="text-xs font-bold text-purple-300 px-1">{formatDuration(getDayTotalMs(dayShoots))}</div>
                 )}
-                {dayShoots.length > 0 && <div className="text-xs text-gray-500 px-1">{dayShoots.length} shoot{dayShoots.length !== 1 ? 's' : ''}</div>}
+                {dayShoots.length > 0 && <div className="text-xs text-zinc-400 px-1">{dayShoots.length} shoot{dayShoots.length !== 1 ? 's' : ''}</div>}
               </div>
             </div>
           );
@@ -173,13 +173,13 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
       <div className="flex flex-wrap gap-3 mb-4 text-xs">
         {[
           { color: 'bg-green-600', label: '< 1.5h' },
-          { color: 'bg-blue-600', label: '1.5–3h' },
+          { color: 'bg-teal-700', label: '1.5–3h' },
           { color: 'bg-yellow-600', label: '3–5h' },
           { color: 'bg-orange-600', label: '5h+' },
         ].map(l => (
           <div key={l.label} className="flex items-center gap-1.5">
             <div className={`w-3 h-3 rounded ${l.color}`} />
-            <span className="text-gray-400">{l.label}</span>
+            <span className="text-zinc-500">{l.label}</span>
           </div>
         ))}
       </div>
@@ -188,8 +188,8 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
       {selectedDay && (
         <div className="mt-2">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold text-white">{format(selectedDay, 'EEE, MMM d')}</p>
-            <button onClick={() => setSelectedDay(null)} className="text-gray-500 hover:text-gray-300">
+            <p className="text-sm font-semibold text-zinc-900">{format(selectedDay, 'EEE, MMM d')}</p>
+            <button onClick={() => setSelectedDay(null)} className="text-zinc-400 hover:text-zinc-600">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -200,44 +200,44 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
           </div>
           <div className="space-y-2">
             {selectedDayShoots.map(s => (
-              <div key={s.id} className="bg-gray-800/60 rounded-lg px-4 py-3">
+              <div key={s.id} className="bg-zinc-100/60 rounded-lg px-4 py-3">
                 <div
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setSelectedShoot(selectedShoot?.id === s.id ? null : s)}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{shortenTitle(s.title)}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">
+                    <p className="text-sm font-medium text-zinc-900 truncate">{shortenTitle(s.title)}</p>
+                    <p className="text-xs text-zinc-400 font-mono mt-0.5">
                       {format(s.start, 'HH:mm')} → {format(s.end, 'HH:mm')}
                     </p>
                   </div>
-                  <div className={`ml-3 px-2.5 py-1 rounded-lg text-white text-sm font-bold ${getDurationColor(s.durationMs)}`}>
+                  <div className={`ml-3 px-2.5 py-1 rounded-lg text-zinc-900 text-sm font-bold ${getDurationColor(s.durationMs)}`}>
                     {formatDuration(s.durationMs)}
                   </div>
                 </div>
                 {/* Expanded detail */}
                 {selectedShoot?.id === s.id && (
-                  <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
+                  <div className="mt-3 pt-3 border-t border-zinc-200 space-y-2">
                     {editingId === s.id ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-gray-400 font-medium">Edit Setup & Complete Times</p>
+                        <p className="text-xs text-zinc-500 font-medium">Edit Setup & Complete Times</p>
                         <div className="flex gap-3 items-center">
                           <div className="flex-1">
-                            <label className="text-xs text-gray-500 block mb-1">Setup Start</label>
+                            <label className="text-xs text-zinc-400 block mb-1">Setup Start</label>
                             <input
                               type="time"
                               value={editStart}
                               onChange={e => setEditStart(e.target.value)}
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white font-mono"
+                              className="w-full bg-zinc-200 border border-zinc-300 rounded px-2 py-1.5 text-sm text-zinc-900 font-mono"
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="text-xs text-gray-500 block mb-1">Shoot End</label>
+                            <label className="text-xs text-zinc-400 block mb-1">Shoot End</label>
                             <input
                               type="time"
                               value={editEnd}
                               onChange={e => setEditEnd(e.target.value)}
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white font-mono"
+                              className="w-full bg-zinc-200 border border-zinc-300 rounded px-2 py-1.5 text-sm text-zinc-900 font-mono"
                             />
                           </div>
                         </div>
@@ -251,7 +251,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-zinc-200 hover:bg-gray-600 text-zinc-900 text-xs rounded"
                           >
                             <XCircle className="h-3 w-3" /> Cancel
                           </button>
@@ -261,31 +261,31 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                       <>
                         {s.game_time && (
                           <div className="flex gap-2 text-xs">
-                            <span className="text-gray-500 w-20">Game Time</span>
-                            <span className="text-gray-300 font-mono">{s.game_time}</span>
+                            <span className="text-zinc-400 w-20">Game Time</span>
+                            <span className="text-zinc-600 font-mono">{s.game_time}</span>
                           </div>
                         )}
                         {s.location && (
                           <div className="flex gap-2 text-xs">
-                            <span className="text-gray-500 w-20">Location</span>
-                            <span className="text-gray-300">{s.location}</span>
+                            <span className="text-zinc-400 w-20">Location</span>
+                            <span className="text-zinc-600">{s.location}</span>
                           </div>
                         )}
                         <div className="flex gap-2 text-xs">
-                          <span className="text-gray-500 w-20">Setup</span>
-                          <span className="text-gray-300 font-mono">{format(s.start, 'HH:mm')}</span>
+                          <span className="text-zinc-400 w-20">Setup</span>
+                          <span className="text-zinc-600 font-mono">{format(s.start, 'HH:mm')}</span>
                         </div>
                         <div className="flex gap-2 text-xs">
-                          <span className="text-gray-500 w-20">Complete</span>
-                          <span className="text-gray-300 font-mono">{format(s.end, 'HH:mm')}</span>
+                          <span className="text-zinc-400 w-20">Complete</span>
+                          <span className="text-zinc-600 font-mono">{format(s.end, 'HH:mm')}</span>
                         </div>
                         {s.assigned_operators?.length > 0 && (
                           <div className="flex gap-2 text-xs">
-                            <span className="text-gray-500 w-20 flex-shrink-0">Operators</span>
+                            <span className="text-zinc-400 w-20 flex-shrink-0">Operators</span>
                             <div className="flex flex-col gap-0.5">
                               {s.assigned_operators.map(email => {
                                 const u = allUsers.find(u2 => u2.email === email);
-                                return <span key={email} className="text-gray-300">{getDisplayName(u, email)}</span>;
+                                return <span key={email} className="text-zinc-600">{getDisplayName(u, email)}</span>;
                               })}
                             </div>
                           </div>
@@ -294,13 +294,13 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                           <div className="flex items-center gap-3 pt-1">
                             <button
                               onClick={() => startEdit(s)}
-                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                              className="flex items-center gap-1 text-xs text-teal-700 hover:text-teal-700"
                             >
                               <Edit2 className="h-3 w-3" /> Edit timing
                             </button>
                             {confirmDeleteId === s.id ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-red-400">Delete entry?</span>
+                                <span className="text-xs text-red-600">Delete entry?</span>
                                 <button
                                   onClick={() => deleteEntry(s)}
                                   disabled={saving}
@@ -308,13 +308,13 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                                 >Yes</button>
                                 <button
                                   onClick={() => setConfirmDeleteId(null)}
-                                  className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                                  className="text-xs px-2 py-0.5 bg-zinc-200 hover:bg-gray-600 text-zinc-900 rounded"
                                 >No</button>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setConfirmDeleteId(s.id)}
-                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                                className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="h-3 w-3" /> Delete
                               </button>
@@ -334,7 +334,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
       {timedShoots.length === 0 && (
         <div className="text-center py-10">
           <Clock className="h-10 w-10 text-gray-700 mx-auto mb-2" />
-          <p className="text-gray-500 text-sm">No completed shoots with timing data yet.</p>
+          <p className="text-zinc-400 text-sm">No completed shoots with timing data yet.</p>
           <p className="text-xs text-gray-600 mt-1">Timing is captured from "Setup Complete" → "Shoot Complete".</p>
         </div>
       )}

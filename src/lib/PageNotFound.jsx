@@ -34,7 +34,7 @@ export default function PageNotFound({}) {
                         <h2 className="text-2xl font-medium text-slate-800">
                             Page Not Found
                         </h2>
-                        <p className="text-slate-600 leading-relaxed">
+                        <p className="text-zinc-400 leading-relaxed">
                             The page <span className="font-medium text-slate-700">"{pageName}"</span> could not be found in this application.
                         </p>
                     </div>
@@ -48,7 +48,7 @@ export default function PageNotFound({}) {
                                 </div>
                                 <div className="text-left space-y-1">
                                     <p className="text-sm font-medium text-slate-700">Admin Note</p>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                    <p className="text-sm text-zinc-400 leading-relaxed">
                                         This could mean that the AI hasn't implemented this page yet. Ask it to implement it in the chat.
                                     </p>
                                 </div>

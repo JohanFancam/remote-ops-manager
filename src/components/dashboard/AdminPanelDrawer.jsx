@@ -14,15 +14,15 @@ export default function AdminPanelDrawer({ title, open, onClose, children, wide 
       />
       {/* Drawer */}
       <div className={cn(
-        "fixed top-0 right-0 z-50 h-full bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl overflow-hidden transition-all",
+        "fixed top-0 right-0 z-50 h-full bg-white border-l border-zinc-200 flex flex-col shadow-2xl overflow-hidden transition-all",
         wide ? "w-full md:w-[720px]" : "w-full md:w-[520px]"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 flex-shrink-0">
-          <h2 className="text-white font-semibold text-base">{title}</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 flex-shrink-0">
+          <h2 className="text-zinc-900 font-semibold text-base">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg p-1.5 transition-colors"
+            className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg p-1.5 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>

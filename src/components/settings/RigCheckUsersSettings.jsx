@@ -39,33 +39,33 @@ export default function RigCheckUsersSettings({ appSettings, allUsers = [] }) {
   const eligibleUsers = allUsers.filter(u => !u.inactive);
 
   return (
-    <Card className="bg-gray-900 border-gray-800 mb-6">
-      <CardHeader className="border-b border-gray-800 pb-4">
-        <CardTitle className="text-white flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-yellow-400" /> Rig Check Permissions
+    <Card className="bg-white border-zinc-200 mb-6">
+      <CardHeader className="border-b border-zinc-200 pb-4">
+        <CardTitle className="text-zinc-900 flex items-center gap-2">
+          <Wrench className="h-5 w-5 text-amber-700" /> Rig Check Permissions
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-zinc-400">
           Select which users can perform rig checks on the calendar. Admins and standby users always have access.
           Leave empty to keep it restricted to standby/admin only.
         </p>
 
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {eligibleUsers.map(u => (
-            <label key={u.email} className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 px-2 py-1.5 rounded-lg">
+            <label key={u.email} className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 px-2 py-1.5 rounded-lg">
               <input
                 type="checkbox"
                 checked={rigCheckUsers.includes(u.email)}
                 onChange={() => toggle(u.email)}
                 className="accent-yellow-500"
               />
-              <span className="text-sm text-gray-300">{u.full_name || u.email}</span>
+              <span className="text-sm text-zinc-600">{u.full_name || u.email}</span>
               <span className="text-xs text-gray-600">{u.email}</span>
               <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${
-                u.role === 'admin' ? 'bg-blue-900/40 text-blue-400' :
-                u.role === 'standby' ? 'bg-yellow-900/40 text-yellow-400' :
-                'bg-green-900/40 text-green-400'
+                u.role === 'admin' ? 'bg-teal-50 text-teal-700' :
+                u.role === 'standby' ? 'bg-yellow-900/40 text-amber-700' :
+                'bg-green-900/40 text-emerald-700'
               }`}>{u.role === 'admin' ? 'Admin' : u.role === 'standby' ? 'Standby' : 'Remote'}</span>
             </label>
           ))}

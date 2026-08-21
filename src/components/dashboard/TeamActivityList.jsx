@@ -45,16 +45,16 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
   return (
     <div className="space-y-6">
       {/* Today's Activity */}
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader className="border-b border-gray-800 pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Activity className="h-4 w-4 text-green-400 animate-pulse" />
+      <Card className="bg-white border-zinc-200">
+        <CardHeader className="border-b border-zinc-200 pb-3">
+          <CardTitle className="text-zinc-900 text-base flex items-center gap-2">
+            <Activity className="h-4 w-4 text-emerald-700 animate-pulse" />
             Today's Team Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {todayShoots.length === 0 ? (
-            <p className="text-gray-500 text-sm p-6 text-center">No shoots scheduled for today.</p>
+            <p className="text-zinc-400 text-sm p-6 text-center">No shoots scheduled for today.</p>
           ) : (
             <div className="divide-y divide-gray-800">
               {todayShoots.map(shoot => {
@@ -66,22 +66,22 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                   <div key={shoot.id} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <span className="font-medium text-white text-sm">{shoot.title}</span>
+                        <span className="font-medium text-zinc-900 text-sm">{shoot.title}</span>
                         {shoot.location && (
-                          <span className="text-xs text-gray-500 ml-2 flex items-center gap-1 inline-flex">
+                          <span className="text-xs text-zinc-400 ml-2 flex items-center gap-1 inline-flex">
                             <MapPin className="h-3 w-3" />{shoot.location}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {shoot.game_time && <span className="text-xs font-mono text-gray-500">{shoot.game_time}</span>}
+                        {shoot.game_time && <span className="text-xs font-mono text-zinc-400">{shoot.game_time}</span>}
                         {latestPhase ? (
-                          <Badge className={`text-xs gap-1 border-0 ${isComplete ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-300'}`}>
+                          <Badge className={`text-xs gap-1 border-0 ${isComplete ? 'bg-green-500/20 text-emerald-700' : 'bg-teal-600/20 text-teal-700'}`}>
                             <PhaseIcon className="h-3 w-3" />
                             {latestPhase.label}
                           </Badge>
                         ) : (
-                          <Badge className="text-xs bg-gray-700/50 text-gray-500 border-0">Not started</Badge>
+                          <Badge className="text-xs bg-zinc-200/50 text-zinc-400 border-0">Not started</Badge>
                         )}
                       </div>
                     </div>
@@ -94,9 +94,9 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                           <React.Fragment key={phase.key}>
                             <div
                               title={phase.label}
-                              className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${done ? 'bg-green-400' : 'bg-gray-700'}`}
+                              className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${done ? 'bg-green-400' : 'bg-zinc-200'}`}
                             />
-                            {i < PHASES.length - 1 && <div className={`h-px flex-1 ${done ? 'bg-green-800' : 'bg-gray-700'}`} />}
+                            {i < PHASES.length - 1 && <div className={`h-px flex-1 ${done ? 'bg-green-800' : 'bg-zinc-200'}`} />}
                           </React.Fragment>
                         );
                       })}
@@ -109,7 +109,7 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                         const isRemote = !u || u.role !== 'admin';
                         return (
                           <span key={email} className={`text-xs px-2 py-0.5 rounded-full border ${
-                            isRemote ? 'bg-blue-950/40 border-blue-800/50 text-blue-300' : 'bg-gray-800 border-gray-700 text-gray-400'
+                            isRemote ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-zinc-100 border-zinc-200 text-zinc-500'
                           }`}>
                             {getDisplayName(u, email)}
                             {!isRemote && ' (admin)'}
@@ -117,7 +117,7 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
                         );
                       })}
                       {shoot.standby_admin && (
-                        <span className="text-xs px-2 py-0.5 rounded-full border bg-yellow-950/40 border-yellow-800/50 text-yellow-300">
+                        <span className="text-xs px-2 py-0.5 rounded-full border bg-yellow-950/40 border-yellow-800/50 text-amber-700">
                           {getDisplayName(allUsers.find(u => u.email === shoot.standby_admin), shoot.standby_admin)} (standby)
                         </span>
                       )}
@@ -135,10 +135,10 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
 
       {/* Upcoming assignments */}
       {upcomingShoots.length > 0 && (
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="border-b border-gray-800 pb-3">
-            <CardTitle className="text-white text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-400" />
+        <Card className="bg-white border-zinc-200">
+          <CardHeader className="border-b border-zinc-200 pb-3">
+            <CardTitle className="text-zinc-900 text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-teal-700" />
               Upcoming Assignments
             </CardTitle>
           </CardHeader>
@@ -147,15 +147,15 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
               {upcomingShoots.map(shoot => (
                 <div key={shoot.id} className="px-4 py-3 flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-white">{shoot.title}</span>
-                    <span className="text-xs text-gray-500 ml-2">{format(new Date(shoot.date), 'EEE MMM d')}</span>
+                    <span className="text-sm font-medium text-zinc-900">{shoot.title}</span>
+                    <span className="text-xs text-zinc-400 ml-2">{format(new Date(shoot.date), 'EEE MMM d')}</span>
                     {shoot.game_time && <span className="text-xs font-mono text-gray-600 ml-1">{shoot.game_time}</span>}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {(shoot.assigned_operators || []).map(email => {
                       const u = allUsers.find(u2 => u2.email === email);
                       return (
-                        <span key={email} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+                        <span key={email} className="text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full">
                           {getDisplayName(u, email)}
                         </span>
                       );

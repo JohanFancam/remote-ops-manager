@@ -12,9 +12,9 @@ import jsPDF from 'jspdf';
 
 // Day types
 const DAY_TYPES = [
-  { value: 'work_day', label: 'Work Day', color: 'bg-gray-800 text-gray-300 border-gray-700' },
-  { value: 'shoot', label: 'Shoot', color: 'bg-blue-900/30 text-blue-400 border-blue-700/50' },
-  { value: 'standby', label: 'Standby', color: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50' },
+  { value: 'work_day', label: 'Work Day', color: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+  { value: 'shoot', label: 'Shoot', color: 'bg-teal-50 text-teal-700 border-teal-200' },
+  { value: 'standby', label: 'Standby', color: 'bg-yellow-900/30 text-amber-700 border-yellow-700/50' },
   { value: 'shoot_standby', label: 'Shoot/Standby', color: 'bg-purple-900/30 text-purple-400 border-purple-700/50' },
 ];
 
@@ -87,67 +87,67 @@ function AddEntryForm({ onAdd, onClose }) {
   };
 
   return (
-    <Card className="bg-gray-800 border-gray-700 mb-4">
-      <CardHeader className="pb-3 border-b border-gray-700">
+    <Card className="bg-zinc-100 border-zinc-200 mb-4">
+      <CardHeader className="pb-3 border-b border-zinc-200">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-sm flex items-center gap-2">
-            <Plus className="h-4 w-4 text-blue-400" /> Add Work Day Entry
+          <CardTitle className="text-zinc-900 text-sm flex items-center gap-2">
+            <Plus className="h-4 w-4 text-teal-700" /> Add Work Day Entry
           </CardTitle>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900"><X className="h-4 w-4" /></button>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Date</label>
+              <label className="text-xs text-zinc-500 mb-1 block">Date</label>
               <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+                className="bg-zinc-200 border-zinc-300 text-zinc-900 h-9 text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Type</label>
+              <label className="text-xs text-zinc-500 mb-1 block">Type</label>
               <select value={form.day_type} onChange={e => setForm({ ...form, day_type: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-2 py-2 text-sm h-9">
+                className="w-full bg-zinc-200 border border-zinc-300 text-zinc-900 rounded-md px-2 py-2 text-sm h-9">
                 {DAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Start Time</label>
+              <label className="text-xs text-zinc-500 mb-1 block">Start Time</label>
               <Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+                className="bg-zinc-200 border-zinc-300 text-zinc-900 h-9 text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">End Time</label>
+              <label className="text-xs text-zinc-500 mb-1 block">End Time</label>
               <Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+                className="bg-zinc-200 border-zinc-300 text-zinc-900 h-9 text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">
+              <label className="text-xs text-zinc-500 mb-1 block">
                 Hours {form.start_time && form.end_time ? '(auto)' : '(manual)'}
               </label>
               {form.start_time && form.end_time ? (
-                <div className="h-9 flex items-center px-3 bg-gray-900 border border-gray-700 rounded-md font-mono text-sm text-white">
+                <div className="h-9 flex items-center px-3 bg-white border border-zinc-200 rounded-md font-mono text-sm text-zinc-900">
                   {derivedHours ? `${derivedHours}h` : '—'}
                 </div>
               ) : (
                 <Input type="number" step="0.25" min="0" placeholder="e.g. 9.5"
                   value={form.hours} onChange={e => setForm({ ...form, hours: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+                  className="bg-zinc-200 border-zinc-300 text-zinc-900 h-9 text-sm" />
               )}
             </div>
             <div className="col-span-1 md:col-span-3">
-              <label className="text-xs text-gray-400 mb-1 block">Notes (optional)</label>
+              <label className="text-xs text-zinc-500 mb-1 block">Notes (optional)</label>
               <Input placeholder="e.g. Lakers shoot + travel" value={form.notes}
                 onChange={e => setForm({ ...form, notes: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white h-9 text-sm" />
+                className="bg-zinc-200 border-zinc-300 text-zinc-900 h-9 text-sm" />
             </div>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-zinc-400">
             💡 Each day has one entry with a total duration. Multiple shoots/standby on the same day don't multiply hours.
           </div>
-          <Button type="submit" disabled={!effectiveHours} className="bg-blue-600 hover:bg-blue-700 h-9 text-sm">
+          <Button type="submit" disabled={!effectiveHours} className="bg-teal-700 hover:bg-teal-800 h-9 text-sm">
             Add Entry
           </Button>
         </form>
@@ -178,12 +178,12 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
   };
 
   return (
-    <div className={`rounded-xl border transition-colors ${isToday ? 'border-blue-700 bg-blue-950/20' : 'border-gray-800 bg-gray-900'}`}>
+    <div className={`rounded-xl border transition-colors ${isToday ? 'border-teal-700 bg-teal-50' : 'border-zinc-200 bg-white'}`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setOpen(!open)}>
-        <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-blue-600' : 'bg-gray-800'}`}>
-          <span className="text-xs text-gray-300 leading-none">{dayLabel}</span>
-          <span className="text-xl font-bold text-white leading-tight">{dayNum}</span>
-          <span className="text-xs text-gray-400 leading-none">{monthLabel}</span>
+        <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-teal-700' : 'bg-zinc-100'}`}>
+          <span className="text-xs text-zinc-600 leading-none">{dayLabel}</span>
+          <span className="text-xl font-bold text-zinc-900 leading-tight">{dayNum}</span>
+          <span className="text-xs text-zinc-500 leading-none">{monthLabel}</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-1.5 mb-1">
@@ -191,47 +191,47 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
               {typeInfo.label}
             </span>
             {entry.notes && (
-              <span className="text-xs text-gray-500 truncate max-w-xs">{entry.notes}</span>
+              <span className="text-xs text-zinc-400 truncate max-w-xs">{entry.notes}</span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="font-mono font-bold text-lg text-white">
+          <span className="font-mono font-bold text-lg text-zinc-900">
             {entry.hours ? `${Number(entry.hours).toFixed(1)}h` : '—'}
           </span>
-          <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-4 w-4 text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 border-t border-gray-800 pt-3">
+        <div className="px-4 pb-4 border-t border-zinc-200 pt-3">
           {editing ? (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Type</label>
+                  <label className="text-xs text-zinc-500 mb-1 block">Type</label>
                   <select value={editForm.day_type} onChange={e => setEditForm({ ...editForm, day_type: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm">
+                    className="w-full bg-zinc-200 border border-zinc-300 text-zinc-900 rounded-md px-2 py-1.5 text-sm">
                     {DAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Hours</label>
+                  <label className="text-xs text-zinc-500 mb-1 block">Hours</label>
                   <Input type="number" step="0.25" min="0" value={editForm.hours}
                     onChange={e => setEditForm({ ...editForm, hours: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+                    className="bg-zinc-200 border-zinc-300 text-zinc-900 h-8 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Notes</label>
+                  <label className="text-xs text-zinc-500 mb-1 block">Notes</label>
                   <Input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white h-8 text-sm" />
+                    className="bg-zinc-200 border-zinc-300 text-zinc-900 h-8 text-sm" />
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 gap-1 text-xs" onClick={handleSave}>
+                <Button size="sm" className="bg-teal-700 hover:bg-teal-800 h-7 gap-1 text-xs" onClick={handleSave}>
                   <Save className="h-3 w-3" /> Save
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-400" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
             </div>
           ) : (
@@ -239,17 +239,17 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge className={`text-xs border ${typeInfo.color}`}>{typeInfo.label}</Badge>
-                  <span className="font-mono font-bold text-white">{Number(entry.hours).toFixed(2)}h</span>
+                  <span className="font-mono font-bold text-zinc-900">{Number(entry.hours).toFixed(2)}h</span>
                 </div>
-                {entry.notes && <p className="text-sm text-gray-300">{entry.notes}</p>}
+                {entry.notes && <p className="text-sm text-zinc-600">{entry.notes}</p>}
                 <p className="text-xs text-gray-600">Added: {entry.operator_name || entry.operator_email}</p>
               </div>
               {canModify && (
                 <div className="flex gap-1 flex-shrink-0">
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-400 hover:bg-gray-800" onClick={() => setEditing(true)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-teal-700 hover:bg-zinc-100" onClick={() => setEditing(true)}>
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-gray-800" onClick={() => onDelete(entry.id)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-600 hover:bg-zinc-100" onClick={() => onDelete(entry.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -325,16 +325,16 @@ export default function Timesheets() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
+    <div className="min-h-screen bg-zinc-100 text-zinc-900 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Timesheets</h1>
           <div className="flex gap-2">
-            <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-blue-600 hover:bg-blue-700 gap-2 h-9">
+            <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-teal-700 hover:bg-teal-800 gap-2 h-9">
               <Plus className="h-4 w-4" /> Add Entry
             </Button>
             <Button onClick={() => exportTimesheetPDF(dedupedEntries, `Timesheet ${filterMonth}`)}
-              variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 gap-2 h-9">
+              variant="outline" className="border-zinc-200 text-zinc-600 hover:bg-zinc-100 gap-2 h-9">
               <Download className="h-4 w-4" /> Export PDF
             </Button>
           </div>
@@ -342,35 +342,35 @@ export default function Timesheets() {
 
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(-1)}>
+          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="text-xl font-semibold text-zinc-900">
             {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}
           </h2>
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-800" onClick={() => goMonth(1)}>
+          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white border-zinc-200">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Total Hours</p>
-              <p className="text-2xl font-bold text-white mt-1">{totalHours.toFixed(1)}h</p>
+              <p className="text-zinc-500 text-sm">Total Hours</p>
+              <p className="text-2xl font-bold text-zinc-900 mt-1">{totalHours.toFixed(1)}h</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white border-zinc-200">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Work Days</p>
-              <p className="text-2xl font-bold text-white mt-1">{dedupedEntries.length}</p>
+              <p className="text-zinc-500 text-sm">Work Days</p>
+              <p className="text-2xl font-bold text-zinc-900 mt-1">{dedupedEntries.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white border-zinc-200">
             <CardContent className="p-5">
-              <p className="text-gray-400 text-sm">Shoot Days</p>
-              <p className="text-2xl font-bold text-blue-400 mt-1">
+              <p className="text-zinc-500 text-sm">Shoot Days</p>
+              <p className="text-2xl font-bold text-teal-700 mt-1">
                 {dedupedEntries.filter(e => e.day_type === 'shoot' || e.day_type === 'shoot_standby').length}
               </p>
             </CardContent>
@@ -381,12 +381,12 @@ export default function Timesheets() {
           <AddEntryForm onAdd={handleAdd} onClose={() => setShowAddForm(false)} />
         )}
 
-        <div className="mb-4 text-xs text-gray-500 bg-gray-900/60 border border-gray-800 rounded-lg px-4 py-3">
-          💡 <strong className="text-gray-400">One entry per day</strong> — multiple shoots or standby on the same day are recorded as one duration. Use <em>Shoot/Standby</em> type if both apply. Hours don't stack per shoot.
+        <div className="mb-4 text-xs text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-3">
+          💡 <strong className="text-zinc-500">One entry per day</strong> — multiple shoots or standby on the same day are recorded as one duration. Use <em>Shoot/Standby</em> type if both apply. Hours don't stack per shoot.
         </div>
 
         {dedupedEntries.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">No entries for this month. Use "Add Entry" to log time.</div>
+          <div className="text-center py-16 text-zinc-400">No entries for this month. Use "Add Entry" to log time.</div>
         ) : (
           <div className="space-y-3">
             {dedupedEntries.map(entry => (
