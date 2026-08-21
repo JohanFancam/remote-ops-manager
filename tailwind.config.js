@@ -5,7 +5,9 @@ module.exports = {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ['Figtree', 'IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			sans: ['Public Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			display: ['Bricolage Grotesque', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

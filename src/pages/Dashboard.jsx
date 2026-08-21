@@ -113,10 +113,16 @@ export default function Dashboard() {
   return (
     <div className="rom-page">
       <div className="rom-page-inner">
-        <header className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500 mb-2">Dashboard</p>
-          <h1 className="rom-title">Welcome, {firstName}</h1>
-          <p className="rom-subtitle">Your assigned shoots and coverage for today.</p>
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="rom-kicker mb-2">Dashboard</p>
+            <h1 className="rom-title">Welcome, {firstName}</h1>
+            <p className="rom-subtitle">Assigned shoots, standby coverage, and rig checks for tonight.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="rom-live-dot" />
+            <span>Desk online</span>
+          </div>
         </header>
 
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
@@ -134,7 +140,7 @@ export default function Dashboard() {
 
         {isStandby && <StandbyUserQuota user={user} shoots={shoots} />}
 
-        <section className="mb-8">
+        <section className="mb-8 rom-enter-delay-2">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="rom-section-title">My Assigned Shoots</h2>
             <p className="hidden text-xs text-slate-500 sm:block">Current or next shoot shows first.</p>

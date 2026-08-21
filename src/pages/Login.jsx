@@ -33,51 +33,50 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden border-r border-slate-800 flex-col justify-between p-10 bg-slate-950">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 12% 18%, rgba(59, 130, 246,0.14), transparent 42%), radial-gradient(circle at 88% 78%, rgba(255,255,255,0.04), transparent 40%)',
-          }}
-        />
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold tracking-tight text-slate-50">Remote Ops</p>
-              <p className="text-xs text-slate-500">Manager</p>
-            </div>
-          </div>
-        </div>
-        <div className="relative max-w-sm rom-enter">
-          <h1 className="text-3xl font-semibold tracking-tight leading-snug text-slate-50">
-            Run shoots with a quieter, clearer console.
-          </h1>
-          <p className="mt-4 text-sm text-slate-400 leading-relaxed">
-            Schedule, assign, and track remote crews in a standalone web app — no Base44 runtime required.
-          </p>
-        </div>
-        <p className="relative text-xs text-slate-600">Standalone · Express + SQLite</p>
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="rom-ambient absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="rom-ambient absolute bottom-0 right-0 h-[22rem] w-[22rem] rounded-full bg-sky-400/10 blur-3xl" style={{ animationDelay: '2s' }} />
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-[380px] rom-enter-delay">
-          <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-              <Wifi className="w-4 h-4 text-white" />
+      <div className="relative w-full max-w-5xl grid lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center">
+        <div className="hidden lg:block rom-enter">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="rom-mark h-11 w-11">
+              <Wifi className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-slate-100 tracking-tight">Remote Ops</p>
-              <p className="text-xs text-slate-500">Manager</p>
+              <p className="rom-brand text-lg text-slate-50">Remote Ops</p>
+              <p className="text-xs text-slate-500 tracking-wide">Signal desk</p>
+            </div>
+          </div>
+          <p className="rom-kicker mb-4">Crew console</p>
+          <h1 className="rom-title max-w-md leading-[1.05]">
+            A quieter night desk for remote shoots.
+          </h1>
+          <p className="mt-5 max-w-md text-slate-400 leading-relaxed">
+            Assign operators, watch phases, and keep standby coverage in one place — rebuilt outside Base44.
+          </p>
+          <div className="mt-10 flex items-center gap-6 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-2"><span className="rom-live-dot" /> Live sync</span>
+            <span>JWT auth</span>
+            <span>Local SQLite</span>
+          </div>
+        </div>
+
+        <div className="rom-panel rom-enter-delay w-full max-w-md mx-auto lg:mx-0 p-7 md:p-8">
+          <div className="lg:hidden flex items-center gap-2.5 mb-7">
+            <div className="rom-mark h-9 w-9">
+              <Wifi className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="rom-brand text-slate-50">Remote Ops</p>
+              <p className="text-xs text-slate-500">Signal desk</p>
             </div>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-50">Sign in</h2>
-          <p className="text-sm text-slate-500 mt-1 mb-8">Use your crew account to continue.</p>
+          <h2 className="rom-brand text-2xl text-slate-50">Sign in</h2>
+          <p className="text-sm text-slate-500 mt-1 mb-7">Continue to your crew workspace.</p>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
@@ -106,7 +105,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-400 text-sm px-3 py-2">
+              <div className="rounded-xl border border-red-800/80 bg-red-950/40 text-red-400 text-sm px-3 py-2">
                 {error}
               </div>
             )}
@@ -123,8 +122,8 @@ export default function Login() {
             </Link>
           </p>
 
-          <div className="mt-8 rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-xs text-slate-500">
-            <p className="font-medium text-slate-400 mb-1">Demo</p>
+          <div className="mt-7 rounded-xl border border-[color:var(--rom-line)] bg-[#070d1c]/80 p-3 text-xs text-slate-500 rom-mono">
+            <p className="font-medium text-slate-400 mb-1 font-sans">Demo</p>
             <p>admin@example.com / admin123</p>
             <p>operator@example.com / operator123</p>
           </div>

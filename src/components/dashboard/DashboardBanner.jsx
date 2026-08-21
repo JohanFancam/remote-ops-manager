@@ -25,12 +25,12 @@ function formatCountdown(ms) {
 
 function InfoPill({ children, tone = 'default' }) {
   const toneClasses = {
-    default: 'bg-slate-800 text-slate-400 border-slate-800',
-    blue: 'bg-blue-950/40 text-blue-300 border-blue-800',
-    yellow: 'bg-amber-950/40 text-amber-300 border-amber-800',
+    default: 'bg-white/5 text-slate-300 border-[color:var(--rom-line)]',
+    blue: 'bg-blue-500/10 text-blue-300 border-blue-500/25',
+    yellow: 'bg-sky-500/10 text-sky-300 border-sky-500/25',
   };
   return (
-    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${toneClasses[tone] || toneClasses.default}`}>
+    <span className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${toneClasses[tone] || toneClasses.default}`}>
       {children}
     </span>
   );
@@ -40,10 +40,10 @@ function Section({ label, accent = 'text-slate-500', children, withDivider = tru
   return (
     <div className="flex min-w-0 flex-1 items-stretch">
       <div className="min-w-0 flex-1 px-1 sm:px-3">
-        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${accent}`}>{label}</p>
+        <p className={`mb-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${accent}`}>{label}</p>
         {children}
       </div>
-      {withDivider && <div className="hidden lg:block w-px bg-slate-700" />}
+      {withDivider && <div className="hidden lg:block w-px bg-[color:var(--rom-line)]" />}
     </div>
   );
 }
@@ -106,26 +106,27 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   const nextShootCountdown = nextShootTarget ? formatCountdown(nextShootTarget - now) : '-';
 
   return (
-    <div className="rounded-xl border border-slate-800/80 bg-slate-900 px-4 py-5 sm:px-5">
-      <div className="grid gap-5 lg:grid-cols-4">
-        <Section label="Now" accent="text-slate-500">
-          <div className="font-mono text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl tabular-nums">
+    <div className="rom-panel relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/[0.07] via-transparent to-sky-400/[0.04]" />
+      <div className="relative grid gap-6 lg:grid-cols-4">
+        <Section label="Now" accent="text-blue-400/80">
+          <div className="rom-mono text-2xl font-medium tracking-tight text-slate-50 sm:text-3xl tabular-nums">
             {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+          <div className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-slate-500">
             {format(now, 'EEE, d MMM yyyy')}
           </div>
         </Section>
 
-        <Section label="On Standby" accent="text-amber-400">
+        <Section label="On Standby" accent="text-sky-400/80">
           {currentStandby.length > 0 ? (
             <div className="space-y-2">
               {currentStandby.map((sd) => {
                 const startDate = sd.start_date || sd.date;
                 return (
                   <div key={`${sd.admin_email}-${startDate}-${sd.start_time || ''}`} className="space-y-1">
-                    <div className="flex items-center gap-2 text-base font-semibold text-slate-100 sm:text-lg">
-                      <Phone className="h-4 w-4 text-amber-400" />
+                    <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
+                      <Phone className="h-4 w-4 text-sky-400" />
                       <span className="truncate">{getStandbyName(sd)}</span>
                     </div>
                     <div className="pl-6">
@@ -143,7 +144,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
         <Section label="Next Standby" accent="text-slate-500">
           {nextStandby ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-slate-100 sm:text-lg">
+              <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
                 <ArrowRight className="h-4 w-4 text-slate-500" />
                 <span className="truncate">{getStandbyName(nextStandby)}</span>
               </div>
@@ -156,10 +157,10 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           )}
         </Section>
 
-        <Section label="Your Next Shoot" accent="text-blue-400" withDivider={false}>
+        <Section label="Your Next Shoot" accent="text-blue-400/80" withDivider={false}>
           {nextShoot ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-slate-100 sm:text-lg">
+              <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
                 <Camera className="h-4 w-4 text-blue-400" />
                 <span className="truncate">{shortenTitle(nextShoot.title)}</span>
               </div>
@@ -167,7 +168,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                 <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'EEE, MMM d')}</InfoPill>
                 {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
               </div>
-              <div className="pl-6 font-mono text-lg font-semibold text-blue-400 tabular-nums">{nextShootCountdown}</div>
+              <div className="pl-6 rom-mono text-lg font-medium text-blue-300 tabular-nums">{nextShootCountdown}</div>
             </div>
           ) : (
             <div className="pt-1 text-sm text-slate-500">No upcoming shoot</div>

@@ -32,26 +32,30 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-[400px] rom-enter">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="rom-ambient absolute -top-20 right-0 h-[24rem] w-[24rem] rounded-full bg-blue-500/15 blur-3xl" />
+      </div>
+
+      <div className="rom-panel relative w-full max-w-[420px] rom-enter p-7 md:p-8">
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Wifi className="w-4 h-4 text-white" />
+          <div className="rom-mark h-9 w-9">
+            <Wifi className="w-4 h-4" />
           </div>
           <div>
-            <p className="font-semibold text-slate-100 tracking-tight">Remote Ops</p>
-            <p className="text-xs text-slate-500">Manager</p>
+            <p className="rom-brand text-slate-50">Remote Ops</p>
+            <p className="text-xs text-slate-500">Signal desk</p>
           </div>
         </div>
 
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Create account</h1>
-        <p className="text-sm text-slate-400 mt-1 mb-8">
+        <h1 className="rom-brand text-2xl text-slate-50">Create account</h1>
+        <p className="text-sm text-slate-500 mt-1 mb-7">
           Register with an invited email to join the crew.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Full name</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Full name</label>
             <input
               type="text"
               value={fullName}
@@ -61,7 +65,7 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Email</label>
             <input
               type="email"
               required
@@ -72,7 +76,7 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Password</label>
             <input
               type="password"
               required
@@ -85,7 +89,7 @@ export default function Register() {
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-400 text-sm px-3 py-2">
+            <div className="rounded-xl border border-red-800/80 bg-red-950/40 text-red-400 text-sm px-3 py-2">
               {error}
             </div>
           )}
@@ -95,7 +99,7 @@ export default function Register() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-slate-400 mt-6">
+        <p className="text-center text-sm text-slate-500 mt-6">
           Already have an account?{' '}
           <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
             Sign in

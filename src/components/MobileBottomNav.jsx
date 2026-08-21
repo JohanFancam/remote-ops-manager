@@ -72,8 +72,8 @@ export default function MobileBottomNav() {
     <>
       {/* Full Menu Drawer */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[60] bg-slate-900 flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="flex items-center justify-end px-4 py-3 border-b border-slate-800">
+        <div className="md:hidden fixed inset-0 z-[60] bg-[#080e1d] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="flex items-center justify-end px-4 py-3 border-b border-[color:var(--rom-line)]">
             <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-slate-100 p-2">
               <X className="h-6 w-6" />
             </button>
@@ -87,19 +87,19 @@ export default function MobileBottomNav() {
                   to={item.path}
                   onClick={() => setMenuOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                    'rom-nav-item gap-3 px-4 py-3',
+                    isActive ? 'rom-nav-item-active' : 'rom-nav-item-idle'
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={cn('h-5 w-5', isActive && 'text-blue-300')} />
                   {item.label}
                 </Link>
               );
             })}
           </nav>
-          <div className="p-4 border-t border-slate-800">
+          <div className="p-4 border-t border-[color:var(--rom-line)]">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 bg-slate-800 text-slate-300 rounded-full flex items-center justify-center text-sm font-semibold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold ring-1 ring-blue-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ export default function MobileBottomNav() {
             </div>
             <button
               onClick={() => base44.auth.logout()}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-slate-800 w-full"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-white/5 w-full"
             >
               <LogOut className="h-5 w-5" /> Sign Out
             </button>
@@ -118,7 +118,7 @@ export default function MobileBottomNav() {
       )}
 
       {/* Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-800 flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[color:var(--rom-line)] bg-[#080e1d]/95 backdrop-blur-xl flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {leftItems.map(item => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (

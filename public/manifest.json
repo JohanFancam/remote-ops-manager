@@ -3,8 +3,8 @@
   "short_name": "Remote Ops",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070b14",
-  "theme_color": "#070b14",
+  "background_color": "#050816",
+  "theme_color": "#050816",
   "icons": [
     {
       "src": "/favicon.svg",
