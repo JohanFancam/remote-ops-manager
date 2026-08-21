@@ -2,7 +2,7 @@
 
 Standalone web app for remote sports-camera / broadcast shoot crews — schedule shoots, assign operators, track phases, manage rigs, standby, timesheets, and accounts.
 
-**No Base44 dependency.** React + Vite frontend, Express + SQLite API. Modern dark UI.
+**No Base44 dependency.** React + Vite frontend, Express + SQLite API. Modern dark UI in shades of blue.
 
 ## Quick start
 
