@@ -34,3 +34,7 @@ uploads/
 *.db
 *.db-shm
 *.db-wal
+
+# local verification artifacts
+*.webp
+verification-report.txt
