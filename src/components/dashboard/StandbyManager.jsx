@@ -156,23 +156,23 @@ export default function StandbyManager({ user, allUsers = [] }) {
   const isCurrentMonth = format(calMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM');
 
   return (
-    <Card className="bg-white border-zinc-200 mb-6">
-      <CardHeader className="border-b border-zinc-200 pb-3">
+    <Card className="bg-zinc-900 border-zinc-800 mb-6">
+      <CardHeader className="border-b border-zinc-800 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-amber-700" />
-            <span className="text-zinc-900 font-semibold text-base">Standby Schedule</span>
-            <span className="text-xs bg-amber-50 text-amber-700 border border-yellow-700/40 px-2 py-0.5 rounded-full">
+            <Phone className="h-4 w-4 text-amber-400" />
+            <span className="text-zinc-100 font-semibold text-base">Standby Schedule</span>
+            <span className="text-xs bg-amber-950/40 text-amber-400 border border-yellow-700/40 px-2 py-0.5 rounded-full">
               {myMonthCount} slot{myMonthCount !== 1 ? 's' : ''} this month
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
               onClick={() => { setCalMonth(subMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-zinc-600 font-medium w-24 text-center">{format(calMonth, 'MMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900"
+            <span className="text-sm text-zinc-400 font-medium w-24 text-center">{format(calMonth, 'MMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
               onClick={() => { setCalMonth(addMonths(calMonth, 1)); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -184,7 +184,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
         {/* Action buttons */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Button size="sm" variant="outline"
-            className="border-yellow-700/50 text-amber-700 hover:bg-yellow-900/30 h-7 text-xs gap-1"
+            className="border-yellow-700/50 text-amber-400 hover:bg-yellow-900/30 h-7 text-xs gap-1"
             onClick={() => {
               setShowForm(!showForm);
               setSelectMode(false);
@@ -195,8 +195,8 @@ export default function StandbyManager({ user, allUsers = [] }) {
           </Button>
           <Button size="sm" variant={selectMode ? 'default' : 'outline'}
             className={selectMode
-              ? 'h-7 text-xs gap-1 bg-teal-700 hover:bg-teal-700 border-teal-700'
-              : 'h-7 text-xs gap-1 border-teal-200 text-teal-700 hover:bg-teal-50'}
+              ? 'h-7 text-xs gap-1 bg-teal-600 hover:bg-teal-600 border-teal-500'
+              : 'h-7 text-xs gap-1 border-teal-800 text-teal-400 hover:bg-teal-950/40'}
             onClick={() => {
               setSelectMode(!selectMode);
               setShowForm(false);
@@ -206,7 +206,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
             {selectMode ? <><Check className="h-3 w-3" /> Selecting Range…</> : 'Select Range'}
           </Button>
           {selectMode && (
-            <span className="text-xs text-teal-700">
+            <span className="text-xs text-teal-400">
               {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end date` : `${rangeStart} → ${rangeEnd}`}
             </span>
           )}
@@ -214,44 +214,44 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
         {/* Claim form */}
         {showForm && (
-          <div className="bg-zinc-100/60 border border-zinc-200 rounded-xl p-4 space-y-3 mb-4">
-            <p className="text-sm font-medium text-amber-700">
+          <div className="bg-zinc-800/60 border border-zinc-800 rounded-xl p-4 space-y-3 mb-4">
+            <p className="text-sm font-medium text-amber-400">
               {rangeStart && rangeEnd ? `Standby: ${rangeStart} → ${rangeEnd}` : 'New Standby Period'}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">From Date</label>
+                <label className="text-xs text-zinc-400 block mb-1">From Date</label>
                 <Input type="date" value={form.start_date}
                   onChange={e => setForm({ ...form, start_date: e.target.value })}
-                  className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
+                  className="bg-zinc-900 border-zinc-800 text-zinc-100 h-8 text-xs" />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">From Time</label>
+                <label className="text-xs text-zinc-400 block mb-1">From Time</label>
                 <Input type="time" value={form.start_time}
                   onChange={e => setForm({ ...form, start_time: e.target.value })}
-                  className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
+                  className="bg-zinc-900 border-zinc-800 text-zinc-100 h-8 text-xs" />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">To Date</label>
+                <label className="text-xs text-zinc-400 block mb-1">To Date</label>
                 <Input type="date" value={form.end_date}
                   onChange={e => setForm({ ...form, end_date: e.target.value })}
-                  className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
+                  className="bg-zinc-900 border-zinc-800 text-zinc-100 h-8 text-xs" />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">To Time</label>
+                <label className="text-xs text-zinc-400 block mb-1">To Time</label>
                 <Input type="time" value={form.end_time}
                   onChange={e => setForm({ ...form, end_time: e.target.value })}
-                  className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
+                  className="bg-zinc-900 border-zinc-800 text-zinc-100 h-8 text-xs" />
               </div>
             </div>
             <Input placeholder="Notes (optional)" value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
-              className="bg-white border-zinc-200 text-zinc-900 h-8 text-xs" />
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 h-8 text-xs" />
             <div className="flex gap-2">
               <Button size="sm" className="h-7 text-xs bg-yellow-700 hover:bg-yellow-600 px-4" onClick={handleClaim}>
                 Claim Standby
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400"
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500"
                 onClick={() => { setShowForm(false); setSelectMode(false); setRangeStart(null); setRangeEnd(null); }}>
                 Cancel
               </Button>
@@ -261,7 +261,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-          {DOW.map(d => <div key={d} className="text-xs text-zinc-400 py-1">{d}</div>)}
+          {DOW.map(d => <div key={d} className="text-xs text-zinc-500 py-1">{d}</div>)}
         </div>
         <div className="grid grid-cols-7 gap-0.5 mb-4">
           {calDays.map(day => {
@@ -296,17 +296,17 @@ export default function StandbyManager({ user, allUsers = [] }) {
                 style={{ background: bg }}
               >
                 <span className={`text-xs font-medium block ${
-                  isToday ? 'text-teal-700 font-bold' :
-                  hasMe ? 'text-amber-700' :
-                  hasOther ? 'text-teal-700' :
-                  isPast ? 'text-gray-600' : 'text-zinc-500'
+                  isToday ? 'text-teal-400 font-bold' :
+                  hasMe ? 'text-amber-400' :
+                  hasOther ? 'text-teal-400' :
+                  isPast ? 'text-gray-600' : 'text-zinc-400'
                 }`}>
                   {format(day, 'd')}
                 </span>
                 {hasMe && (
                   <div className="mt-0.5">
-                    <Phone className="h-2.5 w-2.5 text-amber-700 inline" />
-                    <span className="text-xs text-amber-700 ml-0.5">You</span>
+                    <Phone className="h-2.5 w-2.5 text-amber-400 inline" />
+                    <span className="text-xs text-amber-400 ml-0.5">You</span>
                   </div>
                 )}
                 {hasOther && !hasMe && (
@@ -315,7 +315,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
                       const u = allUsers.find(u => u.email === e.admin_email);
                       const name = getDisplayName(u, e.admin_email, e.admin_name);
                       return (
-                        <div key={e.id} className="text-xs text-teal-700 truncate leading-tight">
+                        <div key={e.id} className="text-xs text-teal-400 truncate leading-tight">
                           {name.split(' ')[0]}
                         </div>
                       );
@@ -330,32 +330,32 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
         {/* Legend */}
         <div className="flex items-center gap-4 mb-4 flex-wrap">
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="flex items-center gap-1.5 text-xs text-zinc-400">
             <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(113,63,18,0.6)' }} /> My Standby
           </span>
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="flex items-center gap-1.5 text-xs text-zinc-400">
             <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(30,58,138,0.5)' }} /> Other Admin
           </span>
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="flex items-center gap-1.5 text-xs text-zinc-400">
             <span className="w-1 h-1 rounded-full bg-teal-600 inline-block" /> Today
           </span>
         </div>
 
         {/* Detail panel for selected day */}
         {selectedDay && (
-          <div className="bg-zinc-100/60 border border-zinc-200 rounded-xl p-4">
+          <div className="bg-zinc-800/60 border border-zinc-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-zinc-900">
+              <p className="text-sm font-semibold text-zinc-100">
                 {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
               </p>
               <Button size="sm" variant="outline"
-                className="h-7 text-xs border-yellow-700/50 text-amber-700 hover:bg-yellow-900/30 gap-1"
+                className="h-7 text-xs border-yellow-700/50 text-amber-400 hover:bg-yellow-900/30 gap-1"
                 onClick={() => openQuickClaim(selectedDay)}>
                 <Plus className="h-3 w-3" /> Claim This Day
               </Button>
             </div>
             {selectedEntries.length === 0 ? (
-              <p className="text-xs text-zinc-400">No standby scheduled — click "Claim This Day" to add one.</p>
+              <p className="text-xs text-zinc-500">No standby scheduled — click "Claim This Day" to add one.</p>
             ) : (
               <div className="space-y-3">
                 {selectedEntries.map(standby => {
@@ -368,31 +368,31 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
                   return (
                     <div key={standby.id} className={`rounded-lg px-3 py-2 border ${
-                      isMe ? 'bg-yellow-950/40 border-amber-200' : 'bg-teal-50 border-blue-800/30'
+                      isMe ? 'bg-yellow-950/40 border-amber-800' : 'bg-teal-950/40 border-blue-800/30'
                     }`}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <Phone className={`h-3 w-3 ${isMe ? 'text-amber-700' : 'text-teal-700'}`} />
-                            <span className={`text-sm font-medium ${isMe ? 'text-yellow-200' : 'text-teal-700'}`}>
+                            <Phone className={`h-3 w-3 ${isMe ? 'text-amber-400' : 'text-teal-400'}`} />
+                            <span className={`text-sm font-medium ${isMe ? 'text-yellow-200' : 'text-teal-400'}`}>
                               {name}{isMe ? ' (You)' : ''}
                             </span>
                             {standby.swapped_from && <span className="text-xs text-gray-600 italic">swapped</span>}
                           </div>
-                          <p className="text-xs text-zinc-500 mt-1 ml-5">
+                          <p className="text-xs text-zinc-400 mt-1 ml-5">
                             {sd}{standby.start_time ? ` @ ${standby.start_time}` : ''} → {ed}{standby.end_time ? ` @ ${standby.end_time}` : ''}
                           </p>
-                          {standby.notes && <p className="text-xs text-zinc-400 ml-5 italic">{standby.notes}</p>}
+                          {standby.notes && <p className="text-xs text-zinc-500 ml-5 italic">{standby.notes}</p>}
                         </div>
                         {!isPastDay && isMe && (
                           <div className="flex gap-1 flex-shrink-0">
                             <Button size="sm" variant="ghost"
-                              className="h-6 text-xs text-zinc-400 hover:text-amber-700 px-2 gap-1"
+                              className="h-6 text-xs text-zinc-500 hover:text-amber-400 px-2 gap-1"
                               onClick={() => setSwapping(swapping === standby.id ? null : standby.id)}>
                               <ArrowLeftRight className="h-3 w-3" /> Swap
                             </Button>
                             <Button size="sm" variant="ghost"
-                              className="h-6 w-6 p-0 text-gray-600 hover:text-red-600"
+                              className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
                               onClick={() => handleRemove(standby.id)}>
                               <X className="h-3 w-3" />
                             </Button>
@@ -404,7 +404,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
                           <select
                             onChange={e => { if (e.target.value) handleSwap(standby.id, e.target.value); }}
                             defaultValue=""
-                            className="w-full bg-white border border-zinc-200 text-zinc-900 text-xs rounded px-2 py-1">
+                            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs rounded px-2 py-1">
                             <option value="" disabled>Swap with…</option>
                             {adminUsers.filter(u => u.email !== standby.admin_email).map(u => (
                               <option key={u.email} value={u.email}>{getDisplayName(u, u.email)}</option>

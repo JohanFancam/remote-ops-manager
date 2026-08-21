@@ -35,8 +35,8 @@ function LiveClock() {
   }, []);
   return (
     <div className="text-right">
-      <p className="text-lg font-mono font-bold text-zinc-900">{format(now, 'HH:mm:ss')}</p>
-      <p className="text-xs text-zinc-500">{format(now, 'EEEE, d MMMM yyyy')}</p>
+      <p className="text-lg font-mono font-bold text-zinc-100">{format(now, 'HH:mm:ss')}</p>
+      <p className="text-xs text-zinc-400">{format(now, 'EEEE, d MMMM yyyy')}</p>
     </div>
   );
 }
@@ -290,11 +290,11 @@ export default function AccountsDashboard() {
       const paid = payload.find(p => p.dataKey === 'paidTotal')?.value || 0;
       const outstanding = total - paid;
       return (
-        <div className="bg-zinc-100 border border-zinc-200 rounded-lg px-3 py-2 text-sm space-y-1">
-          <p className="text-zinc-500 font-medium">{label}</p>
-          <p className="text-zinc-900">Total: <span className="font-bold">R{total.toLocaleString('en-ZA')}</span></p>
-          <p className="text-emerald-700">Paid: <span className="font-bold">R{paid.toLocaleString('en-ZA')}</span></p>
-          {outstanding > 0 && <p className="text-amber-700">Outstanding: <span className="font-bold">R{outstanding.toLocaleString('en-ZA')}</span></p>}
+        <div className="bg-zinc-800 border border-zinc-800 rounded-lg px-3 py-2 text-sm space-y-1">
+          <p className="text-zinc-400 font-medium">{label}</p>
+          <p className="text-zinc-100">Total: <span className="font-bold">R{total.toLocaleString('en-ZA')}</span></p>
+          <p className="text-emerald-400">Paid: <span className="font-bold">R{paid.toLocaleString('en-ZA')}</span></p>
+          {outstanding > 0 && <p className="text-amber-400">Outstanding: <span className="font-bold">R{outstanding.toLocaleString('en-ZA')}</span></p>}
         </div>
       );
     }
@@ -303,25 +303,25 @@ export default function AccountsDashboard() {
 
   if (!canView) {
     return (
-      <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
-        <p className="text-zinc-400">Access restricted.</p>
+      <div className="min-h-screen bg-zinc-800 flex items-center justify-center">
+        <p className="text-zinc-500">Access restricted.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 text-zinc-900 p-4 md:p-6">
+    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">Dashboard</h1>
-            <p className="text-zinc-500 text-sm mt-0.5">Standard: R{baseRate} · Additional: R{additionalRate}</p>
+            <h1 className="text-2xl font-bold text-zinc-100">Dashboard</h1>
+            <p className="text-zinc-400 text-sm mt-0.5">Standard: R{baseRate} · Additional: R{additionalRate}</p>
           </div>
           <div className="flex items-center gap-4 flex-wrap justify-end">
             <LiveClock />
-            <Button onClick={refresh} variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-900 h-9 w-9" title="Refresh data">
+            <Button onClick={refresh} variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-100 h-9 w-9" title="Refresh data">
               <RefreshCw className="h-4 w-4" />
             </Button>
             <div className="relative">
@@ -339,7 +339,7 @@ export default function AccountsDashboard() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${exportMonthOpen ? 'rotate-180' : ''}`} />
               </Button>
               {exportMonthOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-100 border border-zinc-200 rounded-lg shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-800 border border-zinc-800 rounded-lg shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
                   {availableMonths.map(m => (
                     <button
                       key={m}
@@ -363,7 +363,7 @@ export default function AccountsDashboard() {
                           exportCSV(rows, m);
                         }, 100);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-zinc-200 transition-colors ${m === filterMonth ? 'text-emerald-700 font-medium' : 'text-zinc-600'}`}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-zinc-700 transition-colors ${m === filterMonth ? 'text-emerald-400 font-medium' : 'text-zinc-400'}`}
                     >
                       {format(new Date(m + '-01'), 'MMMM yyyy')}
                     </button>
@@ -375,14 +375,14 @@ export default function AccountsDashboard() {
         </div>
 
         {/* Year chart */}
-        <Card className="bg-white border-zinc-200">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div>
-                <p className="text-sm text-zinc-500 flex items-center gap-1.5">
+                <p className="text-sm text-zinc-400 flex items-center gap-1.5">
                   <TrendingUp className="h-4 w-4" /> {filterMonth.split('-')[0]} Yearly Spend
                 </p>
-                <p className="text-2xl font-bold text-zinc-900">R{yearTotal.toLocaleString('en-ZA')}</p>
+                <p className="text-2xl font-bold text-zinc-100">R{yearTotal.toLocaleString('en-ZA')}</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
@@ -405,96 +405,96 @@ export default function AccountsDashboard() {
               </BarChart>
             </ResponsiveContainer>
             <div className="flex items-center gap-4 mt-2 px-1">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#374151]" /><span className="text-xs text-zinc-500">Total Spend</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#3b82f6]" /><span className="text-xs text-zinc-500">Current Month</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-green-700" /><span className="text-xs text-zinc-500">Paid</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#374151]" /><span className="text-xs text-zinc-400">Total Spend</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#3b82f6]" /><span className="text-xs text-zinc-400">Current Month</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-green-700" /><span className="text-xs text-zinc-400">Paid</span></div>
             </div>
           </CardContent>
         </Card>
 
         {/* Month navigator */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" onClick={() => goMonth(-1)}>
+          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
             {paidCount > 0 && paidCount === monthSummaryRows.length && (
-              <Badge className="bg-green-500/20 text-emerald-700 border-green-500/30 gap-1">
+              <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Fully Paid
               </Badge>
             )}
             {paidCount > 0 && paidCount < monthSummaryRows.length && (
-              <Badge className="bg-yellow-500/20 text-amber-700 border-yellow-500/30 gap-1">
+              <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 gap-1">
                 <Clock className="h-3 w-3" /> {paidCount}/{monthSummaryRows.length} Paid
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" onClick={() => goMonth(1)}>
+          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Monthly summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="h-4 w-4 text-teal-700" />
-                <p className="text-zinc-500 text-sm">Month Total</p>
+                <DollarSign className="h-4 w-4 text-teal-400" />
+                <p className="text-zinc-400 text-sm">Month Total</p>
               </div>
-              <p className="text-2xl font-bold text-zinc-900">R{grandTotal.toLocaleString('en-ZA')}</p>
+              <p className="text-2xl font-bold text-zinc-100">R{grandTotal.toLocaleString('en-ZA')}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-4 w-4 text-purple-400" />
-                <p className="text-zinc-500 text-sm">Operators</p>
+                <p className="text-zinc-400 text-sm">Operators</p>
               </div>
-              <p className="text-2xl font-bold text-zinc-900">{monthSummaryRows.length}</p>
+              <p className="text-2xl font-bold text-zinc-100">{monthSummaryRows.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-zinc-200 col-span-2 md:col-span-1">
+          <Card className="bg-zinc-900 border-zinc-800 col-span-2 md:col-span-1">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
-                <Calendar className="h-4 w-4 text-emerald-700" />
-                <p className="text-zinc-500 text-sm">Paid Out</p>
+                <Calendar className="h-4 w-4 text-emerald-400" />
+                <p className="text-zinc-400 text-sm">Paid Out</p>
               </div>
-              <p className="text-2xl font-bold text-emerald-700">{paidCount} / {monthSummaryRows.length}</p>
+              <p className="text-2xl font-bold text-emerald-400">{paidCount} / {monthSummaryRows.length}</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Operator earnings table */}
         {monthSummaryRows.length === 0 ? (
-          <div className="text-center py-16 text-zinc-400">No operator activity for this month.</div>
+          <div className="text-center py-16 text-zinc-500">No operator activity for this month.</div>
         ) : (
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-0">
-              <div className="px-5 py-3 border-b border-zinc-200">
-                <p className="text-sm font-semibold text-zinc-600">Operator Breakdown</p>
+              <div className="px-5 py-3 border-b border-zinc-800">
+                <p className="text-sm font-semibold text-zinc-400">Operator Breakdown</p>
               </div>
               <div className="divide-y divide-gray-800">
                 {monthSummaryRows
                   .sort((a, b) => b.total - a.total)
                   .map(row => (
-                  <div key={row.email} className={`px-5 py-4 space-y-2 transition-colors ${row.inactive ? 'opacity-40' : ''} ${row.paid ? 'bg-emerald-50' : ''}`}>
+                  <div key={row.email} className={`px-5 py-4 space-y-2 transition-colors ${row.inactive ? 'opacity-40' : ''} ${row.paid ? 'bg-emerald-950/40' : ''}`}>
                     {/* Main row */}
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-zinc-900 truncate">{row.name}</p>
-                          {row.inactive && <span className="text-[10px] bg-zinc-200 text-zinc-500 px-1.5 py-0.5 rounded-full flex-shrink-0">Not in use</span>}
+                          <p className="text-sm font-medium text-zinc-100 truncate">{row.name}</p>
+                          {row.inactive && <span className="text-[10px] bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded-full flex-shrink-0">Not in use</span>}
                         </div>
-                        <p className="text-xs text-zinc-400 truncate">{row.email}</p>
+                        <p className="text-xs text-zinc-500 truncate">{row.email}</p>
                         {row.paidDate && row.paid && (
                           <p className="text-xs text-green-500 mt-0.5">Paid on {format(new Date(row.paidDate + 'T12:00:00'), 'd MMM yyyy')}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                        <span className="text-xs text-zinc-500">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}</span>
-                        <span className="font-mono font-bold text-zinc-900 text-sm">R{row.total.toLocaleString('en-ZA')}</span>
+                        <span className="text-xs text-zinc-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}</span>
+                        <span className="font-mono font-bold text-zinc-100 text-sm">R{row.total.toLocaleString('en-ZA')}</span>
 
                         {/* Note button */}
                         <button
@@ -506,7 +506,7 @@ export default function AccountsDashboard() {
                               setNoteInput(row.note || '');
                             }
                           }}
-                          className="text-zinc-400 hover:text-amber-700 transition-colors"
+                          className="text-zinc-500 hover:text-amber-400 transition-colors"
                           title="Add note (accounts only)"
                         >
                           <StickyNote className="h-4 w-4" />
@@ -521,20 +521,20 @@ export default function AccountsDashboard() {
                             title={row.paid ? 'Mark as unpaid' : 'Mark as paid'}
                           >
                             {row.paid
-                              ? <CheckCircle2 className="h-5 w-5 text-emerald-700" />
-                              : <Circle className="h-5 w-5 text-zinc-400 hover:text-emerald-700" />
+                              ? <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                              : <Circle className="h-5 w-5 text-zinc-500 hover:text-emerald-400" />
                             }
                             <Badge className={row.paid
-                              ? 'bg-green-500/20 text-emerald-700 border-green-500/30'
-                              : 'bg-yellow-500/20 text-amber-700 border-yellow-500/30'
+                              ? 'bg-green-500/20 text-emerald-400 border-green-500/30'
+                              : 'bg-yellow-500/20 text-amber-400 border-yellow-500/30'
                             }>
                               {row.paid ? 'Paid' : 'Unpaid'}
                             </Badge>
                           </button>
                         ) : (
                           <Badge className={row.paid
-                            ? 'bg-green-500/20 text-emerald-700 border-green-500/30'
-                            : 'bg-yellow-500/20 text-amber-700 border-yellow-500/30'
+                            ? 'bg-green-500/20 text-emerald-400 border-green-500/30'
+                            : 'bg-yellow-500/20 text-amber-400 border-yellow-500/30'
                           }>
                             {row.paid ? 'Paid' : 'Unpaid'}
                           </Badge>
@@ -546,7 +546,7 @@ export default function AccountsDashboard() {
                     {row.note && noteEditing !== row.email && (
                       <div className="flex items-start gap-2 bg-yellow-950/20 border border-yellow-800/30 rounded px-3 py-2">
                         <StickyNote className="h-3.5 w-3.5 text-yellow-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-amber-700">{row.note}</p>
+                        <p className="text-xs text-amber-400">{row.note}</p>
                       </div>
                     )}
 
@@ -557,14 +557,14 @@ export default function AccountsDashboard() {
                           value={noteInput}
                           onChange={e => setNoteInput(e.target.value)}
                           placeholder="Add a private note (accounts only)..."
-                          className="flex-1 min-w-[200px] bg-zinc-100 border border-zinc-200 text-zinc-900 text-xs rounded-md px-3 py-2 resize-none h-16 placeholder:text-gray-600 focus:outline-none focus:border-yellow-600"
+                          className="flex-1 min-w-[200px] bg-zinc-800 border border-zinc-800 text-zinc-100 text-xs rounded-md px-3 py-2 resize-none h-16 placeholder:text-gray-600 focus:outline-none focus:border-yellow-600"
                         />
                         <div className="flex gap-2">
                           <Button size="sm" className="bg-yellow-700 hover:bg-yellow-600 text-xs h-8"
                             onClick={() => handleSaveNote(row)} disabled={saving === row.email}>
                             {saving === row.email ? 'Saving...' : 'Save'}
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-zinc-900 h-8"
+                          <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-zinc-100 h-8"
                             onClick={() => setNoteEditing(null)}>
                             <X className="h-3.5 w-3.5" />
                           </Button>
@@ -574,9 +574,9 @@ export default function AccountsDashboard() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200 bg-zinc-100/40">
-                <span className="text-sm font-semibold text-zinc-600">Total</span>
-                <span className="font-mono font-bold text-zinc-900">R{grandTotal.toLocaleString('en-ZA')}</span>
+              <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-800 bg-zinc-800/40">
+                <span className="text-sm font-semibold text-zinc-400">Total</span>
+                <span className="font-mono font-bold text-zinc-100">R{grandTotal.toLocaleString('en-ZA')}</span>
               </div>
             </CardContent>
           </Card>
@@ -586,14 +586,14 @@ export default function AccountsDashboard() {
     {/* Date picker modal */}
     {datePickerFor && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-        <div className="bg-white border border-zinc-200 rounded-xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
-          <h3 className="text-zinc-900 font-semibold text-base">Mark as Paid — {datePickerFor.name}</h3>
-          <p className="text-zinc-500 text-sm">Choose the payment date:</p>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+          <h3 className="text-zinc-100 font-semibold text-base">Mark as Paid — {datePickerFor.name}</h3>
+          <p className="text-zinc-400 text-sm">Choose the payment date:</p>
 
           <div className="space-y-2">
             <button
               onClick={() => confirmTogglePaid(datePickerFor, format(new Date(), 'yyyy-MM-dd'))}
-              className="w-full text-left px-4 py-3 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-700/30 transition-colors text-sm font-medium"
+              className="w-full text-left px-4 py-3 rounded-lg bg-teal-950/40 border border-teal-800 text-teal-400 hover:bg-teal-600/30 transition-colors text-sm font-medium"
             >
               ✓ Use today — {format(new Date(), 'd MMMM yyyy')}
             </button>
@@ -603,7 +603,7 @@ export default function AccountsDashboard() {
                 type="date"
                 value={customDate}
                 onChange={e => setCustomDate(e.target.value)}
-                className="flex-1 bg-zinc-100 border border-zinc-200 text-zinc-900 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-zinc-800 border border-zinc-800 text-zinc-100 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500"
               />
               <Button
                 onClick={() => customDate && confirmTogglePaid(datePickerFor, customDate)}
@@ -615,7 +615,7 @@ export default function AccountsDashboard() {
             </div>
           </div>
 
-          <Button variant="ghost" className="w-full text-zinc-400 hover:text-zinc-900" onClick={() => setDatePickerFor(null)}>
+          <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-100" onClick={() => setDatePickerFor(null)}>
             Cancel
           </Button>
         </div>

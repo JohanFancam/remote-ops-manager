@@ -49,21 +49,21 @@ export default function StandbyBanner({ todayStr, currentUser }) {
   return (
     <div className="mb-4 space-y-2">
       {/* Real-time clock */}
-      <div className="bg-white border border-zinc-200 rounded-xl px-4 py-2 flex items-center gap-3">
-        <span className="text-zinc-500 text-xs">{dateStr2}</span>
-        <span className="ml-auto font-mono text-zinc-900 text-sm font-semibold tracking-widest">{timeStr}</span>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 flex items-center gap-3">
+        <span className="text-zinc-400 text-xs">{dateStr2}</span>
+        <span className="ml-auto font-mono text-zinc-100 text-sm font-semibold tracking-widest">{timeStr}</span>
       </div>
 
       {/* Active standby banner */}
       {activeEntries.length > 0 && (
-        <div className={`border rounded-xl px-4 py-3 ${iAmOnStandby ? 'bg-amber-50 border-yellow-500/60' : 'bg-yellow-950/40 border-yellow-800/60'}`}>
+        <div className={`border rounded-xl px-4 py-3 ${iAmOnStandby ? 'bg-amber-950/40 border-yellow-500/60' : 'bg-yellow-950/40 border-yellow-800/60'}`}>
           <div className="flex items-start gap-3">
-            <Phone className={`h-5 w-5 flex-shrink-0 mt-0.5 ${iAmOnStandby ? 'text-amber-700' : 'text-amber-700'}`} />
+            <Phone className={`h-5 w-5 flex-shrink-0 mt-0.5 ${iAmOnStandby ? 'text-amber-400' : 'text-amber-400'}`} />
             <div className="flex-1">
               {iAmOnStandby && (
                 <p className="text-yellow-200 text-sm font-bold mb-1">🔔 You are currently ON STANDBY</p>
               )}
-              <p className="text-amber-700 text-sm font-medium mb-1">
+              <p className="text-amber-400 text-sm font-medium mb-1">
                 On Standby Now{activeEntries.length > 1 ? ` (${activeEntries.length})` : ''}:
               </p>
               <div className="space-y-1">

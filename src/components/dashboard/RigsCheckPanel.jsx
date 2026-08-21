@@ -157,23 +157,23 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Wrench className="h-4 w-4 text-orange-400" />
-          <span className="text-zinc-900 font-semibold text-sm">{weekLabel}</span>
+          <span className="text-zinc-100 font-semibold text-sm">{weekLabel}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {checkedShoots.length > 0 && (
             <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
-              className="gap-1.5 text-xs h-7 text-zinc-500 hover:text-amber-700 hover:bg-zinc-100">
+              className="gap-1.5 text-xs h-7 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800">
               <Archive className="h-3 w-3" /> Archive ({checkedShoots.length})
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-zinc-500 hover:text-zinc-900 gap-1"
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-zinc-400 hover:text-zinc-100 gap-1"
             onClick={() => setShowCalendar(!showCalendar)}>
             <Calendar className="h-3.5 w-3.5" /> Calendar
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900" onClick={prevWeek}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={prevWeek}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900" onClick={nextWeek}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -181,14 +181,14 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
 
       {/* Mini calendar jumper */}
       {showCalendar && (
-        <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-4 mb-4">
+        <div className="bg-zinc-800 border border-zinc-800 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500"
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400"
               onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-semibold text-zinc-900">{format(calMonth, 'MMMM yyyy')}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500"
+            <span className="text-sm font-semibold text-zinc-100">{format(calMonth, 'MMMM yyyy')}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400"
               onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -205,14 +205,14 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
               const dayOpsCount = getShootsForOperationalDay(shoots, ds).filter(s => !archived.includes(s.id)).length;
               return (
                 <button key={ds} onClick={() => jumpToWeek(ds)}
-                  className={`rounded p-1 min-h-[36px] transition-all ${inMonth ? 'hover:bg-zinc-200' : 'opacity-30'} ${isToday ? 'ring-1 ring-blue-500' : ''} ${inCurrentWeek ? 'bg-orange-900/30 ring-1 ring-orange-600/50' : ''}`}>
-                  <span className={`text-xs block ${isToday ? 'text-teal-700 font-bold' : inMonth ? 'text-zinc-600' : 'text-gray-600'}`}>{format(day, 'd')}</span>
+                  className={`rounded p-1 min-h-[36px] transition-all ${inMonth ? 'hover:bg-zinc-700' : 'opacity-30'} ${isToday ? 'ring-1 ring-blue-500' : ''} ${inCurrentWeek ? 'bg-orange-900/30 ring-1 ring-orange-600/50' : ''}`}>
+                  <span className={`text-xs block ${isToday ? 'text-teal-400 font-bold' : inMonth ? 'text-zinc-400' : 'text-gray-600'}`}>{format(day, 'd')}</span>
                   {dayOpsCount > 0 && <span className="text-xs text-orange-400 font-bold">{dayOpsCount}</span>}
                 </button>
               );
             })}
           </div>
-          <p className="text-xs text-zinc-400 mt-2 text-center">Click any date to jump to that week</p>
+          <p className="text-xs text-zinc-500 mt-2 text-center">Click any date to jump to that week</p>
         </div>
       )}
 
@@ -228,18 +228,18 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
 
           return (
             <div key={dateStr} className={`rounded-xl border flex flex-col ${
-              isToday ? 'border-teal-700/60 bg-teal-50' :
-              isPast ? 'border-zinc-200 bg-white/40 opacity-70' :
+              isToday ? 'border-teal-500/60 bg-teal-950/40' :
+              isPast ? 'border-zinc-800 bg-zinc-900/40 opacity-70' :
               dayShoots.length > 0 ? 'border-orange-800/50 bg-orange-950/10' :
-              'border-zinc-200 bg-white/30'
+              'border-zinc-800 bg-zinc-900/30'
             }`}>
               <div className={`flex items-center justify-between px-3 py-2.5 rounded-t-xl border-b ${
-                isToday ? 'border-teal-200 bg-teal-50' : 'border-zinc-200'
+                isToday ? 'border-teal-800 bg-teal-950/40' : 'border-zinc-800'
               }`}>
                 <div>
-                  <p className={`text-sm font-bold ${isToday ? 'text-teal-700' : isPast ? 'text-gray-600' : 'text-zinc-900'}`}>
+                  <p className={`text-sm font-bold ${isToday ? 'text-teal-400' : isPast ? 'text-gray-600' : 'text-zinc-100'}`}>
                     {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
-                    {isToday && <span className="ml-1.5 text-xs bg-teal-700 text-white px-1.5 py-0.5 rounded-full">Today</span>}
+                    {isToday && <span className="ml-1.5 text-xs bg-teal-600 text-white px-1.5 py-0.5 rounded-full">Today</span>}
                   </p>
                   {hasEarlyNext && (
                     <p className="text-xs text-orange-400/70 mt-0.5">incl. early AM {format(new Date(nextDateStr + 'T12:00:00'), 'MMM d')}</p>
@@ -247,7 +247,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 </div>
                 {dayShoots.length > 0 && (
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                    dayChecked.length === dayShoots.length ? 'bg-green-700/30 text-emerald-700' : 'bg-orange-700/30 text-orange-400'
+                    dayChecked.length === dayShoots.length ? 'bg-green-700/30 text-emerald-400' : 'bg-orange-700/30 text-orange-400'
                   }`}>
                     {dayChecked.length}/{dayShoots.length}
                   </span>
@@ -265,8 +265,8 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                     return (
                       <label key={s.id} className={`flex items-start gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
                         checked[s.id]
-                          ? 'bg-emerald-50 border-green-800/40'
-                          : 'bg-zinc-50 border-zinc-200/40 hover:border-orange-700/40'
+                          ? 'bg-emerald-950/40 border-green-800/40'
+                          : 'bg-zinc-50 border-zinc-800/40 hover:border-orange-700/40'
                       }`}>
                         <input
                           type="checkbox"
@@ -275,19 +275,19 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                           className="w-3.5 h-3.5 rounded accent-orange-500 flex-shrink-0 mt-0.5"
                         />
                         <div className={`flex-1 min-w-0 ${checked[s.id] ? 'opacity-50' : ''}`}>
-                          <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>
+                          <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
                             {shortenTitle(s.title)}
                           </p>
                           {s.location && (
-                            <p className={`text-xs truncate mt-0.5 ${checked[s.id] ? 'text-gray-600' : 'text-zinc-400'}`}>{s.location}</p>
+                            <p className={`text-xs truncate mt-0.5 ${checked[s.id] ? 'text-gray-600' : 'text-zinc-500'}`}>{s.location}</p>
                           )}
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {s.game_time && (
-                              <span className={`text-xs font-mono ${isEarly ? 'text-orange-400' : 'text-zinc-400'}`}>
+                              <span className={`text-xs font-mono ${isEarly ? 'text-orange-400' : 'text-zinc-500'}`}>
                                 {isEarly ? `▸ ${s.game_time}` : s.game_time}
                               </span>
                             )}
-                            {label && <span className="text-xs text-teal-700 font-mono">{label}</span>}
+                            {label && <span className="text-xs text-teal-400 font-mono">{label}</span>}
                           </div>
                         </div>
                       </label>
@@ -301,15 +301,15 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       </div>
 
       {/* Reference Checklist */}
-      <div className="border border-zinc-200 rounded-xl overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-4 py-3 bg-zinc-100/40 border-b border-zinc-200">
+      <div className="border border-zinc-800 rounded-xl overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/40 border-b border-zinc-800">
           <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-700" />
-            <span className="text-sm font-semibold text-zinc-900">Rig Check Reference List</span>
-            <span className="text-xs text-zinc-400">({checklistItems.length} items)</span>
+            <Check className="h-4 w-4 text-emerald-400" />
+            <span className="text-sm font-semibold text-zinc-100">Rig Check Reference List</span>
+            <span className="text-xs text-zinc-500">({checklistItems.length} items)</span>
           </div>
           {isAdmin && (
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500 hover:text-zinc-900 gap-1"
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400 hover:text-zinc-100 gap-1"
               onClick={() => setEditingChecklist(!editingChecklist)}>
               <Pencil className="h-3 w-3" /> {editingChecklist ? 'Done' : 'Edit'}
             </Button>
@@ -329,7 +329,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 onChange={() => setChecklistChecked(prev => ({ ...prev, [idx]: !prev[idx] }))}
                 className="w-3.5 h-3.5 rounded accent-green-500 flex-shrink-0"
               />
-              <span className={`text-sm flex-1 ${checklistChecked[idx] ? 'line-through text-gray-600' : 'text-zinc-600'}`}>{item}</span>
+              <span className={`text-sm flex-1 ${checklistChecked[idx] ? 'line-through text-gray-600' : 'text-zinc-400'}`}>{item}</span>
               {editingChecklist && isAdmin && (
                 <button
                   onClick={async () => {
@@ -337,14 +337,14 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                     setChecklistItems(next);
                     await saveChecklistItems(next);
                   }}
-                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-600 transition-all">
+                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all">
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
           ))}
           {editingChecklist && isAdmin && (
-            <div className="flex gap-2 mt-2 pt-2 border-t border-zinc-200">
+            <div className="flex gap-2 mt-2 pt-2 border-t border-zinc-800">
               <input
                 type="text"
                 value={newChecklistItem}
@@ -358,7 +358,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                   }
                 }}
                 placeholder="Add check item... (Enter to save)"
-                className="flex-1 bg-zinc-100 border border-zinc-200 rounded px-3 py-1.5 text-sm text-zinc-900 placeholder:text-gray-600 focus:border-green-600 outline-none"
+                className="flex-1 bg-zinc-800 border border-zinc-800 rounded px-3 py-1.5 text-sm text-zinc-100 placeholder:text-gray-600 focus:border-green-600 outline-none"
               />
               <Button size="sm" className="h-8 text-xs bg-green-700 hover:bg-green-600"
                 onClick={async () => {
@@ -376,22 +376,22 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       </div>
 
       {/* Message / Copy section */}
-      <div className="border border-zinc-200 rounded-xl overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-4 py-3 bg-zinc-100/40 border-b border-zinc-200">
+      <div className="border border-zinc-800 rounded-xl overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/40 border-b border-zinc-800">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Copy className="h-4 w-4 text-teal-700 flex-shrink-0" />
+            <Copy className="h-4 w-4 text-teal-400 flex-shrink-0" />
             {editingHeading ? (
               <input autoFocus type="text" value={messageHeading} onChange={e => setMessageHeading(e.target.value)}
                 onBlur={() => setEditingHeading(false)} onKeyDown={e => e.key === 'Enter' && setEditingHeading(false)}
-                className="flex-1 bg-zinc-200 border border-zinc-300 rounded px-2 py-0.5 text-sm text-zinc-900 outline-none focus:border-blue-500" />
+                className="flex-1 bg-zinc-700 border border-zinc-700 rounded px-2 py-0.5 text-sm text-zinc-100 outline-none focus:border-blue-500" />
             ) : (
-              <button onClick={() => setEditingHeading(true)} className="text-sm font-semibold text-zinc-900 hover:text-teal-700 text-left truncate">
+              <button onClick={() => setEditingHeading(true)} className="text-sm font-semibold text-zinc-100 hover:text-teal-400 text-left truncate">
                 {messageHeading} <span className="text-gray-600 text-xs">(click to edit)</span>
               </button>
             )}
           </div>
           {checkedShoots.length > 0 && (
-            <Button size="sm" onClick={handleCopy} className="bg-teal-700 hover:bg-teal-700 gap-1.5 text-xs h-7 ml-2">
+            <Button size="sm" onClick={handleCopy} className="bg-teal-600 hover:bg-teal-600 gap-1.5 text-xs h-7 ml-2">
               {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy</>}
             </Button>
           )}
@@ -405,11 +405,11 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
                 const label = getRigTypeLabel(s, rig);
                 return (
-                  <div key={s.id} className="flex items-start gap-2 text-sm text-zinc-600">
-                    <span className="text-teal-700 mt-0.5 flex-shrink-0">•</span>
+                  <div key={s.id} className="flex items-start gap-2 text-sm text-zinc-400">
+                    <span className="text-teal-400 mt-0.5 flex-shrink-0">•</span>
                     <span>
-                      <span className="font-medium text-zinc-900">{shortenTitle(s.title)}</span>
-                      {label && <span className="text-teal-700 ml-1">({label})</span>}
+                      <span className="font-medium text-zinc-100">{shortenTitle(s.title)}</span>
+                      {label && <span className="text-teal-400 ml-1">({label})</span>}
                     </span>
                   </div>
                 );
@@ -421,9 +421,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
 
       {/* Archived */}
       {archivedWeekShoots.length > 0 && (
-        <div className="border-t border-zinc-200 pt-3">
+        <div className="border-t border-zinc-800 pt-3">
           <button onClick={() => setShowArchived(!showArchived)}
-            className="text-xs text-zinc-400 hover:text-zinc-600 flex items-center gap-1.5">
+            className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5">
             <Archive className="h-3 w-3" />
             {showArchived ? 'Hide' : 'Show'} archived this week ({archivedWeekShoots.length})
           </button>
@@ -431,8 +431,8 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
             <div className="mt-2 space-y-1">
               {archivedWeekShoots.map(s => (
                 <div key={s.id} className="flex items-center gap-3 opacity-50">
-                  <span className="text-sm text-zinc-400 line-through flex-1">{shortenTitle(s.title)}</span>
-                  <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-teal-700" title="Restore">
+                  <span className="text-sm text-zinc-500 line-through flex-1">{shortenTitle(s.title)}</span>
+                  <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-teal-400" title="Restore">
                     <RotateCcw className="h-3.5 w-3.5" />
                   </button>
                 </div>

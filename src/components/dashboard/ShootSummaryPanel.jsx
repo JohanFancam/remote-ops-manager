@@ -133,18 +133,18 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
   const totalCount = activeShoots.length + inProgressShoots.length;
 
   return (
-    <Card className="bg-white border-zinc-200 mt-6">
-      <CardHeader className="border-b border-zinc-200 pb-3">
+    <Card className="bg-zinc-900 border-zinc-800 mt-6">
+      <CardHeader className="border-b border-zinc-800 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 text-zinc-900 font-semibold text-base hover:text-emerald-700 transition-colors"
+            className="flex items-center gap-2 text-zinc-100 font-semibold text-base hover:text-emerald-400 transition-colors"
           >
-            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
             Shoot Summary
-            {expanded ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
+            {expanded ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
             {totalCount > 0 && !expanded && (
-              <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full ml-1">
+              <span className="text-xs bg-emerald-950/40 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full ml-1">
                 {totalCount}
               </span>
             )}
@@ -153,22 +153,22 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
             <div className="flex items-center gap-2 flex-wrap">
               {/* Month navigator */}
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-zinc-900" onClick={() => handleMonthChange(-1)}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-400 hover:text-zinc-100" onClick={() => handleMonthChange(-1)}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
-                <span className="text-xs text-zinc-600 font-medium w-20 text-center">{format(viewMonth, 'MMM yyyy')}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-zinc-900" onClick={() => handleMonthChange(1)}>
+                <span className="text-xs text-zinc-400 font-medium w-20 text-center">{format(viewMonth, 'MMM yyyy')}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-400 hover:text-zinc-100" onClick={() => handleMonthChange(1)}>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
               <button onClick={handleRefresh} title="Refresh"
-                className={`text-zinc-400 hover:text-zinc-900 transition-colors ${refreshing ? 'animate-spin' : ''}`}>
+                className={`text-zinc-500 hover:text-zinc-100 transition-colors ${refreshing ? 'animate-spin' : ''}`}>
                 <RefreshCw className="h-4 w-4" />
               </button>
               {checkedShoots.length > 0 && (
                 <>
                   <Button size="sm" variant="ghost" onClick={handleArchiveChecked}
-                    className="gap-1.5 text-xs h-7 text-zinc-500 hover:text-amber-700 hover:bg-zinc-100">
+                    className="gap-1.5 text-xs h-7 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800">
                     <Archive className="h-3 w-3" /> Archive Selected
                   </Button>
                   <Button size="sm" onClick={handleCopy} className="bg-green-700 hover:bg-green-600 gap-1.5 text-xs h-7">
@@ -187,8 +187,8 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
           {/* In-Progress Today */}
           {inProgressShoots.length > 0 && (
             <div>
-              <p className="text-xs text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Clock className="h-3 w-3 text-amber-700" /> In Progress Today
+              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Clock className="h-3 w-3 text-amber-400" /> In Progress Today
               </p>
               <div className="space-y-1.5">
                 {inProgressShoots.map(s => (
@@ -196,9 +196,9 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
                       <span className="text-sm text-yellow-200 font-medium">{s.title || s.client}</span>
-                      {s.game_time && <span className="text-xs text-zinc-400">· {s.game_time}</span>}
+                      {s.game_time && <span className="text-xs text-zinc-500">· {s.game_time}</span>}
                     </div>
-                    <span className="text-xs bg-yellow-900/40 text-amber-700 border border-yellow-700/40 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-xs bg-yellow-900/40 text-amber-400 border border-yellow-700/40 px-2 py-0.5 rounded-full font-medium">
                       {getPhaseLabel(s)}
                     </span>
                   </div>
@@ -209,8 +209,8 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
 
           {/* Completed shoots */}
           <div>
-            <p className="text-xs text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
               Completed — {format(viewMonth, 'MMMM yyyy')}
               <span className="text-gray-600 normal-case font-normal">({activeShoots.length} shoot{activeShoots.length !== 1 ? 's' : ''})</span>
             </p>
@@ -228,23 +228,23 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
 
                     return (
                       <div key={s.id} className={`rounded-lg px-3 py-2.5 border transition-colors ${
-                        isChecked ? 'bg-emerald-50 border-emerald-200' :
+                        isChecked ? 'bg-emerald-950/40 border-emerald-800' :
                         hasIssues ? 'bg-red-950/20 border-red-800/40' :
-                        'bg-zinc-100/40 border-zinc-200/50'
+                        'bg-zinc-800/40 border-zinc-800/50'
                       }`}>
                         {isEditing ? (
                           <div className="space-y-2">
                             <Textarea
                               value={editMsg}
                               onChange={e => setEditMsg(e.target.value)}
-                              className="bg-zinc-200 border-zinc-300 text-zinc-900 text-sm min-h-[60px]"
+                              className="bg-zinc-700 border-zinc-700 text-zinc-100 text-sm min-h-[60px]"
                               autoFocus
                             />
                             <div className="flex gap-2">
-                              <Button size="sm" className="bg-teal-700 hover:bg-teal-700 h-6 text-xs gap-1" onClick={() => handleSave(s.id)}>
+                              <Button size="sm" className="bg-teal-600 hover:bg-teal-600 h-6 text-xs gap-1" onClick={() => handleSave(s.id)}>
                                 <Save className="h-3 w-3" /> Save
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-500" onClick={() => setEditingId(null)}>
+                              <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-400" onClick={() => setEditingId(null)}>
                                 Cancel
                               </Button>
                             </div>
@@ -260,10 +260,10 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-2">
                                 {hasIssues
-                                  ? <AlertTriangle className="h-3.5 w-3.5 text-red-600 mt-0.5 flex-shrink-0" />
-                                  : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mt-0.5 flex-shrink-0" />
+                                  ? <AlertTriangle className="h-3.5 w-3.5 text-red-400 mt-0.5 flex-shrink-0" />
+                                  : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                                 }
-                                <p className={`text-sm leading-relaxed ${isChecked ? 'line-through text-zinc-400' : 'text-gray-200'}`}>
+                                <p className={`text-sm leading-relaxed ${isChecked ? 'line-through text-zinc-500' : 'text-gray-200'}`}>
                                   {getMessage(s)}
                                 </p>
                               </div>
@@ -272,7 +272,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                                 {s.game_time && ` · ${s.game_time}`}
                               </p>
                             </div>
-                            <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-teal-700 flex-shrink-0 mt-0.5" title="Edit">
+                            <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-teal-400 flex-shrink-0 mt-0.5" title="Edit">
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -284,15 +284,15 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-200">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500 hover:text-zinc-900 gap-1"
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-800">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400 hover:text-zinc-100 gap-1"
                       disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                       <ChevronLeft className="h-3 w-3" /> Prev
                     </Button>
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-zinc-500">
                       {page + 1} / {totalPages} &nbsp;·&nbsp; showing {pagedShoots.length} of {activeShoots.length}
                     </span>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500 hover:text-zinc-900 gap-1"
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400 hover:text-zinc-100 gap-1"
                       disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
                       Next <ChevronRight className="h-3 w-3" />
                     </Button>
@@ -308,18 +308,18 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
 
           {/* Preview */}
           {checkedShoots.length > 0 && (
-            <div className="bg-zinc-100/60 rounded-lg p-3 border border-zinc-200">
-              <p className="text-xs text-zinc-400 mb-2 uppercase tracking-wider">Message Preview</p>
-              <pre className="text-xs text-zinc-600 whitespace-pre-wrap font-mono leading-relaxed">{fullCopyText}</pre>
-              <p className="text-xs text-gray-600 mt-2">After copying, click <strong className="text-amber-700">Archive Selected</strong> to remove from list.</p>
+            <div className="bg-zinc-800/60 rounded-lg p-3 border border-zinc-800">
+              <p className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">Message Preview</p>
+              <pre className="text-xs text-zinc-400 whitespace-pre-wrap font-mono leading-relaxed">{fullCopyText}</pre>
+              <p className="text-xs text-gray-600 mt-2">After copying, click <strong className="text-amber-400">Archive Selected</strong> to remove from list.</p>
             </div>
           )}
 
           {/* Archived */}
           {archivedShoots.length > 0 && (
-            <div className="border-t border-zinc-200 pt-3">
+            <div className="border-t border-zinc-800 pt-3">
               <button onClick={() => setShowArchived(!showArchived)}
-                className="text-xs text-zinc-400 hover:text-zinc-600 flex items-center gap-1.5">
+                className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5">
                 <Archive className="h-3 w-3" />
                 {showArchived ? 'Hide' : 'Show'} archived ({archivedShoots.length})
               </button>
@@ -327,9 +327,9 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                 <div className="mt-2 space-y-2">
                   {archivedShoots.map(s => (
                     <div key={s.id} className="flex items-center gap-3 opacity-50">
-                      <span className="text-sm text-zinc-400 line-through flex-1">{s.title || s.client}</span>
+                      <span className="text-sm text-zinc-500 line-through flex-1">{s.title || s.client}</span>
                       <span className="text-xs text-gray-600">{format(new Date(s.date + 'T12:00:00'), 'MMM d')}</span>
-                      <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-teal-700" title="Restore">
+                      <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-teal-400" title="Restore">
                         <RotateCcw className="h-3.5 w-3.5" />
                       </button>
                     </div>

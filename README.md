@@ -2,28 +2,32 @@
 
 Standalone web app for remote sports-camera / broadcast shoot crews — schedule shoots, assign operators, track phases, manage rigs, standby, timesheets, and accounts.
 
-**No Base44 dependency.** React + Vite frontend, Express + SQLite API.
-
-## Look & feel
-
-Light, minimal ops console: soft warm canvas, white surfaces, teal accent, Figtree type. Same workflows as the original Base44 app, without the hosted Base44 runtime.
+**No Base44 dependency.** React + Vite frontend, Express + SQLite API. Modern dark UI.
 
 ## Quick start
 
 ```bash
 npm install
+npm run seed:demo   # optional: reset SQLite with rich demo ops data
 npm run dev
 ```
 
 - Web UI: http://localhost:5173  
 - API: http://localhost:3001  
 
-### Demo accounts (seeded on first run)
+## Demo data
+
+First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typical Base44 Remote Ops Manager workspace — crews, venue rig profiles, calendar shoots, standby windows, payments, and rig tests — so dashboards are reviewable without importing live data.
 
 | Role | Email | Password |
 |------|-------|----------|
 | Admin | `admin@example.com` | `admin123` |
 | Operator | `operator@example.com` | `operator123` |
+| Operator | `jordan.lee@example.com` | `operator123` |
+| Standby | `priya.nair@example.com` | `standby123` |
+| Accounts | `accounts@example.com` | `accounts123` |
+
+To bring over **live** Base44 data: export entities from Base44, then `POST /api/entities/:Type`.
 
 ## Stack
 
@@ -56,11 +60,5 @@ DATABASE_PATH=./server/data/remote-ops.db
 | `npm run dev:web` | Frontend only (proxies `/api` → `:3001`) |
 | `npm run build` | Production frontend build |
 | `npm start` | Serve API (and built UI in production) |
+| `npm run seed:demo` | Wipe SQLite and reseed demo users + entities |
 | `npm run lint` | ESLint |
-
-## Migrating from Base44
-
-1. Export entity data from your Base44 app.
-2. Insert via REST (`POST /api/entities/:Type`) or a one-off import.
-3. Re-upload files that lived on the Base44 CDN.
-4. Invite users in Settings; they register at `/register` with the invited email.

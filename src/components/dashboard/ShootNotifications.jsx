@@ -208,7 +208,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
   const urgencyStyles = {
     urgent: 'border-red-700/60 bg-red-950/30',
     today: 'border-yellow-700/60 bg-yellow-950/20',
-    tomorrow: 'border-teal-200 bg-teal-50',
+    tomorrow: 'border-teal-800 bg-teal-950/40',
     change: 'border-orange-700/60 bg-orange-950/20',
   };
 
@@ -223,28 +223,28 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
     <div className="relative w-full" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm">
           <Bell className="h-4 w-4" /> Notifications
         </span>
 
         {count > 0 && (
-          <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="bg-red-950/400 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-100 border border-zinc-200 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-            <span className="text-sm font-semibold text-zinc-900">Shoot Notifications</span>
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+            <span className="text-sm font-semibold text-zinc-100">Shoot Notifications</span>
 
             {active.length > 0 && (
               <button
                 onClick={dismissAll}
-                className="text-xs text-zinc-400 hover:text-zinc-900 flex items-center gap-1"
+                className="text-xs text-zinc-500 hover:text-zinc-100 flex items-center gap-1"
               >
                 <CheckCheck className="h-3.5 w-3.5" /> Clear all
               </button>
@@ -255,7 +255,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
             {active.length === 0 ? (
               <div className="p-6 text-center">
                 <Bell className="h-8 w-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-zinc-400">No new notifications</p>
+                <p className="text-xs text-zinc-500">No new notifications</p>
               </div>
             ) : (
               active.map((item) => {
@@ -276,17 +276,17 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
                             </span>
                           </div>
 
-                          <p className="text-sm font-semibold text-zinc-900 truncate">
+                          <p className="text-sm font-semibold text-zinc-100 truncate">
                             {notification.shoot_title || 'Shoot updated'}
                           </p>
 
                           {notification.message && (
-                            <pre className="mt-2 whitespace-pre-wrap text-xs text-zinc-600 font-sans leading-relaxed">
+                            <pre className="mt-2 whitespace-pre-wrap text-xs text-zinc-400 font-sans leading-relaxed">
                               {notification.message}
                             </pre>
                           )}
 
-                          <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-500">
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-400">
                             <Calendar className="h-3 w-3" />
                             {notification.shoot_date ? (
                               <span>
@@ -299,7 +299,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
                           </div>
 
                           {notification.created_by_name && (
-                            <p className="text-[11px] text-zinc-400 mt-1">
+                            <p className="text-[11px] text-zinc-500 mt-1">
                               Changed by {notification.created_by_name}
                             </p>
                           )}
@@ -307,7 +307,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
 
                         <button
                           onClick={() => dismiss(item)}
-                          className="text-gray-600 hover:text-zinc-500 flex-shrink-0"
+                          className="text-gray-600 hover:text-zinc-400 flex-shrink-0"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -324,22 +324,22 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs font-medium text-zinc-600">
+                          <span className="text-xs font-medium text-zinc-400">
                             {urgencyLabel[item.urgency]}
                           </span>
                         </div>
 
-                        <p className="text-sm font-semibold text-zinc-900 truncate">
+                        <p className="text-sm font-semibold text-zinc-100 truncate">
                           {item.shoot.title}
                         </p>
 
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500">
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-400">
                           <Calendar className="h-3 w-3" />
                           <span>{format(new Date(item.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
                           {item.shoot.game_time && <span>· Game {item.shoot.game_time}</span>}
                         </div>
 
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-zinc-400 mt-0.5">
                           Setup: {format(item.setupTime, 'HH:mm')}
                           {item.urgency === 'urgent' &&
                             ` (in ${Math.round(item.hoursUntilSetup * 10) / 10}h)`}
@@ -348,7 +348,7 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
 
                       <button
                         onClick={() => dismiss(item)}
-                        className="text-gray-600 hover:text-zinc-500 flex-shrink-0"
+                        className="text-gray-600 hover:text-zinc-400 flex-shrink-0"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>

@@ -34,49 +34,49 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden border-r border-zinc-200/80 flex-col justify-between p-10 bg-[#eef3f1]">
+      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden border-r border-zinc-800 flex-col justify-between p-10 bg-zinc-950">
         <div
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 12% 18%, rgba(15,118,110,0.16), transparent 42%), radial-gradient(circle at 88% 78%, rgba(24,24,27,0.05), transparent 40%)',
+              'radial-gradient(circle at 12% 18%, rgba(45,212,191,0.14), transparent 42%), radial-gradient(circle at 88% 78%, rgba(255,255,255,0.04), transparent 40%)',
           }}
         />
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-700 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-teal-600 flex items-center justify-center">
               <Wifi className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold tracking-tight text-zinc-900">Remote Ops</p>
+              <p className="font-semibold tracking-tight text-zinc-50">Remote Ops</p>
               <p className="text-xs text-zinc-500">Manager</p>
             </div>
           </div>
         </div>
         <div className="relative max-w-sm rom-enter">
-          <h1 className="text-3xl font-semibold tracking-tight leading-snug text-zinc-900">
+          <h1 className="text-3xl font-semibold tracking-tight leading-snug text-zinc-50">
             Run shoots with a quieter, clearer console.
           </h1>
-          <p className="mt-4 text-sm text-zinc-500 leading-relaxed">
+          <p className="mt-4 text-sm text-zinc-400 leading-relaxed">
             Schedule, assign, and track remote crews in a standalone web app — no Base44 runtime required.
           </p>
         </div>
-        <p className="relative text-xs text-zinc-400">Standalone · Express + SQLite</p>
+        <p className="relative text-xs text-zinc-600">Standalone · Express + SQLite</p>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-[380px] rom-enter-delay">
           <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-lg bg-teal-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-teal-600 flex items-center justify-center">
               <Wifi className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-zinc-900 tracking-tight">Remote Ops</p>
-              <p className="text-xs text-zinc-400">Manager</p>
+              <p className="font-semibold text-zinc-100 tracking-tight">Remote Ops</p>
+              <p className="text-xs text-zinc-500">Manager</p>
             </div>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Sign in</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Sign in</h2>
           <p className="text-sm text-zinc-500 mt-1 mb-8">Use your crew account to continue.</p>
 
           <form onSubmit={onSubmit} className="space-y-4">
@@ -106,7 +106,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-3 py-2">
+              <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-400 text-sm px-3 py-2">
                 {error}
               </div>
             )}
@@ -118,13 +118,13 @@ export default function Login() {
 
           <p className="text-center text-sm text-zinc-500 mt-6">
             New here?{' '}
-            <Link to="/register" className="text-teal-700 hover:text-teal-800 font-medium">
+            <Link to="/register" className="text-teal-400 hover:text-teal-300 font-medium">
               Create an account
             </Link>
           </p>
 
-          <div className="mt-8 rounded-lg border border-zinc-200 bg-white/70 p-3 text-xs text-zinc-500">
-            <p className="font-medium text-zinc-600 mb-1">Demo</p>
+          <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
+            <p className="font-medium text-zinc-400 mb-1">Demo</p>
             <p>admin@example.com / admin123</p>
             <p>operator@example.com / operator123</p>
           </div>

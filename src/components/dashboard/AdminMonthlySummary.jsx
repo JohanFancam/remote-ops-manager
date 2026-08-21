@@ -147,19 +147,19 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
   };
 
   return (
-    <Card className="bg-white border-zinc-200 mt-8">
-      <CardHeader className="border-b border-zinc-200 pb-3">
+    <Card className="bg-zinc-900 border-zinc-800 mt-8">
+      <CardHeader className="border-b border-zinc-800 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="text-zinc-900 text-base">My Monthly Summary</CardTitle>
+          <CardTitle className="text-zinc-100 text-base">My Monthly Summary</CardTitle>
           <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-zinc-900" onClick={() => goMonth(-1)}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={() => goMonth(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium text-zinc-600 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-zinc-900" onClick={() => goMonth(1)}>
+            <span className="text-sm font-medium text-zinc-400 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={() => goMonth(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-zinc-900 gap-1.5 text-xs ml-1"
+            <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-zinc-100 gap-1.5 text-xs ml-1"
               onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Less' : 'Details'}
               {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -171,19 +171,19 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-4 mb-3">
           <div className="bg-zinc-50 rounded-lg p-3 text-center">
-            <Camera className="h-5 w-5 text-teal-700 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-zinc-900">{myMonthShoots.length}</p>
-            <p className="text-xs text-zinc-500">Shoots</p>
+            <Camera className="h-5 w-5 text-teal-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-zinc-100">{myMonthShoots.length}</p>
+            <p className="text-xs text-zinc-400">Shoots</p>
           </div>
           <div className="bg-zinc-50 rounded-lg p-3 text-center">
-            <Phone className="h-5 w-5 text-amber-700 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-zinc-900">{myMonthStandby.length}</p>
-            <p className="text-xs text-zinc-500">Standby</p>
+            <Phone className="h-5 w-5 text-amber-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-zinc-100">{myMonthStandby.length}</p>
+            <p className="text-xs text-zinc-400">Standby</p>
           </div>
           <div className="bg-zinc-50 rounded-lg p-3 text-center">
-            <Clock className="h-5 w-5 text-emerald-700 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-zinc-900">{totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}</p>
-            <p className="text-xs text-zinc-500">Est. Hours</p>
+            <Clock className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-zinc-100">{totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}</p>
+            <p className="text-xs text-zinc-400">Est. Hours</p>
           </div>
         </div>
 
@@ -197,8 +197,8 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
             {/* Active days breakdown */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-zinc-400 uppercase tracking-wider">Active Days ({activeDayEntries.length})</p>
-                <Button size="sm" variant="ghost" className="h-6 text-xs text-teal-700 hover:text-teal-700 gap-1"
+                <p className="text-xs text-zinc-500 uppercase tracking-wider">Active Days ({activeDayEntries.length})</p>
+                <Button size="sm" variant="ghost" className="h-6 text-xs text-teal-400 hover:text-teal-400 gap-1"
                   onClick={() => setAddingDay(!addingDay)}>
                   <Plus className="h-3 w-3" /> Add Day
                 </Button>
@@ -207,9 +207,9 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
               {addingDay && (
                 <div className="flex gap-2 mb-2">
                   <Input type="date" value={newDayInput} onChange={e => setNewDayInput(e.target.value)}
-                    className="bg-zinc-100 border-zinc-200 text-zinc-900 h-7 text-xs flex-1" />
-                  <Button size="sm" className="h-7 text-xs bg-teal-700 hover:bg-teal-800 px-2" onClick={handleAddDay} disabled={saving}>Add</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500" onClick={() => setAddingDay(false)}>
+                    className="bg-zinc-800 border-zinc-800 text-zinc-100 h-7 text-xs flex-1" />
+                  <Button size="sm" className="h-7 text-xs bg-teal-600 hover:bg-teal-500 px-2" onClick={handleAddDay} disabled={saving}>Add</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400" onClick={() => setAddingDay(false)}>
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
@@ -221,28 +221,28 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
 
               <div className="space-y-1">
                 {activeDayEntries.map(entry => (
-                  <div key={entry.date} className="flex items-center justify-between bg-zinc-100/40 rounded-lg px-3 py-2 gap-2">
+                  <div key={entry.date} className="flex items-center justify-between bg-zinc-800/40 rounded-lg px-3 py-2 gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-zinc-900 font-medium">
+                        <span className="text-sm text-zinc-100 font-medium">
                           {format(new Date(entry.date + 'T12:00:00'), 'EEE, MMM d')}
                         </span>
                         <Badge className={`text-xs px-1.5 py-0 ${
                           entry.shoots.length > 0 && entry.standby ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
-                          entry.shoots.length > 0 ? 'bg-teal-600/20 text-teal-700 border-teal-200' :
-                          entry.standby ? 'bg-yellow-500/20 text-amber-700 border-yellow-500/30' :
-                          'bg-gray-600/40 text-zinc-500 border-zinc-300/40'
+                          entry.shoots.length > 0 ? 'bg-teal-600/20 text-teal-400 border-teal-800' :
+                          entry.standby ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' :
+                          'bg-gray-600/40 text-zinc-400 border-zinc-700/40'
                         }`}>
                           {getReason(entry)}
                         </Badge>
                       </div>
                       {entry.shoots.length > 0 && (
-                        <p className="text-xs text-zinc-400 mt-0.5 truncate">{entry.shoots.join(', ')}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 truncate">{entry.shoots.join(', ')}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs font-mono text-emerald-700">{adminDayHours}h</span>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-600"
+                      <span className="text-xs font-mono text-emerald-400">{adminDayHours}h</span>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400"
                         title="Exclude this day from hours count"
                         onClick={() => handleExclude(entry.date)} disabled={saving}>
                         <Trash2 className="h-3 w-3" />
@@ -256,14 +256,14 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
             {/* Excluded days */}
             {excludedEntries.length > 0 && (
               <div>
-                <p className="text-xs text-zinc-400 uppercase tracking-wider mb-2">Excluded Days ({excludedEntries.length})</p>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Excluded Days ({excludedEntries.length})</p>
                 <div className="space-y-1">
                   {excludedEntries.map(dateStr => (
-                    <div key={dateStr} className="flex items-center justify-between bg-zinc-100/20 rounded-lg px-3 py-2 opacity-50">
-                      <span className="text-sm text-zinc-500">
+                    <div key={dateStr} className="flex items-center justify-between bg-zinc-800/20 rounded-lg px-3 py-2 opacity-50">
+                      <span className="text-sm text-zinc-400">
                         {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
                       </span>
-                      <Button size="sm" variant="ghost" className="h-6 text-xs text-teal-700 hover:text-teal-700 px-2"
+                      <Button size="sm" variant="ghost" className="h-6 text-xs text-teal-400 hover:text-teal-400 px-2"
                         onClick={() => handleInclude(dateStr)} disabled={saving}>
                         Restore
                       </Button>
@@ -274,7 +274,7 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
             )}
 
             {activeDayEntries.length === 0 && excludedEntries.length === 0 && (
-              <p className="text-sm text-zinc-400 text-center py-4">Nothing logged for {format(currentMonth, 'MMMM yyyy')}.</p>
+              <p className="text-sm text-zinc-500 text-center py-4">Nothing logged for {format(currentMonth, 'MMMM yyyy')}.</p>
             )}
           </div>
         )}

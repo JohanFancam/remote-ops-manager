@@ -13,7 +13,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "seed": "node -e \"import('./server/seed.js').then(m => m.seedIfEmpty())\""
+    "seed": "node -e \"import('./server/seed.js').then(m => m.seedIfEmpty())\"",
+    "seed:demo": "node scripts/reset-demo.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",

@@ -56,7 +56,7 @@ export default function AssignmentNotifications({ shoots = [], user }) {
     <div className="relative w-full" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm">
           <UserCheck className="h-4 w-4" /> Assignments
@@ -67,18 +67,18 @@ export default function AssignmentNotifications({ shoots = [], user }) {
           </span>
         )}
         {pendingCount === 0 && count > 0 && (
-          <span className="bg-purple-500 text-zinc-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="bg-purple-500 text-zinc-100 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-100 border border-zinc-200 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-            <span className="text-sm font-semibold text-zinc-900">Assignment Status</span>
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+            <span className="text-sm font-semibold text-zinc-100">Assignment Status</span>
             {active.length > 0 && (
-              <button onClick={dismissAll} className="text-xs text-zinc-400 hover:text-zinc-900">Clear all</button>
+              <button onClick={dismissAll} className="text-xs text-zinc-500 hover:text-zinc-100">Clear all</button>
             )}
           </div>
 
@@ -86,37 +86,37 @@ export default function AssignmentNotifications({ shoots = [], user }) {
             {active.length === 0 ? (
               <div className="p-6 text-center">
                 <UserCheck className="h-8 w-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-zinc-400">No assignment updates</p>
+                <p className="text-xs text-zinc-500">No assignment updates</p>
               </div>
             ) : (
               active.map(n => (
                 <div key={n.key} className={`mx-3 my-2 rounded-lg border p-3 ${
                   n.type === 'pending'
                     ? 'border-yellow-700/60 bg-yellow-950/20'
-                    : 'border-emerald-200 bg-emerald-50'
+                    : 'border-emerald-800 bg-emerald-950/40'
                 }`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         {n.type === 'pending'
-                          ? <><Clock className="h-3 w-3 text-amber-700" /><span className="text-xs font-medium text-amber-700">Needs Approval</span></>
-                          : <><CheckCircle2 className="h-3 w-3 text-emerald-700" /><span className="text-xs font-medium text-green-300">Approved</span></>
+                          ? <><Clock className="h-3 w-3 text-amber-400" /><span className="text-xs font-medium text-amber-400">Needs Approval</span></>
+                          : <><CheckCircle2 className="h-3 w-3 text-emerald-400" /><span className="text-xs font-medium text-green-300">Approved</span></>
                         }
                       </div>
-                      <p className="text-sm font-semibold text-zinc-900 truncate">{n.shoot.title}</p>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500">
+                      <p className="text-sm font-semibold text-zinc-100 truncate">{n.shoot.title}</p>
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-400">
                         <Calendar className="h-3 w-3" />
                         <span>{format(new Date(n.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
                         {n.shoot.game_time && <span>· {n.shoot.game_time}</span>}
                       </div>
                       {n.type === 'pending' && n.shoot.pending_operators?.length > 0 && (
-                        <p className="text-xs text-amber-700/80 mt-0.5">{n.shoot.pending_operators.length} operator(s) waiting</p>
+                        <p className="text-xs text-amber-400/80 mt-0.5">{n.shoot.pending_operators.length} operator(s) waiting</p>
                       )}
                       {n.type === 'approved' && n.shoot.assigned_operators?.length > 0 && (
-                        <p className="text-xs text-emerald-700/80 mt-0.5">{n.shoot.assigned_operators.length} operator(s) assigned</p>
+                        <p className="text-xs text-emerald-400/80 mt-0.5">{n.shoot.assigned_operators.length} operator(s) assigned</p>
                       )}
                     </div>
-                    <button onClick={() => dismiss(n.key)} className="text-gray-600 hover:text-zinc-500 flex-shrink-0">
+                    <button onClick={() => dismiss(n.key)} className="text-gray-600 hover:text-zinc-400 flex-shrink-0">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>

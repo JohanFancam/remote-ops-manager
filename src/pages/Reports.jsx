@@ -18,9 +18,9 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   return (
-    <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-500 hover:text-zinc-900"
+    <Button size="sm" variant="ghost" className="h-6 text-xs text-zinc-400 hover:text-zinc-100"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-      {copied ? <><Check className="h-3 w-3 mr-1 text-emerald-700" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
+      {copied ? <><Check className="h-3 w-3 mr-1 text-emerald-400" />Copied</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
     </Button>
   );
 }
@@ -58,41 +58,41 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="relative w-full max-w-md h-full bg-white border-l border-zinc-200 shadow-2xl overflow-y-auto flex flex-col"
+      <div className="relative w-full max-w-md h-full bg-zinc-900 border-l border-zinc-800 shadow-2xl overflow-y-auto flex flex-col"
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-900 z-10">
           <div>
-            <p className="text-zinc-900 font-bold text-base">{label}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-zinc-100 font-bold text-base">{label}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">
               {reports.length} report{reports.length !== 1 ? 's' : ''}
-              {hasIssues.length > 0 && <span className="text-red-600 ml-2">· {hasIssues.length} with issues</span>}
+              {hasIssues.length > 0 && <span className="text-red-400 ml-2">· {hasIssues.length} with issues</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" className="text-xs text-zinc-500 hover:text-zinc-900 gap-1.5 h-8"
+            <Button size="sm" variant="ghost" className="text-xs text-zinc-400 hover:text-zinc-100 gap-1.5 h-8"
               onClick={() => downloadCSV(buildCSV(reports), `Reports_${format(date, 'yyyy-MM-dd')}.csv`)}>
               <Download className="h-3.5 w-3.5" /> Export
             </Button>
-            <Button size="sm" variant="ghost" className="text-xs text-teal-700 hover:text-teal-700 gap-1 h-8"
+            <Button size="sm" variant="ghost" className="text-xs text-teal-400 hover:text-teal-400 gap-1 h-8"
               onClick={() => setShowAdd(!showAdd)}>
               <Plus className="h-3.5 w-3.5" /> Add
             </Button>
-            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900"><X className="h-5 w-5" /></button>
+            <button onClick={onClose} className="text-zinc-500 hover:text-zinc-100"><X className="h-5 w-5" /></button>
           </div>
         </div>
 
         {showAdd && (
-          <div className="px-5 py-4 border-b border-zinc-200 bg-zinc-100/40 space-y-2">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Add Manual Report</p>
-            <input className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400" placeholder="Shoot Title *" value={addForm.shoot_title} onChange={e => setAddForm({...addForm, shoot_title: e.target.value})} />
-            <input className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400" placeholder="Operator Name" value={addForm.operator_name} onChange={e => setAddForm({...addForm, operator_name: e.target.value})} />
-            <textarea className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 resize-none" placeholder="Notes" rows={2} value={addForm.notes} onChange={e => setAddForm({...addForm, notes: e.target.value})} />
+          <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-800/40 space-y-2">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Add Manual Report</p>
+            <input className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-500" placeholder="Shoot Title *" value={addForm.shoot_title} onChange={e => setAddForm({...addForm, shoot_title: e.target.value})} />
+            <input className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-500" placeholder="Operator Name" value={addForm.operator_name} onChange={e => setAddForm({...addForm, operator_name: e.target.value})} />
+            <textarea className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-500 resize-none" placeholder="Notes" rows={2} value={addForm.notes} onChange={e => setAddForm({...addForm, notes: e.target.value})} />
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
                 <input type="checkbox" checked={addForm.had_issues} onChange={e => setAddForm({...addForm, had_issues: e.target.checked})} className="rounded" />
                 Had Issues
               </label>
-              <Button size="sm" className="h-7 text-xs bg-teal-700 hover:bg-teal-800 gap-1 ml-auto" disabled={!addForm.shoot_title || saving}
+              <Button size="sm" className="h-7 text-xs bg-teal-600 hover:bg-teal-500 gap-1 ml-auto" disabled={!addForm.shoot_title || saving}
                 onClick={async () => { setSaving(true); await onAdd({ ...addForm, shoot_date: format(date, 'yyyy-MM-dd') }); setAddForm({ shoot_title: '', operator_name: '', had_issues: false, notes: '' }); setShowAdd(false); setSaving(false); }}>
                 <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
               </Button>
@@ -105,70 +105,70 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
             <div key={r.id} className="px-5 py-4">
               {editingId === r.id ? (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-teal-700 uppercase tracking-wider">Editing Report</p>
-                  <input className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900" placeholder="Shoot Title" value={editForm.shoot_title || ''} onChange={e => setEditForm({...editForm, shoot_title: e.target.value})} />
-                  <input className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900" placeholder="Operator Name" value={editForm.operator_name || ''} onChange={e => setEditForm({...editForm, operator_name: e.target.value})} />
-                  <textarea className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900 resize-none" placeholder="Notes" rows={3} value={editForm.notes || ''} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
-                  <textarea className="w-full bg-zinc-200 border border-zinc-300 rounded-md px-2 py-1.5 text-sm text-zinc-900 font-mono resize-none" placeholder="Slack Message (optional)" rows={3} value={editForm.slack_message || ''} onChange={e => setEditForm({...editForm, slack_message: e.target.value})} />
-                  <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                  <p className="text-xs font-semibold text-teal-400 uppercase tracking-wider">Editing Report</p>
+                  <input className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100" placeholder="Shoot Title" value={editForm.shoot_title || ''} onChange={e => setEditForm({...editForm, shoot_title: e.target.value})} />
+                  <input className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100" placeholder="Operator Name" value={editForm.operator_name || ''} onChange={e => setEditForm({...editForm, operator_name: e.target.value})} />
+                  <textarea className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100 resize-none" placeholder="Notes" rows={3} value={editForm.notes || ''} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
+                  <textarea className="w-full bg-zinc-700 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-100 font-mono resize-none" placeholder="Slack Message (optional)" rows={3} value={editForm.slack_message || ''} onChange={e => setEditForm({...editForm, slack_message: e.target.value})} />
+                  <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
                     <input type="checkbox" checked={!!editForm.had_issues} onChange={e => setEditForm({...editForm, had_issues: e.target.checked})} />
                     Had Issues
                   </label>
                   <div className="flex gap-2">
-                    <Button size="sm" className="h-7 text-xs bg-teal-700 hover:bg-teal-800 gap-1" disabled={saving}
+                    <Button size="sm" className="h-7 text-xs bg-teal-600 hover:bg-teal-500 gap-1" disabled={saving}
                       onClick={async () => { setSaving(true); await onEdit(r.id, editForm); setEditingId(null); setSaving(false); }}>
                       <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-400" onClick={() => setEditingId(null)}>Cancel</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-zinc-500" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2 flex-1 min-w-0">
-                      {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-700 flex-shrink-0 mt-0.5" />}
+                      {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-900">{r.shoot_title}</p>
-                        <p className="text-xs text-zinc-500 mt-0.5">{r.operator_name || r.operator_email}</p>
+                        <p className="text-sm font-semibold text-zinc-100">{r.shoot_title}</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{r.operator_name || r.operator_email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <Badge className={r.had_issues ? 'bg-red-500/20 text-red-600 border-red-200 text-xs' : 'bg-green-500/20 text-emerald-700 border-green-500/30 text-xs'}>
+                      <Badge className={r.had_issues ? 'bg-red-950/400/20 text-red-400 border-red-800 text-xs' : 'bg-green-500/20 text-emerald-400 border-green-500/30 text-xs'}>
                         {r.had_issues ? 'Issues' : 'Clean'}
                       </Badge>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-zinc-400 hover:text-teal-700"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-zinc-500 hover:text-teal-400"
                         onClick={() => { setEditingId(r.id); setEditForm({ shoot_title: r.shoot_title, operator_name: r.operator_name || '', notes: r.notes || '', slack_message: r.slack_message || '', had_issues: !!r.had_issues }); setExpanded(null); }}>
                         <span className="text-xs">✏️</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-600" onClick={() => onDelete(r.id)}>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-gray-600 hover:text-red-400" onClick={() => onDelete(r.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                   {(r.notes || r.slack_message) && (
                     <button onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      className="mt-2 ml-6 text-xs text-teal-700 hover:text-teal-700 transition-colors">
+                      className="mt-2 ml-6 text-xs text-teal-400 hover:text-teal-400 transition-colors">
                       {expanded === r.id ? 'Hide details' : 'View details'}
                     </button>
                   )}
                   {expanded === r.id && (
                     <div className="ml-6 mt-2 space-y-3">
                       {r.notes && (
-                        <div className="bg-zinc-100/60 rounded-lg p-3">
-                          <p className="text-xs text-zinc-400 mb-1">Notes:</p>
-                          <p className="text-sm text-zinc-600">{r.notes}</p>
+                        <div className="bg-zinc-800/60 rounded-lg p-3">
+                          <p className="text-xs text-zinc-500 mb-1">Notes:</p>
+                          <p className="text-sm text-zinc-400">{r.notes}</p>
                         </div>
                       )}
                       {r.slack_message && (
-                        <div className="bg-zinc-100/60 rounded-lg p-3">
+                        <div className="bg-zinc-800/60 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs text-zinc-400">Slack Message:</p>
+                            <p className="text-xs text-zinc-500">Slack Message:</p>
                             <CopyBtn text={r.slack_message} />
                           </div>
-                          <pre className="text-xs text-zinc-600 whitespace-pre-wrap font-mono leading-relaxed">{r.slack_message}</pre>
+                          <pre className="text-xs text-zinc-400 whitespace-pre-wrap font-mono leading-relaxed">{r.slack_message}</pre>
                         </div>
                       )}
-                      {r.completed_at && <p className="text-xs text-zinc-400">Completed: {new Date(r.completed_at).toLocaleString()}</p>}
+                      {r.completed_at && <p className="text-xs text-zinc-500">Completed: {new Date(r.completed_at).toLocaleString()}</p>}
                     </div>
                   )}
                 </>
@@ -255,34 +255,34 @@ export default function Reports() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-zinc-100 text-zinc-900 p-6 flex items-center justify-center">
-        <p className="text-zinc-400">Access restricted.</p>
+      <div className="min-h-screen bg-zinc-800 text-zinc-100 p-6 flex items-center justify-center">
+        <p className="text-zinc-500">Access restricted.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 text-zinc-900 p-4 md:p-6">
+    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold">Shoot Reports</h1>
-            <p className="text-zinc-500 text-sm mt-1">{monthReports.length} reports in {monthLabel}</p>
+            <p className="text-zinc-400 text-sm mt-1">{monthReports.length} reports in {monthLabel}</p>
           </div>
           <Button onClick={() => downloadCSV(buildCSV(monthReports), `Reports_${format(currentMonth, 'yyyy-MM')}.csv`)}
-            variant="outline" className="border-zinc-200 text-zinc-600 hover:bg-zinc-100 gap-2">
+            variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 gap-2">
             <Download className="h-4 w-4" /> Export Month
           </Button>
         </div>
 
         {/* Yearly chart */}
-        <Card className="bg-white border-zinc-200">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
             <div className="mb-4">
-              <p className="text-sm text-zinc-500">{currentMonth.getFullYear()} — Total Reports</p>
-              <p className="text-2xl font-bold text-zinc-900">{yearTotal} reports</p>
+              <p className="text-sm text-zinc-400">{currentMonth.getFullYear()} — Total Reports</p>
+              <p className="text-2xl font-bold text-zinc-100">{yearTotal} reports</p>
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%">
@@ -302,23 +302,23 @@ export default function Reports() {
               </BarChart>
             </ResponsiveContainer>
             <div className="flex items-center gap-4 mt-2 px-1">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#374151]" /><span className="text-xs text-zinc-500">Reports</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#3b82f6]" /><span className="text-xs text-zinc-500">Current Month</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-red-500" /><span className="text-xs text-zinc-500">Issues</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#374151]" /><span className="text-xs text-zinc-400">Reports</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-[#3b82f6]" /><span className="text-xs text-zinc-400">Current Month</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-red-950/400" /><span className="text-xs text-zinc-400">Issues</span></div>
             </div>
           </CardContent>
         </Card>
 
         {/* Month nav */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
             onClick={() => { setCurrentMonth(subMonths(currentMonth, 1)); setSelectedDay(null); }}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{monthLabel}</h2>
           </div>
-          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
             onClick={() => { setCurrentMonth(addMonths(currentMonth, 1)); setSelectedDay(null); }}>
             <ChevronRight className="h-5 w-5" />
           </Button>
@@ -326,36 +326,36 @@ export default function Reports() {
 
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-zinc-900">{monthReports.length}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Total Reports</p>
+              <p className="text-2xl font-bold text-zinc-100">{monthReports.length}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">Total Reports</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-700">{monthReports.filter(r => !r.had_issues).length}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Clean</p>
+              <p className="text-2xl font-bold text-emerald-400">{monthReports.filter(r => !r.had_issues).length}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">Clean</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-zinc-200">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-red-600">{monthReports.filter(r => r.had_issues).length}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">With Issues</p>
+              <p className="text-2xl font-bold text-red-400">{monthReports.filter(r => r.had_issues).length}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">With Issues</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Calendar grid */}
-        <Card className="bg-white border-zinc-200">
-          <div className="grid grid-cols-7 border-b border-zinc-200">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <div className="grid grid-cols-7 border-b border-zinc-800">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-zinc-400">{d}</div>
+              <div key={d} className="py-2 text-center text-xs font-medium text-zinc-500">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">
             {Array.from({ length: startPad }).map((_, i) => (
-              <div key={`pad-${i}`} className="border-r border-b border-zinc-200/50 min-h-[80px] bg-zinc-100/30" />
+              <div key={`pad-${i}`} className="border-r border-b border-zinc-800/50 min-h-[80px] bg-zinc-800/30" />
             ))}
             {days.map((day, idx) => {
               const dayStr = format(day, 'yyyy-MM-dd');
@@ -368,25 +368,25 @@ export default function Reports() {
               return (
                 <div key={dayStr}
                   onClick={() => hasAny && setSelectedDay(isSelected ? null : day)}
-                  className={`min-h-[80px] border-b border-zinc-200/50 p-2 flex flex-col transition-colors
-                    ${!isLastCol ? 'border-r border-zinc-200/50' : ''}
+                  className={`min-h-[80px] border-b border-zinc-800/50 p-2 flex flex-col transition-colors
+                    ${!isLastCol ? 'border-r border-zinc-800/50' : ''}
                     ${hasAny ? 'cursor-pointer' : ''}
-                    ${isSelected ? 'bg-teal-50 border-blue-800/40' : hasAny ? 'hover:bg-zinc-100/40' : ''}
+                    ${isSelected ? 'bg-teal-950/40 border-blue-800/40' : hasAny ? 'hover:bg-zinc-800/40' : ''}
                   `}>
                   <span className={`text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                    ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'bg-teal-700 text-white' : 'text-zinc-500'}`}>
+                    ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'bg-teal-600 text-white' : 'text-zinc-400'}`}>
                     {format(day, 'd')}
                   </span>
                   {hasAny && (
                     <div className="flex flex-col gap-1 mt-0.5">
                       {dayRep.slice(0, 3).map((r, i) => (
                         <div key={i} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs leading-tight
-                          ${r.had_issues ? 'bg-red-900/40 text-red-700' : 'bg-green-900/30 text-green-300'}`}>
+                          ${r.had_issues ? 'bg-red-900/40 text-red-400' : 'bg-green-900/30 text-green-300'}`}>
                           {r.had_issues ? <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" /> : <CheckCircle2 className="h-2.5 w-2.5 flex-shrink-0" />}
                           <span className="truncate" style={{ maxWidth: '80px' }}>{r.shoot_title}</span>
                         </div>
                       ))}
-                      {dayRep.length > 3 && <span className="text-xs text-zinc-400 pl-1">+{dayRep.length - 3} more</span>}
+                      {dayRep.length > 3 && <span className="text-xs text-zinc-500 pl-1">+{dayRep.length - 3} more</span>}
                     </div>
                   )}
                 </div>
@@ -397,28 +397,28 @@ export default function Reports() {
 
         {/* Legend */}
         <div className="flex items-center gap-4 px-1">
-          <div className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" /><span className="text-xs text-zinc-400">Clean shoot</span></div>
-          <div className="flex items-center gap-1.5"><AlertCircle className="h-3.5 w-3.5 text-red-600" /><span className="text-xs text-zinc-400">Issues reported</span></div>
+          <div className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /><span className="text-xs text-zinc-500">Clean shoot</span></div>
+          <div className="flex items-center gap-1.5"><AlertCircle className="h-3.5 w-3.5 text-red-400" /><span className="text-xs text-zinc-500">Issues reported</span></div>
           <span className="text-xs text-gray-600">· Click a day to view details</span>
         </div>
 
         {/* Monthly report list */}
         {monthReports.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-zinc-600 mb-3">All Reports — {monthLabel}</p>
+            <p className="text-sm font-semibold text-zinc-400 mb-3">All Reports — {monthLabel}</p>
             <div className="space-y-2">
               {[...monthReports].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')).map(r => (
                 <div key={r.id} className={`rounded-lg p-3 border flex items-start justify-between gap-3
-                  ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-zinc-200 bg-white'}`}>
+                  ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-zinc-800 bg-zinc-900'}`}>
                   <div className="flex items-start gap-2 flex-1 min-w-0">
-                    {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-700 flex-shrink-0 mt-0.5" />}
+                    {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 truncate">{r.shoot_title}</p>
-                      <p className="text-xs text-zinc-400">{r.shoot_date} · {r.operator_name || r.operator_email || 'Unknown'}</p>
-                      {r.notes && <p className="text-xs text-zinc-500 mt-1 italic truncate">{r.notes}</p>}
+                      <p className="text-sm font-medium text-zinc-100 truncate">{r.shoot_title}</p>
+                      <p className="text-xs text-zinc-500">{r.shoot_date} · {r.operator_name || r.operator_email || 'Unknown'}</p>
+                      {r.notes && <p className="text-xs text-zinc-400 mt-1 italic truncate">{r.notes}</p>}
                     </div>
                   </div>
-                  <Badge className={r.had_issues ? 'bg-red-500/20 text-red-600 border-red-200 text-xs flex-shrink-0' : 'bg-green-500/20 text-emerald-700 border-green-500/30 text-xs flex-shrink-0'}>
+                  <Badge className={r.had_issues ? 'bg-red-950/400/20 text-red-400 border-red-800 text-xs flex-shrink-0' : 'bg-green-500/20 text-emerald-400 border-green-500/30 text-xs flex-shrink-0'}>
                     {r.had_issues ? 'Issues' : 'Clean'}
                   </Badge>
                 </div>

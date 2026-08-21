@@ -68,21 +68,21 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
   const operators = allUsers.filter(u => u.role !== 'admin' && !u.inactive);
 
   return (
-    <Card className="bg-white border-zinc-200 mb-6">
-      <CardHeader className="border-b border-zinc-200 pb-4">
-        <CardTitle className="text-zinc-900 flex items-center gap-2">
+    <Card className="bg-zinc-900 border-zinc-800 mb-6">
+      <CardHeader className="border-b border-zinc-800 pb-4">
+        <CardTitle className="text-zinc-100 flex items-center gap-2">
           <Link2 className="h-5 w-5 text-purple-400" /> Auto-Assignment Rules
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-5">
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-zinc-500">
           When an eligible user assigns themselves to any shoot, the system will automatically assign them to any linked-team shoot on the same day within the time window.
-          Auto-assigned shoots do <strong className="text-zinc-500">not</strong> count toward the 6-game pre-approval limit (3 pairs).
+          Auto-assigned shoots do <strong className="text-zinc-400">not</strong> count toward the 6-game pre-approval limit (3 pairs).
         </p>
 
         {/* Time window */}
         <div>
-          <label className="text-xs text-zinc-500 block mb-1">Time window (hours)</label>
+          <label className="text-xs text-zinc-400 block mb-1">Time window (hours)</label>
           <div className="flex items-center gap-2">
             <Input
               type="number"
@@ -91,20 +91,20 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
               step="0.5"
               value={windowHours}
               onChange={e => setWindowHours(Number(e.target.value))}
-              className="bg-zinc-100 border-zinc-200 text-zinc-900 w-24"
+              className="bg-zinc-800 border-zinc-800 text-zinc-100 w-24"
             />
-            <span className="text-xs text-zinc-400">hours between game times</span>
+            <span className="text-xs text-zinc-500">hours between game times</span>
           </div>
         </div>
 
         {/* Linked teams */}
         <div>
-          <label className="text-xs text-zinc-500 block mb-2">Linked teams (any two of these on the same day = auto-pair)</label>
+          <label className="text-xs text-zinc-400 block mb-2">Linked teams (any two of these on the same day = auto-pair)</label>
           <div className="flex flex-wrap gap-2 mb-2">
             {linkedTeams.map(team => (
               <Badge key={team} className="bg-purple-900/40 text-purple-300 border border-purple-700/50 flex items-center gap-1 pr-1">
                 {team}
-                <button onClick={() => removeTeam(team)} className="ml-1 hover:text-zinc-900">
+                <button onClick={() => removeTeam(team)} className="ml-1 hover:text-zinc-100">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -116,7 +116,7 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
               onChange={e => setNewTeam(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addTeam()}
               placeholder="e.g. Mariners"
-              className="bg-zinc-100 border-zinc-200 text-zinc-900 text-sm w-48"
+              className="bg-zinc-800 border-zinc-800 text-zinc-100 text-sm w-48"
             />
             <Button size="sm" onClick={addTeam} className="bg-purple-700 hover:bg-purple-600 gap-1">
               <Plus className="h-3.5 w-3.5" /> Add
@@ -126,22 +126,22 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
 
         {/* Eligible users */}
         <div>
-          <label className="text-xs text-zinc-500 block mb-1">
+          <label className="text-xs text-zinc-400 block mb-1">
             Apply to users {eligibleUsers.length === 0 && <span className="text-yellow-500">(currently: ALL operators)</span>}
           </label>
           <p className="text-xs text-gray-600 mb-2">Select specific users, or leave empty to apply to all operators.</p>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {operators.map(u => (
-              <label key={u.email} className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 px-2 py-1.5 rounded-lg">
+              <label key={u.email} className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 px-2 py-1.5 rounded-lg">
                 <input
                   type="checkbox"
                   checked={eligibleUsers.includes(u.email)}
                   onChange={() => toggleUser(u.email)}
                   className="accent-purple-500"
                 />
-                <span className="text-sm text-zinc-600">{u.full_name || u.email}</span>
+                <span className="text-sm text-zinc-400">{u.full_name || u.email}</span>
                 <span className="text-xs text-gray-600">{u.email}</span>
-                <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${u.role === 'standby' ? 'bg-yellow-900/40 text-amber-700' : 'bg-green-900/40 text-emerald-700'}`}>
+                <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${u.role === 'standby' ? 'bg-yellow-900/40 text-amber-400' : 'bg-green-900/40 text-emerald-400'}`}>
                   {u.role === 'standby' ? 'Standby' : 'Remote'}
                 </span>
               </label>
