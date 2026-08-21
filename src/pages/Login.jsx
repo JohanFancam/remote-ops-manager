@@ -34,34 +34,34 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden bg-zinc-900 text-zinc-900 flex-col justify-between p-10">
+      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden border-r border-zinc-200/80 flex-col justify-between p-10 bg-[#eef3f1]">
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 20% 20%, rgba(15,118,110,0.55), transparent 45%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.08), transparent 40%)',
+              'radial-gradient(circle at 12% 18%, rgba(15,118,110,0.16), transparent 42%), radial-gradient(circle at 88% 78%, rgba(24,24,27,0.05), transparent 40%)',
           }}
         />
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-teal-700 flex items-center justify-center">
               <Wifi className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold tracking-tight">Remote Ops</p>
-              <p className="text-xs text-zinc-400">Manager</p>
+              <p className="font-semibold tracking-tight text-zinc-900">Remote Ops</p>
+              <p className="text-xs text-zinc-500">Manager</p>
             </div>
           </div>
         </div>
         <div className="relative max-w-sm rom-enter">
-          <h1 className="text-3xl font-semibold tracking-tight leading-snug">
+          <h1 className="text-3xl font-semibold tracking-tight leading-snug text-zinc-900">
             Run shoots with a quieter, clearer console.
           </h1>
-          <p className="mt-4 text-sm text-zinc-400 leading-relaxed">
-            Schedule, assign, and track remote crews without the Base44 scaffolding — just your ops, locally.
+          <p className="mt-4 text-sm text-zinc-500 leading-relaxed">
+            Schedule, assign, and track remote crews in a standalone web app — no Base44 runtime required.
           </p>
         </div>
-        <p className="relative text-xs text-zinc-500">Standalone web app · Express + SQLite</p>
+        <p className="relative text-xs text-zinc-400">Standalone · Express + SQLite</p>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6 md:p-10">
