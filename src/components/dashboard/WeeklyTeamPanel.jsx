@@ -92,11 +92,11 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
     const assigned = s.assigned_operators || [];
     const pending = s.pending_operators || [];
     return (
-      <div className={`rounded-lg border px-3 py-2.5 ${pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-zinc-800/60 border-zinc-800/40'}`}>
+      <div className={`rounded-lg border px-3 py-2.5 ${pending.length > 0 ? 'bg-orange-950/30 border-orange-700/40' : 'bg-slate-800/60 border-slate-800/40'}`}>
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-zinc-100 leading-tight truncate">{s.title || s.client}</p>
-            {s.game_time && <p className="text-xs text-zinc-500 font-mono">{s.game_time}</p>}
+            <p className="text-sm font-medium text-slate-100 leading-tight truncate">{s.title || s.client}</p>
+            {s.game_time && <p className="text-xs text-slate-500 font-mono">{s.game_time}</p>}
           </div>
         </div>
         {assigned.length > 0 && (
@@ -148,36 +148,36 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
       {/* View toggle + navigation */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <div className="flex bg-zinc-800 rounded-lg p-0.5">
+          <div className="flex bg-slate-800 rounded-lg p-0.5">
             <button onClick={() => setViewMode('7day')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === '7day' ? 'bg-teal-600 text-white' : 'text-zinc-400 hover:text-zinc-100'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === '7day' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
               <List className="h-3.5 w-3.5" /> 7-Day
             </button>
             <button onClick={() => setViewMode('month')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-teal-600 text-white' : 'text-zinc-400 hover:text-zinc-100'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
               <CalendarDays className="h-3.5 w-3.5" /> Month
             </button>
           </div>
           {viewMode === '7day' && (
-            <span className="text-sm font-semibold text-zinc-100">{weekLabel}</span>
+            <span className="text-sm font-semibold text-slate-100">{weekLabel}</span>
           )}
           {viewMode === 'month' && (
             <div className="flex items-center gap-2">
-              <span className="text-zinc-100 font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
-              <span className="text-xs bg-teal-950/40 text-teal-400 border border-teal-800 px-2 py-0.5 rounded-full">{monthShootCount} shoots</span>
+              <span className="text-slate-100 font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
+              <span className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{monthShootCount} shoots</span>
             </div>
           )}
         </div>
         <div className="flex items-center gap-1">
 
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-100"
             onClick={() => {
               if (viewMode === '7day') setWeekStart(format(addDays(new Date(weekStart + 'T12:00:00'), -7), 'yyyy-MM-dd'));
               else { setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1)); setSelectedDay(null); }
             }}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-100"
             onClick={() => {
               if (viewMode === '7day') setWeekStart(format(addDays(new Date(weekStart + 'T12:00:00'), 7), 'yyyy-MM-dd'));
               else { setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1)); setSelectedDay(null); }
@@ -200,20 +200,20 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
 
             return (
               <div key={dateStr} className={`rounded-xl border flex flex-col ${
-                isToday ? 'border-teal-500/60 bg-teal-950/40' :
-                isPast ? 'border-zinc-800 bg-zinc-900/30 opacity-70' :
+                isToday ? 'border-blue-500/60 bg-blue-950/40' :
+                isPast ? 'border-slate-800 bg-slate-900/30 opacity-70' :
                 hasPending ? 'border-orange-800/50 bg-orange-950/10' :
-                dayShoots.length > 0 ? 'border-blue-800/40 bg-teal-950/40' :
-                'border-zinc-800 bg-zinc-900/20'
+                dayShoots.length > 0 ? 'border-blue-800/40 bg-blue-950/40' :
+                'border-slate-800 bg-slate-900/20'
               }`}>
                 {/* Day header */}
                 <div className={`flex items-center justify-between px-3 py-2.5 border-b rounded-t-xl ${
-                  isToday ? 'border-teal-800 bg-teal-950/40' : 'border-zinc-800'
+                  isToday ? 'border-blue-800 bg-blue-950/40' : 'border-slate-800'
                 }`}>
                   <div>
-                    <p className={`text-sm font-bold ${isToday ? 'text-teal-400' : isPast ? 'text-gray-600' : 'text-zinc-100'}`}>
+                    <p className={`text-sm font-bold ${isToday ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-slate-100'}`}>
                       {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
-                      {isToday && <span className="ml-1.5 text-xs bg-teal-600 text-white px-1.5 py-0.5 rounded-full">Today</span>}
+                      {isToday && <span className="ml-1.5 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded-full">Today</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -221,7 +221,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                       <span className="text-xs bg-orange-700/30 text-orange-400 px-1.5 py-0.5 rounded-full">!</span>
                     )}
                     {dayShoots.length > 0 && (
-                      <span className="text-xs bg-zinc-700/50 text-zinc-400 px-1.5 py-0.5 rounded-full">{dayShoots.length}</span>
+                      <span className="text-xs bg-slate-700/50 text-slate-400 px-1.5 py-0.5 rounded-full">{dayShoots.length}</span>
                     )}
                   </div>
                 </div>
@@ -245,16 +245,16 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
         <div>
           {/* Legend */}
           <div className="flex items-center gap-4 mb-3 flex-wrap">
-            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
               <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(30,58,138,0.4)' }} /> Has Shoots
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
               <span className="w-3 h-3 rounded inline-block" style={{ background: 'rgba(120,53,15,0.5)' }} /> Pending Approval
             </span>
           </div>
 
           <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
-            {DOW_SHORT.map(d => <div key={d} className="text-xs text-zinc-500 py-1">{d}</div>)}
+            {DOW_SHORT.map(d => <div key={d} className="text-xs text-slate-500 py-1">{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-0.5 mb-4">
             {calDays.map(day => {
@@ -277,20 +277,20 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                     ${isSelected ? 'ring-2 ring-blue-400' : ''}
                     ${isToday ? 'ring-1 ring-blue-500' : ''}`}
                   style={{ background: bg }}>
-                  <span className={`text-xs font-medium block ${isToday ? 'text-teal-400 font-bold' : dayShoots.length > 0 ? 'text-teal-400' : 'text-zinc-500'}`}>
+                  <span className={`text-xs font-medium block ${isToday ? 'text-blue-400 font-bold' : dayShoots.length > 0 ? 'text-blue-400' : 'text-slate-500'}`}>
                     {format(day, 'd')}
                   </span>
                   {inMonth && dayShoots.length > 0 && (
                     <div className="mt-0.5 space-y-0.5">
                       {dayShoots.slice(0, 2).map(s => (
-                        <div key={s.id} className={`text-xs truncate leading-tight rounded px-0.5 ${(s.pending_operators?.length || 0) > 0 ? 'text-orange-300' : 'text-teal-400'}`}>
+                        <div key={s.id} className={`text-xs truncate leading-tight rounded px-0.5 ${(s.pending_operators?.length || 0) > 0 ? 'text-orange-300' : 'text-blue-400'}`}>
                           {s.title?.split(' vs ')[0] || s.client || '•'}
                         </div>
                       ))}
-                      {dayShoots.length > 2 && <div className="text-xs text-zinc-500">+{dayShoots.length - 2}</div>}
+                      {dayShoots.length > 2 && <div className="text-xs text-slate-500">+{dayShoots.length - 2}</div>}
                     </div>
                   )}
-                  {isToday && <div className="w-1 h-1 rounded-full bg-teal-600 mt-0.5 mx-auto" />}
+                  {isToday && <div className="w-1 h-1 rounded-full bg-blue-600 mt-0.5 mx-auto" />}
                 </button>
               );
             })}
@@ -298,17 +298,17 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
 
           {/* Selected day detail */}
           {selectedDay && (
-            <div className="bg-zinc-800/60 border border-teal-800 rounded-xl p-4">
+            <div className="bg-slate-800/60 border border-blue-800 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-zinc-100">
+                <p className="text-sm font-semibold text-slate-100">
                   {format(new Date(selectedDay + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
                 </p>
-                <button onClick={() => setSelectedDay(null)} className="text-zinc-500 hover:text-zinc-100">
+                <button onClick={() => setSelectedDay(null)} className="text-slate-500 hover:text-slate-100">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               {selectedShoots.length === 0 ? (
-                <p className="text-xs text-zinc-500">No shoots scheduled for this day.</p>
+                <p className="text-xs text-slate-500">No shoots scheduled for this day.</p>
               ) : (
                 <div className="space-y-3">
                   {selectedShoots.map(s => <ShootCard key={s.id} s={s} />)}

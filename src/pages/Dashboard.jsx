@@ -114,7 +114,7 @@ export default function Dashboard() {
     <div className="rom-page">
       <div className="rom-page-inner">
         <header className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 mb-2">Dashboard</p>
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500 mb-2">Dashboard</p>
           <h1 className="rom-title">Welcome, {firstName}</h1>
           <p className="rom-subtitle">Your assigned shoots and coverage for today.</p>
         </header>
@@ -137,7 +137,7 @@ export default function Dashboard() {
         <section className="mb-8">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="rom-section-title">My Assigned Shoots</h2>
-            <p className="hidden text-xs text-zinc-500 sm:block">Current or next shoot shows first.</p>
+            <p className="hidden text-xs text-slate-500 sm:block">Current or next shoot shows first.</p>
           </div>
           <div className="rom-panel">
             <AdminDayShootView
@@ -157,7 +157,7 @@ export default function Dashboard() {
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <h2 className="rom-section-title">Standby Coverage Shoots</h2>
-              <p className="hidden text-xs text-zinc-500 sm:block">18:00 – 06:00 standby windows.</p>
+              <p className="hidden text-xs text-slate-500 sm:block">18:00 – 06:00 standby windows.</p>
             </div>
             <div className="rom-panel">
               <AdminStandbyShootList
@@ -178,9 +178,9 @@ export default function Dashboard() {
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
                 <h2 className="rom-section-title">Rig Tests</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Scheduled rig testing checklist.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Scheduled rig testing checklist.</p>
               </div>
-              <a href="/RigTestLog" className="text-xs text-teal-400 hover:text-teal-300 font-medium">
+              <a href="/RigTestLog" className="text-xs text-blue-400 hover:text-blue-300 font-medium">
                 View full log →
               </a>
             </div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
           <section className="mb-8">
             <div className="mb-3">
               <h2 className="rom-section-title">Pending Approval</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Requests waiting for admin approval.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Requests waiting for admin approval.</p>
             </div>
             <div className="rom-panel">
               <RemotePendingShoots shoots={shoots} user={user} onUpdate={handleShootUpdate} />

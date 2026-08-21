@@ -27,7 +27,7 @@ function ViewButton({ active, icon: Icon, children, onClick }) {
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? 'bg-teal-600 text-white ' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+        active ? 'bg-blue-600 text-white ' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
       }`}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -121,14 +121,14 @@ export default function AdminDayShootView({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex rounded-lg bg-zinc-800 p-0.5">
+        <div className="flex rounded-lg bg-slate-800 p-0.5">
           <ViewButton active={viewMode === 'day'} icon={List} onClick={() => setViewMode('day')}>Day</ViewButton>
           <ViewButton active={viewMode === 'month'} icon={CalendarDays} onClick={() => setViewMode('month')}>Calendar</ViewButton>
           <ViewButton active={viewMode === 'tile'} icon={LayoutGrid} onClick={() => setViewMode('tile')}>Tile</ViewButton>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-500">
+          <div className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-500">
             {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
           </div>
         </div>
@@ -136,13 +136,13 @@ export default function AdminDayShootView({
 
       {viewMode === 'month' && (
         <div>
-          <div className="mb-3 flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2">
-            <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="rounded p-1 hover:bg-zinc-700 transition-colors">
-              <ChevronLeft className="h-4 w-4 text-zinc-400" />
+          <div className="mb-3 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+            <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="rounded p-1 hover:bg-slate-700 transition-colors">
+              <ChevronLeft className="h-4 w-4 text-slate-400" />
             </button>
-            <div className="flex-1 text-center text-sm font-semibold text-zinc-100">{format(monthDate, 'MMMM yyyy')}</div>
-            <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="rounded p-1 hover:bg-zinc-700 transition-colors">
-              <ChevronRight className="h-4 w-4 text-zinc-400" />
+            <div className="flex-1 text-center text-sm font-semibold text-slate-100">{format(monthDate, 'MMMM yyyy')}</div>
+            <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="rounded p-1 hover:bg-slate-700 transition-colors">
+              <ChevronRight className="h-4 w-4 text-slate-400" />
             </button>
           </div>
 
@@ -161,10 +161,10 @@ export default function AdminDayShootView({
                 <button
                   key={ds}
                   onClick={() => setMonthSelectedDate(isSelected ? null : ds)}
-                  className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-teal-600' : isToday ? 'bg-zinc-700' : dayShoots.length > 0 ? 'bg-zinc-800 hover:bg-zinc-700' : 'hover:bg-zinc-50'}`}
+                  className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-blue-600' : isToday ? 'bg-slate-700' : dayShoots.length > 0 ? 'bg-slate-800 hover:bg-slate-700' : 'hover:bg-slate-50'}`}
                 >
-                  <span className={`text-xs font-medium ${isSelected ? 'text-zinc-100' : isToday ? 'text-teal-400' : dayShoots.length > 0 ? 'text-zinc-100' : 'text-gray-600'}`}>{format(day, 'd')}</span>
-                  {dayShoots.length > 0 && <span className={`mt-0.5 text-xs font-bold ${isSelected ? 'text-blue-200' : 'text-teal-400'}`}>{dayShoots.length}</span>}
+                  <span className={`text-xs font-medium ${isSelected ? 'text-slate-100' : isToday ? 'text-blue-400' : dayShoots.length > 0 ? 'text-slate-100' : 'text-gray-600'}`}>{format(day, 'd')}</span>
+                  {dayShoots.length > 0 && <span className={`mt-0.5 text-xs font-bold ${isSelected ? 'text-blue-200' : 'text-blue-400'}`}>{dayShoots.length}</span>}
                 </button>
               );
             })}
@@ -172,11 +172,11 @@ export default function AdminDayShootView({
 
           {monthSelectedDate && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
                 {format(new Date(`${monthSelectedDate}T12:00:00`), 'EEEE, MMM d')} - {monthDayShootsList.length} shoot{monthDayShootsList.length !== 1 ? 's' : ''}
               </p>
               {monthDayShootsList.length === 0 ? (
-                <div className="py-4 text-center text-sm italic text-zinc-500">No upcoming shoots on this day.</div>
+                <div className="py-4 text-center text-sm italic text-slate-500">No upcoming shoots on this day.</div>
               ) : (
                 <div className="space-y-2">{monthVisibleShoots.map(renderCard)}</div>
               )}
@@ -188,7 +188,7 @@ export default function AdminDayShootView({
       {viewMode !== 'month' && (
         <>
           {sortedShoots.length === 0 ? (
-            <div className="py-8 text-center text-sm italic text-zinc-500">No upcoming assigned shoots.</div>
+            <div className="py-8 text-center text-sm italic text-slate-500">No upcoming assigned shoots.</div>
           ) : (
             <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2' : 'space-y-2'}>
               {visibleShoots.map(renderCard)}
@@ -196,10 +196,10 @@ export default function AdminDayShootView({
           )}
 
           {sortedShoots.length > pageSize && (
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
-              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="rounded-md border border-zinc-800 px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-800 disabled:opacity-30">Previous</button>
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30">Previous</button>
               <span className="text-[10px] font-bold text-gray-600">SHOWING {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedShoots.length)} OF {sortedShoots.length}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="rounded-md border border-blue-800/60 bg-teal-950/40 px-2.5 py-1 text-xs font-semibold text-teal-400 hover:bg-teal-950/40 disabled:opacity-30">Next</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30">Next</button>
             </div>
           )}
         </>

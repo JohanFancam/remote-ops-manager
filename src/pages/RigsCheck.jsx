@@ -12,13 +12,13 @@ export default function RigsCheck() {
   const { data: appSettings = [] } = useQuery({ queryKey: ['appSettings'], queryFn: () => base44.entities.AppSettings.list() });
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <CheckSquare className="h-6 w-6 text-orange-400" />
-          <h1 className="text-2xl font-bold text-zinc-100">Rigs Check</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Rigs Check</h1>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <RigsCheckPanel shoots={shoots} rigSettings={rigSettings} appSettings={appSettings} isAdmin={isAdmin} />
         </div>
       </div>

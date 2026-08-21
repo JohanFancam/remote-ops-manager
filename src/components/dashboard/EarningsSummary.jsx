@@ -23,19 +23,19 @@ export default function EarningsSummary({ shoots = [], users = [], user }) {
 
   return (
     <>
-      <Card className="bg-zinc-900 border-zinc-800 mt-8">
-        <CardHeader className="border-b border-zinc-800 pb-4">
+      <Card className="bg-slate-900 border-slate-800 mt-8">
+        <CardHeader className="border-b border-slate-800 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-zinc-100 flex items-center gap-2">
+            <CardTitle className="text-slate-100 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-400" />
               {user?.role === 'admin' ? 'Operator Earnings Summary' : 'My Monthly Summary'}
             </CardTitle>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-xs text-zinc-500">Total Earnings</p>
+                <p className="text-xs text-slate-500">Total Earnings</p>
                 <p className="text-lg font-bold text-emerald-400">R {grandTotal.toLocaleString('en-ZA')}</p>
               </div>
-              <Button onClick={handleExport} size="sm" className="bg-teal-600 hover:bg-teal-600">
+              <Button onClick={handleExport} size="sm" className="bg-blue-600 hover:bg-blue-600">
                 <Download className="h-4 w-4 mr-1" /> PDF
               </Button>
             </div>
@@ -43,10 +43,10 @@ export default function EarningsSummary({ shoots = [], users = [], user }) {
         </CardHeader>
         <CardContent className="p-0">
           {operators.length === 0 ? (
-            <p className="text-zinc-500 text-sm p-6 text-center">No earnings data found.</p>
+            <p className="text-slate-500 text-sm p-6 text-center">No earnings data found.</p>
           ) : (
             <div>
-              <div className="grid grid-cols-4 px-5 py-2 text-xs text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+              <div className="grid grid-cols-4 px-5 py-2 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-800">
                 <span>Operator</span>
                 <span className="text-center">Shoots</span>
                 <span className="text-center">Additional</span>
@@ -57,13 +57,13 @@ export default function EarningsSummary({ shoots = [], users = [], user }) {
                   <button
                     key={op.email}
                     onClick={() => setSelectedOperator(op)}
-                    className="w-full grid grid-cols-4 px-5 py-4 hover:bg-zinc-800/60 transition-colors text-left items-center"
+                    className="w-full grid grid-cols-4 px-5 py-4 hover:bg-slate-800/60 transition-colors text-left items-center"
                   >
                     <div>
-                      <p className="font-medium text-zinc-100">{op.name}</p>
-                      <p className="text-xs text-zinc-500">{op.email}</p>
+                      <p className="font-medium text-slate-100">{op.name}</p>
+                      <p className="text-xs text-slate-500">{op.email}</p>
                     </div>
-                    <div className="text-center text-zinc-100 font-semibold">{op.shootCount}</div>
+                    <div className="text-center text-slate-100 font-semibold">{op.shootCount}</div>
                     <div className="text-center text-amber-400 text-sm">
                       {op.breakdown.filter(b => b.isAdditional).length || '—'}
                     </div>

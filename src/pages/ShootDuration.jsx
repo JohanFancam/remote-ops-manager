@@ -88,21 +88,21 @@ export default function ShootDuration() {
   const yearTotal = yearChartData.reduce((s, d) => s + d.count, 0);
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center gap-3">
           <Clock className="h-6 w-6 text-purple-400" />
-          <h1 className="text-2xl font-bold text-zinc-100">Shoot Duration Tracker</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Shoot Duration Tracker</h1>
         </div>
 
         {/* Yearly chart */}
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="mb-4">
-              <p className="text-sm text-zinc-400">{filterMonth.split('-')[0]} — Total Timed Shoots</p>
-              <p className="text-2xl font-bold text-zinc-100">{yearTotal} shoots</p>
+              <p className="text-sm text-slate-400">{filterMonth.split('-')[0]} — Total Timed Shoots</p>
+              <p className="text-2xl font-bold text-slate-100">{yearTotal} shoots</p>
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%">
@@ -126,20 +126,20 @@ export default function ShootDuration() {
 
         {/* Month navigator */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(-1)}>
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h2 className="text-lg font-semibold">{format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</h2>
-          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(1)}>
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Monthly chart — avg duration per day */}
         {monthChartData.length > 0 && (
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
-              <p className="text-sm text-zinc-400 mb-3">Avg Duration by Day — {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</p>
+              <p className="text-sm text-slate-400 mb-3">Avg Duration by Day — {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={monthChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="25%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
@@ -158,7 +158,7 @@ export default function ShootDuration() {
         )}
 
         {/* Existing detailed timing panel */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <ShootTimingPanel
             shoots={shoots}
             allUsers={allUsers}

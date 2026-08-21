@@ -76,15 +76,15 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
   return (
     <div className={`rounded-xl border transition-colors ${
-      hasPending ? 'border-amber-800 bg-yellow-950/10' : 'border-zinc-800 bg-zinc-900'
+      hasPending ? 'border-amber-800 bg-yellow-950/10' : 'border-slate-800 bg-slate-900'
     }`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-zinc-100">{op.full_name || op.email}</p>
-            {op.inactive && <Badge className="text-xs bg-zinc-700 text-zinc-400 border-zinc-700">Not in use</Badge>}
+            <p className="font-semibold text-slate-100">{op.full_name || op.email}</p>
+            {op.inactive && <Badge className="text-xs bg-slate-700 text-slate-400 border-slate-700">Not in use</Badge>}
           </div>
-          <p className="text-xs text-zinc-500">{op.email}</p>
+          <p className="text-xs text-slate-500">{op.email}</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           {hasPending && (
@@ -93,15 +93,15 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </span>
           )}
           <div className="text-right">
-            <p className="text-sm text-zinc-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
-            <p className="font-mono font-bold text-zinc-100">R{total.toFixed(2)}</p>
+            <p className="text-sm text-slate-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
+            <p className="font-mono font-bold text-slate-100">R{total.toFixed(2)}</p>
           </div>
-          {expanded ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-zinc-800 pt-3 space-y-3">
+        <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
           {/* Pending approval section */}
           {hasPending && (
             <div className="bg-yellow-950/20 border border-amber-800 rounded-xl p-3 space-y-2">
@@ -109,10 +109,10 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                 <Clock className="h-3 w-3" /> Pending Approval ({pendingShoots.length})
               </p>
               {pendingShoots.map(shoot => (
-                <div key={shoot.id} className="flex items-center justify-between gap-2 bg-zinc-900 rounded-lg px-3 py-2 border border-yellow-800/20">
+                <div key={shoot.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-lg px-3 py-2 border border-yellow-800/20">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-100 truncate">{shoot.title}</p>
-                    <p className="text-xs text-zinc-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
+                    <p className="text-sm font-medium text-slate-100 truncate">{shoot.title}</p>
+                    <p className="text-xs text-slate-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <Button size="sm" className="h-7 text-xs bg-green-700 hover:bg-green-600 gap-1 px-2" onClick={() => onApprove(shoot, op.email)}>
@@ -133,8 +133,8 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </p>
           )}
 
-          {opShoots.length === 0 && !hasPending && <p className="text-zinc-500 text-sm text-center py-4">No shoots this month.</p>}
-          {opShoots.length === 0 && hasPending && <p className="text-zinc-500 text-sm text-center py-2">No approved shoots yet.</p>}
+          {opShoots.length === 0 && !hasPending && <p className="text-slate-500 text-sm text-center py-4">No shoots this month.</p>}
+          {opShoots.length === 0 && hasPending && <p className="text-slate-500 text-sm text-center py-2">No approved shoots yet.</p>}
 
           {opShoots.map(shoot => {
             const rec = getRecord(shoot);
@@ -143,34 +143,34 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             const hasOverrideFee = rec?.override_fee != null;
             const hasManualAdditional = rec?.is_additional != null;
             return (
-              <div key={shoot.id} className="rounded-lg p-3 border border-zinc-800 bg-zinc-800/40">
+              <div key={shoot.id} className="rounded-lg p-3 border border-slate-800 bg-slate-800/40">
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-100 truncate">{shoot.title}</p>
-                    <p className="text-xs text-zinc-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
+                    <p className="text-sm font-medium text-slate-100 truncate">{shoot.title}</p>
+                    <p className="text-xs text-slate-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
                     <div className="flex gap-1 flex-wrap mt-1">
                       {additional && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
-                      {hasOverrideFee && <Badge className="text-xs bg-teal-600/20 text-teal-400 border-teal-800">Fee Override</Badge>}
+                      {hasOverrideFee && <Badge className="text-xs bg-blue-600/20 text-blue-400 border-blue-800">Fee Override</Badge>}
                       {hasManualAdditional && <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">Manual</Badge>}
                     </div>
-                    {rec?.notes && <p className="text-xs text-zinc-400 mt-1 italic">{rec.notes}</p>}
+                    {rec?.notes && <p className="text-xs text-slate-400 mt-1 italic">{rec.notes}</p>}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {editingId === shoot.id ? (
                       <>
                         <Input type="number" value={editFee} onChange={e => setEditFee(e.target.value)}
-                          className="bg-zinc-700 border-zinc-700 text-zinc-100 h-7 w-24 text-sm" placeholder="Fee (R)" />
-                        <Button size="sm" className="h-7 bg-teal-600 hover:bg-teal-500 text-xs px-2" onClick={() => handleSaveFee(shoot)}>
+                          className="bg-slate-700 border-slate-700 text-slate-100 h-7 w-24 text-sm" placeholder="Fee (R)" />
+                        <Button size="sm" className="h-7 bg-blue-600 hover:bg-blue-500 text-xs px-2" onClick={() => handleSaveFee(shoot)}>
                           <Save className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-zinc-400 text-xs px-2" onClick={() => setEditingId(null)}>
+                        <Button size="sm" variant="ghost" className="h-7 text-slate-400 text-xs px-2" onClick={() => setEditingId(null)}>
                           <X className="h-3 w-3" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <span className="font-mono font-bold text-zinc-100">R{fee.toFixed(2)}</span>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-zinc-100 p-0"
+                        <span className="font-mono font-bold text-slate-100">R{fee.toFixed(2)}</span>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100 p-0"
                           onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
                           <Edit2 className="h-3 w-3" />
                         </Button>
@@ -182,7 +182,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                   <button
                     className={`text-xs px-2 py-1 rounded border transition-colors ${additional
                       ? 'border-orange-700 text-orange-400 bg-orange-950/30 hover:bg-orange-950/60'
-                      : 'border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'}`}
+                      : 'border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
                     onClick={() => handleToggleAdditional(shoot)}
                     title="Toggle additional shoot rate">
                     {additional ? '⚡ Mark as Standard' : '+ Mark as Additional'}
@@ -190,12 +190,12 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                   {editingNote === shoot.id ? (
                     <div className="flex gap-2 flex-1">
                       <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Add note..."
-                        className="bg-zinc-700 border-zinc-700 text-zinc-100 h-7 text-xs flex-1" />
-                      <Button size="sm" className="h-7 text-xs bg-teal-600 hover:bg-teal-500 px-2" onClick={() => handleSaveNote(shoot)}>Save</Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-zinc-400" onClick={() => setEditingNote(null)}>Cancel</Button>
+                        className="bg-slate-700 border-slate-700 text-slate-100 h-7 text-xs flex-1" />
+                      <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 px-2" onClick={() => handleSaveNote(shoot)}>Save</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-slate-400" onClick={() => setEditingNote(null)}>Cancel</Button>
                     </div>
                   ) : (
-                    <button className="text-xs text-gray-600 hover:text-zinc-400 flex items-center gap-1"
+                    <button className="text-xs text-gray-600 hover:text-slate-400 flex items-center gap-1"
                       onClick={() => { setEditingNote(shoot.id); setNote(rec?.notes || ''); }}>
                       <FileText className="h-3 w-3" /> {rec?.notes ? 'Edit note' : 'Add note'}
                     </button>
@@ -390,33 +390,33 @@ export default function Accounts() {
 
   if (!canView) {
     return (
-      <div className="min-h-screen bg-zinc-800 flex items-center justify-center">
-        <p className="text-zinc-500">Access restricted.</p>
+      <div className="min-h-screen bg-slate-800 flex items-center justify-center">
+        <p className="text-slate-500">Access restricted.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Pending / Approve</h1>
-            <p className="text-zinc-400 text-sm mt-0.5">Review self-assignments and approve pending shoots</p>
+            <h1 className="text-2xl font-bold text-slate-100">Pending / Approve</h1>
+            <p className="text-slate-400 text-sm mt-0.5">Review self-assignments and approve pending shoots</p>
           </div>
-          <Button onClick={refresh} variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-100 h-9 w-9">
+          <Button onClick={refresh} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-100 h-9 w-9">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Yearly shoots chart */}
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-5">
             <div className="mb-4">
-              <p className="text-sm text-zinc-400">{filterMonth.split('-')[0]} — Total Shoots</p>
-              <p className="text-2xl font-bold text-zinc-100">{yearTotal} shoots</p>
+              <p className="text-sm text-slate-400">{filterMonth.split('-')[0]} — Total Shoots</p>
+              <p className="text-2xl font-bold text-slate-100">{yearTotal} shoots</p>
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={yearChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="20%">
@@ -440,7 +440,7 @@ export default function Accounts() {
 
         {/* Month navigator */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(-1)}>
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -451,16 +451,16 @@ export default function Accounts() {
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(1)}>
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Shoots per operator chart */}
         {operatorChartData.length > 0 && (
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
-              <p className="text-sm text-zinc-400 mb-3">Shoots per Operator — {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</p>
+              <p className="text-sm text-slate-400 mb-3">Shoots per Operator — {format(new Date(filterMonth + '-01'), 'MMMM yyyy')}</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={operatorChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="25%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
@@ -480,29 +480,29 @@ export default function Accounts() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
-              <p className="text-zinc-400 text-sm">Total Shoots</p>
-              <p className="text-2xl font-bold text-zinc-100 mt-1">{totalShoots}</p>
+              <p className="text-slate-400 text-sm">Total Shoots</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{totalShoots}</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
-              <p className="text-zinc-400 text-sm">Operators Active</p>
-              <p className="text-2xl font-bold text-zinc-100 mt-1">{summaryRows.length}</p>
+              <p className="text-slate-400 text-sm">Operators Active</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{summaryRows.length}</p>
             </CardContent>
           </Card>
-          <Card className={`border-zinc-800 col-span-2 md:col-span-1 ${totalPending > 0 ? 'bg-yellow-950/20 border-amber-800' : 'bg-zinc-900'}`}>
+          <Card className={`border-slate-800 col-span-2 md:col-span-1 ${totalPending > 0 ? 'bg-yellow-950/20 border-amber-800' : 'bg-slate-900'}`}>
             <CardContent className="p-5">
-              <p className={`text-sm ${totalPending > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>Pending Approvals</p>
-              <p className={`text-2xl font-bold mt-1 ${totalPending > 0 ? 'text-amber-400' : 'text-zinc-100'}`}>{totalPending}</p>
+              <p className={`text-sm ${totalPending > 0 ? 'text-amber-400' : 'text-slate-400'}`}>Pending Approvals</p>
+              <p className={`text-2xl font-bold mt-1 ${totalPending > 0 ? 'text-amber-400' : 'text-slate-100'}`}>{totalPending}</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Operator rows */}
         {summaryRows.length === 0 ? (
-          <div className="text-center py-16 text-zinc-500">No operator activity for this month.</div>
+          <div className="text-center py-16 text-slate-500">No operator activity for this month.</div>
         ) : (
           <div className="space-y-3">
             {summaryRows.map(op => (

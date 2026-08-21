@@ -23,7 +23,7 @@ import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 
 const statusColors = {
-  upcoming: 'bg-teal-600',
+  upcoming: 'bg-blue-600',
   confirmed: 'bg-green-600',
   in_progress: 'bg-yellow-600',
   completed: 'bg-gray-600',
@@ -125,12 +125,12 @@ function ViewToggle({ viewMode, setViewMode }) {
   ];
 
   return (
-    <div className="flex gap-1 bg-zinc-800 border border-zinc-800 rounded-lg p-1">
+    <div className="flex gap-1 bg-slate-800 border border-slate-800 rounded-lg p-1">
       {items.map(({ key, label, icon: Icon }) => (
         <button
           key={key}
           onClick={() => setViewMode(key)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${viewMode === key ? 'bg-teal-600 text-white' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${viewMode === key ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
         >
           <Icon className="h-4 w-4" />
           <span className="hidden sm:inline">{label}</span>
@@ -236,7 +236,7 @@ function ShootCalendarEntry({
     ? 'bg-gray-600'
     : fancam
       ? 'bg-orange-500'
-      : statusColors[shoot.status] || 'bg-teal-600';
+      : statusColors[shoot.status] || 'bg-blue-600';
 
   const assignedNames = (shoot.assigned_operators || [])
     .map(email => {
@@ -383,20 +383,20 @@ function ShootCalendarEntry({
         e.preventDefault();
         onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-zinc-900' : takenByOther ? 'opacity-40 bg-zinc-900' : 'bg-zinc-900 hover:bg-zinc-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-zinc-800' : 'border-zinc-800 hover:border-zinc-800')}`}
+      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-zinc-100 truncate`}>
+              <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-100 truncate`}>
                 {shoot.game_time ? `${shoot.game_time} ` : ''}{shortenTitle(shoot.title)}
               </p>
               {(shoot.client || shoot.location) && !compact && (
-                <p className="text-xs text-zinc-500 truncate">{shoot.client || shoot.location}</p>
+                <p className="text-xs text-slate-500 truncate">{shoot.client || shoot.location}</p>
               )}
-              <p className={`${compact ? 'text-[11px]' : 'text-xs'} ${hasPending && !assignedNames ? 'text-amber-400' : 'text-zinc-400'} truncate`}>
+              <p className={`${compact ? 'text-[11px]' : 'text-xs'} ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'} truncate`}>
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
@@ -433,9 +433,9 @@ function ShootCalendarEntry({
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                   shoot.status === 'confirmed' ? 'bg-green-500/15 text-emerald-400 border-green-500/25' :
-                  shoot.status === 'completed' ? 'bg-gray-500/15 text-zinc-400 border-gray-500/25' :
+                  shoot.status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
                   shoot.status === 'cancelled' ? 'bg-red-950/400/15 text-red-400 border-red-500/25' :
-                  'bg-teal-600/15 text-teal-400 border-blue-500/25'
+                  'bg-blue-600/15 text-blue-400 border-blue-500/25'
                 }`}>
                   {(shoot.status || 'upcoming').replace('_', ' ')}
                 </span>
@@ -450,7 +450,7 @@ function ShootCalendarEntry({
                 variant="outline"
                 disabled={isPast || shootFull}
                 onClick={handleSelfAssign}
-                className={`h-7 rounded-md border-zinc-800 bg-zinc-800/70 text-xs ${isAssigned ? 'text-green-300 hover:bg-emerald-950/40 hover:text-green-200' : isPending ? 'text-amber-400 hover:bg-amber-950/40 hover:text-yellow-200' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}
+                className={`h-7 rounded-md border-slate-800 bg-slate-800/70 text-xs ${isAssigned ? 'text-green-300 hover:bg-emerald-950/40 hover:text-green-200' : isPending ? 'text-amber-400 hover:bg-amber-950/40 hover:text-yellow-200' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
               >
                 {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
               </Button>
@@ -1236,7 +1236,7 @@ export default function Calendar() {
       <CardContent className="p-3 md:p-4">
         <div className="grid grid-cols-7 mb-2 min-w-[1100px] xl:min-w-0">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-            <div key={d} className="text-center text-xs font-medium text-zinc-500 py-2">{d}</div>
+            <div key={d} className="text-center text-xs font-medium text-slate-500 py-2">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1.5 min-w-[1100px] xl:min-w-0">
@@ -1260,13 +1260,13 @@ export default function Calendar() {
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
                 className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
-                  ${isSelected ? 'border-blue-500 bg-teal-950/40' : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/40'}
+                  ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${greyOutDay ? 'opacity-55' : ''}
                 `}
               >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <div className={`text-xs font-semibold ${today ? 'text-teal-400' : greyOutDay ? 'text-gray-600' : 'text-zinc-400'}`}>
+                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}>
                     {format(day, 'd')}
                   </div>
                   {(isAdmin || isStandby) && !isPast && (
@@ -1275,10 +1275,10 @@ export default function Calendar() {
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${
                         myStandby
-                          ? 'border-blue-500/40 bg-teal-600/15 text-teal-400'
+                          ? 'border-blue-500/40 bg-blue-600/15 text-blue-400'
                           : otherStandby
                           ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
-                          : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                          : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                       }`}
                       title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
@@ -1290,7 +1290,7 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/400/15 text-red-400' : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/400/15 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
                       title={myUnavailable ? exactCalendarUnavailable ? 'Remove your unavailable mark for this day' : 'You are marked unavailable from an availability range' : 'Mark yourself unavailable for this day'}
                     >
                       <UserX className="h-3 w-3" />
@@ -1302,7 +1302,7 @@ export default function Calendar() {
                    <div className="mb-1.5 flex flex-wrap gap-1">
                      <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
                        primaryStandby.admin_email === user?.email
-                         ? 'bg-teal-950/40 border-teal-800 text-teal-400'
+                         ? 'bg-blue-950/40 border-blue-800 text-blue-400'
                          : 'bg-emerald-950/40 border-emerald-800 text-green-300'
                      }`}>
                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
@@ -1353,17 +1353,17 @@ export default function Calendar() {
             const isPast = dateStr < todayStr;
 
             return (
-              <div key={day.toISOString()} className={`rounded-xl border ${isToday(day) ? 'border-blue-500/60 bg-teal-950/40' : 'border-zinc-800 bg-zinc-800/40'}`}>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
+              <div key={day.toISOString()} className={`rounded-xl border ${isToday(day) ? 'border-blue-500/60 bg-blue-950/40' : 'border-slate-800 bg-slate-800/40'}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
                   <div>
-                    <p className="text-sm font-semibold text-zinc-100">{format(day, 'EEEE, MMMM d')}</p>
-                    <p className="text-xs text-zinc-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
+                    <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
+                    <p className="text-xs text-slate-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
                          primaryStandby.admin_email === user?.email
-                           ? 'bg-teal-950/40 border-teal-800 text-teal-400'
+                           ? 'bg-blue-950/40 border-blue-800 text-blue-400'
                            : 'bg-emerald-950/40 border-emerald-800 text-green-300'
                        }`}>
                          <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
@@ -1383,12 +1383,12 @@ export default function Calendar() {
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleStandbyDay(day)}
-                         className={`h-8 rounded-md border-zinc-800 bg-zinc-800/70 text-xs ${
+                         className={`h-8 rounded-md border-slate-800 bg-slate-800/70 text-xs ${
                            myStandby
-                             ? 'text-teal-400 hover:bg-teal-950/40 hover:text-blue-200'
+                             ? 'text-blue-400 hover:bg-blue-950/40 hover:text-blue-200'
                              : otherStandby
                              ? 'text-green-300 hover:bg-emerald-950/40 hover:text-green-200'
-                             : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+                             : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
                          }`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
@@ -1400,7 +1400,7 @@ export default function Calendar() {
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleUnavailableDay(day)}
-                         className={`h-8 rounded-md border-zinc-800 bg-zinc-800/70 text-xs ${myUnavailable ? 'text-red-400 hover:bg-red-950/30 hover:text-red-200' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'}`}
+                         className={`h-8 rounded-md border-slate-800 bg-slate-800/70 text-xs ${myUnavailable ? 'text-red-400 hover:bg-red-950/30 hover:text-red-200' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
                          title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
                        >
                          <UserX className="h-3.5 w-3.5 mr-1" />
@@ -1416,7 +1416,7 @@ export default function Calendar() {
                       {dayShoots.map(shoot => renderEntry(shoot, day, false))}
                     </div>
                   ) : (
-                    <p className="text-sm text-zinc-500 py-3">Nothing scheduled for this day.</p>
+                    <p className="text-sm text-slate-500 py-3">Nothing scheduled for this day.</p>
                   )}
                 </div>
               </div>
@@ -1428,21 +1428,21 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-3 md:p-5">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5">
       <div className="w-full max-w-[1800px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
-            <p className="text-sm text-zinc-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
+            <p className="text-sm text-slate-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
               <>
-                <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-teal-600 hover:bg-teal-500 text-white" size="sm">
+                <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
                 </Button>
-                <Button onClick={() => setShowCSV(true)} variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800" size="sm">
+                <Button onClick={() => setShowCSV(true)} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800" size="sm">
                   <Upload className="h-4 w-4 mr-1" /> Import CSV
                 </Button>
               </>
@@ -1451,22 +1451,22 @@ export default function Calendar() {
         </div>
 
         <div>
-          <Card className="bg-zinc-900 border-zinc-800 mb-4 overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-800 gap-3">
-              <Button variant="ghost" size="icon" onClick={goPrevious} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex-shrink-0">
+          <Card className="bg-slate-900 border-slate-800 mb-4 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-800 gap-3">
+              <Button variant="ghost" size="icon" onClick={goPrevious} className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex-shrink-0">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <div className="text-center min-w-0">
-                <CardTitle className="text-zinc-100 text-xl truncate">{titleText}</CardTitle>
+                <CardTitle className="text-slate-100 text-xl truncate">{titleText}</CardTitle>
                 <button
                   type="button"
                   onClick={() => { const now = new Date(); setCurrentDate(now); setSelectedDate(now); }}
-                  className="text-xs text-teal-400 hover:text-teal-400 mt-1"
+                  className="text-xs text-blue-400 hover:text-blue-400 mt-1"
                 >
                   Jump to today
                 </button>
               </div>
-              <Button variant="ghost" size="icon" onClick={goNext} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex-shrink-0">
+              <Button variant="ghost" size="icon" onClick={goNext} className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex-shrink-0">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </CardHeader>
@@ -1476,16 +1476,16 @@ export default function Calendar() {
             </div>
           </Card>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 mb-4">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Legend</p>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Legend</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5">
               {[
-                { label: 'Upcoming', color: 'bg-teal-600' },
+                { label: 'Upcoming', color: 'bg-blue-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'My Standby Coverage', color: 'bg-teal-600' },
+                { label: 'My Standby Coverage', color: 'bg-blue-600' },
                 { label: 'Standby Assigned To Someone Else', color: 'bg-green-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
@@ -1493,7 +1493,7 @@ export default function Calendar() {
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
-                  <span className="text-xs text-zinc-400">{l.label}</span>
+                  <span className="text-xs text-slate-400">{l.label}</span>
                 </div>
               ))}
             </div>
@@ -1507,35 +1507,35 @@ export default function Calendar() {
 
       {/* Rig Check Slack Message — Sheet panel */}
       <Sheet open={showRigCheckPanel && rigCheckMessageShoots.length > 0} onOpenChange={setShowRigCheckPanel}>
-        <SheetContent side="right" className="w-full bg-zinc-900 border-l border-zinc-800 p-0 [&_button[type='button']]:text-zinc-400 overflow-y-auto transition-all duration-300">
-          <SheetHeader className="px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-            <SheetTitle className="flex items-center gap-2 text-zinc-100">
+        <SheetContent side="right" className="w-full bg-slate-900 border-l border-slate-800 p-0 [&_button[type='button']]:text-slate-400 overflow-y-auto transition-all duration-300">
+          <SheetHeader className="px-4 py-3 border-b border-slate-800 flex-shrink-0">
+            <SheetTitle className="flex items-center gap-2 text-slate-100">
               <Wrench className={`h-4 w-4 flex-shrink-0 ${rigCheckCopied ? 'text-emerald-400' : 'text-amber-400'}`} />
               Rig Check Message
               <span className="text-xs bg-yellow-500/20 text-amber-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">{rigCheckMessageShoots.length}</span>
             </SheetTitle>
           </SheetHeader>
-          <div className="flex gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-            <Button size="sm" onClick={handleCopyRigCheckMessage} className={`flex-1 text-xs h-8 ${rigCheckCopied ? 'bg-green-600 hover:bg-green-700' : 'bg-teal-600 hover:bg-teal-500'}`}>
+          <div className="flex gap-2 px-4 py-3 border-b border-slate-800 flex-shrink-0">
+            <Button size="sm" onClick={handleCopyRigCheckMessage} className={`flex-1 text-xs h-8 ${rigCheckCopied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-500'}`}>
               {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied!</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Clipboard</>}
             </Button>
-            <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 text-xs h-8">
+            <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-slate-800 text-slate-400 hover:bg-slate-800 text-xs h-8">
               Archive All
             </Button>
           </div>
           <div className="p-4 space-y-4">
-            <pre className="whitespace-pre-wrap rounded-lg bg-zinc-800 border border-zinc-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+            <pre className="whitespace-pre-wrap rounded-lg bg-slate-800 border border-slate-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
             <div className="space-y-1.5">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Checked Shoots</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Checked Shoots</p>
               {rigCheckMessageShoots.map((shoot) => {
                 const rig = findMatchingRig(shoot, rigSettings);
                 const teamName = getShootTeamName(shoot);
                 const label = getRigTypeLabel(shoot, rig) || 'Data';
                 return (
-                  <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-800/70 px-2.5 py-1.5">
+                  <div key={shoot.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/70 px-2.5 py-1.5">
                     <div className="flex items-center gap-2 min-w-0">
                       <Wrench className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-xs text-zinc-400 truncate">{teamName} - {label}</span>
+                      <span className="text-xs text-slate-400 truncate">{teamName} - {label}</span>
                     </div>
                     <button
                       type="button"

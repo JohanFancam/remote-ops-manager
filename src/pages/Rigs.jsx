@@ -60,16 +60,16 @@ export default function Rigs() {
   const pageItems = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Rig Settings</h1>
-            <p className="text-zinc-400 text-sm mt-1">Team-based camera configurations</p>
+            <p className="text-slate-400 text-sm mt-1">Team-based camera configurations</p>
           </div>
           {isAdmin && (
-            <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-teal-600 hover:bg-teal-500">
+            <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-blue-600 hover:bg-blue-500">
               <Plus className="h-4 w-4 mr-2" /> New Rig Setting
             </Button>
           )}
@@ -77,12 +77,12 @@ export default function Rigs() {
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search by team, sport, rig type…"
-            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-teal-500 outline-none" />
+            className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-blue-500 outline-none" />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-100">
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-100">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -94,22 +94,22 @@ export default function Rigs() {
             const isActive = sidePanelRig?.id === rig.id;
             return (
               <div key={rig.id} className={`rounded-xl border flex flex-col transition-all ${
-                isActive ? 'border-blue-500 ring-2 ring-blue-600/40 bg-zinc-900' : 'border-zinc-800 bg-zinc-900 hover:border-zinc-800'
+                isActive ? 'border-blue-500 ring-2 ring-blue-600/40 bg-slate-900' : 'border-slate-800 bg-slate-900 hover:border-slate-800'
               }`}>
                 {/* Tile header */}
-                <div className="p-4 border-b border-zinc-800 flex items-start justify-between gap-2">
+                <div className="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-bold text-zinc-100 text-base leading-tight truncate">{rig.team}</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">{rig.sport} · {rig.venue_type}</p>
+                    <p className="font-bold text-slate-100 text-base leading-tight truncate">{rig.team}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{rig.sport} · {rig.venue_type}</p>
                   </div>
                   {rig.rig_type && (
-                    <Badge className="bg-teal-600/20 text-teal-400 border-teal-800 text-xs flex-shrink-0">{rig.rig_type}</Badge>
+                    <Badge className="bg-blue-600/20 text-blue-400 border-blue-800 text-xs flex-shrink-0">{rig.rig_type}</Badge>
                   )}
                 </div>
 
                 {/* Section badges */}
                 <div className="px-4 py-2 flex flex-wrap gap-1.5">
-                  {rig.data_enabled !== false && <Badge className="bg-teal-600/20 text-teal-400 border-teal-800 text-xs">Data</Badge>}
+                  {rig.data_enabled !== false && <Badge className="bg-blue-600/20 text-blue-400 border-blue-800 text-xs">Data</Badge>}
                   {rig.fancam_day_enabled && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">Fancam Day</Badge>}
                   {rig.fancam_night_enabled && <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">Fancam Night</Badge>}
                   {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 text-xs">Attention</Badge>}
@@ -119,10 +119,10 @@ export default function Rigs() {
                 {/* Remote rigs */}
                 {rig.remote_rigs?.length > 0 && (
                   <div className="px-4 pb-3">
-                    <p className="text-[10px] text-zinc-500 mb-1 font-semibold uppercase tracking-tighter">Remote Rigs</p>
+                    <p className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-tighter">Remote Rigs</p>
                     <div className="flex flex-wrap gap-1">
                       {rig.remote_rigs.map((r, i) => (
-                        <span key={i} className="text-xs bg-teal-950/40 text-teal-400 border border-teal-800 px-2 py-0.5 rounded-full">{r}</span>
+                        <span key={i} className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{r}</span>
                       ))}
                     </div>
                   </div>
@@ -131,28 +131,28 @@ export default function Rigs() {
                 {/* Notes preview */}
                 {rig.notes && (
                   <div className="px-4 pb-3">
-                    <div className="flex items-center gap-1.5 text-teal-400/80 mb-1">
+                    <div className="flex items-center gap-1.5 text-blue-400/80 mb-1">
                       <StickyNote className="h-3 w-3" />
                       <span className="text-[10px] font-semibold uppercase tracking-wider">Notes</span>
                     </div>
-                    <p className="text-xs text-zinc-400 line-clamp-2 italic px-1">"{rig.notes}"</p>
+                    <p className="text-xs text-slate-400 line-clamp-2 italic px-1">"{rig.notes}"</p>
                   </div>
                 )}
 
                 {/* Actions */}
                 {isAdmin && (
-                  <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+                  <div className="px-4 py-3 border-t border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => { setSidePanelRig(rig); setViewOnly(true); }}
-                        className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-teal-400 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors"
                         title="Quick view">
                         <Eye className="h-3.5 w-3.5" /> View
                       </button>
                       <button
                         onClick={() => { setSidePanelRig(rig); setViewOnly(false); }}
                         className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-                          isActive && !viewOnly ? 'text-teal-400 hover:text-zinc-100' : 'text-zinc-400 hover:text-zinc-100'
+                          isActive && !viewOnly ? 'text-blue-400 hover:text-slate-100' : 'text-slate-400 hover:text-slate-100'
                         }`}>
                         <Edit2 className="h-3.5 w-3.5" />
                         {isActive && !viewOnly ? 'Editing →' : 'Edit'}
@@ -160,17 +160,17 @@ export default function Rigs() {
                     </div>
                     <div className="flex gap-1 items-center">
                       <button onClick={() => handleDuplicate(rig)} title="Duplicate"
-                        className="p-1.5 rounded text-zinc-500 hover:text-teal-400 hover:bg-zinc-800 transition-colors">
+                        className="p-1.5 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors">
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                       {confirmDeleteId === rig.id ? (
                         <div className="flex items-center gap-1">
                           <button onClick={() => handleDelete(rig.id)} className="text-xs px-2 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded">Yes</button>
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-xs px-2 py-0.5 bg-zinc-700 hover:bg-gray-600 text-zinc-100 rounded">No</button>
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-xs px-2 py-0.5 bg-slate-700 hover:bg-gray-600 text-slate-100 rounded">No</button>
                         </div>
                       ) : (
                         <button onClick={() => setConfirmDeleteId(rig.id)}
-                          className="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors">
+                          className="p-1.5 rounded text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -182,7 +182,7 @@ export default function Rigs() {
           })}
 
           {filtered.length === 0 && search && (
-            <div className="col-span-full text-center py-10 text-zinc-500">
+            <div className="col-span-full text-center py-10 text-slate-500">
               <Search className="h-8 w-8 text-gray-700 mx-auto mb-2" />
               <p>No rig settings match "{search}"</p>
             </div>
@@ -195,23 +195,23 @@ export default function Rigs() {
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               <ChevronLeft className="h-4 w-4" /> Previous
             </button>
-            <span className="text-sm text-zinc-500">
+            <span className="text-sm text-slate-500">
               {page + 1} / {totalPages}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         )}
 
         {rigSettings.length === 0 && !sidePanelRig && (
-          <div className="text-center py-20 text-zinc-500">
+          <div className="text-center py-20 text-slate-500">
             <Settings2 className="h-12 w-12 text-gray-700 mx-auto mb-4" />
             <p>No rig settings yet. Add your first team configuration.</p>
           </div>

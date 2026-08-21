@@ -49,9 +49,9 @@ export default function StandbyBanner({ todayStr, currentUser }) {
   return (
     <div className="mb-4 space-y-2">
       {/* Real-time clock */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 flex items-center gap-3">
-        <span className="text-zinc-400 text-xs">{dateStr2}</span>
-        <span className="ml-auto font-mono text-zinc-100 text-sm font-semibold tracking-widest">{timeStr}</span>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 flex items-center gap-3">
+        <span className="text-slate-400 text-xs">{dateStr2}</span>
+        <span className="ml-auto font-mono text-slate-100 text-sm font-semibold tracking-widest">{timeStr}</span>
       </div>
 
       {/* Active standby banner */}

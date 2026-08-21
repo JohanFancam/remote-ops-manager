@@ -78,19 +78,19 @@ export default function RemoteEarnings({ user }) {
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 mt-8">
-      <CardHeader className="border-b border-zinc-800 pb-3">
+    <Card className="bg-slate-900 border-slate-800 mt-8">
+      <CardHeader className="border-b border-slate-800 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="text-zinc-100 text-base flex items-center gap-2">
+          <CardTitle className="text-slate-100 text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
             My Earnings Summary
           </CardTitle>
           <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={() => goMonth(-1)}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-slate-100" onClick={() => goMonth(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium text-zinc-400 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-100" onClick={() => goMonth(1)}>
+            <span className="text-sm font-medium text-slate-400 w-24 text-center">{format(currentMonth, 'MMM yyyy')}</span>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-slate-100" onClick={() => goMonth(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button size="sm" variant="outline" className="border-emerald-800 text-emerald-400 hover:bg-green-900/30 gap-1.5 text-xs h-7"
@@ -110,7 +110,7 @@ export default function RemoteEarnings({ user }) {
               </Badge>
             )}
 
-            <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-zinc-100 gap-1.5 text-xs ml-1"
+            <Button size="sm" variant="ghost" className="text-slate-400 hover:text-slate-100 gap-1.5 text-xs ml-1"
               onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Less' : 'Details'}
               {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -120,40 +120,40 @@ export default function RemoteEarnings({ user }) {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="bg-zinc-50 rounded-lg p-3 text-center">
+          <div className="bg-slate-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-emerald-400">R{adjustedTotal.toLocaleString()}</p>
-            <p className="text-xs text-zinc-400">Total Earned</p>
+            <p className="text-xs text-slate-400">Total Earned</p>
           </div>
-          <div className="bg-zinc-50 rounded-lg p-3 text-center">
-            <Camera className="h-5 w-5 text-teal-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-zinc-100">{mainShoots.length}</p>
-            <p className="text-xs text-zinc-400">Main Shoots</p>
+          <div className="bg-slate-50 rounded-lg p-3 text-center">
+            <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-slate-100">{mainShoots.length}</p>
+            <p className="text-xs text-slate-400">Main Shoots</p>
           </div>
-          <div className="bg-zinc-50 rounded-lg p-3 text-center">
+          <div className="bg-slate-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
-            <p className="text-xs text-zinc-400">Additional</p>
+            <p className="text-xs text-slate-400">Additional</p>
           </div>
         </div>
 
         {expanded && (
           <div className="space-y-3">
             {adjustedBreakdown.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-4">No shoots assigned for {format(currentMonth, 'MMMM yyyy')}.</p>
+              <p className="text-sm text-slate-500 text-center py-4">No shoots assigned for {format(currentMonth, 'MMMM yyyy')}.</p>
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Shoots This Month</p>
-                  <Button size="sm" variant="ghost" className="h-6 text-xs text-teal-400 hover:text-teal-400 gap-1 px-2"
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Shoots This Month</p>
+                  <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-400 gap-1 px-2"
                     onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown })}>
                     <Download className="h-3 w-3" /> PDF
                   </Button>
                 </div>
                 <div className="space-y-1">
                   {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-zinc-800/40 rounded px-3 py-2">
+                    <div key={idx} className="flex items-center justify-between bg-slate-800/40 rounded px-3 py-2">
                       <div>
-                        <p className="text-sm text-zinc-100 font-medium">{item.shoot?.title || 'Game'}</p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-sm text-slate-100 font-medium">{item.shoot?.title || 'Game'}</p>
+                        <p className="text-xs text-slate-400">
                           {format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d')}
                           {item.shoot?.game_time && ` · ${item.shoot.game_time}`}
                         </p>

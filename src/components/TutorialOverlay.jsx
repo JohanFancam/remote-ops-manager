@@ -116,52 +116,52 @@ export default function TutorialOverlay({ isAdmin, tutorialEnabled }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-teal-400" />
-            <span className="text-xs font-medium text-zinc-400">Tutorial · Step {step + 1} of {steps.length}</span>
+            <BookOpen className="h-4 w-4 text-blue-400" />
+            <span className="text-xs font-medium text-slate-400">Tutorial · Step {step + 1} of {steps.length}</span>
           </div>
-          <button onClick={dismiss} className="text-gray-600 hover:text-zinc-100">
+          <button onClick={dismiss} className="text-gray-600 hover:text-slate-100">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Progress bar */}
-        <div className="h-1 bg-zinc-800 mx-5 mt-3 rounded-full overflow-hidden">
+        <div className="h-1 bg-slate-800 mx-5 mt-3 rounded-full overflow-hidden">
           <div
-            className="h-full bg-teal-600 rounded-full transition-all duration-300"
+            className="h-full bg-blue-600 rounded-full transition-all duration-300"
             style={{ width: `${((step + 1) / steps.length) * 100}%` }}
           />
         </div>
 
         {/* Content */}
         <div className="px-5 py-5">
-          <h3 className="text-zinc-100 font-bold text-lg mb-2">{current.title}</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">{current.body}</p>
+          <h3 className="text-slate-100 font-bold text-lg mb-2">{current.title}</h3>
+          <p className="text-slate-400 text-sm leading-relaxed">{current.body}</p>
         </div>
 
         {/* Footer */}
         <div className="px-5 pb-5 flex items-center justify-between">
           <button
             onClick={dismiss}
-            className="text-xs text-gray-600 hover:text-zinc-400 underline underline-offset-2"
+            className="text-xs text-gray-600 hover:text-slate-400 underline underline-offset-2"
           >
             Skip tutorial
           </button>
           <div className="flex gap-2">
             {step > 0 && (
-              <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-zinc-100 gap-1" onClick={() => setStep(s => s - 1)}>
+              <Button size="sm" variant="ghost" className="text-slate-400 hover:text-slate-100 gap-1" onClick={() => setStep(s => s - 1)}>
                 <ChevronLeft className="h-4 w-4" /> Back
               </Button>
             )}
             {isLast ? (
-              <Button size="sm" className="bg-teal-600 hover:bg-teal-500 gap-1" onClick={dismiss}>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-500 gap-1" onClick={dismiss}>
                 Done <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button size="sm" className="bg-teal-600 hover:bg-teal-500 gap-1" onClick={() => setStep(s => s + 1)}>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-500 gap-1" onClick={() => setStep(s => s + 1)}>
                 Next <ChevronRight className="h-4 w-4" />
               </Button>
             )}
@@ -187,7 +187,7 @@ export function TutorialReopenButton({ isAdmin, tutorialEnabled }) {
     <button
       onClick={handleReopen}
       title="Open Tutorial"
-      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-sm"
+      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors text-sm"
     >
       <BookOpen className="h-4 w-4" /> Tutorial
     </button>

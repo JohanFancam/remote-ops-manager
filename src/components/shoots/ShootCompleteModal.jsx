@@ -59,20 +59,20 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
   if (saved) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
 
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-7 w-7 text-emerald-400 flex-shrink-0" />
-            <h2 className="text-zinc-100 font-bold text-lg">
+            <h2 className="text-slate-100 font-bold text-lg">
               Report Saved!
             </h2>
           </div>
 
-          <p className="text-zinc-400 text-sm">
+          <p className="text-slate-400 text-sm">
             Report saved. Copy the message below to Slack, then confirm if the shoot is complete:
           </p>
 
-          <div className="bg-zinc-800 border border-zinc-800 rounded-lg p-3">
+          <div className="bg-slate-800 border border-slate-800 rounded-lg p-3">
             <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">
               {slackText}
             </pre>
@@ -81,7 +81,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
           <div className="flex gap-2">
             <Button
               onClick={handleCopy}
-              className="flex-1 bg-teal-600 hover:bg-teal-600"
+              className="flex-1 bg-blue-600 hover:bg-blue-600"
             >
               {copied ? (
                 <>
@@ -97,7 +97,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
             </Button>
           </div>
 
-          <div className="flex gap-2 pt-1 border-t border-zinc-800">
+          <div className="flex gap-2 pt-1 border-t border-slate-800">
             <Button
               onClick={() => onClose(true)}
               className="flex-1 bg-green-700 hover:bg-green-600 text-sm"
@@ -108,7 +108,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
             <Button
               variant="outline"
               onClick={() => onClose(false)}
-              className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 text-sm"
+              className="border-slate-800 text-slate-400 hover:bg-slate-800 text-sm"
             >
               Close Without Completing
             </Button>
@@ -121,15 +121,15 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
   if (hadIssues === null) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full space-y-5">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-5">
 
-          <h2 className="text-zinc-100 font-bold text-lg">
+          <h2 className="text-slate-100 font-bold text-lg">
             Mark Shoot Complete?
           </h2>
 
-          <p className="text-zinc-400 text-sm">
+          <p className="text-slate-400 text-sm">
             Were there any issues during the{' '}
-            <span className="text-zinc-100 font-medium">
+            <span className="text-slate-100 font-medium">
               {team}
             </span>{' '}
             shoot?
@@ -158,7 +158,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
           {/* FIXED BUG HERE */}
           <Button
             variant="ghost"
-            className="w-full text-zinc-500"
+            className="w-full text-slate-500"
             onClick={() => onClose(false)}
           >
             Cancel
@@ -171,16 +171,16 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
 
-        <h2 className="text-zinc-100 font-bold text-lg">
+        <h2 className="text-slate-100 font-bold text-lg">
           {hadIssues
             ? '⚠️ Describe the Issues'
             : '✅ Confirm Shoot Complete'}
         </h2>
 
         {hadIssues && (
-          <p className="text-zinc-400 text-sm">
+          <p className="text-slate-400 text-sm">
             Please describe the issues encountered:
           </p>
         )}
@@ -193,7 +193,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
               ? "Describe issues..."
               : "Any additional notes? (optional)"
           }
-          className="w-full bg-zinc-800 border border-zinc-800 text-zinc-100 rounded-lg p-3 text-sm resize-none h-28 placeholder:text-zinc-500"
+          className="w-full bg-slate-800 border border-slate-800 text-slate-100 rounded-lg p-3 text-sm resize-none h-28 placeholder:text-slate-500"
         />
 
         <div className="flex gap-2">
@@ -201,14 +201,14 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
           <Button
             onClick={handleSubmit}
             disabled={saving || (hadIssues && !notes)}
-            className="flex-1 bg-teal-600 hover:bg-teal-500"
+            className="flex-1 bg-blue-600 hover:bg-blue-500"
           >
             {saving ? 'Saving...' : 'Submit & Complete'}
           </Button>
 
           <Button
             variant="ghost"
-            className="text-zinc-500"
+            className="text-slate-500"
             onClick={() => setHadIssues(null)}
           >
             Back

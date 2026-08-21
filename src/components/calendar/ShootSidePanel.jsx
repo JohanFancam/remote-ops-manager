@@ -174,26 +174,26 @@ export default function ShootSidePanel({
 
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full bg-zinc-900 border-l border-zinc-800 p-0 [&_button[type='button']]:text-zinc-400 overflow-y-auto transition-all duration-300">
+      <SheetContent side="right" className="w-full bg-slate-900 border-l border-slate-800 p-0 [&_button[type='button']]:text-slate-400 overflow-y-auto transition-all duration-300">
         <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-4 border-b border-zinc-800 flex-shrink-0">
+        <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-800 flex-shrink-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-zinc-100 truncate">{shoot.title}</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <h2 className="text-base font-semibold text-slate-100 truncate">{shoot.title}</h2>
+            <p className="text-xs text-slate-400 mt-0.5">
               {dayName}, {dateStr} · {timeStr}
             </p>
           </div>
         </div>
 
         {/* Shoot Type Badge */}
-        <div className="px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Shoot Type</p>
+        <div className="px-4 py-3 border-b border-slate-800 flex-shrink-0">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Shoot Type</p>
           <div className="flex items-center gap-2">
             <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${
               rigTypeLabel === 'Fancam' || rigTypeLabel === 'Data/Fancam'
                 ? 'bg-orange-500/15 text-orange-300 border-orange-500/30'
-                : 'bg-teal-600/15 text-teal-400 border-teal-800'
+                : 'bg-blue-600/15 text-blue-400 border-blue-800'
             }`}>
               {rigTypeLabel}
             </span>
@@ -206,7 +206,7 @@ export default function ShootSidePanel({
                     className={`px-2 py-1 rounded border transition-colors ${
                       shoot.rig_type_override === type
                         ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
-                        : 'bg-zinc-800 text-zinc-400 border-zinc-800 hover:text-zinc-300 hover:border-zinc-700'
+                        : 'bg-slate-800 text-slate-400 border-slate-800 hover:text-slate-300 hover:border-slate-700'
                     }`}
                   >
                     {type}
@@ -219,53 +219,53 @@ export default function ShootSidePanel({
 
         {/* Rig Type & Details */}
         {(isAdmin || isStandby) && rig && (
-          <div className="px-4 py-3 border-b border-zinc-800 flex-shrink-0 space-y-2">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider">Rig Details</p>
+          <div className="px-4 py-3 border-b border-slate-800 flex-shrink-0 space-y-2">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Rig Details</p>
             <div className="space-y-2">
               {rig.rig_type && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Rig Type</span>
-                  <span className="text-zinc-100 font-medium">{rig.rig_type}</span>
+                  <span className="text-slate-400">Rig Type</span>
+                  <span className="text-slate-100 font-medium">{rig.rig_type}</span>
                 </div>
               )}
               {rig.data_enabled !== false && (
-                <div className="text-[11px] text-zinc-400 bg-zinc-50 px-2 py-1.5 rounded border border-zinc-800">
+                <div className="text-[11px] text-slate-400 bg-slate-50 px-2 py-1.5 rounded border border-slate-800">
                   <div className="font-semibold mb-1">Data Settings</div>
-                  {rig.data_hd && <div className="text-zinc-400">HD {rig.data_hd.shutter} | {rig.data_hd.aperture} | {rig.data_hd.iso}</div>}
-                  {rig.data_wide && <div className="text-zinc-400">Wide {rig.data_wide.shutter} | {rig.data_wide.aperture} | {rig.data_wide.iso}</div>}
+                  {rig.data_hd && <div className="text-slate-400">HD {rig.data_hd.shutter} | {rig.data_hd.aperture} | {rig.data_hd.iso}</div>}
+                  {rig.data_wide && <div className="text-slate-400">Wide {rig.data_wide.shutter} | {rig.data_wide.aperture} | {rig.data_wide.iso}</div>}
                 </div>
               )}
               {rig.fancam_day_enabled && (
-                <div className="text-[11px] text-zinc-400 bg-zinc-50 px-2 py-1.5 rounded border border-zinc-800">
+                <div className="text-[11px] text-slate-400 bg-slate-50 px-2 py-1.5 rounded border border-slate-800">
                   <div className="font-semibold mb-1">Fancam Day Settings</div>
-                  {rig.fancam_day_hd && <div className="text-zinc-400">HD {rig.fancam_day_hd.shutter} | {rig.fancam_day_hd.aperture} | {rig.fancam_day_hd.iso}</div>}
-                  {rig.fancam_day_wide && <div className="text-zinc-400">Wide {rig.fancam_day_wide.shutter} | {rig.fancam_day_wide.aperture} | {rig.fancam_day_wide.iso}</div>}
+                  {rig.fancam_day_hd && <div className="text-slate-400">HD {rig.fancam_day_hd.shutter} | {rig.fancam_day_hd.aperture} | {rig.fancam_day_hd.iso}</div>}
+                  {rig.fancam_day_wide && <div className="text-slate-400">Wide {rig.fancam_day_wide.shutter} | {rig.fancam_day_wide.aperture} | {rig.fancam_day_wide.iso}</div>}
                 </div>
               )}
               {rig.fancam_night_enabled && (
-                <div className="text-[11px] text-zinc-400 bg-zinc-50 px-2 py-1.5 rounded border border-zinc-800">
+                <div className="text-[11px] text-slate-400 bg-slate-50 px-2 py-1.5 rounded border border-slate-800">
                   <div className="font-semibold mb-1">Fancam Night Settings</div>
-                  {rig.fancam_night_hd && <div className="text-zinc-400">HD {rig.fancam_night_hd.shutter} | {rig.fancam_night_hd.aperture} | {rig.fancam_night_hd.iso}</div>}
-                  {rig.fancam_night_wide && <div className="text-zinc-400">Wide {rig.fancam_night_wide.shutter} | {rig.fancam_night_wide.aperture} | {rig.fancam_night_wide.iso}</div>}
+                  {rig.fancam_night_hd && <div className="text-slate-400">HD {rig.fancam_night_hd.shutter} | {rig.fancam_night_hd.aperture} | {rig.fancam_night_hd.iso}</div>}
+                  {rig.fancam_night_wide && <div className="text-slate-400">Wide {rig.fancam_night_wide.shutter} | {rig.fancam_night_wide.aperture} | {rig.fancam_night_wide.iso}</div>}
                 </div>
               )}
               {rig.attention_enabled && (
-                <div className="text-[11px] text-zinc-400 bg-zinc-50 px-2 py-1.5 rounded border border-zinc-800">
+                <div className="text-[11px] text-slate-400 bg-slate-50 px-2 py-1.5 rounded border border-slate-800">
                   <div className="font-semibold mb-1">Attention Camera</div>
-                  {rig.attention_hd && <div className="text-zinc-400">HD {rig.attention_hd.shutter} | {rig.attention_hd.aperture} | {rig.attention_hd.iso}</div>}
+                  {rig.attention_hd && <div className="text-slate-400">HD {rig.attention_hd.shutter} | {rig.attention_hd.aperture} | {rig.attention_hd.iso}</div>}
                 </div>
               )}
               {rig.sound_enabled && (
-                <div className="text-[11px] text-zinc-400 bg-zinc-50 px-2 py-1.5 rounded border border-zinc-800">
+                <div className="text-[11px] text-slate-400 bg-slate-50 px-2 py-1.5 rounded border border-slate-800">
                   <div className="font-semibold">Sound Recording Enabled</div>
                 </div>
               )}
               {rig.remote_rigs && rig.remote_rigs.length > 0 && (
-                <div className="text-[11px] text-zinc-400">
+                <div className="text-[11px] text-slate-400">
                   <div className="font-semibold mb-1">Remote Rigs</div>
                   <div className="flex flex-wrap gap-1">
                     {rig.remote_rigs.map((r, idx) => (
-                      <span key={idx} className="bg-zinc-700 px-2 py-1 rounded">{r}</span>
+                      <span key={idx} className="bg-slate-700 px-2 py-1 rounded">{r}</span>
                     ))}
                   </div>
                 </div>
@@ -275,43 +275,43 @@ export default function ShootSidePanel({
         )}
 
         {/* Schedule Info */}
-         <div className="px-4 py-3 border-b border-zinc-800 flex-shrink-0 space-y-2">
+         <div className="px-4 py-3 border-b border-slate-800 flex-shrink-0 space-y-2">
            <div>
-             <p className="text-xs text-zinc-500 uppercase tracking-wider">Date & Time</p>
-             <p className="text-sm text-zinc-100 mt-1">{dayName}, {dateStr}</p>
-             <p className="text-sm text-zinc-400">{timeStr}</p>
+             <p className="text-xs text-slate-500 uppercase tracking-wider">Date & Time</p>
+             <p className="text-sm text-slate-100 mt-1">{dayName}, {dateStr}</p>
+             <p className="text-sm text-slate-400">{timeStr}</p>
            </div>
           
           {/* Schedule Timeline */}
-          <div className="mt-3 pt-3 border-t border-zinc-800">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Schedule</p>
+          <div className="mt-3 pt-3 border-t border-slate-800">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Schedule</p>
             <div className="space-y-2">
               {shoot.setup_offset !== undefined && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Setup</span>
+                  <span className="text-slate-400">Setup</span>
                   <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
                 </div>
               )}
               {shoot.pre_shoot_offset !== undefined && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Pre-Shoot</span>
+                  <span className="text-slate-400">Pre-Shoot</span>
                   <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
                 </div>
               )}
               {shoot.attention_offset !== undefined && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Attention</span>
+                  <span className="text-slate-400">Attention</span>
                   <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
                 </div>
               )}
               {shoot.sound_offset !== undefined && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Sound Check</span>
+                  <span className="text-slate-400">Sound Check</span>
                   <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-xs border-t border-zinc-800 pt-2 mt-2">
-                <span className="text-zinc-400 font-medium">Game Time</span>
+              <div className="flex items-center justify-between text-xs border-t border-slate-800 pt-2 mt-2">
+                <span className="text-slate-400 font-medium">Game Time</span>
                 <span className="text-gray-200 font-mono">{shoot.game_time || 'TBA'}</span>
               </div>
             </div>
@@ -319,13 +319,13 @@ export default function ShootSidePanel({
         </div>
 
         {/* Actions */}
-        <div className="px-4 py-3 border-b border-zinc-800 flex-shrink-0 flex gap-2 flex-wrap">
+        <div className="px-4 py-3 border-b border-slate-800 flex-shrink-0 flex gap-2 flex-wrap">
           {isAdmin && (
             <>
-              <Button size="sm" onClick={() => onEdit(shoot)} className="bg-teal-600 hover:bg-teal-500 text-xs h-8">
+              <Button size="sm" onClick={() => onEdit(shoot)} className="bg-blue-600 hover:bg-blue-500 text-xs h-8">
                 <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
-              <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 text-xs h-8">
+              <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800 text-xs h-8">
                 <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
               </Button>
               <Button size="sm" onClick={() => onDelete(shoot.id)} variant="outline" className="border-red-700/60 text-red-400 hover:bg-red-950/30 text-xs h-8">
@@ -334,7 +334,7 @@ export default function ShootSidePanel({
             </>
           )}
           {(isAdmin || isStandby) && onAssignRigTest && (
-            <Button size="sm" onClick={() => onAssignRigTest(shoot)} className="bg-teal-600 hover:bg-teal-600 text-xs h-8">
+            <Button size="sm" onClick={() => onAssignRigTest(shoot)} className="bg-blue-600 hover:bg-blue-600 text-xs h-8">
               🔧 Assign Rig Test
             </Button>
           )}
@@ -347,7 +347,7 @@ export default function ShootSidePanel({
                 className={`text-xs h-8 w-full ${
                   isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
                   : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20'
-                  : withinLimit ? 'bg-teal-600 hover:bg-teal-500 text-white'
+                  : withinLimit ? 'bg-blue-600 hover:bg-blue-500 text-white'
                   : 'bg-amber-950/40 hover:bg-yellow-600/30 border border-yellow-600/50 text-amber-400'
                 }`}
               >
@@ -357,7 +357,7 @@ export default function ShootSidePanel({
                   : '+ Request Approval'}
               </Button>
               {!isAssigned && !isPending && (
-                <p className="text-[11px] text-center text-zinc-500">
+                <p className="text-[11px] text-center text-slate-500">
                   {withinLimit
                     ? `${remaining} auto-approval${remaining === 1 ? '' : 's'} remaining`
                     : 'Requires admin approval'}
@@ -371,37 +371,37 @@ export default function ShootSidePanel({
         <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
             {shoot.client && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Client/Team</p>
-                <p className="text-zinc-100">{shoot.client}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Client/Team</p>
+                <p className="text-slate-100">{shoot.client}</p>
               </div>
             )}
             {shoot.location && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Location</p>
-                <p className="text-zinc-100">{shoot.location}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Location</p>
+                <p className="text-slate-100">{shoot.location}</p>
               </div>
             )}
             {shoot.status && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Status</p>
-                <p className="text-zinc-100 capitalize">{shoot.status.replace('_', ' ')}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</p>
+                <p className="text-slate-100 capitalize">{shoot.status.replace('_', ' ')}</p>
               </div>
             )}
             {(shoot.assigned_operators || []).length > 0 && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Assigned Operators</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Assigned Operators</p>
                 <div className="space-y-1">
                   {shoot.assigned_operators.map((email) => {
                     const user = allUsers.find(u => u.email === email);
                     const displayName = user?.full_name || email;
-                    return <p key={email} className="text-zinc-100">{displayName}</p>;
+                    return <p key={email} className="text-slate-100">{displayName}</p>;
                   })}
                 </div>
               </div>
             )}
             {(shoot.pending_operators || []).length > 0 && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Pending Approval</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Pending Approval</p>
                 <div className="space-y-1">
                   {shoot.pending_operators.map((email) => {
                     const user = allUsers.find(u => u.email === email);
@@ -413,14 +413,14 @@ export default function ShootSidePanel({
             )}
             {shoot.description && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Description</p>
-                <p className="text-zinc-400">{shoot.description}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Description</p>
+                <p className="text-slate-400">{shoot.description}</p>
               </div>
             )}
             {shoot.notes && (
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Notes</p>
-                <p className="text-zinc-400">{shoot.notes}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Notes</p>
+                <p className="text-slate-400">{shoot.notes}</p>
               </div>
             )}
           </div>

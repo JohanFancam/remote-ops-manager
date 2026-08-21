@@ -24,8 +24,8 @@ export default function ShootContextMenu({ x, y, shoot, onEdit, onDuplicate, onD
   const top = Math.min(y, window.innerHeight - menuHeight - 8);
 
   const items = [
-    { label: 'Edit', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-zinc-100' },
-    { label: 'Duplicate', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-zinc-100' },
+    { label: 'Edit', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100' },
+    { label: 'Duplicate', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-slate-100' },
     { label: 'Delete', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
   ];
 
@@ -33,16 +33,16 @@ export default function ShootContextMenu({ x, y, shoot, onEdit, onDuplicate, onD
     <div
       ref={menuRef}
       style={{ position: 'fixed', left, top, zIndex: 9999 }}
-      className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-1.5 w-44"
+      className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 w-44"
     >
-      <div className="px-3 py-1.5 border-b border-zinc-800 mb-1">
-        <p className="text-xs text-zinc-500 truncate">{shoot.title}</p>
+      <div className="px-3 py-1.5 border-b border-slate-800 mb-1">
+        <p className="text-xs text-slate-500 truncate">{shoot.title}</p>
       </div>
       {items.map(({ label, icon: Icon, action, color }) => (
         <button
           key={label}
           onClick={action}
-          className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm ${color} hover:bg-zinc-800 transition-colors`}
+          className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm ${color} hover:bg-slate-800 transition-colors`}
         >
           <Icon className="h-3.5 w-3.5 flex-shrink-0" />
           {label}

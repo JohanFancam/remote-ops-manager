@@ -82,16 +82,16 @@ export default function Earnings() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-800 text-zinc-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
               <TrendingUp className="h-6 w-6 text-emerald-400" />
               My Earnings
             </h1>
-            <p className="text-zinc-400 text-sm mt-0.5">{user?.full_name || user?.email}</p>
+            <p className="text-slate-400 text-sm mt-0.5">{user?.full_name || user?.email}</p>
           </div>
           <Button
             onClick={handleExport}
@@ -104,33 +104,33 @@ export default function Earnings() {
 
         {/* Month navigator */}
         <div className="flex items-center justify-center gap-4 mb-5">
-          <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(-1)}>
+          <Button size="icon" variant="ghost" className="h-9 w-9 text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <span className="text-lg font-semibold text-zinc-100 w-36 text-center">{format(currentMonth, 'MMMM yyyy')}</span>
-          <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={() => goMonth(1)}>
+          <span className="text-lg font-semibold text-slate-100 w-36 text-center">{format(currentMonth, 'MMMM yyyy')}</span>
+          <Button size="icon" variant="ghost" className="h-9 w-9 text-slate-400 hover:text-slate-100 hover:bg-slate-800" onClick={() => goMonth(1)}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-emerald-400">R{adjustedTotal.toLocaleString()}</p>
-              <p className="text-xs text-zinc-400 mt-1">Total Earned</p>
+              <p className="text-xs text-slate-400 mt-1">Total Earned</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-zinc-100">{mainShoots.length}</p>
-              <p className="text-xs text-zinc-400 mt-1">Main Shoots</p>
+              <p className="text-2xl font-bold text-slate-100">{mainShoots.length}</p>
+              <p className="text-xs text-slate-400 mt-1">Main Shoots</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
-              <p className="text-xs text-zinc-400 mt-1">Additional</p>
+              <p className="text-xs text-slate-400 mt-1">Additional</p>
             </CardContent>
           </Card>
         </div>
@@ -145,10 +145,10 @@ export default function Earnings() {
 
         {/* Shoot list */}
         {adjustedBreakdown.length === 0 ? (
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-12 text-center">
               <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-zinc-500">No shoots for {format(currentMonth, 'MMMM yyyy')}.</p>
+              <p className="text-slate-500">No shoots for {format(currentMonth, 'MMMM yyyy')}.</p>
             </CardContent>
           </Card>
         ) : (
@@ -156,14 +156,14 @@ export default function Earnings() {
             {adjustedBreakdown.map((item, idx) => {
               const isExpanded = expandedShoot === idx;
               return (
-                <Card key={idx} className="bg-zinc-900 border-zinc-800 overflow-hidden">
+                <Card key={idx} className="bg-slate-900 border-slate-800 overflow-hidden">
                   <button
-                    className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-zinc-50 transition-colors"
+                    className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
                     onClick={() => setExpandedShoot(isExpanded ? null : idx)}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-zinc-100 truncate">{item.shoot?.title || 'Game'}</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">
+                      <p className="text-sm font-semibold text-slate-100 truncate">{item.shoot?.title || 'Game'}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
                         {format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d')}
                         {item.shoot?.game_time && ` · ${item.shoot.game_time}`}
                       </p>
@@ -173,29 +173,29 @@ export default function Earnings() {
                         <p className="text-sm font-bold text-emerald-400">R{item.amount.toLocaleString()}</p>
                         {item.paid && <p className="text-xs text-green-600">Paid</p>}
                       </div>
-                      {isExpanded ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
                     </div>
                   </button>
 
                   {isExpanded && (
-                    <CardContent className="px-4 pb-4 pt-0 border-t border-zinc-800 space-y-2">
+                    <CardContent className="px-4 pb-4 pt-0 border-t border-slate-800 space-y-2">
                       <div className="flex flex-wrap gap-2 mt-3">
                         {item.isAdditional && (
                           <Badge className="text-xs bg-yellow-500/20 text-amber-400 border-yellow-500/30">Additional Shoot</Badge>
                         )}
                         {item.paid
                           ? <Badge className="text-xs bg-green-500/20 text-emerald-400 border-green-500/30">Paid</Badge>
-                          : <Badge className="text-xs bg-zinc-700/60 text-zinc-400 border-zinc-800">Pending Payment</Badge>
+                          : <Badge className="text-xs bg-slate-700/60 text-slate-400 border-slate-800">Pending Payment</Badge>
                         }
                       </div>
                       {item.shoot?.location && (
-                        <p className="text-xs text-zinc-400">📍 {item.shoot.location}</p>
+                        <p className="text-xs text-slate-400">📍 {item.shoot.location}</p>
                       )}
                       {item.shoot?.client && (
-                        <p className="text-xs text-zinc-400">🏟️ {item.shoot.client}</p>
+                        <p className="text-xs text-slate-400">🏟️ {item.shoot.client}</p>
                       )}
-                      <div className="flex items-center justify-between bg-zinc-50 rounded-lg px-3 py-2 mt-2">
-                        <span className="text-xs text-zinc-400">Fee</span>
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 mt-2">
+                        <span className="text-xs text-slate-400">Fee</span>
                         <span className="text-sm font-bold text-emerald-400">R{item.amount.toLocaleString()}</span>
                       </div>
                     </CardContent>

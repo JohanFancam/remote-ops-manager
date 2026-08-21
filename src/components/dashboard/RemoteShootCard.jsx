@@ -7,10 +7,10 @@ import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 
 const statusColors = {
-  upcoming: 'bg-teal-600/20 text-teal-400 border-teal-800',
+  upcoming: 'bg-blue-600/20 text-blue-400 border-blue-800',
   confirmed: 'bg-green-500/20 text-emerald-400 border-green-500/30',
   in_progress: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
-  completed: 'bg-gray-500/20 text-zinc-400 border-gray-500/30',
+  completed: 'bg-gray-500/20 text-slate-400 border-gray-500/30',
   cancelled: 'bg-red-950/400/20 text-red-400 border-red-800',
 };
 
@@ -21,7 +21,7 @@ function getLivePhaseLabel(shoot, now) {
   if (p.sound_started) return { label: 'Sound Check', color: 'text-purple-400' };
   if (p.attention_started) return { label: 'Attention', color: 'text-orange-400' };
   if (p.pre_shoot_started) return { label: 'Pre-Shoot', color: 'text-amber-400' };
-  if (p.setup_complete) return { label: 'Setup', color: 'text-teal-400' };
+  if (p.setup_complete) return { label: 'Setup', color: 'text-blue-400' };
   return null;
 }
 
@@ -41,18 +41,18 @@ function PhaseRow({ label, Icon, done, onClick, canClick, time }) {
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
       className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors border ${
-        done ? 'bg-emerald-950/40 border-green-800/50' : 'bg-transparent border-transparent hover:border-zinc-700 hover:bg-zinc-50'
+        done ? 'bg-emerald-950/40 border-green-800/50' : 'bg-transparent border-transparent hover:border-slate-700 hover:bg-slate-50'
       } ${canClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <span className="flex items-center gap-2">
         <Icon className={`h-3.5 w-3.5 ${done ? 'text-emerald-400' : 'text-gray-600'}`} />
-        <span className={`text-xs ${done ? 'text-green-300 line-through' : 'text-zinc-400'}`}>{label}</span>
+        <span className={`text-xs ${done ? 'text-green-300 line-through' : 'text-slate-400'}`}>{label}</span>
         {done && <span className="text-xs text-green-500">✓</span>}
       </span>
       <div className="flex items-center gap-2">
         {time && <span className="font-mono text-xs text-gray-600">{time}</span>}
         {canClick && (
-          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-emerald-950/40' : 'border-zinc-800 text-zinc-500 bg-zinc-50'}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-emerald-950/40' : 'border-slate-800 text-slate-500 bg-slate-50'}`}>
             {done ? 'undo' : 'mark done'}
           </span>
         )}
@@ -135,7 +135,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
           }}
         />
       )}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-800 transition-colors">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-800 transition-colors">
         {/* Banner header — always visible */}
         <button
           onClick={() => setExpanded(!expanded)}
@@ -144,7 +144,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
         >
           {/* Countdown pill */}
           <div className={`flex-shrink-0 font-mono text-sm font-bold px-2.5 py-1 rounded-lg ${
-            diff !== null && diff <= 0 ? 'bg-red-950/50 text-red-400 border border-red-800' : 'bg-teal-950/40 text-teal-400 border border-blue-800'
+            diff !== null && diff <= 0 ? 'bg-red-950/50 text-red-400 border border-red-800' : 'bg-blue-950/40 text-blue-400 border border-blue-800'
           }`}>
             {diff === null ? '—' : formatCountdown(diff)}
           </div>
@@ -152,10 +152,10 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-zinc-100 text-sm truncate">{shoot.title}</span>
-              {rigLabel && <span className="text-xs text-teal-400 bg-teal-950/40 px-1.5 py-0.5 rounded border border-blue-800/40">{rigLabel}</span>}
+              <span className="font-semibold text-slate-100 text-sm truncate">{shoot.title}</span>
+              {rigLabel && <span className="text-xs text-blue-400 bg-blue-950/40 px-1.5 py-0.5 rounded border border-blue-800/40">{rigLabel}</span>}
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500 flex-wrap">
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
               <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
               {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
               {shoot.location && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" />{shoot.location}</span>}
@@ -172,22 +172,22 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                 {shoot.status}
               </Badge>
             )}
-            {expanded ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+            {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
           </div>
         </button>
 
         {/* Expandable content */}
         {expanded && (
-          <div className="px-4 pb-4 border-t border-zinc-800 pt-3 space-y-3">
+          <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
             {/* Countdown */}
-            <div className={`text-center py-2 px-2 rounded-xl ${diff !== null && diff <= 0 ? 'bg-red-950/40 border border-red-800' : 'bg-teal-950/40 border border-blue-800'}`}>
-              <div className={`font-mono font-bold text-xl tracking-wider ${diff !== null && diff <= 0 ? 'text-red-400' : 'text-teal-400'}`}>
+            <div className={`text-center py-2 px-2 rounded-xl ${diff !== null && diff <= 0 ? 'bg-red-950/40 border border-red-800' : 'bg-blue-950/40 border border-blue-800'}`}>
+              <div className={`font-mono font-bold text-xl tracking-wider ${diff !== null && diff <= 0 ? 'text-red-400' : 'text-blue-400'}`}>
                 {diff === null ? '—' : formatCountdown(diff)}
               </div>
-              <div className="text-xs text-zinc-500">until game time</div>
+              <div className="text-xs text-slate-500">until game time</div>
               {livePhase && livePhase.label !== 'Complete' && (
                 <div className="mt-1 text-xs">
-                  <span className="text-zinc-500">now: </span>
+                  <span className="text-slate-500">now: </span>
                   <span className={`font-semibold ${livePhase.color}`}>{livePhase.label}</span>
                 </div>
               )}
@@ -223,9 +223,9 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                     { label: 'Wide', enabled: matchedRig.wide_enabled !== false, cam: matchedRig.wide },
                     { label: 'Attention', enabled: !!matchedRig.attention_enabled, cam: matchedRig.attention },
                   ].map(({ label, enabled, cam }) => enabled ? (
-                    <div key={label} className="flex items-center justify-between bg-zinc-50 rounded px-2 py-1">
-                      <span className="text-xs text-zinc-400 w-16">{label}</span>
-                      <span className="text-xs text-zinc-400 font-mono">
+                    <div key={label} className="flex items-center justify-between bg-slate-50 rounded px-2 py-1">
+                      <span className="text-xs text-slate-400 w-16">{label}</span>
+                      <span className="text-xs text-slate-400 font-mono">
                         {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
                       </span>
                     </div>
@@ -238,8 +238,8 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                   )}
                 </div>
                 {matchedRig.notes && (
-                  <div className="bg-teal-950/40 border border-teal-800 rounded-lg p-2.5">
-                    <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                  <div className="bg-blue-950/40 border border-blue-800 rounded-lg p-2.5">
+                    <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
                     <p className="text-xs text-blue-200/90 italic leading-relaxed">{matchedRig.notes}</p>
                   </div>
                 )}
@@ -250,7 +250,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
             {(shoot.description || shoot.notes) && (
               <div>
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">Notes</p>
-                <p className="text-xs text-zinc-400">{shoot.description || shoot.notes}</p>
+                <p className="text-xs text-slate-400">{shoot.description || shoot.notes}</p>
               </div>
             )}
 
@@ -269,7 +269,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
               </div>
             )}
 
-            <a href={`/Calendar?shootId=${shoot.id}`} className="block text-center text-xs text-blue-500 hover:text-teal-400 pt-1">
+            <a href={`/Calendar?shootId=${shoot.id}`} className="block text-center text-xs text-blue-500 hover:text-blue-400 pt-1">
               Open full detail in Calendar →
             </a>
           </div>

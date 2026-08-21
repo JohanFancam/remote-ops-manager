@@ -129,8 +129,8 @@ export default function CSVImportDialog({
         <div className="space-y-4">
           {!file ? (
             <label className="border-2 border-dashed border-slate-300 rounded-lg p-8 flex flex-col items-center gap-2 cursor-pointer hover:border-slate-400 transition-colors">
-              <Upload className="h-8 w-8 text-zinc-400" />
-              <span className="text-sm text-zinc-500">Click to select CSV file</span>
+              <Upload className="h-8 w-8 text-slate-400" />
+              <span className="text-sm text-slate-500">Click to select CSV file</span>
               <input 
                 type="file" 
                 accept=".csv" 
@@ -150,7 +150,7 @@ export default function CSVImportDialog({
               
               {preview.length > 0 && (
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-slate-100 px-3 py-2 text-xs font-medium text-zinc-500">
+                  <div className="bg-slate-100 px-3 py-2 text-xs font-medium text-slate-500">
                     Preview (first {preview.length} rows)
                   </div>
                   <div className="max-h-40 overflow-auto">

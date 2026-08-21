@@ -54,14 +54,14 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">Assign Rig Test</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">{shoot?.title}</p>
+            <h2 className="text-base font-semibold text-slate-100">Assign Rig Test</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{shoot?.title}</p>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-zinc-100" onClick={onClose}>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -69,11 +69,11 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
         <div className="p-4 space-y-4">
           {/* Assignee */}
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block font-medium">Assign To</label>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium">Assign To</label>
             <select
               value={assignedTo}
               onChange={e => setAssignedTo(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-800 text-zinc-100 rounded-md px-3 py-2 text-sm h-9"
+              className="w-full bg-slate-800 border border-slate-800 text-slate-100 rounded-md px-3 py-2 text-sm h-9"
             >
               <option value="">Select person…</option>
               {assignableUsers.map(u => (
@@ -86,41 +86,41 @@ export default function RigTestAssignModal({ shoot, user, allUsers, onConfirm, o
 
           {/* Scheduled Date */}
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block font-medium">Scheduled Date</label>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium">Scheduled Date</label>
             <Input
               type="date"
               value={scheduledDate}
               onChange={e => setScheduledDate(e.target.value)}
-              className="bg-zinc-800 border-zinc-800 text-zinc-100"
+              className="bg-slate-800 border-slate-800 text-slate-100"
             />
           </div>
 
           {/* Due Date */}
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block font-medium">Due Date <span className="text-gray-600">(optional)</span></label>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium">Due Date <span className="text-gray-600">(optional)</span></label>
             <Input
               type="date"
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
-              className="bg-zinc-800 border-zinc-800 text-zinc-100"
+              className="bg-slate-800 border-slate-800 text-slate-100"
             />
           </div>
 
           {/* Checklist preview */}
           <div>
-            <p className="text-xs text-zinc-500 mb-1">
-              Checklist: <span className="text-zinc-400">{checklistItems.length} items</span>
+            <p className="text-xs text-slate-500 mb-1">
+              Checklist: <span className="text-slate-400">{checklistItems.length} items</span>
               <span className="ml-2 text-gray-600">(managed in Settings → Rig Test Checklist)</span>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 p-4 border-t border-zinc-800">
-          <Button onClick={handleConfirm} disabled={!assignedTo || !scheduledDate} className="flex-1 bg-teal-600 hover:bg-teal-600 text-white">
+        <div className="flex gap-2 p-4 border-t border-slate-800">
+          <Button onClick={handleConfirm} disabled={!assignedTo || !scheduledDate} className="flex-1 bg-blue-600 hover:bg-blue-600 text-white">
             Create Rig Test
           </Button>
-          <Button variant="outline" onClick={onClose} className="border-zinc-800 text-zinc-400 hover:bg-zinc-800">
+          <Button variant="outline" onClick={onClose} className="border-slate-800 text-slate-400 hover:bg-slate-800">
             Cancel
           </Button>
         </div>

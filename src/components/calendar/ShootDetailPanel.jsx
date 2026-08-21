@@ -30,15 +30,15 @@ function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType 
   ].filter(Boolean).join('\n');
 
   return (
-    <div className="bg-zinc-800/60 rounded-lg border border-zinc-800 p-3">
+    <div className="bg-slate-800/60 rounded-lg border border-slate-800 p-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-1.5"><Copy className="h-3 w-3" /> Ready Message — Copy to Slack</p>
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Copy className="h-3 w-3" /> Ready Message — Copy to Slack</p>
         <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(lines); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-          className="h-6 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700">
+          className="h-6 text-xs text-slate-400 hover:text-slate-100 hover:bg-slate-700">
           {copied ? <><Check className="h-3 w-3 mr-1 text-emerald-400" />Copied!</> : <><Copy className="h-3 w-3 mr-1" />Copy</>}
         </Button>
       </div>
-      <pre className="text-xs text-zinc-400 whitespace-pre-wrap font-mono leading-relaxed">{lines}</pre>
+      <pre className="text-xs text-slate-400 whitespace-pre-wrap font-mono leading-relaxed">{lines}</pre>
     </div>
   );
 }
@@ -49,9 +49,9 @@ const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
 
 function ScheduleRow({ Icon, label, time, highlight }) {
   return (
-    <div className={`flex justify-between items-center py-1.5 text-sm ${highlight ? 'text-teal-400 font-bold' : 'text-zinc-400'}`}>
+    <div className={`flex justify-between items-center py-1.5 text-sm ${highlight ? 'text-blue-400 font-bold' : 'text-slate-400'}`}>
       <span className="flex items-center gap-2">
-        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-teal-400' : 'text-zinc-500'}`} />
+        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-blue-400' : 'text-slate-500'}`} />
         {label}
       </span>
       <span className="font-mono">{time}</span>
@@ -221,8 +221,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
     <div className="space-y-4">
       {/* Schedule */}
       {schedule && (
-        <div className="bg-zinc-800/60 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Schedule</p>
+        <div className="bg-slate-800/60 rounded-lg p-3">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Schedule</p>
           <ScheduleRow Icon={Zap} label="Setup" time={schedule.setup} />
           <ScheduleRow Icon={Camera} label="Pre-Shoot" time={schedule.pre_shoot} />
           {showAttention && <ScheduleRow Icon={AlertTriangle} label="Attention" time={schedule.attention} />}
@@ -236,11 +236,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       {matchedRig && (
       <div className="flex items-center gap-2 flex-wrap">
         {matchedRig.rig_type && (
-          <span className="flex items-center gap-1.5 text-xs bg-teal-950/40 border border-teal-800 text-teal-400 px-2.5 py-1 rounded-full">
+          <span className="flex items-center gap-1.5 text-xs bg-blue-950/40 border border-blue-800 text-blue-400 px-2.5 py-1 rounded-full">
             <Tv2 className="h-3 w-3" /> {matchedRig.rig_type}
           </span>
         )}
-        {matchedRig.data_enabled !== false && <span className="text-xs bg-teal-600/20 border border-teal-800 text-teal-400 px-2.5 py-1 rounded-full">Data</span>}
+        {matchedRig.data_enabled !== false && <span className="text-xs bg-blue-600/20 border border-blue-800 text-blue-400 px-2.5 py-1 rounded-full">Data</span>}
         {matchedRig.fancam_day_enabled && <span className="text-xs bg-orange-500/20 border border-orange-500/30 text-orange-300 px-2.5 py-1 rounded-full">Fancam Day</span>}
         {matchedRig.fancam_night_enabled && <span className="text-xs bg-purple-500/20 border border-purple-500/30 text-purple-300 px-2.5 py-1 rounded-full">Fancam Night</span>}
         {matchedRig.attention_enabled && <span className="text-xs bg-yellow-500/20 border border-yellow-500/30 text-amber-400 px-2.5 py-1 rounded-full">Attention</span>}
@@ -250,7 +250,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           </span>
         )}
         {shoot.location && (
-          <span className="flex items-center gap-1.5 text-xs bg-zinc-800/60 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-full">
+          <span className="flex items-center gap-1.5 text-xs bg-slate-800/60 border border-slate-800 text-slate-400 px-2.5 py-1 rounded-full">
             <MapPin className="h-3 w-3" /> {shoot.location}
           </span>
         )}
@@ -259,8 +259,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
       {/* Rig Type Quick Override — admin only */}
       {isAdmin && (
-        <div className="bg-zinc-800/40 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Rig Type Override</p>
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Rig Type Override</p>
           <div className="flex gap-1.5">
             {['Data', 'Fancam', 'Data/Fancam'].map(type => (
               <button
@@ -269,7 +269,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                 className={`flex-1 text-xs py-1.5 px-2 rounded border transition-colors ${
                   shoot.rig_type_override === type
                     ? 'bg-orange-600 border-orange-500 text-white font-medium'
-                    : 'bg-zinc-800 border-zinc-800 text-zinc-400 hover:border-gray-500 hover:text-zinc-100'
+                    : 'bg-slate-800 border-slate-800 text-slate-400 hover:border-gray-500 hover:text-slate-100'
                 }`}
               >
                 {type}
@@ -284,18 +284,18 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
       {/* Notes */}
       {(shoot.description || shoot.notes) && (
-        <div className="bg-zinc-800/40 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Notes</p>
-          <p className="text-sm text-zinc-400">{shoot.description || shoot.notes}</p>
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Notes</p>
+          <p className="text-sm text-slate-400">{shoot.description || shoot.notes}</p>
         </div>
       )}
 
       {/* Rig Settings */}
       {matchedRig && (
-        <div className="bg-zinc-800/40 rounded-lg border border-zinc-800">
+        <div className="bg-slate-800/40 rounded-lg border border-slate-800">
           <button onClick={() => setShowRigSettings(!showRigSettings)} className="w-full flex items-center justify-between p-3 text-left">
-            <span className="text-sm font-medium text-zinc-100">⚙️ Rig Settings — {matchedRig.team}</span>
-            {showRigSettings ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+            <span className="text-sm font-medium text-slate-100">⚙️ Rig Settings — {matchedRig.team}</span>
+            {showRigSettings ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
           </button>
           {showRigSettings && (
             <div className="px-3 pb-3 space-y-4">
@@ -303,17 +303,17 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               <div className="space-y-1 text-sm">
                 {matchedRig.remote_rigs?.length > 0 && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-1">Remote Rigs</p>
+                    <p className="text-xs text-slate-500 mb-1">Remote Rigs</p>
                     <div className="flex flex-wrap gap-1">
                       {matchedRig.remote_rigs.map((r, i) => (
-                        <span key={i} className="text-xs bg-teal-950/40 text-teal-400 border border-teal-800 px-2 py-0.5 rounded-full">{r}</span>
+                        <span key={i} className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{r}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {matchedRig.shoot_plan && (
                   <div>
-                    <p className="text-xs text-zinc-500">Shoot Plan</p>
+                    <p className="text-xs text-slate-500">Shoot Plan</p>
                     <p className="text-sm text-gray-200">{matchedRig.shoot_plan}</p>
                   </div>
                 )}
@@ -321,28 +321,28 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
               {/* Camera Settings — 5 sections */}
               <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" /> Camera Settings</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" /> Camera Settings</p>
                 <div className="space-y-2">
                   {matchedRig.data_enabled !== false && (
-                    <div className="bg-teal-950/40 border border-teal-800 rounded-lg px-3 py-2">
-                      <p className="text-xs font-semibold text-teal-400 mb-2">Data Settings</p>
+                    <div className="bg-blue-950/40 border border-blue-800 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-blue-400 mb-2">Data Settings</p>
                       {matchedRig.data_hd && (
                         <div className="flex items-center justify-between py-1">
-                          <span className="text-xs text-zinc-400 font-medium">HD Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.data_hd.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.data_hd.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.data_hd.iso || '—'}</span>
+                          <span className="text-xs text-slate-400 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.data_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.data_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.data_hd.iso || '—'}</span>
                           </div>
                         </div>
                       )}
                       {matchedRig.data_wide && (
-                        <div className="flex items-center justify-between py-1 border-t border-zinc-800/40">
-                          <span className="text-xs text-zinc-400 font-medium">Wide Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.data_wide.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.data_wide.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.data_wide.iso || '—'}</span>
+                        <div className="flex items-center justify-between py-1 border-t border-slate-800/40">
+                          <span className="text-xs text-slate-400 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.data_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.data_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.data_wide.iso || '—'}</span>
                           </div>
                         </div>
                       )}
@@ -353,21 +353,21 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                       <p className="text-xs font-semibold text-orange-400 mb-2">Fancam Day Settings</p>
                       {matchedRig.fancam_day_hd && (
                         <div className="flex items-center justify-between py-1">
-                          <span className="text-xs text-zinc-400 font-medium">HD Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_hd.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_hd.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_hd.iso || '—'}</span>
+                          <span className="text-xs text-slate-400 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_hd.iso || '—'}</span>
                           </div>
                         </div>
                       )}
                       {matchedRig.fancam_day_wide && (
-                        <div className="flex items-center justify-between py-1 border-t border-zinc-800/40">
-                          <span className="text-xs text-zinc-400 font-medium">Wide Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_wide.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_wide.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_day_wide.iso || '—'}</span>
+                        <div className="flex items-center justify-between py-1 border-t border-slate-800/40">
+                          <span className="text-xs text-slate-400 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.fancam_day_wide.iso || '—'}</span>
                           </div>
                         </div>
                       )}
@@ -378,21 +378,21 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                       <p className="text-xs font-semibold text-purple-400 mb-2">Fancam Night Settings</p>
                       {matchedRig.fancam_night_hd && (
                         <div className="flex items-center justify-between py-1">
-                          <span className="text-xs text-zinc-400 font-medium">HD Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_hd.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_hd.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_hd.iso || '—'}</span>
+                          <span className="text-xs text-slate-400 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_hd.iso || '—'}</span>
                           </div>
                         </div>
                       )}
                       {matchedRig.fancam_night_wide && (
-                        <div className="flex items-center justify-between py-1 border-t border-zinc-800/40">
-                          <span className="text-xs text-zinc-400 font-medium">Wide Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_wide.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_wide.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.fancam_night_wide.iso || '—'}</span>
+                        <div className="flex items-center justify-between py-1 border-t border-slate-800/40">
+                          <span className="text-xs text-slate-400 font-medium">Wide Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_wide.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_wide.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.fancam_night_wide.iso || '—'}</span>
                           </div>
                         </div>
                       )}
@@ -403,11 +403,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
                       <p className="text-xs font-semibold text-amber-400 mb-2">Attention Camera</p>
                       {matchedRig.attention_hd && (
                         <div className="flex items-center justify-between py-1">
-                          <span className="text-xs text-zinc-400 font-medium">HD Camera</span>
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-zinc-500" />{matchedRig.attention_hd.shutter || '—'}</span>
-                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-zinc-500" />{matchedRig.attention_hd.aperture || '—'}</span>
-                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-zinc-500" />{matchedRig.attention_hd.iso || '—'}</span>
+                          <span className="text-xs text-slate-400 font-medium">HD Camera</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Timer className="h-3 w-3 text-slate-500" />{matchedRig.attention_hd.shutter || '—'}</span>
+                            <span className="flex items-center gap-1"><Aperture className="h-3 w-3 text-slate-500" />{matchedRig.attention_hd.aperture || '—'}</span>
+                            <span className="flex items-center gap-1"><Sun className="h-3 w-3 text-slate-500" />{matchedRig.attention_hd.iso || '—'}</span>
                           </div>
                         </div>
                       )}
@@ -417,18 +417,18 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               </div>
 
               {/* Sound */}
-              <div className={`rounded-lg border px-3 py-2 flex items-center justify-between ${matchedRig.sound_enabled ? 'border-green-700 bg-emerald-950/40' : 'border-zinc-800 bg-zinc-800/30'}`}>
+              <div className={`rounded-lg border px-3 py-2 flex items-center justify-between ${matchedRig.sound_enabled ? 'border-green-700 bg-emerald-950/40' : 'border-slate-800 bg-slate-800/30'}`}>
                 <div className="flex items-center gap-2">
                   <Volume2 className={`h-3.5 w-3.5 ${matchedRig.sound_enabled ? 'text-emerald-400' : 'text-gray-600'}`} />
-                  <span className="text-sm text-zinc-400">Sound Recording</span>
+                  <span className="text-sm text-slate-400">Sound Recording</span>
                 </div>
                 <span className={`text-xs font-semibold ${matchedRig.sound_enabled ? 'text-emerald-400' : 'text-gray-600'}`}>{matchedRig.sound_enabled ? 'YES' : 'NO'}</span>
               </div>
 
               {/* Rig Notes */}
               {matchedRig.notes && (
-                <div className="bg-teal-950/40 border border-teal-800 rounded-lg p-3">
-                  <p className="text-xs text-teal-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                <div className="bg-blue-950/40 border border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
                   <p className="text-sm text-blue-200/90 leading-relaxed italic">{matchedRig.notes}</p>
                 </div>
               )}
@@ -448,13 +448,13 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
             className={
               isApproved ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 w-full'
               : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20 w-full'
-              : 'bg-teal-600 hover:bg-teal-500 text-white w-full'
+              : 'bg-blue-600 hover:bg-blue-500 text-white w-full'
             }
           >
             {isApproved ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Slot Taken' : '+ Assign Myself'}
           </Button>
           {!isAdmin && !isApproved && !isPending && (
-            <p className="text-xs text-center mt-1 text-zinc-500">
+            <p className="text-xs text-center mt-1 text-slate-500">
               {shootFull ? 'This shoot is already assigned to another operator' :
                remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
             </p>

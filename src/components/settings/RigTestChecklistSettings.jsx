@@ -60,25 +60,25 @@ export default function RigTestChecklistSettings({ appSettings }) {
   };
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 mb-6">
-      <CardHeader className="border-b border-zinc-800 pb-4">
-        <CardTitle className="text-zinc-100 flex items-center gap-2">
-          <FlaskConical className="h-5 w-5 text-teal-400" /> Rig Test Checklist
+    <Card className="bg-slate-900 border-slate-800 mb-6">
+      <CardHeader className="border-b border-slate-800 pb-4">
+        <CardTitle className="text-slate-100 flex items-center gap-2">
+          <FlaskConical className="h-5 w-5 text-blue-400" /> Rig Test Checklist
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-slate-500">
           These items will be pre-loaded whenever a rig test is assigned from the calendar or dashboard.
         </p>
 
         <div className="space-y-1.5">
           {items.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-zinc-800/60 rounded-lg px-3 py-2">
+            <div key={idx} className="flex items-center gap-2 bg-slate-800/60 rounded-lg px-3 py-2">
               <div className="flex flex-col gap-0.5 mr-1">
-                <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-gray-600 hover:text-zinc-300 disabled:opacity-20 leading-none">▲</button>
-                <button onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-gray-600 hover:text-zinc-300 disabled:opacity-20 leading-none">▼</button>
+                <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-gray-600 hover:text-slate-300 disabled:opacity-20 leading-none">▲</button>
+                <button onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-gray-600 hover:text-slate-300 disabled:opacity-20 leading-none">▼</button>
               </div>
-              <span className="text-sm text-zinc-400 flex-1">{idx + 1}. {item}</span>
+              <span className="text-sm text-slate-400 flex-1">{idx + 1}. {item}</span>
               <button onClick={() => removeItem(idx)} className="text-gray-600 hover:text-red-400 transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -92,14 +92,14 @@ export default function RigTestChecklistSettings({ appSettings }) {
             onChange={e => setNewItem(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
             placeholder="Add checklist item…"
-            className="bg-zinc-800 border-zinc-800 text-zinc-100 text-sm placeholder:text-zinc-500"
+            className="bg-slate-800 border-slate-800 text-slate-100 text-sm placeholder:text-slate-500"
           />
-          <Button size="sm" variant="outline" className="border-zinc-800 text-zinc-400 hover:bg-zinc-800 px-3" onClick={addItem}>
+          <Button size="sm" variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800 px-3" onClick={addItem}>
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
 
-        <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-600 gap-2">
+        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-600 gap-2">
           <Save className="h-4 w-4" /> {saved ? '✓ Saved!' : 'Save Checklist'}
         </Button>
       </CardContent>

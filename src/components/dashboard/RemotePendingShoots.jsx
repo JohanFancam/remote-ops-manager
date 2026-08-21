@@ -7,7 +7,7 @@ const PAGE_SIZE = 4;
 
 function PendingShootTile({ shoot, onCancel }) {
   return (
-    <div className="bg-zinc-900 border border-yellow-800/30 rounded-xl overflow-hidden hover:border-yellow-700/50 transition-colors">
+    <div className="bg-slate-900 border border-yellow-800/30 rounded-xl overflow-hidden hover:border-yellow-700/50 transition-colors">
       <div className="px-4 py-3">
         {/* Status pill */}
         <div className="flex items-center justify-between mb-2">
@@ -23,14 +23,14 @@ function PendingShootTile({ shoot, onCancel }) {
         </div>
 
         {/* Title */}
-        <p className="text-sm font-semibold text-zinc-100 truncate mb-1">{shoot.title}</p>
+        <p className="text-sm font-semibold text-slate-100 truncate mb-1">{shoot.title}</p>
 
         {/* Meta */}
-        <div className="space-y-0.5 text-xs text-zinc-400">
+        <div className="space-y-0.5 text-xs text-slate-400">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3 flex-shrink-0" />
             <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
-            {shoot.game_time && <span className="font-mono text-zinc-500">· {shoot.game_time}</span>}
+            {shoot.game_time && <span className="font-mono text-slate-500">· {shoot.game_time}</span>}
           </div>
           {shoot.location && (
             <div className="flex items-center gap-1">
@@ -71,14 +71,14 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
 
   if (pendingShoots.length === 0) {
     return (
-      <p className="py-8 text-center text-sm italic text-zinc-500">No pending shoots awaiting approval.</p>
+      <p className="py-8 text-center text-sm italic text-slate-500">No pending shoots awaiting approval.</p>
     );
   }
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-end">
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-500">
+        <div className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-500">
           Showing max 4
         </div>
       </div>
@@ -90,11 +90,11 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
       </div>
 
       {pendingShoots.length > PAGE_SIZE && (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2">
+        <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="rounded-md border border-zinc-800 px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-800 disabled:opacity-30"
+            className="rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
           >
             Previous
           </button>
@@ -104,7 +104,7 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="rounded-md border border-blue-800/60 bg-teal-950/40 px-2.5 py-1 text-xs font-semibold text-teal-400 hover:bg-teal-950/40 disabled:opacity-30"
+            className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30"
           >
             Next
           </button>
