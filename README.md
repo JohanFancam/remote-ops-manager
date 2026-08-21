@@ -1,39 +1,64 @@
-**Welcome to your Base44 project** 
+# Remote Ops Manager (ROM)
 
-**About**
+Web app for managing remote photographers: schedule shoots, self-assign on the calendar, configure rig settings, track standby coverage, and review earnings.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Roles
 
-This project contains everything you need to run your app locally.
+| Role | Login label | Access |
+|------|-------------|--------|
+| **Admin** | Admin | Create users, calendar (create/import/assign), rig settings, standby schedule, ops dashboard |
+| **Remote** | Remote (`operator` in API) | Calendar self-assign / unassign, own dashboard + monthly earnings |
+| **Account** | Account | Earnings dashboard only — per-user monthly pay + spend graph |
 
-**Edit the code in your local development environment**
+All admins share the same responsibilities.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Features
 
-**Prerequisites:** 
+- **User creation** — admins invite Admin / Remote / Account users
+- **Calendar** — create shoots or import via **CSV**, **ICS**, or **Google Calendar ICS URL**; remotes assign/unassign; taken shoots block self-assign
+- **Rig settings** — house recipes keyed by team name; auto-linked onto matching calendar shoots for remotes to view
+- **Standby** — admins schedule standby windows; dashboards show who is on / next on standby plus the user’s next shoot
+- **Dashboards**
+  - Admin: assigned shoots + shoots under their standby window
+  - Remote: assigned shoots + month earnings
+  - Account: remote earnings by month + overall spend graph
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+## Stack
 
+- Web: React 18 + Vite + Tailwind
+- API: Express + SQLite (`node:sqlite`)
+- Auth: JWT email/password
+
+## Run
+
+```bash
+npm install
+npm run seed
+npm run test
+npm run dev
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+- Web: http://localhost:5173  
+- API: http://localhost:4000  
+
+### Single-port (remote / cloud)
+
+```bash
+npm run start:test
 ```
 
-Run the app: `npm run dev`
+Then open http://localhost:4000 (or your forwarded port).
 
-**Publish your changes**
+### Demo credentials
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+Password for all: `rom123`
 
-**Docs & Support**
+| Role | Email |
+|------|-------|
+| Admin | `admin@rom.demo` |
+| Remote | `operator@rom.demo` |
+| Account | `accounts@rom.demo` |
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+## Google Calendar import
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+In Google Calendar → Settings → Integrate calendar, copy the **Secret address in iCal format** and paste it under Calendar → Google Calendar in the app.
