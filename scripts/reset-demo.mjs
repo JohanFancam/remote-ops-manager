@@ -16,3 +16,5 @@ for (const p of [dbPath, `${dbPath}-shm`, `${dbPath}-wal`]) {
 const { seedIfEmpty } = await import('../server/seed.js');
 seedIfEmpty();
 console.log('Fresh demo database ready at', dbPath);
+console.log('Restart the API (`npm run dev`) if it is already running so it picks up the new database.');
+

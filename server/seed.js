@@ -14,7 +14,11 @@ function addDays(base, days) {
 }
 
 function ymd(d) {
-  return d.toISOString().slice(0, 10);
+  // Local calendar date (avoid UTC shifting the seed day for non-UTC timezones)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function hm(hours, minutes = 0) {

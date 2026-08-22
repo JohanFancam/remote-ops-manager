@@ -1344,7 +1344,7 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[148px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-hidden flex flex-col
+                className={`min-h-[168px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-visible flex flex-col
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${greyOutDay ? 'opacity-55' : ''}
@@ -1422,7 +1422,7 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => openDayPopup(day, e)}
-                      className="w-full text-left rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                      className="w-full text-left rounded-md px-1.5 py-1 mt-0.5 text-[11px] font-semibold text-blue-400 hover:bg-blue-950/50 hover:text-blue-200 transition-colors shrink-0"
                     >
                       +{hiddenCount} more
                     </button>
