@@ -7,8 +7,6 @@ import Earnings from './pages/Earnings'
 import TeamSchedule from './pages/TeamSchedule'
 import OperatorAvailability from './pages/OperatorAvailability'
 import RigsCheck from './pages/RigsCheck'
-import ShootDuration from './pages/ShootDuration'
-import RigTestLog from './pages/RigTestLog';
 import AccountsDashboard from './pages/AccountsDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -68,8 +66,6 @@ const AuthenticatedApp = () => {
       <Route path="/TeamSchedule" element={<LayoutWrapper currentPageName="TeamSchedule"><TeamSchedule /></LayoutWrapper>} />
       <Route path="/OperatorAvailability" element={<LayoutWrapper currentPageName="OperatorAvailability"><OperatorAvailability /></LayoutWrapper>} />
       <Route path="/RigsCheck" element={<LayoutWrapper currentPageName="RigsCheck"><RigsCheck /></LayoutWrapper>} />
-      <Route path="/ShootDuration" element={<LayoutWrapper currentPageName="ShootDuration"><ShootDuration /></LayoutWrapper>} />
-      <Route path="/RigTestLog" element={<LayoutWrapper currentPageName="RigTestLog"><RigTestLog /></LayoutWrapper>} />
       <Route path="/AccountsDashboard" element={<LayoutWrapper currentPageName="AccountsDashboard"><AccountsDashboard /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

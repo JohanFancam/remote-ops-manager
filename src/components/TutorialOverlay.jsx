@@ -43,10 +43,6 @@ const ADMIN_STEPS = [
     title: "Settings",
     body: "Configure pay rates, notification thresholds, Slack message templates, WhatsApp reminders, and manage team members. Admins can also control tutorial visibility here."
   },
-  {
-    title: "Reference Guide",
-    body: "The Reference Guide (accessible from the sidebar) contains setup images uploaded by admins — showing exactly what to do and what NOT to do for rig configuration."
-  },
 ];
 
 const REMOTE_STEPS = [
@@ -77,10 +73,6 @@ const REMOTE_STEPS = [
   {
     title: "Calendar",
     body: "The Calendar shows all your assigned shoots. Tap a shoot to see full details — game time, location, rig type, and standby contact."
-  },
-  {
-    title: "Reference Guide",
-    body: "The Reference Guide shows setup images with descriptions — use these as reference when configuring your rig. It shows what to do AND what NOT to do."
   },
   {
     title: "Settings",

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { Edit2, Copy, Trash2, FlaskConical, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
+import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function CalendarContextMenu({
   shoot, isAdmin, isStandby, userEmail,
-  onEdit, onDuplicate, onDelete, onAssignRigTest, onAssignOperators,
+  onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
 }) {
@@ -21,27 +21,21 @@ export default function CalendarContextMenu({
   const isPending = shoot?.pending_operators?.includes(userEmail);
 
   const items = [
-    // View details (everyone)
     { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
 
-    // Self-assign/unassign (available to everyone)
     isAssigned || isPending
       ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-amber-400' }
       : { label: 'Assign Me to Shoot', icon: UserCheck, action: () => { onAssignSelf(shoot); onClose(); }, color: 'text-emerald-400' },
 
-    // Admin-only actions
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100', divider: true },
       { label: 'Duplicate Shoot', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-slate-100' },
       { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
-      { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-blue-400' },
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
     ] : []),
 
-    // Standby-only actions (non-admin standby users)
     ...(isStandby && !isAdmin ? [
-      { label: 'Assign Rig Test', icon: FlaskConical, action: () => { onAssignRigTest(shoot); onClose(); }, color: 'text-blue-400', divider: true },
-      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
+      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400', divider: true },
     ] : []),
   ];
 

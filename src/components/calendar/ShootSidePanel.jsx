@@ -56,7 +56,6 @@ export default function ShootSidePanel({
   onEdit,
   onDuplicate,
   onDelete,
-  onAssignRigTest,
   onClose,
   queryClient,
 }) {
@@ -332,11 +331,6 @@ export default function ShootSidePanel({
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
             </>
-          )}
-          {(isAdmin || isStandby) && onAssignRigTest && (
-            <Button size="sm" onClick={() => onAssignRigTest(shoot)} className="bg-blue-600 hover:bg-blue-600 text-xs h-8">
-              🔧 Assign Rig Test
-            </Button>
           )}
           {!isAdmin && !isStandby && !isPast && (
             <div className="flex flex-col gap-1.5 w-full">

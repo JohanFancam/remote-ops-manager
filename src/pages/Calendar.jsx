@@ -18,7 +18,6 @@ import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
-import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 
@@ -477,7 +476,6 @@ export default function Calendar() {
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
   const [showRigCheckPanel, setShowRigCheckPanel] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
-  const [rigTestModal, setRigTestModal] = useState(null); // shoot
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
 
@@ -951,10 +949,6 @@ export default function Calendar() {
     refresh();
   };
 
-  const handleAssignRigTest = (shoot) => {
-    setRigTestModal(shoot);
-  };
-
   const handleAssignOperators = (shoot) => {
     setAssignOperatorsModal(shoot);
   };
@@ -1031,12 +1025,6 @@ export default function Calendar() {
 
     const updated = { ...shoot, assigned_operators: updatedAssigned, pending_operators: updatedPending, pre_approved_operators: updatedPreApproved, auto_assigned_for: updatedAutoAssigned };
     setAssignOperatorsModal(updated);
-  };
-
-  const handleConfirmRigTest = async (data) => {
-    await base44.entities.RigTest.create(data);
-    queryClient.invalidateQueries({ queryKey: ['rigTests'] });
-    setRigTestModal(null);
   };
 
   // Context menu self-assign — same business rules as card self-assign
@@ -1564,7 +1552,6 @@ export default function Calendar() {
           onEdit={(shoot) => { startEdit(shoot); setContextMenu(null); }}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
-          onAssignRigTest={handleAssignRigTest}
           onAssignOperators={handleAssignOperators}
           onAssignSelf={handleContextMenuAssignSelf}
           onUnassignSelf={handleContextMenuUnassignSelf}
@@ -1587,7 +1574,6 @@ export default function Calendar() {
           onEdit={startEdit}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
-          onAssignRigTest={handleAssignRigTest}
           onClose={() => setSelectedShoot(null)}
           queryClient={queryClient}
         />
@@ -1620,16 +1606,6 @@ export default function Calendar() {
           onConfirm={handleConfirmAssignOperator}
           onUnassign={handleUnassignOperator}
           onClose={() => setAssignOperatorsModal(null)}
-        />
-      )}
-
-      {rigTestModal && (
-        <RigTestAssignModal
-          shoot={rigTestModal}
-          user={user}
-          allUsers={allUsers}
-          onConfirm={handleConfirmRigTest}
-          onClose={() => setRigTestModal(null)}
         />
       )}
     </div>

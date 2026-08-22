@@ -6,8 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
-  LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, LogOut, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical, Receipt,
+  LayoutDashboard, Calendar, BarChart2, Settings,
+  Wrench, LogOut, Wifi, RefreshCw, DollarSign, Receipt,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
@@ -60,27 +60,21 @@ function LayoutContent({ children, currentPageName }) {
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Shoot Duration', icon: Clock, page: 'ShootDuration' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
     { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
-    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const standbyNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 

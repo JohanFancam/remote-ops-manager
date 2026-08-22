@@ -11,7 +11,6 @@ import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import StandbyUserQuota from '../components/dashboard/StandbyUserQuota';
-import RigTestPanel from '../components/dashboard/RigTestPanel';
 
 export default function Dashboard() {
   const { user, isAdmin, isStandby } = useApp();
@@ -175,23 +174,6 @@ export default function Dashboard() {
                 onUpdate={handleShootUpdate}
                 isAdmin={isAdmin}
               />
-            </div>
-          </section>
-        )}
-
-        {(isAdmin || isStandby) && (
-          <section className="mb-8">
-            <div className="mb-3 flex items-end justify-between gap-3">
-              <div>
-                <h2 className="rom-section-title">Rig Tests</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Scheduled rig testing checklist.</p>
-              </div>
-              <a href="/RigTestLog" className="text-xs text-blue-400 hover:text-blue-300 font-medium">
-                View full log →
-              </a>
-            </div>
-            <div className="rom-panel">
-              <RigTestPanel user={user} isAdmin={isAdmin} isStandby={isStandby} allUsers={allUsers} />
             </div>
           </section>
         )}
