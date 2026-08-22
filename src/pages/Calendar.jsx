@@ -373,6 +373,63 @@ function ShootCalendarEntry({
     }
   };
 
+  const titleText = shoot.title || 'Untitled shoot';
+
+  if (compact) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
+        onClick={(e) => {
+          e.preventDefault();
+          onContextMenu?.(e, shoot);
+        }}
+        className={`w-full text-left rounded-md border px-1.5 py-1 transition-colors ${shouldGrey ? 'opacity-55 bg-slate-950/80' : takenByOther ? 'opacity-40 bg-slate-950/80' : 'bg-slate-950/90 hover:bg-slate-800/90'} ${entryOutlineClass || 'border-slate-800/90'}`}
+      >
+        <div className="flex items-start gap-1.5">
+          <span className={`mt-[5px] h-2 w-2 rounded-full flex-shrink-0 ${dotColor}`} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-1">
+              <p className="min-w-0 flex-1 text-[11px] leading-snug font-semibold text-slate-100 break-words whitespace-normal">
+                {shoot.game_time ? (
+                  <span className="font-mono text-[10px] font-medium text-slate-400 mr-1 tabular-nums">{shoot.game_time}</span>
+                ) : null}
+                {titleText}
+              </p>
+              {canCheckStandbyRig && (
+                <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={handleRigCheckToggle}
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
+                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
+                  >
+                    <Wrench className="h-3 w-3" />
+                  </button>
+                  {rigCheckDone && (
+                    <button
+                      type="button"
+                      onClick={handleRigCheckCancel}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
+                      title="Cancel / undo rig check"
+                    >
+                      <XCircle className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className={`mt-0.5 text-[10px] leading-tight ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-500'} break-words whitespace-normal`}>
+              {assignmentLabel}
+              {hasPending && assignedNames ? ` · Pending (${shoot.pending_operators.length})` : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       role="button"
@@ -382,26 +439,28 @@ function ShootCalendarEntry({
         e.preventDefault();
         onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors ${compact ? 'px-1.5 py-1' : 'px-3 py-2.5'} ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')}`}
+      className={`w-full text-left rounded-lg border transition-colors px-3 py-2.5 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-slate-100 truncate`}>
-                {shoot.game_time ? `${shoot.game_time} ` : ''}{shortenTitle(shoot.title)}
+              <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
+                {shoot.game_time ? (
+                  <span className="font-mono text-xs font-medium text-slate-400 mr-1.5 tabular-nums">{shoot.game_time}</span>
+                ) : null}
+                {titleText}
               </p>
-              {(shoot.client || shoot.location) && !compact && (
-                <p className="text-xs text-slate-500 truncate">{shoot.client || shoot.location}</p>
+              {(shoot.client || shoot.location) && (
+                <p className="text-xs text-slate-500 break-words whitespace-normal mt-0.5">{shoot.client || shoot.location}</p>
               )}
-              <p className={`${compact ? 'text-[11px]' : 'text-xs'} ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'} truncate`}>
+              <p className={`text-xs ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'} break-words whitespace-normal mt-0.5`}>
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
-              {/* Standby name removed from entry — shown at day level only */}
-              {isAdmin && unavailableNames.length > 0 && !compact && (
-                <p className="text-[11px] text-red-400 truncate mt-0.5">
+              {isAdmin && unavailableNames.length > 0 && (
+                <p className="text-[11px] text-red-400 break-words whitespace-normal mt-0.5">
                   Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
                 </p>
               )}
@@ -421,7 +480,7 @@ function ShootCalendarEntry({
                     <button
                       type="button"
                       onClick={handleRigCheckCancel}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/400/20"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
                       title="Cancel / undo rig check"
                     >
                       <XCircle className="h-3.5 w-3.5" />
@@ -429,20 +488,18 @@ function ShootCalendarEntry({
                   )}
                 </div>
               )}
-              {!compact && (
-                <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
-                  shoot.status === 'confirmed' ? 'bg-green-500/15 text-emerald-400 border-green-500/25' :
-                  shoot.status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
-                  shoot.status === 'cancelled' ? 'bg-red-950/400/15 text-red-400 border-red-500/25' :
-                  'bg-blue-600/15 text-blue-400 border-blue-500/25'
-                }`}>
-                  {(shoot.status || 'upcoming').replace('_', ' ')}
-                </span>
-              )}
+              <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
+                shoot.status === 'confirmed' ? 'bg-green-500/15 text-emerald-400 border-green-500/25' :
+                shoot.status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
+                shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                'bg-blue-600/15 text-blue-400 border-blue-500/25'
+              }`}>
+                {(shoot.status || 'upcoming').replace('_', ' ')}
+              </span>
             </div>
           </div>
 
-          {!compact && !isAdmin && !isStandby && (
+          {!isAdmin && !isStandby && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -1219,22 +1276,23 @@ export default function Calendar() {
     const monthEnd = endOfMonth(currentDate);
     const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startPadding = monthStart.getDay();
+    // Wide day columns so full shoot titles can wrap instead of truncating mid-name.
+    const monthGridClass = 'grid grid-cols-7 gap-2 min-w-[1680px] 2xl:min-w-0';
 
     return (
       <CardContent className="p-3 md:p-4">
-        <div className="grid grid-cols-7 mb-2 min-w-[1100px] xl:min-w-0">
+        <div className={`${monthGridClass} mb-2`}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
             <div key={d} className="text-center text-xs font-medium text-slate-500 py-2">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5 min-w-[1100px] xl:min-w-0">
+        <div className={monthGridClass}>
           {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
           {calendarDays.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
             const greyOutDay = isPast && !isStandby;
             const dayShoots = getShootsForDay(day);
-            const dayStandby = getStandbyForDay(day);
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
@@ -1247,15 +1305,18 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
+                className={`min-h-[360px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-visible flex flex-col
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${greyOutDay ? 'opacity-55' : ''}
                 `}
               >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <div className={`text-xs font-semibold ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}>
+                <div className="flex items-center justify-between gap-1 mb-1 shrink-0">
+                  <div className={`text-xs font-semibold tabular-nums ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}>
                     {format(day, 'd')}
+                    {dayShoots.length > 0 && (
+                      <span className="ml-1 font-normal text-[10px] text-slate-600">{dayShoots.length}</span>
+                    )}
                   </div>
                   {(isAdmin || isStandby) && !isPast && (
                     <button
@@ -1278,7 +1339,7 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/400/15 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/40 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
                       title={myUnavailable ? exactCalendarUnavailable ? 'Remove your unavailable mark for this day' : 'You are marked unavailable from an availability range' : 'Mark yourself unavailable for this day'}
                     >
                       <UserX className="h-3 w-3" />
@@ -1287,8 +1348,8 @@ export default function Calendar() {
                   )}
                 </div>
                 {primaryStandby && (
-                   <div className="mb-1.5 flex flex-wrap gap-1">
-                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
+                   <div className="mb-1 flex flex-wrap gap-1 shrink-0">
+                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 break-words max-w-full ${
                        primaryStandby.admin_email === user?.email
                          ? 'bg-blue-950/40 border-blue-800 text-blue-400'
                          : 'bg-emerald-950/40 border-emerald-800 text-green-300'
@@ -1298,11 +1359,11 @@ export default function Calendar() {
                    </div>
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
-                  <div className="mb-1.5 flex flex-wrap gap-1">
+                  <div className="mb-1 flex flex-wrap gap-1 shrink-0">
                     {dayUnavailable.slice(0, 3).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
-                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 truncate max-w-full">
+                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 break-words max-w-full">
                           Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
                         </span>
                       );
@@ -1310,7 +1371,7 @@ export default function Calendar() {
                     {dayUnavailable.length > 3 && <span className="text-[10px] text-red-400">+{dayUnavailable.length - 3}</span>}
                   </div>
                 )}
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-h-0">
                   {dayShoots.map(s => renderEntry(s, day, true))}
                 </div>
               </div>
@@ -1417,7 +1478,7 @@ export default function Calendar() {
 
   return (
     <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5">
-      <div className="w-full max-w-[1800px] mx-auto">
+      <div className="w-full max-w-[2200px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
