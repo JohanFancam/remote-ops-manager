@@ -9,7 +9,6 @@ import {
   LayoutDashboard, Calendar, Clock, BarChart2, Settings,
   Wrench, LogOut, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical, Receipt,
 } from 'lucide-react';
-import ShootNotifications from './components/dashboard/ShootNotifications';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
@@ -56,13 +55,6 @@ function LayoutContent({ children, currentPageName }) {
 
   const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
   const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
-
-  const { data: myShoots = [] } = useQuery({
-    queryKey: ['myShoots', user?.email],
-    queryFn: () => base44.entities.Shoot.list('-date', 200),
-    enabled: !!user,
-  });
-  const notifyHours = Number(appSettings.find(s => s.key === 'notify_hours_before')?.value || 5);
   const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
 
   const adminNav = [
@@ -177,10 +169,6 @@ function LayoutContent({ children, currentPageName }) {
               />
             </div>
           )}
-
-          <div className={cn("pb-2", collapsed ? "px-2 flex justify-center" : "px-2.5")}>
-            <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
-          </div>
 
           <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
