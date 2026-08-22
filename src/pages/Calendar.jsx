@@ -5,7 +5,8 @@ import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";import { ChevronLeft, ChevronRight, Upload, Plus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, X, CalendarDays, CalendarRange, UserCheck, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, Settings2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -20,6 +21,9 @@ import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmai
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
+import DayEventsPopup from '../components/calendar/DayEventsPopup';
+
+const MONTH_VISIBLE_SHOOTS = 3;
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -157,6 +161,7 @@ function ShootCalendarEntry({
   onRigCheckToggle,
   onRigCheckCancel,
   onContextMenu,
+  onOpenSettings,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
   rigCheckMessageCopied = false,
@@ -374,56 +379,78 @@ function ShootCalendarEntry({
   };
 
   const titleText = shoot.title || 'Untitled shoot';
+  const canQuickAssign = !isPast && !!user?.email;
+  const showMinus = isAssigned || isPending;
+
+  const quickAssignButton = (
+    <button
+      type="button"
+      disabled={!canQuickAssign}
+      onClick={handleSelfAssign}
+      className={`inline-flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+        compact ? 'h-5 w-5' : 'h-7 w-7'
+      } ${
+        showMinus
+          ? 'border-red-500/40 bg-red-950/40 text-red-300 hover:bg-red-950/70'
+          : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
+      }`}
+      title={
+        isPast
+          ? 'Past shoot'
+          : showMinus
+            ? isPending
+              ? 'Cancel pending'
+              : 'Unassign yourself'
+            : 'Assign yourself'
+      }
+      aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
+    >
+      {showMinus
+        ? <Minus className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+        : <Plus className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />}
+    </button>
+  );
 
   if (compact) {
     return (
       <div
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (onOpenSettings) onOpenSettings(shoot);
+            else onSelect?.(shoot, day);
+          }
+        }}
         onClick={(e) => {
           e.preventDefault();
-          onContextMenu?.(e, shoot);
+          e.stopPropagation();
+          if (onOpenSettings) onOpenSettings(shoot);
+          else onContextMenu?.(e, shoot);
         }}
-        className={`w-full text-left rounded-md border px-1.5 py-1 transition-colors ${shouldGrey ? 'opacity-55 bg-slate-950/80' : takenByOther ? 'opacity-40 bg-slate-950/80' : 'bg-slate-950/90 hover:bg-slate-800/90'} ${entryOutlineClass || 'border-slate-800/90'}`}
+        className={`w-full text-left rounded-md border px-1 py-0.5 transition-colors ${shouldGrey ? 'opacity-55 bg-slate-950/80' : takenByOther ? 'opacity-40 bg-slate-950/80' : 'bg-slate-950/90 hover:bg-slate-800/90'} ${entryOutlineClass || 'border-slate-800/90'}`}
       >
-        <div className="flex items-start gap-1.5">
-          <span className={`mt-[5px] h-2 w-2 rounded-full flex-shrink-0 ${dotColor}`} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-1">
-              <p className="min-w-0 flex-1 text-[11px] leading-snug font-semibold text-slate-100 break-words whitespace-normal">
-                {shoot.game_time ? (
-                  <span className="font-mono text-[10px] font-medium text-slate-400 mr-1 tabular-nums">{shoot.game_time}</span>
-                ) : null}
-                {titleText}
-              </p>
-              {canCheckStandbyRig && (
-                <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={handleRigCheckToggle}
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
-                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
-                  >
-                    <Wrench className="h-3 w-3" />
-                  </button>
-                  {rigCheckDone && (
-                    <button
-                      type="button"
-                      onClick={handleRigCheckCancel}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
-                      title="Cancel / undo rig check"
-                    >
-                      <XCircle className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            <p className={`mt-0.5 text-[10px] leading-tight ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-500'} break-words whitespace-normal`}>
-              {assignmentLabel}
-              {hasPending && assignedNames ? ` · Pending (${shoot.pending_operators.length})` : ''}
-            </p>
+        <div className="flex items-center gap-1">
+          <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+          <p className="min-w-0 flex-1 text-[11px] leading-tight font-medium text-slate-100 truncate">
+            {shoot.game_time ? (
+              <span className="font-mono text-[10px] font-medium text-slate-400 mr-1 tabular-nums">{shoot.game_time}</span>
+            ) : null}
+            {titleText}
+          </p>
+          <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {canCheckStandbyRig && (
+              <button
+                type="button"
+                onClick={handleRigCheckToggle}
+                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
+                title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
+              >
+                <Wrench className="h-3 w-3" />
+              </button>
+            )}
+            {quickAssignButton}
           </div>
         </div>
       </div>
@@ -466,28 +493,42 @@ function ShootCalendarEntry({
               )}
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              {canCheckStandbyRig && (
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1">
+                {quickAssignButton}
+                {onOpenSettings && (
                   <button
                     type="button"
-                    onClick={handleRigCheckToggle}
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
-                    title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
+                    onClick={() => onOpenSettings(shoot)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-slate-100 transition-colors"
+                    title="Open shoot settings"
+                    aria-label="Open shoot settings"
                   >
-                    <Wrench className="h-3.5 w-3.5" />
+                    <Settings2 className="h-3.5 w-3.5" />
                   </button>
-                  {rigCheckDone && (
+                )}
+                {canCheckStandbyRig && (
+                  <>
                     <button
                       type="button"
-                      onClick={handleRigCheckCancel}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
-                      title="Cancel / undo rig check"
+                      onClick={handleRigCheckToggle}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
+                      title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
                     >
-                      <XCircle className="h-3.5 w-3.5" />
+                      <Wrench className="h-3.5 w-3.5" />
                     </button>
-                  )}
-                </div>
-              )}
+                    {rigCheckDone && (
+                      <button
+                        type="button"
+                        onClick={handleRigCheckCancel}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
+                        title="Cancel / undo rig check"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
               <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                 shoot.status === 'confirmed' ? 'bg-green-500/15 text-emerald-400 border-green-500/25' :
                 shoot.status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
@@ -498,20 +539,6 @@ function ShootCalendarEntry({
               </span>
             </div>
           </div>
-
-          {!isAdmin && !isStandby && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isPast || shootFull}
-                onClick={handleSelfAssign}
-                className={`h-7 rounded-md border-slate-800 bg-slate-800/70 text-xs ${isAssigned ? 'text-green-300 hover:bg-emerald-950/40 hover:text-green-200' : isPending ? 'text-amber-400 hover:bg-amber-950/40 hover:text-yellow-200' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
-              >
-                {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -535,6 +562,7 @@ export default function Calendar() {
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
+  const [dayPopup, setDayPopup] = useState(null); // Date | null
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -1263,6 +1291,11 @@ export default function Calendar() {
       onRigCheckToggle={handleRigCheckToggle}
       onRigCheckCancel={handleRigCheckCancel}
       onContextMenu={handleContextMenu}
+      onOpenSettings={(s) => {
+        setSelectedShoot(s);
+        setSelectedDate(new Date(s.date + 'T12:00:00'));
+        setDayPopup(null);
+      }}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
       rigCheckMessageCopied={rigCheckCopied}
@@ -1271,13 +1304,18 @@ export default function Calendar() {
     />
   );
 
+  const openDayPopup = (day, e) => {
+    e?.stopPropagation?.();
+    setSelectedDate(day);
+    setDayPopup(day);
+  };
+
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startPadding = monthStart.getDay();
-    // Wide day columns so full shoot titles can wrap instead of truncating mid-name.
-    const monthGridClass = 'grid grid-cols-7 gap-2 min-w-[1680px] 2xl:min-w-0';
+    const monthGridClass = 'grid grid-cols-7 gap-1.5 min-w-[1100px] xl:min-w-0';
 
     return (
       <CardContent className="p-3 md:p-4">
@@ -1293,6 +1331,8 @@ export default function Calendar() {
             const isPast = dateStr < todayStr;
             const greyOutDay = isPast && !isStandby;
             const dayShoots = getShootsForDay(day);
+            const visibleShoots = dayShoots.slice(0, MONTH_VISIBLE_SHOOTS);
+            const hiddenCount = Math.max(0, dayShoots.length - MONTH_VISIBLE_SHOOTS);
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
@@ -1305,19 +1345,25 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[360px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-visible flex flex-col
+                className={`min-h-[148px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-hidden flex flex-col
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${greyOutDay ? 'opacity-55' : ''}
                 `}
               >
                 <div className="flex items-center justify-between gap-1 mb-1 shrink-0">
-                  <div className={`text-xs font-semibold tabular-nums ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (dayShoots.length > 0) openDayPopup(day, e);
+                      else { setSelectedDate(day); setCurrentDate(day); }
+                    }}
+                    className={`text-xs font-semibold tabular-nums rounded-full min-w-[1.4rem] h-5 px-1.5 hover:bg-slate-800 ${today ? 'bg-blue-600 text-white' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}
+                    title={dayShoots.length > 0 ? 'View all games for this day' : undefined}
+                  >
                     {format(day, 'd')}
-                    {dayShoots.length > 0 && (
-                      <span className="ml-1 font-normal text-[10px] text-slate-600">{dayShoots.length}</span>
-                    )}
-                  </div>
+                  </button>
                   {(isAdmin || isStandby) && !isPast && (
                     <button
                       type="button"
@@ -1349,7 +1395,7 @@ export default function Calendar() {
                 </div>
                 {primaryStandby && (
                    <div className="mb-1 flex flex-wrap gap-1 shrink-0">
-                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 break-words max-w-full ${
+                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
                        primaryStandby.admin_email === user?.email
                          ? 'bg-blue-950/40 border-blue-800 text-blue-400'
                          : 'bg-emerald-950/40 border-emerald-800 text-green-300'
@@ -1360,19 +1406,28 @@ export default function Calendar() {
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
                   <div className="mb-1 flex flex-wrap gap-1 shrink-0">
-                    {dayUnavailable.slice(0, 3).map(item => {
+                    {dayUnavailable.slice(0, 2).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
-                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 break-words max-w-full">
+                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 truncate max-w-full">
                           Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
                         </span>
                       );
                     })}
-                    {dayUnavailable.length > 3 && <span className="text-[10px] text-red-400">+{dayUnavailable.length - 3}</span>}
+                    {dayUnavailable.length > 2 && <span className="text-[10px] text-red-400">+{dayUnavailable.length - 2}</span>}
                   </div>
                 )}
-                <div className="space-y-1 flex-1 min-h-0">
-                  {dayShoots.map(s => renderEntry(s, day, true))}
+                <div className="space-y-0.5 flex-1 min-h-0">
+                  {visibleShoots.map(s => renderEntry(s, day, true))}
+                  {hiddenCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => openDayPopup(day, e)}
+                      className="w-full text-left rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                    >
+                      +{hiddenCount} more
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1478,7 +1533,7 @@ export default function Calendar() {
 
   return (
     <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5">
-      <div className="w-full max-w-[2200px] mx-auto">
+      <div className="w-full max-w-[1800px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
@@ -1603,6 +1658,21 @@ export default function Calendar() {
       </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
+
+      <DayEventsPopup
+        open={!!dayPopup}
+        day={dayPopup}
+        shoots={dayPopup ? getShootsForDay(dayPopup) : []}
+        user={user}
+        allUsers={allUsers}
+        onClose={() => setDayPopup(null)}
+        onToggleAssign={handleContextMenuAssignSelf}
+        onOpenSettings={(shoot) => {
+          setSelectedShoot(shoot);
+          setSelectedDate(new Date(shoot.date + 'T12:00:00'));
+          setDayPopup(null);
+        }}
+      />
 
       {contextMenu && (
         <CalendarContextMenu
