@@ -624,7 +624,13 @@ export default function Calendar() {
 
   const getStandbyForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
+    return standbyDays.filter(item => {
+      const startDateStr = item.start_date || item.date;
+      if (!startDateStr) return false;
+      const fallbackEnd = format(addDays(new Date(`${startDateStr}T00:00:00`), 1), 'yyyy-MM-dd');
+      const endDateStr = item.end_date || fallbackEnd;
+      return startDateStr <= dateStr && dateStr <= endDateStr;
+    });
   };
 
   const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;

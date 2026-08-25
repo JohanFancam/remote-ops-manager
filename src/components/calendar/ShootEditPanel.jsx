@@ -83,6 +83,35 @@ export default function ShootEditPanel({
               </div>
             </div>
 
+            {/* Rig Type Quick Toggle */}
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Rig Type</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Data', 'Fancam', 'Data/Fancam'].map((type) => {
+                  const active = form.rig_type_override === type;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setForm({ ...form, rig_type_override: active ? '' : type })}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                        active
+                          ? type === 'Fancam' || type === 'Data/Fancam'
+                            ? 'bg-orange-500/20 text-orange-300 border-orange-500/50'
+                            : 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+                          : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white hover:border-gray-600'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+                {!form.rig_type_override && (
+                  <span className="text-[11px] text-gray-500 self-center ml-1">Using team rig default</span>
+                )}
+              </div>
+            </div>
+
             {/* Status */}
             <div>
               <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
