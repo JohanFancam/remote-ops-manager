@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, Wifi, X,
-  Clock, Wrench, Settings, BookOpen, FlaskConical, Receipt, LogOut } from 'lucide-react';
+  Wrench, Settings, Receipt, LogOut } from 'lucide-react';
 import { useApp } from './AppContext';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -28,12 +28,9 @@ const standbyNavItems = [
 const allAdminMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
-  { label: 'Shoot Duration', icon: Clock, path: '/ShootDuration' },
   { label: 'Rigs', icon: Wrench, path: '/Rigs' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
   { label: 'Pending/Approve', icon: DollarSign, path: '/Accounts' },
-  { label: 'Rig Test Log', icon: FlaskConical, path: '/RigTestLog' },
-  { label: 'Reference Guide', icon: BookOpen, path: '/ReferenceGuide' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
@@ -41,15 +38,12 @@ const allRemoteMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
-  { label: 'Reference Guide', icon: BookOpen, path: '/ReferenceGuide' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
 const allStandbyMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
-  { label: 'Rig Test Log', icon: FlaskConical, path: '/RigTestLog' },
-  { label: 'Reference Guide', icon: BookOpen, path: '/ReferenceGuide' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 

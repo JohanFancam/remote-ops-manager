@@ -7,11 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp, OFFLINE_THRESHOLD } from './components/AppContext';
 import {
-  LayoutDashboard, Calendar, Clock, BarChart2, Settings,
-  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, BookOpen, FlaskConical, Receipt,
+  LayoutDashboard, Calendar, BarChart2, Settings,
+  Wrench, Menu, X, LogOut, ChevronRight, Wifi, RefreshCw, DollarSign, Receipt,
 } from 'lucide-react';
-import ShootNotifications from './components/dashboard/ShootNotifications';
-import AssignmentNotifications from './components/dashboard/AssignmentNotifications';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
@@ -57,41 +55,28 @@ function LayoutContent({ children, currentPageName }) {
   const showRigs = isAdmin;
   const showReports = isAdmin;
   const showAccounts = isAdmin;
-  const showReference = true;
   const showTutorialBtn = true;
 
-  const { data: myShoots = [] } = useQuery({
-    queryKey: ['myShoots', user?.email],
-    queryFn: () => base44.entities.Shoot.list('-date', 200),
-    enabled: !!user,
-  });
-  const notifyHours = Number(appSettings.find(s => s.key === 'notify_hours_before')?.value || 5);
   const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Shoot Duration', icon: Clock, page: 'ShootDuration' },
     showRigs && { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     showReports && { name: 'Reports', icon: BarChart2, page: 'Reports' },
     showAccounts && { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
-    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
-    showReference && { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ].filter(Boolean);
 
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const standbyNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
-    { name: 'Rig Test Log', icon: FlaskConical, page: 'RigTestLog' },
-    { name: 'Reference Guide', icon: BookOpen, page: 'ReferenceGuide' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -180,11 +165,6 @@ function LayoutContent({ children, currentPageName }) {
             <TutorialReopenButton isAdmin={isAdmin} tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled} />
           </div>
         )}
-
-        {/* Notification bell */}
-        <div className={cn("pb-2", collapsed ? "px-2 flex justify-center" : "px-3")}>
-          <ShootNotifications shoots={myShoots} user={user} notifyHours={notifyHours} />
-        </div>
 
         {/* User footer */}
         <div className={cn("border-t border-gray-800", collapsed ? "p-2" : "p-4")}>
