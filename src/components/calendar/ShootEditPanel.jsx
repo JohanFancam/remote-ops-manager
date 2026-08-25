@@ -109,28 +109,6 @@ export default function ShootEditPanel({
               />
             </div>
 
-            {/* Schedule Offsets */}
-            <div className="bg-gray-800/60 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-3 font-medium uppercase tracking-wider">Schedule Offsets (minutes before game time)</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'setup_offset', label: 'Setup' },
-                  { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
-                  { key: 'attention_offset', label: 'Attention' },
-                  { key: 'sound_offset', label: 'Sound' },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <label className="text-xs text-gray-500 block mb-1">{label}</label>
-                    <Input
-                      type="number"
-                      value={form[key]}
-                      onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}
-                      className="bg-gray-700 border-gray-600 text-white h-8 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 

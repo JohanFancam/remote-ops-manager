@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Phone, Copy, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
+import { getGameDateTime, getScheduleDateTimes, shortenTitle, shortenVenue } from '../utils/scheduleUtils';
 import { displayShootTime, formatInTz, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
@@ -142,7 +142,7 @@ export default function CountdownCard({
   const showSound = matchedRig?.sound_enabled === true;
 
   const gameDate = getGameDateTime(shoot);
-  const phaseDates = getScheduleDateTimes(shoot);
+  const phaseDates = getScheduleDateTimes(shoot, matchedRig);
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
 
@@ -246,7 +246,7 @@ export default function CountdownCard({
       showSound ? `• Sound Check: ${timeLabel(phaseDates.sound)}` : null,
       `• Game Time: ${timeLabel(gameDate)}`,
       '',
-      `• Venue: ${shoot.location || 'TBC'}`,
+      `• Venue: ${shortenVenue(shoot.location) || 'TBC'}`,
       `• Shoot Type: ${shootTypeLabel}`,
     ].filter((line) => line !== null);
     return lines.join('\n');

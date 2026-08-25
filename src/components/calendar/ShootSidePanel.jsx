@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
-import { getSchedule } from '../utils/scheduleUtils';
+import { getSchedule, shortenTitle, shortenVenue } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
 
 const timeToMinutes = (timeStr) => {
@@ -162,7 +162,6 @@ export default function ShootSidePanel({
   const dayName = format(shootDate, 'EEEE');
   const dateStr = format(shootDate, 'MMM d, yyyy');
   const timeStr = displayShootTime(shoot) || 'TBA';
-  const schedule = getSchedule(shoot);
 
   const client = (shoot.client || '').toLowerCase().trim();
   const titleLower = (shoot.title || '').toLowerCase().trim();
@@ -173,6 +172,7 @@ export default function ShootSidePanel({
       client.includes(team) || titleLower.includes(team) ||
       team.includes(client) || team.includes(titleLower);
   });
+  const schedule = getSchedule(shoot, rig);
   const rigTypeLabel = getRigTypeLabel(shoot, rig) || 'Data';
 
   return (
@@ -182,7 +182,7 @@ export default function ShootSidePanel({
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-4 border-b border-gray-800 flex-shrink-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-white truncate">{shoot.title}</h2>
+            <h2 className="text-base font-semibold text-white break-words">{shortenTitle(shoot.title)}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {dayName}, {dateStr} · {timeStr} <span className="text-gray-600">({tzAbbrev()})</span>
             </p>

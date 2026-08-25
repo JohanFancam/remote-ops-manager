@@ -23,9 +23,12 @@ const DEFAULT_ATTENTION_HD = { shutter: '1/100', aperture: 'F11', iso: 'Auto' };
 const ARENA_HD = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
 const ARENA_WIDE = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
 
+const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
+
 const emptyForm = {
   team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
   remote_rigs: [],
+  ...DEFAULT_OFFSETS,
   data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide_enabled: true, data_wide: { ...DEFAULT_DATA_WIDE },
   fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide_enabled: true, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
   fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide_enabled: true, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
@@ -222,6 +225,33 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     {r}
                     <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
                   </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Offsets */}
+            <div className="bg-gray-800/60 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Timer className="h-4 w-4 text-blue-400" />
+                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Schedule Offsets (minutes before game time)</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'setup_offset', label: 'Setup' },
+                  { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
+                  { key: 'attention_offset', label: 'Attention' },
+                  { key: 'sound_offset', label: 'Sound' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-xs text-gray-500 block mb-1">{label}</label>
+                    <Input
+                      type="number"
+                      value={form[key] ?? DEFAULT_OFFSETS[key]}
+                      onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}
+                      disabled={readOnly}
+                      className="bg-gray-700 border-gray-600 text-white h-8 text-sm disabled:opacity-60"
+                    />
+                  </div>
                 ))}
               </div>
             </div>

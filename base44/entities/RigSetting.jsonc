@@ -40,6 +40,26 @@
       },
       "description": "Google Remote names"
     },
+    "setup_offset": {
+      "type": "number",
+      "default": -150,
+      "description": "Minutes before game time that setup begins (default per rig setting)"
+    },
+    "pre_shoot_offset": {
+      "type": "number",
+      "default": -120,
+      "description": "Minutes before game time that pre-shoot begins (default per rig setting)"
+    },
+    "attention_offset": {
+      "type": "number",
+      "default": -30,
+      "description": "Minutes before game time that attention begins (default per rig setting)"
+    },
+    "sound_offset": {
+      "type": "number",
+      "default": -30,
+      "description": "Minutes before game time that sound check begins (default per rig setting)"
+    },
     "data_enabled": {
       "type": "boolean",
       "default": true,

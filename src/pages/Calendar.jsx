@@ -1612,6 +1612,7 @@ export default function Calendar() {
       {quickView && (
         <ShootQuickView
           shoot={quickView}
+          onUpdate={handleShootUpdate}
           user={user}
           isAdmin={isAdmin}
           isStandby={isStandby}
@@ -1621,7 +1622,6 @@ export default function Calendar() {
           appSettings={appSettings}
           todayStr={todayStr}
           queryClient={queryClient}
-          onUpdate={handleShootUpdate}
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
           onClose={() => setQuickView(null)}

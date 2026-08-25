@@ -23,7 +23,7 @@ export function getGameDateTime(shoot) {
   return new Date(Date.UTC(year, month - 1, day, h, m, 0, 0) - SA_OFFSET_MIN * 60000);
 }
 
-export function getScheduleDateTimes(shoot) {
+export function getScheduleDateTimes(shoot, rigOffsets) {
   const gameDate = getGameDateTime(shoot);
   if (!gameDate) {
     return {
@@ -41,21 +41,26 @@ export function getScheduleDateTimes(shoot) {
     return d;
   };
 
+  // Offsets are defined per rig setting by default; a shoot's own offset fields
+  // (legacy / per-shoot override) take next priority, falling back to defaults.
+  const resolve = (key, fallback) =>
+    rigOffsets?.[key] ?? shoot?.[key] ?? fallback;
+
   return {
-    setup: withOffset(shoot?.setup_offset ?? -150),
-    pre_shoot: withOffset(shoot?.pre_shoot_offset ?? -120),
-    attention: withOffset(shoot?.attention_offset ?? -30),
-    sound: withOffset(shoot?.sound_offset ?? -30),
+    setup: withOffset(resolve('setup_offset', -150)),
+    pre_shoot: withOffset(resolve('pre_shoot_offset', -120)),
+    attention: withOffset(resolve('attention_offset', -30)),
+    sound: withOffset(resolve('sound_offset', -30)),
     game: gameDate,
   };
 }
 
 import { formatInTz } from '@/components/utils/timezoneUtils';
 
-export function getSchedule(shoot) {
+export function getSchedule(shoot, rigOffsets) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
-  const dates = getScheduleDateTimes(shoot);
+  const dates = getScheduleDateTimes(shoot, rigOffsets);
   return {
     setup: dates.setup ? formatInTz(dates.setup, 'HH:mm') : null,
     pre_shoot: dates.pre_shoot ? formatInTz(dates.pre_shoot, 'HH:mm') : null,
@@ -80,7 +85,6 @@ export function stripCityFromTeam(team) {
   const trimmed = team.trim();
   if (isExempt(trimmed)) return trimmed;
   const words = trimmed.split(/\s+/);
-  if (words.length <= 2) return trimmed;
   const lastTwo = words.slice(-2).join(' ');
   if (TWO_WORD_NICKNAMES.some((n) => n.toLowerCase() === lastTwo.toLowerCase())) return lastTwo;
   return words[words.length - 1];
@@ -93,7 +97,14 @@ export function shortenTitle(title) {
   if (match) {
     return `${stripCityFromTeam(match[1])} vs ${stripCityFromTeam(match[2])}`;
   }
-  const words = title.trim().split(/\s+/);
-  if (words.length <= 2) return title;
   return stripCityFromTeam(title);
+}
+
+// Venues are often imported as full addresses; show just the stadium name
+// (everything before the first comma). Falls back to the whole string.
+export function shortenVenue(venue) {
+  if (!venue) return venue;
+  const trimmed = String(venue).trim();
+  const commaIdx = trimmed.indexOf(',');
+  return commaIdx > 0 ? trimmed.slice(0, commaIdx).trim() : trimmed;
 }
