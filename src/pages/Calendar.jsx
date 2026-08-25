@@ -167,6 +167,7 @@ function ShootCalendarEntry({
   rigCheckMessageCopied = false,
   rigCheckMessageShootIds = [],
   queryClient,
+  primaryStandbyAdminEmail = '',
 }) {
   // Grey out past shoots (by date) for admin and standby; for remote users grey out by date too
   // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
@@ -182,11 +183,18 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
+  // Operators get the same two-tone split as admins: their reference "primary" standby
+  // person for the day (first standby record for that day) shows blue, any other
+  // standby person's shoots show green — so they can tell the two standby people apart.
+  const isPrimaryStandbyCoverage = !isAdmin && !isStandby && !!standbyCoverage &&
+    !!primaryStandbyAdminEmail && standbyCoverage.admin_email === primaryStandbyAdminEmail;
+  const showBlueStandby = isMyStandbyCoverage || isPrimaryStandbyCoverage;
+
   // Standby coverage indication: outline EVERY shoot a standby person covers so everyone
   // (admins, standby users, and operators) can see at a glance which shoots are covered.
-  // Blue = my standby, green = someone else's standby.
+  // Blue = my/primary standby, green = another standby person.
   const standbyCoverageClass = standbyCoverage
-    ? (isMyStandbyCoverage
+    ? (showBlueStandby
       ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
       : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]')
     : '';
@@ -1237,6 +1245,7 @@ export default function Calendar() {
       rigCheckMessageCopied={rigCheckCopied}
       rigCheckMessageShootIds={rigCheckMessageShootIds}
       queryClient={queryClient}
+      primaryStandbyAdminEmail={getPrimaryStandbyForDay(day)?.admin_email}
     />
   );
 
@@ -1354,6 +1363,7 @@ export default function Calendar() {
                       onQuickView={openQuickView}
                       onContextMenu={handleContextMenu}
                       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
+                      primaryStandbyAdminEmail={getPrimaryStandbyForDay(day)?.admin_email}
                     />
                   ))}
                   {dayShoots.length > 3 && (
@@ -1613,6 +1623,7 @@ export default function Calendar() {
           onQuickView={openQuickView}
           onContextMenu={handleContextMenu}
           getStandbyCoverageForShoot={getStandbyCoverageForShoot}
+          primaryStandbyAdminEmail={dayModal ? getPrimaryStandbyForDay(dayModal.day)?.admin_email : ''}
           onClose={() => setDayModal(null)}
         />
       )}

@@ -36,6 +36,7 @@ const isFancamOrMixed = (shoot, rigSettings) => {
 export default function MonthEntry({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
   queryClient, onUpdate, onQuickView, onContextMenu, getStandbyCoverageForShoot,
+  primaryStandbyAdminEmail = '',
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = (shoot.assigned_operators || []).includes(user?.email);
@@ -47,7 +48,10 @@ export default function MonthEntry({
 
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandby = standbyCoverage?.admin_email === user?.email;
+  const isPrimaryStandby = !isAdmin && !isStandby && !!standbyCoverage &&
+    !!primaryStandbyAdminEmail && standbyCoverage.admin_email === primaryStandbyAdminEmail;
   const showStandby = !!standbyCoverage;
+  const showBlueStandby = isMyStandby || isPrimaryStandby;
 
   const handleAssign = async (e) => {
     e.stopPropagation();
@@ -64,7 +68,7 @@ export default function MonthEntry({
       onContextMenu={(e) => onContextMenu?.(e, shoot)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onQuickView?.(shoot); } }}
       className={`group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left ${
-        showStandby ? (isMyStandby ? 'border-l-2 border-l-blue-500' : 'border-l-2 border-l-green-500') : ''
+        showStandby ? (showBlueStandby ? 'border-l-2 border-l-blue-500' : 'border-l-2 border-l-green-500') : ''
       }`}
     >
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
@@ -72,7 +76,7 @@ export default function MonthEntry({
       <span className="text-[11px] text-white truncate flex-1 min-w-0">{shortenTitle(shoot.title)}</span>
       {showStandby && (
         <ShieldCheck
-          className={`h-2.5 w-2.5 flex-shrink-0 ${isMyStandby ? 'text-blue-400' : 'text-green-400'}`}
+          className={`h-2.5 w-2.5 flex-shrink-0 ${showBlueStandby ? 'text-blue-400' : 'text-green-400'}`}
           title={isMyStandby ? 'Your standby coverage' : `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`}
         />
       )}
