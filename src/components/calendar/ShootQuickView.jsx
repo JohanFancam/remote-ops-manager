@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Pencil, Users, Plus, Minus, Clock } from 'lucide-react';
+import { Pencil, Users, Plus, Minus, Clock, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
@@ -24,7 +24,7 @@ const matchRig = (shoot, rigSettings) => {
 // to open the full edit / operator-assign settings.
 export default function ShootQuickView({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onEdit, onAssignOperators, onClose,
+  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage,
 }) {
   if (!shoot) return null;
 
@@ -63,6 +63,12 @@ export default function ShootQuickView({
             {operators.length > 0 && (
               <p className="text-xs text-gray-400 mt-2">
                 <span className="text-gray-500">Operators: </span>{operators.join(', ')}
+              </p>
+            )}
+            {!isAdmin && !isStandby && standbyCoverage && (
+              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3 text-blue-300 flex-shrink-0" />
+                <span className="text-gray-500">Standby: </span>{standbyCoverage.admin_name || standbyCoverage.admin_email}
               </p>
             )}
             {isPending && <p className="text-[11px] text-yellow-400 mt-1">Your assignment is pending approval.</p>}

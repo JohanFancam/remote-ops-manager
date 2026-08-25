@@ -1633,6 +1633,7 @@ export default function Calendar() {
           appSettings={appSettings}
           todayStr={todayStr}
           queryClient={queryClient}
+          standbyCoverage={getStandbyCoverageForShoot(quickView)}
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
           onClose={() => setQuickView(null)}
