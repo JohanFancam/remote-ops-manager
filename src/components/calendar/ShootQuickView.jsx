@@ -49,7 +49,7 @@ export default function ShootQuickView({
         <div className="flex items-start gap-3">
           <span className={`mt-1.5 h-3 w-3 rounded-full flex-shrink-0 ${isFancamBase ? 'bg-orange-500' : 'bg-blue-600'}`} />
           <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold leading-tight">{shortenTitle(shoot.title)}</p>
+            <p className="text-white font-semibold leading-tight">{shoot.title}</p>
             <p className="text-xs text-gray-400 mt-1.5">
               {format(new Date(shoot.date + 'T12:00:00'), 'EEEE, MMMM d')} · {displayShootTime(shoot)} <span className="text-gray-500">({tzAbbrev()})</span>
             </p>

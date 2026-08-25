@@ -418,8 +418,8 @@ export default function CountdownCard({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-sm font-semibold text-white">
-                  {shortenTitle(shoot.title)}
+                <span className="text-sm font-semibold text-white break-words">
+                  {shoot.title}
                 </span>
                 {rigLabel && <span className="text-xs font-medium text-blue-400">{rigLabel}</span>}
               </div>
