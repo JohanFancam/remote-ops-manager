@@ -22,6 +22,9 @@ import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
+import MonthEntry from '../components/calendar/MonthEntry';
+import DayEventsModal from '../components/calendar/DayEventsModal';
+import ShootQuickView from '../components/calendar/ShootQuickView';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -481,6 +484,10 @@ export default function Calendar() {
   const [rigTestModal, setRigTestModal] = useState(null); // shoot
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
+  const [dayModal, setDayModal] = useState(null); // day whose "X more" popup is open
+  const [quickView, setQuickView] = useState(null); // shoot shown in the quick view popup
+
+  const openQuickView = (s) => { setQuickView(s); setDayModal(null); };
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -1260,7 +1267,7 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[240px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
+                className={`min-h-[150px] p-2 rounded-lg cursor-pointer border transition-all overflow-visible
                   ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/40'}
                   ${today ? 'ring-2 ring-blue-500' : ''}
                   ${greyOutDay ? 'opacity-55' : ''}
@@ -1323,8 +1330,34 @@ export default function Calendar() {
                     {dayUnavailable.length > 3 && <span className="text-[10px] text-red-300">+{dayUnavailable.length - 3}</span>}
                   </div>
                 )}
-                <div className="space-y-1">
-                  {dayShoots.map(s => renderEntry(s, day, true))}
+                <div className="space-y-0.5">
+                  {dayShoots.slice(0, 3).map(s => (
+                    <MonthEntry
+                      key={s.id}
+                      shoot={s}
+                      user={user}
+                      isAdmin={isAdmin}
+                      isStandby={isStandby}
+                      allUsers={allUsers}
+                      allShoots={shoots}
+                      rigSettings={rigSettings}
+                      appSettings={appSettings}
+                      todayStr={todayStr}
+                      queryClient={queryClient}
+                      onUpdate={handleShootUpdate}
+                      onQuickView={openQuickView}
+                      onContextMenu={handleContextMenu}
+                    />
+                  ))}
+                  {dayShoots.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setDayModal({ day, shoots: dayShoots }); }}
+                      className="ml-2 mt-0.5 text-[11px] text-gray-500 hover:text-blue-300 transition-colors"
+                    >
+                      {dayShoots.length - 3} more
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1555,6 +1588,46 @@ export default function Calendar() {
       </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
+
+      {dayModal && (
+        <DayEventsModal
+          day={dayModal.day}
+          shoots={dayModal.shoots}
+          user={user}
+          isAdmin={isAdmin}
+          isStandby={isStandby}
+          allUsers={allUsers}
+          allShoots={shoots}
+          rigSettings={rigSettings}
+          appSettings={appSettings}
+          todayStr={todayStr}
+          queryClient={queryClient}
+          onUpdate={handleShootUpdate}
+          onQuickView={openQuickView}
+          onContextMenu={handleContextMenu}
+          onClose={() => setDayModal(null)}
+        />
+      )}
+
+      {quickView && (
+        <ShootQuickView
+          shoot={quickView}
+          user={user}
+          isAdmin={isAdmin}
+          isStandby={isStandby}
+          allUsers={allUsers}
+          allShoots={shoots}
+          rigSettings={rigSettings}
+          appSettings={appSettings}
+          todayStr={todayStr}
+          queryClient={queryClient}
+          onUpdate={handleShootUpdate}
+          onEdit={(s) => { setQuickView(null); startEdit(s); }}
+          onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
+          onClose={() => setQuickView(null)}
+        />
+      )}
+
 
       {contextMenu && (
         <CalendarContextMenu

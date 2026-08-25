@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Copy, Check, UserX } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Copy, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime, formatInTz, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 const statusColors = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -113,6 +117,7 @@ export default function CountdownCard({
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [readyCopied, setReadyCopied] = useState(false);
   const [localPhaseStatus, setLocalPhaseStatus] = useState(null);
+  const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -298,10 +303,6 @@ export default function CountdownCard({
     })();
 
     const paired = findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMins, userEmail);
-    const confirmMsg = paired
-      ? `Are you sure you want to unassign from this shoot and its paired shoot?`
-      : `Are you sure you want to unassign from this shoot?`;
-    if (!window.confirm(confirmMsg)) return;
 
     await onUpdate(shoot.id, {
       assigned_operators: removeEmail(shoot.assigned_operators, userEmail),
@@ -318,6 +319,25 @@ export default function CountdownCard({
       });
     }
   };
+
+  const pairedForConfirm = (() => {
+    const autoAssignTeams = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+      return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+    })();
+    const windowMins = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
+    return findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMins, userEmail);
+  })();
+
+  const confirmUnassign = async () => {
+    setShowUnassignConfirm(false);
+    await handleUnassignSelf();
+  };
+
+  const canUnassign = isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled';
 
   const handleRigTypeChange = async (type) => {
     if (!onUpdate) return;
@@ -385,7 +405,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`rounded-xl border transition-all ${
+        className={`relative rounded-xl border transition-all ${
           shoot.status === 'completed'
             ? 'border-gray-700 bg-gray-900/60 opacity-70'
             : expanded
@@ -394,6 +414,16 @@ export default function CountdownCard({
         } hover:border-gray-600`}
         onContextMenu={onContextMenu}
       >
+        {canUnassign && (
+          <button
+            type="button"
+            onClick={() => setShowUnassignConfirm(true)}
+            title="Unassign me from this shoot"
+            className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-700/50 bg-red-950/30 text-red-300 transition-colors hover:bg-red-900/60 hover:text-red-200"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
         <div className="px-4 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
@@ -502,15 +532,6 @@ export default function CountdownCard({
               </button>
             )}
 
-            {isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
-              <button
-                type="button"
-                onClick={handleUnassignSelf}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-red-700/60 bg-red-950/20 px-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-950/40 hover:text-red-300"
-              >
-                <UserX className="mr-1 h-3.5 w-3.5" />Unassign Me
-              </button>
-            )}
           </div>
         </div>
 
@@ -615,6 +636,23 @@ export default function CountdownCard({
           </div>
         )}
       </div>
+
+      <AlertDialog open={showUnassignConfirm} onOpenChange={setShowUnassignConfirm}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unassign from this shoot?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {pairedForConfirm
+                ? 'This will also remove you from its paired shoot.'
+                : 'You will no longer be assigned to this shoot.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUnassign} className="bg-red-700 text-white hover:bg-red-600 border-red-700">Yes, unassign me</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
