@@ -22,6 +22,7 @@ import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
+import ShootQuickView from '../components/calendar/ShootQuickView';
 
 const MONTH_VISIBLE_SHOOTS = 3;
 
@@ -162,6 +163,7 @@ function ShootCalendarEntry({
   onRigCheckCancel,
   onContextMenu,
   onOpenSettings,
+  onQuickView,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
   rigCheckMessageCopied = false,
@@ -386,13 +388,17 @@ function ShootCalendarEntry({
       type="button"
       disabled={!canQuickAssign}
       onClick={handleSelfAssign}
-      className={`inline-flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-        compact ? 'h-5 w-5' : 'h-7 w-7'
+      className={`inline-flex items-center justify-center rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+        compact ? 'h-4 w-4 opacity-0 group-hover:opacity-100 focus:opacity-100' : 'h-7 w-7 border'
       } ${
         showMinus
-          ? 'border-red-500/40 bg-red-950/40 text-red-300 hover:bg-red-950/70'
-          : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
-      }`}
+          ? compact
+            ? 'text-red-300 hover:bg-red-950/50'
+            : 'border-red-500/40 bg-red-950/40 text-red-300 hover:bg-red-950/70'
+          : compact
+            ? 'text-emerald-300 hover:bg-emerald-950/40'
+            : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
+      } ${compact && showMinus ? 'opacity-100' : ''}`}
       title={
         isPast
           ? 'Past shoot'
@@ -418,37 +424,31 @@ function ShootCalendarEntry({
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            if (onOpenSettings) onOpenSettings(shoot);
+            if (onQuickView) onQuickView(shoot);
+            else if (onOpenSettings) onOpenSettings(shoot);
             else onSelect?.(shoot, day);
           }
         }}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (onOpenSettings) onOpenSettings(shoot);
+          if (onQuickView) onQuickView(shoot);
+          else if (onOpenSettings) onOpenSettings(shoot);
           else onContextMenu?.(e, shoot);
         }}
-        className={`w-full text-left rounded-md border px-1 py-0.5 transition-colors ${shouldGrey ? 'opacity-55 bg-slate-950/80' : takenByOther ? 'opacity-40 bg-slate-950/80' : 'bg-slate-950/90 hover:bg-slate-800/90'} ${entryOutlineClass || 'border-slate-800/90'}`}
+        className={`group w-full text-left rounded px-0.5 py-px transition-colors hover:bg-slate-800/90 ${
+          shouldGrey ? 'opacity-50' : takenByOther ? 'opacity-40' : ''
+        } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''}`}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 min-w-0">
           <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
-          <p className="min-w-0 flex-1 text-[11px] leading-tight font-medium text-slate-100 truncate">
+          <p className="min-w-0 flex-1 text-[11px] leading-[1.35] text-slate-100 truncate">
             {shoot.game_time ? (
-              <span className="font-mono text-[10px] font-medium text-slate-400 mr-1 tabular-nums">{shoot.game_time}</span>
+              <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
             ) : null}
             {titleText}
           </p>
-          <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {canCheckStandbyRig && (
-              <button
-                type="button"
-                onClick={handleRigCheckToggle}
-                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
-                title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
-              >
-                <Wrench className="h-3 w-3" />
-              </button>
-            )}
+          <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
           </div>
         </div>
@@ -460,10 +460,17 @@ function ShootCalendarEntry({
     <div
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (!isAdmin) onSelect(shoot, day); } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (onQuickView) onQuickView(shoot);
+          else if (!isAdmin) onSelect?.(shoot, day);
+        }
+      }}
       onClick={(e) => {
         e.preventDefault();
-        onContextMenu?.(e, shoot);
+        if (onQuickView) onQuickView(shoot);
+        else onContextMenu?.(e, shoot);
       }}
       className={`w-full text-left rounded-lg border transition-colors px-3 py-2.5 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')}`}
     >
@@ -562,6 +569,7 @@ export default function Calendar() {
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
   const [dayPopup, setDayPopup] = useState(null); // Date | null
+  const [quickViewShoot, setQuickViewShoot] = useState(null); // shoot | null
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -1290,10 +1298,15 @@ export default function Calendar() {
       onRigCheckToggle={handleRigCheckToggle}
       onRigCheckCancel={handleRigCheckCancel}
       onContextMenu={handleContextMenu}
+      onQuickView={(s) => {
+        setQuickViewShoot(s);
+        setDayPopup(null);
+      }}
       onOpenSettings={(s) => {
         setSelectedShoot(s);
         setSelectedDate(new Date(s.date + 'T12:00:00'));
         setDayPopup(null);
+        setQuickViewShoot(null);
       }}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
@@ -1314,17 +1327,17 @@ export default function Calendar() {
     const monthEnd = endOfMonth(currentDate);
     const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startPadding = monthStart.getDay();
-    const monthGridClass = 'grid grid-cols-7 gap-1.5 min-w-[1100px] xl:min-w-0';
+    const monthGridClass = 'grid grid-cols-7 gap-px min-w-[980px] xl:min-w-0 bg-slate-800/80';
 
     return (
-      <CardContent className="p-3 md:p-4">
-        <div className={`${monthGridClass} mb-2`}>
+      <CardContent className="p-2 md:p-3">
+        <div className={`${monthGridClass} mb-0 rounded-t-lg overflow-hidden`}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-            <div key={d} className="text-center text-xs font-medium text-slate-500 py-2">{d}</div>
+            <div key={d} className="text-center text-[11px] font-medium text-slate-500 py-2 bg-slate-900">{d}</div>
           ))}
         </div>
-        <div className={monthGridClass}>
-          {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} />)}
+        <div className={`${monthGridClass} rounded-b-lg overflow-hidden`}>
+          {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} className="bg-slate-950/40 min-h-[120px]" />)}
           {calendarDays.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
@@ -1344,22 +1357,27 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[168px] h-full p-1.5 rounded-lg cursor-pointer border transition-all overflow-visible flex flex-col
-                  ${isSelected ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}
-                  ${today ? 'ring-2 ring-blue-500' : ''}
+                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950
+                  ${isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'}
                   ${greyOutDay ? 'opacity-55' : ''}
                 `}
               >
-                <div className="flex items-center justify-between gap-1 mb-1 shrink-0">
+                <div className="flex items-center justify-between gap-0.5 mb-0.5 shrink-0 px-0.5">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (dayShoots.length > 0) openDayPopup(day, e);
-                      else { setSelectedDate(day); setCurrentDate(day); }
+                      if (dayShoots.length > MONTH_VISIBLE_SHOOTS) openDayPopup(day, e);
+                      else if (dayShoots.length > 0) {
+                        setQuickViewShoot(dayShoots[0]);
+                        setSelectedDate(day);
+                      } else {
+                        setSelectedDate(day);
+                        setCurrentDate(day);
+                      }
                     }}
-                    className={`text-xs font-semibold tabular-nums rounded-full min-w-[1.4rem] h-5 px-1.5 hover:bg-slate-800 ${today ? 'bg-blue-600 text-white' : greyOutDay ? 'text-gray-600' : 'text-slate-400'}`}
-                    title={dayShoots.length > 0 ? 'View all games for this day' : undefined}
+                    className={`text-[11px] font-medium tabular-nums rounded-full min-w-[1.35rem] h-[1.35rem] flex items-center justify-center ${today ? 'bg-blue-600 text-white' : greyOutDay ? 'text-slate-600' : 'text-slate-300 hover:bg-slate-800'}`}
+                    title={dayShoots.length > MONTH_VISIBLE_SHOOTS ? 'View all games for this day' : undefined}
                   >
                     {format(day, 'd')}
                   </button>
@@ -1367,64 +1385,62 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${
+                      className={`inline-flex items-center rounded-full border px-1 py-px text-[9px] transition-colors ${
                         myStandby
                           ? 'border-blue-500/40 bg-blue-600/15 text-blue-400'
                           : otherStandby
                           ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
-                          : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                          : 'border-transparent text-slate-600 hover:text-slate-300 hover:bg-slate-800'
                       }`}
                       title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
-                      <ShieldCheck className="h-3 w-3" />
-                      {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
+                      <ShieldCheck className="h-2.5 w-2.5" />
                     </button>
                   )}
                   {!isAdmin && !isStandby && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/40 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+                      className={`inline-flex items-center rounded-full border px-1 py-px text-[9px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/40 text-red-400' : 'border-transparent text-slate-600 hover:text-slate-300 hover:bg-slate-800'}`}
                       title={myUnavailable ? exactCalendarUnavailable ? 'Remove your unavailable mark for this day' : 'You are marked unavailable from an availability range' : 'Mark yourself unavailable for this day'}
                     >
-                      <UserX className="h-3 w-3" />
-                      {myUnavailable ? 'Unavailable' : 'I am out'}
+                      <UserX className="h-2.5 w-2.5" />
                     </button>
                   )}
                 </div>
                 {primaryStandby && (
-                   <div className="mb-1 flex flex-wrap gap-1 shrink-0">
-                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
+                   <div className="mb-0.5 px-0.5 shrink-0">
+                     <span className={`text-[9px] rounded px-1 py-px truncate max-w-full inline-block ${
                        primaryStandby.admin_email === user?.email
-                         ? 'bg-blue-950/40 border-blue-800 text-blue-400'
-                         : 'bg-emerald-950/40 border-emerald-800 text-green-300'
+                         ? 'bg-blue-950/40 text-blue-400'
+                         : 'bg-emerald-950/40 text-green-300'
                      }`}>
-                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                       {primaryStandby.admin_name?.split(' ')[0] || primaryStandby.admin_email}
                      </span>
                    </div>
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
-                  <div className="mb-1 flex flex-wrap gap-1 shrink-0">
-                    {dayUnavailable.slice(0, 2).map(item => {
+                  <div className="mb-0.5 flex flex-wrap gap-0.5 px-0.5 shrink-0">
+                    {dayUnavailable.slice(0, 1).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
-                        <span key={item.id} className="text-[10px] rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-1.5 py-0.5 truncate max-w-full">
+                        <span key={item.id} className="text-[9px] rounded bg-red-950/45 text-red-200 px-1 py-px truncate max-w-full">
                           Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
                         </span>
                       );
                     })}
-                    {dayUnavailable.length > 2 && <span className="text-[10px] text-red-400">+{dayUnavailable.length - 2}</span>}
+                    {dayUnavailable.length > 1 && <span className="text-[9px] text-red-400">+{dayUnavailable.length - 1}</span>}
                   </div>
                 )}
-                <div className="space-y-0.5 flex-1 min-h-0">
+                <div className="space-y-px flex-1 min-h-0">
                   {visibleShoots.map(s => renderEntry(s, day, true))}
                   {hiddenCount > 0 && (
                     <button
                       type="button"
                       onClick={(e) => openDayPopup(day, e)}
-                      className="w-full text-left rounded-md px-1.5 py-1 mt-0.5 text-[11px] font-semibold text-blue-400 hover:bg-blue-950/50 hover:text-blue-200 transition-colors shrink-0"
+                      className="w-full text-left rounded px-0.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors shrink-0"
                     >
-                      +{hiddenCount} more
+                      {hiddenCount} more
                     </button>
                   )}
                 </div>
@@ -1663,15 +1679,33 @@ export default function Calendar() {
         day={dayPopup}
         shoots={dayPopup ? getShootsForDay(dayPopup) : []}
         user={user}
-        allUsers={allUsers}
+        rigSettings={rigSettings}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
-        onOpenSettings={(shoot) => {
-          setSelectedShoot(shoot);
-          setSelectedDate(new Date(shoot.date + 'T12:00:00'));
+        onSelectShoot={(shoot) => {
+          setQuickViewShoot(shoot);
           setDayPopup(null);
         }}
       />
+
+      {quickViewShoot && (
+        <ShootQuickView
+          shoot={shoots.find((s) => s.id === quickViewShoot.id) || quickViewShoot}
+          user={user}
+          isAdmin={isAdmin}
+          allUsers={allUsers}
+          rigSettings={rigSettings}
+          onClose={() => setQuickViewShoot(null)}
+          onToggleAssign={async (shoot) => {
+            await handleContextMenuAssignSelf(shoot);
+          }}
+          onOpenSettings={(shoot) => {
+            setSelectedShoot(shoot);
+            setSelectedDate(new Date(shoot.date + 'T12:00:00'));
+            setQuickViewShoot(null);
+          }}
+        />
+      )}
 
       {contextMenu && (
         <CalendarContextMenu

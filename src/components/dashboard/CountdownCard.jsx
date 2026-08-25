@@ -1,11 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Copy, Check, UserX } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Copy, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const statusColors = {
   upcoming: 'bg-blue-600/20 text-blue-400 border-blue-800',
@@ -112,6 +122,8 @@ export default function CountdownCard({
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [readyCopied, setReadyCopied] = useState(false);
   const [localPhaseStatus, setLocalPhaseStatus] = useState(null);
+  const [confirmUnassignOpen, setConfirmUnassignOpen] = useState(false);
+  const [pendingPairedUnassign, setPendingPairedUnassign] = useState(false);
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -297,10 +309,21 @@ export default function CountdownCard({
     })();
 
     const paired = findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMins, userEmail);
-    const confirmMsg = paired
-      ? `Are you sure you want to unassign from this shoot and its paired shoot?`
-      : `Are you sure you want to unassign from this shoot?`;
-    if (!window.confirm(confirmMsg)) return;
+    setPendingPairedUnassign(!!paired);
+    setConfirmUnassignOpen(true);
+  };
+
+  const confirmUnassignSelf = async () => {
+    if (!userEmail || !onUpdate) return;
+    const autoAssignTeams = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+      return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers'];
+    })();
+    const windowMins = (() => {
+      const raw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+      return (raw ? Number(raw) : 2) * 60;
+    })();
+    const paired = findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, windowMins, userEmail);
 
     await onUpdate(shoot.id, {
       assigned_operators: removeEmail(shoot.assigned_operators, userEmail),
@@ -316,6 +339,7 @@ export default function CountdownCard({
         auto_assigned_for: removeEmail(paired.auto_assigned_for, userEmail),
       });
     }
+    setConfirmUnassignOpen(false);
   };
 
   const handleRigTypeChange = async (type) => {
@@ -384,7 +408,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`rounded-xl border transition-all ${
+        className={`relative rounded-xl border transition-all ${
           shoot.status === 'completed'
             ? 'border-slate-800 bg-slate-900 opacity-70'
             : expanded
@@ -393,6 +417,17 @@ export default function CountdownCard({
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
+        {isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+          <button
+            type="button"
+            onClick={handleUnassignSelf}
+            className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-950/50 hover:text-red-300"
+            title="Unassign yourself"
+            aria-label="Unassign yourself"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
         <div className="px-4 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
@@ -499,16 +534,6 @@ export default function CountdownCard({
                 {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
               </button>
             )}
-
-            {isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
-              <button
-                type="button"
-                onClick={handleUnassignSelf}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-red-700/60 bg-red-950/20 px-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-950/40 hover:text-red-400"
-              >
-                <UserX className="mr-1 h-3.5 w-3.5" />Unassign Me
-              </button>
-            )}
           </div>
         </div>
 
@@ -613,6 +638,30 @@ export default function CountdownCard({
           </div>
         )}
       </div>
+
+      <AlertDialog open={confirmUnassignOpen} onOpenChange={setConfirmUnassignOpen}>
+        <AlertDialogContent className="border-slate-800 bg-slate-950 text-slate-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unassign from this shoot?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {pendingPairedUnassign
+                ? 'You will be removed from this shoot and its paired shoot.'
+                : 'You will be removed from this shoot. You can assign yourself again from the calendar.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnassignSelf}
+              className="bg-red-600 text-white hover:bg-red-500"
+            >
+              Unassign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

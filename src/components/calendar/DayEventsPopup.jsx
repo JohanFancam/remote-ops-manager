@@ -1,136 +1,117 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Minus, Settings2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { getDisplayName } from '@/components/utils/nameUtils';
+import { Plus, Minus, X } from 'lucide-react';
+import { shootDotClass } from './ShootQuickView';
 
+/**
+ * Google Calendar–style “N more” day list popup.
+ */
 export default function DayEventsPopup({
   open,
   day,
   shoots = [],
   user,
-  allUsers = [],
+  rigSettings = [],
   onClose,
   onToggleAssign,
-  onOpenSettings,
+  onSelectShoot,
 }) {
-  if (!day) return null;
+  if (!open || !day) return null;
 
-  const dateLabel = format(day, 'EEEE, MMMM d');
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dateStr = format(day, 'yyyy-MM-dd');
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose?.(); }}>
-      <DialogContent className="max-w-md border-slate-800 bg-slate-950 p-0 text-slate-100 gap-0 overflow-hidden sm:rounded-xl">
-        <DialogHeader className="border-b border-slate-800 px-4 py-3 pr-12 text-left space-y-1">
-          <DialogTitle className="text-base font-semibold text-slate-100">
-            {dateLabel}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500">
-            {shoots.length} game{shoots.length === 1 ? '' : 's'} · use + / − to assign yourself, or open settings
-          </DialogDescription>
-        </DialogHeader>
+    <div
+      className="fixed inset-0 z-[55] flex items-center justify-center p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={format(day, 'EEEE, MMMM d')}
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 flex max-h-[min(80vh,560px)] w-full max-w-xs flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-[#252b3b] shadow-2xl shadow-black/40"
+      >
+        <div className="flex items-start justify-between px-4 pb-2 pt-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+              {format(day, 'EEE')}
+            </p>
+            <p className="text-3xl font-semibold tabular-nums text-slate-50 leading-none mt-1">
+              {format(day, 'd')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        <div className="max-h-[min(70vh,520px)] overflow-y-auto p-2 space-y-1.5">
+        <div className="flex-1 overflow-y-auto px-2 pb-3">
           {shoots.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-slate-500">Nothing scheduled.</p>
           ) : (
-            shoots.map((shoot) => {
-              const isAssigned = shoot.assigned_operators?.includes(user?.email);
-              const isPending = shoot.pending_operators?.includes(user?.email);
-              const isPast = (shoot.date || dateStr) < todayStr;
-              const assignedNames = (shoot.assigned_operators || [])
-                .map((email) => {
-                  const u = allUsers.find((x) => x.email === email);
-                  return getDisplayName(u, email);
-                })
-                .join(', ');
-              const canToggle = !isPast && !!user?.email;
-              const showMinus = isAssigned || isPending;
+            <ul className="space-y-0.5">
+              {shoots.map((shoot) => {
+                const isAssigned = shoot.assigned_operators?.includes(user?.email);
+                const isPending = shoot.pending_operators?.includes(user?.email);
+                const isPast = (shoot.date || dateStr) < todayStr;
+                const canToggle = !isPast && !!user?.email;
+                const showMinus = isAssigned || isPending;
+                const dot = shootDotClass(shoot, rigSettings, { past: isPast });
 
-              return (
-                <div
-                  key={shoot.id}
-                  className={`flex items-start gap-2 rounded-lg border px-2.5 py-2 ${
-                    isAssigned
-                      ? 'border-purple-500/50 bg-purple-950/30'
-                      : isPending
-                        ? 'border-yellow-500/40 bg-amber-950/20'
-                        : 'border-slate-800 bg-slate-900/80'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-100 leading-snug break-words">
-                      {shoot.game_time ? (
-                        <span className="mr-1.5 font-mono text-xs font-medium tabular-nums text-slate-400">
-                          {shoot.game_time}
-                        </span>
-                      ) : null}
-                      {shoot.title || 'Untitled shoot'}
-                    </p>
-                    {(shoot.client || shoot.location) && (
-                      <p className="mt-0.5 text-xs text-slate-500 break-words">
-                        {shoot.client || shoot.location}
-                      </p>
-                    )}
-                    <p className={`mt-0.5 text-xs ${isPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'}`}>
-                      {assignedNames || (isPending ? 'Pending Approval' : 'Unassigned')}
-                      {isPending && assignedNames ? ` · Pending (${shoot.pending_operators.length})` : ''}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      disabled={!canToggle}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleAssign?.(shoot);
-                      }}
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        showMinus
-                          ? 'border-red-500/40 bg-red-950/40 text-red-300 hover:bg-red-950/70'
-                          : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
+                return (
+                  <li key={shoot.id}>
+                    <div
+                      className={`group flex items-center gap-1 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-slate-800/80 ${
+                        isAssigned ? 'bg-slate-800/40' : ''
                       }`}
-                      title={
-                        isPast
-                          ? 'Past shoot'
-                          : showMinus
-                            ? isPending
-                              ? 'Cancel pending'
-                              : 'Unassign yourself'
-                            : 'Assign yourself'
-                      }
-                      aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
                     >
-                      {showMinus ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenSettings?.(shoot);
-                      }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-slate-100 transition-colors"
-                      title="Open shoot settings"
-                      aria-label="Open shoot settings"
-                    >
-                      <Settings2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+                      <button
+                        type="button"
+                        onClick={() => onSelectShoot?.(shoot)}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      >
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-slate-100">
+                          {shoot.game_time ? (
+                            <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
+                          ) : null}
+                          {shoot.title || 'Untitled'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!canToggle}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleAssign?.(shoot);
+                        }}
+                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-80 transition-colors disabled:opacity-30 ${
+                          showMinus
+                            ? 'text-red-300 hover:bg-red-950/50'
+                            : 'text-emerald-300 hover:bg-emerald-950/40'
+                        }`}
+                        title={showMinus ? 'Unassign yourself' : 'Assign yourself'}
+                        aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
+                      >
+                        {showMinus ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
