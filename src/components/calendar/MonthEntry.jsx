@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Minus, Clock } from 'lucide-react';
+import { Plus, Minus, Clock, ShieldCheck } from 'lucide-react';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime } from '../utils/timezoneUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
@@ -35,7 +35,7 @@ const isFancamOrMixed = (shoot, rigSettings) => {
 // Compact single-line entry used inside the month grid and the "X more" popup.
 export default function MonthEntry({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onQuickView, onContextMenu,
+  queryClient, onUpdate, onQuickView, onContextMenu, getStandbyCoverageForShoot,
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = (shoot.assigned_operators || []).includes(user?.email);
@@ -44,6 +44,10 @@ export default function MonthEntry({
   const hasAssignedOperators = (shoot.assigned_operators || []).length > 0;
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const dot = isPast ? 'bg-gray-600' : fancam ? 'bg-orange-500' : (statusDot[shoot.status] || 'bg-blue-600');
+
+  const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
+  const isMyStandby = standbyCoverage?.admin_email === user?.email;
+  const showStandby = (isAdmin || isStandby) && !!standbyCoverage;
 
   const handleAssign = async (e) => {
     e.stopPropagation();
@@ -59,11 +63,19 @@ export default function MonthEntry({
       onClick={(e) => { e.stopPropagation(); onQuickView?.(shoot); }}
       onContextMenu={(e) => onContextMenu?.(e, shoot)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onQuickView?.(shoot); } }}
-      className="group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left"
+      className={`group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left ${
+        showStandby ? (isMyStandby ? 'border-l-2 border-l-blue-500' : 'border-l-2 border-l-green-500') : ''
+      }`}
     >
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
-      <span className="font-mono text-[11px] text-gray-400 flex-shrink-0">{displayShootTime(shoot)}</span>
+      <span className="text-[11px] text-gray-400 flex-shrink-0">{displayShootTime(shoot)}</span>
       <span className="text-[11px] text-white truncate flex-1 min-w-0">{shortenTitle(shoot.title)}</span>
+      {showStandby && (
+        <ShieldCheck
+          className={`h-2.5 w-2.5 flex-shrink-0 ${isMyStandby ? 'text-blue-400' : 'text-green-400'}`}
+          title={isMyStandby ? 'Your standby coverage' : `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`}
+        />
+      )}
       {user?.email && !isPast && (added || !hasAssignedOperators) && (
         <button
           type="button"

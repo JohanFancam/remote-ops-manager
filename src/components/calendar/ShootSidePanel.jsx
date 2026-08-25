@@ -292,30 +292,30 @@ export default function ShootSidePanel({
               {schedule?.setup && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Setup</span>
-                  <span className="text-gray-200 font-mono">{schedule.setup}</span>
+                  <span className="text-gray-200">{schedule.setup}</span>
                 </div>
               )}
               {schedule?.pre_shoot && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pre-Shoot</span>
-                  <span className="text-gray-200 font-mono">{schedule.pre_shoot}</span>
+                  <span className="text-gray-200">{schedule.pre_shoot}</span>
                 </div>
               )}
               {schedule?.attention && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Attention</span>
-                  <span className="text-gray-200 font-mono">{schedule.attention}</span>
+                  <span className="text-gray-200">{schedule.attention}</span>
                 </div>
               )}
               {schedule?.sound && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Sound Check</span>
-                  <span className="text-gray-200 font-mono">{schedule.sound}</span>
+                  <span className="text-gray-200">{schedule.sound}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-xs border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">Game Time</span>
-                <span className="text-gray-200 font-mono">{schedule?.game || 'TBA'}</span>
+                <span className="text-gray-200">{schedule?.game || 'TBA'}</span>
               </div>
             </div>
           </div>

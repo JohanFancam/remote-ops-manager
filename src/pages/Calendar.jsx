@@ -182,13 +182,12 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Cleaner highlighting:
-  // - Admin/standby users only see a standby outline for THEIR OWN standby coverage.
-  // - Other people's standby coverage is still shown by the standby name on the day,
-  //   but it no longer outlines every affected shoot.
-  // - Any user, including admin/standby, sees their own assigned shoots outlined.
-  const myStandbyCoverageClass = (isAdmin || isStandby) && isMyStandbyCoverage
-    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+  // Standby coverage indication: outline EVERY shoot a standby person covers so admins
+  // can see at a glance which shoots are covered. Blue = my standby, green = someone else.
+  const standbyCoverageClass = (isAdmin || isStandby) && standbyCoverage
+    ? (isMyStandbyCoverage
+      ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+      : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]')
     : '';
 
   const myAssignedShootClass = isAssigned
@@ -199,7 +198,7 @@ function ShootCalendarEntry({
     ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
     : '';
 
-  const entryOutlineClass = myStandbyCoverageClass || myAssignedShootClass || pendingShootClass;
+  const entryOutlineClass = standbyCoverageClass || myAssignedShootClass || pendingShootClass;
 
   const rigCheckDone = !!shoot.rig_check_completed;
   const isInMessageQueue = rigCheckMessageShootIds.includes(shoot.id);
@@ -1353,6 +1352,7 @@ export default function Calendar() {
                       onUpdate={handleShootUpdate}
                       onQuickView={openQuickView}
                       onContextMenu={handleContextMenu}
+                      getStandbyCoverageForShoot={getStandbyCoverageForShoot}
                     />
                   ))}
                   {dayShoots.length > 3 && (
@@ -1611,6 +1611,7 @@ export default function Calendar() {
           onUpdate={handleShootUpdate}
           onQuickView={openQuickView}
           onContextMenu={handleContextMenu}
+          getStandbyCoverageForShoot={getStandbyCoverageForShoot}
           onClose={() => setDayModal(null)}
         />
       )}
