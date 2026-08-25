@@ -414,16 +414,6 @@ export default function CountdownCard({
         } hover:border-gray-600`}
         onContextMenu={onContextMenu}
       >
-        {canUnassign && (
-          <button
-            type="button"
-            onClick={() => setShowUnassignConfirm(true)}
-            title="Unassign me from this shoot"
-            className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-700/50 bg-red-950/30 text-red-300 transition-colors hover:bg-red-900/60 hover:text-red-200"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
         <div className="px-4 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
@@ -473,13 +463,25 @@ export default function CountdownCard({
             </div>
 
             <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
-              {livePhase ? (
-                <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
-              ) : (
-                <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
-                  {shoot.status}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {livePhase ? (
+                  <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
+                ) : (
+                  <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming}`}>
+                    {shoot.status}
+                  </Badge>
+                )}
+                {canUnassign && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnassignConfirm(true)}
+                    title="Unassign me from this shoot"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-700/50 bg-red-950/30 text-red-300 transition-colors hover:bg-red-900/60 hover:text-red-200"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
 
               <button
                 onClick={() => setExpanded((v) => !v)}
