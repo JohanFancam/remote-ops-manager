@@ -181,20 +181,12 @@ function ShootCalendarEntry({
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
-  const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Operators get the same two-tone split as admins: their reference "primary" standby
-  // person for the day (first standby record for that day) shows blue, any other
-  // standby person's shoots show green — so they can tell the two standby people apart.
-  const isPrimaryStandbyCoverage = !isAdmin && !isStandby && !!standbyCoverage &&
-    !!primaryStandbyAdminEmail && standbyCoverage.admin_email === primaryStandbyAdminEmail;
-  const showBlueStandby = isMyStandbyCoverage || isPrimaryStandbyCoverage;
-
-  // Standby coverage indication: outline EVERY shoot a standby person covers so everyone
-  // (admins, standby users, and operators) can see at a glance which shoots are covered.
-  // Blue = my/primary standby, green = another standby person.
-  const standbyCoverageClass = standbyCoverage
-    ? (showBlueStandby
+  // Standby coverage indication: outline every shoot a standby person covers so
+  // admins and standby users can see at a glance which shoots are covered.
+  // Blue = my standby, green = another standby person.
+  const standbyCoverageClass = (isAdmin || isStandby) && standbyCoverage
+    ? (isMyStandbyCoverage
       ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
       : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]')
     : '';
@@ -1321,22 +1313,17 @@ export default function Calendar() {
                     </button>
                   )}
                 </div>
-                {dayStandby.length > 0 && (
-                   <div className="mb-1.5 flex flex-wrap gap-1">
-                     {dayStandby.map(standby => {
-                       const isBlue = standby.admin_email === user?.email || (!isAdmin && !isStandby && standby.admin_email === primaryStandby?.admin_email);
-                       return (
-                         <span key={standby.id || standby.admin_email} className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
-                           isBlue
-                             ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
-                             : 'bg-green-950/40 border-green-700/40 text-green-300'
-                         }`}>
-                           Standby: {standby.admin_name || standby.admin_email}
-                         </span>
-                       );
-                     })}
-                   </div>
-                 )}
+                {primaryStandby && (isAdmin || isStandby) && (
+                  <div className="mb-1.5 flex flex-wrap gap-1">
+                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
+                      primaryStandby.admin_email === user?.email
+                        ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
+                        : 'bg-green-950/40 border-green-700/40 text-green-300'
+                    }`}>
+                      Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                    </span>
+                  </div>
+                )}
                 {isAdmin && dayUnavailable.length > 0 && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     {dayUnavailable.slice(0, 3).map(item => {
@@ -1416,18 +1403,15 @@ export default function Calendar() {
                     <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {dayStandby.length > 0 && dayStandby.map(standby => {
-                       const isBlue = standby.admin_email === user?.email || (!isAdmin && !isStandby && standby.admin_email === primaryStandby?.admin_email);
-                       return (
-                         <span key={standby.id || standby.admin_email} className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-                           isBlue
-                             ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
-                             : 'bg-green-950/40 border-green-700/40 text-green-300'
-                         }`}>
-                           <ShieldCheck className="h-3 w-3" /> {standby.admin_name || standby.admin_email}
-                         </span>
-                       );
-                     })}
+                    {primaryStandby && (isAdmin || isStandby) && (
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
+                        primaryStandby.admin_email === user?.email
+                          ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
+                          : 'bg-green-950/40 border-green-700/40 text-green-300'
+                      }`}>
+                        <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
+                      </span>
+                     )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (

@@ -48,10 +48,8 @@ export default function MonthEntry({
 
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandby = standbyCoverage?.admin_email === user?.email;
-  const isPrimaryStandby = !isAdmin && !isStandby && !!standbyCoverage &&
-    !!primaryStandbyAdminEmail && standbyCoverage.admin_email === primaryStandbyAdminEmail;
-  const showStandby = !!standbyCoverage;
-  const showBlueStandby = isMyStandby || isPrimaryStandby;
+  const showStandby = (isAdmin || isStandby) && !!standbyCoverage;
+  const showBlueStandby = isMyStandby;
 
   const handleAssign = async (e) => {
     e.stopPropagation();
