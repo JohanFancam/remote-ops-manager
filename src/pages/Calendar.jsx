@@ -182,9 +182,10 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
   const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
-  // Standby coverage indication: outline EVERY shoot a standby person covers so admins
-  // can see at a glance which shoots are covered. Blue = my standby, green = someone else.
-  const standbyCoverageClass = (isAdmin || isStandby) && standbyCoverage
+  // Standby coverage indication: outline EVERY shoot a standby person covers so everyone
+  // (admins, standby users, and operators) can see at a glance which shoots are covered.
+  // Blue = my standby, green = someone else's standby.
+  const standbyCoverageClass = standbyCoverage
     ? (isMyStandbyCoverage
       ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
       : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]')
