@@ -381,7 +381,7 @@ export default function ShootSidePanel({
             {shoot.location && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
-                <p className="text-white">{shoot.location}</p>
+                <p className="text-white">{shortenVenue(shoot.location)}</p>
               </div>
             )}
             {shoot.status && (
