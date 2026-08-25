@@ -1324,7 +1324,7 @@ export default function Calendar() {
                 {primaryStandby && (
                    <div className="mb-1.5 flex flex-wrap gap-1">
                      <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
-                       primaryStandby.admin_email === user?.email
+                       primaryStandby.admin_email === user?.email || (!isAdmin && !isStandby)
                          ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
                          : 'bg-green-950/40 border-green-700/40 text-green-300'
                      }`}>
@@ -1413,13 +1413,13 @@ export default function Calendar() {
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-                         primaryStandby.admin_email === user?.email
+                         primaryStandby.admin_email === user?.email || (!isAdmin && !isStandby)
                            ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
                            : 'bg-green-950/40 border-green-700/40 text-green-300'
                        }`}>
                          <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                        </span>
-                     )}
+                      )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
