@@ -635,6 +635,26 @@ export default function Calendar() {
 
   const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;
 
+  // The "relevant" standby for a day = the admin actually covering that day's shoots
+  // (by time window), rather than just the first standby record of the day.
+  const getRelevantStandbyForDay = (day) => {
+    const dayShootsList = getShootsForDay(day);
+    const counts = new Map();
+    for (const s of dayShootsList) {
+      const cov = getStandbyCoverageForShoot(s);
+      if (!cov) continue;
+      const entry = counts.get(cov.admin_email);
+      if (entry) entry.count += 1;
+      else counts.set(cov.admin_email, { count: 1, record: cov });
+    }
+    if (counts.size === 0) return getPrimaryStandbyForDay(day);
+    let best = null;
+    for (const entry of counts.values()) {
+      if (!best || entry.count > best.count) best = entry;
+    }
+    return best.record;
+  };
+
   const userStandbyForDay = (day) => {
     if (!user?.email) return null;
     return getStandbyForDay(day).find(item => item.admin_email === user.email);
@@ -1263,6 +1283,7 @@ export default function Calendar() {
             const dayShoots = getShootsForDay(day);
             const dayStandby = getStandbyForDay(day);
             const primaryStandby = getPrimaryStandbyForDay(day);
+            const relevantStandby = getRelevantStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const dayUnavailable = getUnavailableForDay(day);
@@ -1313,14 +1334,14 @@ export default function Calendar() {
                     </button>
                   )}
                 </div>
-                {primaryStandby && (isAdmin || isStandby) && (
+                {relevantStandby && (isAdmin || isStandby) && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
-                      primaryStandby.admin_email === user?.email
+                      relevantStandby.admin_email === user?.email
                         ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
                         : 'bg-green-950/40 border-green-700/40 text-green-300'
                     }`}>
-                      Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                      Standby: {relevantStandby.admin_name || relevantStandby.admin_email}
                     </span>
                   </div>
                 )}
@@ -1387,6 +1408,7 @@ export default function Calendar() {
             const dayShoots = getShootsForDay(day);
             const dayStandby = getStandbyForDay(day);
             const primaryStandby = getPrimaryStandbyForDay(day);
+            const relevantStandby = getRelevantStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const dayUnavailable = getUnavailableForDay(day);
@@ -1403,13 +1425,13 @@ export default function Calendar() {
                     <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {primaryStandby && (isAdmin || isStandby) && (
+                    {relevantStandby && (isAdmin || isStandby) && (
                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-                        primaryStandby.admin_email === user?.email
+                        relevantStandby.admin_email === user?.email
                           ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
                           : 'bg-green-950/40 border-green-700/40 text-green-300'
                       }`}>
-                        <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
+                        <ShieldCheck className="h-3 w-3" /> {relevantStandby.admin_name || relevantStandby.admin_email}
                       </span>
                      )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
