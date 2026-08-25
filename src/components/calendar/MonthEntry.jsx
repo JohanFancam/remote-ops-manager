@@ -41,6 +41,7 @@ export default function MonthEntry({
   const isAssigned = (shoot.assigned_operators || []).includes(user?.email);
   const isPending = (shoot.pending_operators || []).includes(user?.email);
   const added = isAssigned || isPending;
+  const hasAssignedOperators = (shoot.assigned_operators || []).length > 0;
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const dot = isPast ? 'bg-gray-600' : fancam ? 'bg-orange-500' : (statusDot[shoot.status] || 'bg-blue-600');
 
@@ -63,7 +64,7 @@ export default function MonthEntry({
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
       <span className="font-mono text-[11px] text-gray-400 flex-shrink-0">{displayShootTime(shoot)}</span>
       <span className="text-[11px] text-white truncate flex-1 min-w-0">{shortenTitle(shoot.title)}</span>
-      {user?.email && !isPast && (
+      {user?.email && !isPast && (added || !hasAssignedOperators) && (
         <button
           type="button"
           onClick={handleAssign}

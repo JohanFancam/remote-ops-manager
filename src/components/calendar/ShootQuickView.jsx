@@ -35,6 +35,7 @@ export default function ShootQuickView({
   const isPending = (shoot.pending_operators || []).includes(user?.email);
   const added = isAssigned || isPending;
   const isPast = shoot.date < todayStr;
+  const hasAssignedOperators = (shoot.assigned_operators || []).length > 0;
   const operators = (shoot.assigned_operators || []).map(e => getDisplayName(allUsers.find(u => u.email === e), e));
 
   const handleAssign = async (e) => {
@@ -69,7 +70,7 @@ export default function ShootQuickView({
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4">
-          {user?.email && !isPast && (
+          {user?.email && !isPast && (added || !hasAssignedOperators) && (
             <button
               onClick={handleAssign}
               className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
