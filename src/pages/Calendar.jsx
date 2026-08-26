@@ -168,6 +168,7 @@ function ShootCalendarEntry({
   rigCheckMessageShootIds = [],
   queryClient,
   primaryStandbyAdminEmail = '',
+  onAssignOperators,
 }) {
   // Grey out past shoots (by date) for admin and standby; for remote users grey out by date too
   // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
@@ -447,16 +448,29 @@ function ShootCalendarEntry({
             </div>
           </div>
 
-          {!compact && !isAdmin && !isStandby && (
+          {!compact && !isAdmin && !isStandby && (isAssigned || isPending || ((shoot.assigned_operators || []).length === 0 && !hasPending)) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
                 variant="outline"
-                disabled={isPast || shootFull}
+                disabled={isPast}
                 onClick={handleSelfAssign}
                 className={`h-7 rounded-md border-gray-700 bg-gray-950/70 text-xs ${isAssigned ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200' : isPending ? 'text-yellow-300 hover:bg-yellow-950/30 hover:text-yellow-200' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
               >
                 {isAssigned ? <><UserX className="h-3 w-3 mr-1" />Unassign Me</> : isPending ? <><XCircle className="h-3 w-3 mr-1" />Cancel Pending</> : <><UserCheck className="h-3 w-3 mr-1" />Assign Me</>}
+              </Button>
+            </div>
+          )}
+          {!compact && isAdmin && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isPast}
+                onClick={() => onAssignOperators?.(shoot)}
+                className="h-7 rounded-md border-gray-700 bg-gray-950/70 text-xs text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <UserCheck className="h-3 w-3 mr-1" />{(shoot.assigned_operators || []).length > 0 ? 'Manage Operator' : 'Assign Operator'}
               </Button>
             </div>
           )}
@@ -1238,6 +1252,7 @@ export default function Calendar() {
       rigCheckMessageShootIds={rigCheckMessageShootIds}
       queryClient={queryClient}
       primaryStandbyAdminEmail={getPrimaryStandbyForDay(day)?.admin_email}
+      onAssignOperators={handleAssignOperators}
     />
   );
 

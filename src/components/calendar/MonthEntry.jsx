@@ -88,6 +88,9 @@ export default function MonthEntry({
           ? <span className="text-[10px] text-gray-400 truncate block">{operatorNames}</span>
           : <span className={`text-[10px] truncate block ${hasPending ? 'text-yellow-400' : 'text-gray-500'}`}>{hasPending ? 'Pending' : 'Unassigned'}</span>)}
       </div>
+      {!fullTitle && hasPending && !hasAssignedOperators && (
+        <span className="flex-shrink-0 text-[9px] px-1 rounded-full bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">Pending</span>
+      )}
       {showStandby && (
         <ShieldCheck
           className={`h-2.5 w-2.5 flex-shrink-0 ${showBlueStandby ? 'text-blue-400' : 'text-green-400'}`}
