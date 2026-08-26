@@ -3,6 +3,7 @@ import { Plus, Minus, Clock, ShieldCheck } from 'lucide-react';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime } from '../utils/timezoneUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
+import { getDisplayName } from '../utils/nameUtils';
 
 const statusDot = {
   upcoming: 'bg-blue-600',
@@ -37,12 +38,20 @@ export default function MonthEntry({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
   queryClient, onUpdate, onQuickView, onContextMenu, getStandbyCoverageForShoot,
   primaryStandbyAdminEmail = '',
+  fullTitle = false,
 }) {
   const isPast = shoot.date < todayStr;
   const isAssigned = (shoot.assigned_operators || []).includes(user?.email);
   const isPending = (shoot.pending_operators || []).includes(user?.email);
   const added = isAssigned || isPending;
   const hasAssignedOperators = (shoot.assigned_operators || []).length > 0;
+  const hasPending = (shoot.pending_operators || []).length > 0;
+  const operatorNames = (shoot.assigned_operators || [])
+    .map(email => {
+      const u = allUsers?.find(x => x.email === email);
+      return getDisplayName(u, email);
+    })
+    .join(', ');
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const dot = isPast ? 'bg-gray-600' : fancam ? 'bg-orange-500' : (statusDot[shoot.status] || 'bg-blue-600');
 
@@ -71,14 +80,21 @@ export default function MonthEntry({
     >
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
       <span className="text-[11px] text-gray-400 flex-shrink-0">{displayShootTime(shoot)}</span>
-      <span className="text-[11px] text-white truncate flex-1 min-w-0">{shortenTitle(shoot.title)}</span>
+      <div className="flex-1 min-w-0">
+        {fullTitle
+          ? <span className="text-[11px] text-white break-words block">{shoot.title}</span>
+          : <span className="text-[11px] text-white truncate block">{shortenTitle(shoot.title)}</span>}
+        {fullTitle && (operatorNames
+          ? <span className="text-[10px] text-gray-400 truncate block">{operatorNames}</span>
+          : <span className={`text-[10px] truncate block ${hasPending ? 'text-yellow-400' : 'text-gray-500'}`}>{hasPending ? 'Pending' : 'Unassigned'}</span>)}
+      </div>
       {showStandby && (
         <ShieldCheck
           className={`h-2.5 w-2.5 flex-shrink-0 ${showBlueStandby ? 'text-blue-400' : 'text-green-400'}`}
           title={isMyStandby ? 'Your standby coverage' : `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`}
         />
       )}
-      {user?.email && !isPast && (added || !hasAssignedOperators) && (
+      {user?.email && !isPast && (added || (!hasAssignedOperators && !hasPending)) && (
         <button
           type="button"
           onClick={handleAssign}

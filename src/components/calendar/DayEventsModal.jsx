@@ -16,7 +16,7 @@ export default function DayEventsModal({ day, shoots = [], onClose, ...entryProp
         </DialogHeader>
         <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1 -mr-1">
           {shoots.map(s => (
-            <MonthEntry key={s.id} shoot={s} {...entryProps} />
+            <MonthEntry key={s.id} shoot={s} {...entryProps} fullTitle />
           ))}
         </div>
       </DialogContent>
