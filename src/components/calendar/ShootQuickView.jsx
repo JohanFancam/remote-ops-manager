@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Pencil, Users, Plus, Minus, Clock, ShieldCheck } from 'lucide-react';
+import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
@@ -24,7 +24,7 @@ const matchRig = (shoot, rigSettings) => {
 // to open the full edit / operator-assign settings.
 export default function ShootQuickView({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage,
+  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage, onRigCheckToggle,
 }) {
   if (!shoot) return null;
 
@@ -36,6 +36,7 @@ export default function ShootQuickView({
   const added = isAssigned || isPending;
   const isPast = shoot.date < todayStr;
   const hasAssignedOperators = (shoot.assigned_operators || []).length > 0;
+  const rigCheckDone = !!shoot.rig_check_completed;
   const operators = (shoot.assigned_operators || []).map(e => getDisplayName(allUsers.find(u => u.email === e), e));
 
   const handleAssign = async (e) => {
@@ -106,6 +107,19 @@ export default function ShootQuickView({
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4">
+          {(isAdmin || isStandby) && !isPast && (
+            <button
+              onClick={() => onRigCheckToggle?.(shoot, standbyCoverage || null)}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                rigCheckDone
+                  ? 'border-green-700/60 bg-green-950/20 text-green-300 hover:bg-green-950/40'
+                  : 'border-yellow-700/60 bg-yellow-950/20 text-yellow-300 hover:bg-yellow-950/40'
+              }`}
+              title={rigCheckDone ? 'Rig marked checked — click to undo' : 'Mark rig checked and add to Slack message'}
+            >
+              <Wrench className="h-3.5 w-3.5" />{rigCheckDone ? 'Rig Checked' : 'Mark Rig Checked'}
+            </button>
+          )}
           {user?.email && !isPast && (added || !hasAssignedOperators) && (
             <button
               onClick={handleAssign}

@@ -219,11 +219,8 @@ function ShootCalendarEntry({
   const rigCheckUsers = rigCheckUsersRaw ? JSON.parse(rigCheckUsersRaw) : [];
   const isPermittedRigChecker = user?.email && rigCheckUsers.includes(user.email);
 
-  // Standby/admin: only for their own standby coverage; permitted users: any shoot on same day
-  const canCheckStandbyRig = !isPast && (
-    (!!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage) ||
-    isPermittedRigChecker
-  );
+  // Admins and standby users can mark any upcoming rig as checked; permitted users too.
+  const canCheckStandbyRig = !isPast && (isAdmin || isStandby || isPermittedRigChecker);
 
   const handleRigCheckToggle = async (e) => {
     e.stopPropagation();
@@ -1513,6 +1510,21 @@ export default function Calendar() {
                 </Button>
               </>
             )}
+            {(isAdmin || isStandby) && (
+              <Button
+                onClick={() => setShowRigCheckPanel(true)}
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 relative"
+                size="sm"
+              >
+                <Wrench className="h-4 w-4 mr-1 text-yellow-300" /> Rig Check
+                {rigCheckMessageShoots.length > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-[10px] font-semibold">
+                    {rigCheckMessageShoots.length}
+                  </span>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1572,7 +1584,7 @@ export default function Calendar() {
       </div>
 
       {/* Rig Check Slack Message — Sheet panel */}
-      <Sheet open={showRigCheckPanel && rigCheckMessageShoots.length > 0} onOpenChange={setShowRigCheckPanel}>
+      <Sheet open={showRigCheckPanel} onOpenChange={setShowRigCheckPanel}>
         <SheetContent side="right" className="w-full bg-gray-900 border-l border-gray-800 p-0 [&_button[type='button']]:text-white overflow-y-auto transition-all duration-300">
           <SheetHeader className="px-4 py-3 border-b border-gray-800 flex-shrink-0">
             <SheetTitle className="flex items-center gap-2 text-white">
@@ -1590,7 +1602,13 @@ export default function Calendar() {
             </Button>
           </div>
           <div className="p-4 space-y-4">
-            <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+            {rigCheckMessageShoots.length === 0 ? (
+              <div className="rounded-lg bg-gray-950 border border-gray-800 p-3 text-xs text-gray-500 italic">
+                No rigs marked checked yet. Tick a shoot's rig (wrench icon on a calendar entry, or "Mark Rig Checked" in a shoot's quick view) to build this message.
+              </div>
+            ) : (
+              <pre className="whitespace-pre-wrap rounded-lg bg-gray-950 border border-gray-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+            )}
             <div className="space-y-1.5">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Checked Shoots</p>
               {rigCheckMessageShoots.map((shoot) => {
@@ -1657,6 +1675,7 @@ export default function Calendar() {
           todayStr={todayStr}
           queryClient={queryClient}
           standbyCoverage={getStandbyCoverageForShoot(quickView)}
+          onRigCheckToggle={handleRigCheckToggle}
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
           onClose={() => setQuickView(null)}
