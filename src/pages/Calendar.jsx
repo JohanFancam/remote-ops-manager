@@ -31,7 +31,7 @@ const statusColors = {
   confirmed: 'bg-green-600',
   in_progress: 'bg-yellow-600',
   completed: 'bg-gray-600',
-  cancelled: 'bg-red-700',
+  cancelled: 'bg-gray-600',
 };
 
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
@@ -174,7 +174,8 @@ function ShootCalendarEntry({
   // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
   const isPast = shoot.date < todayStr;
   const isCompleted = shoot.status === 'completed';
-  const shouldGrey = isPast || isCompleted;
+  const isCancelled = shoot.status === 'cancelled';
+  const shouldGrey = isPast || isCompleted || isCancelled;
 
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
@@ -438,8 +439,7 @@ function ShootCalendarEntry({
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                   shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
-                  shoot.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
-                  shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                  shoot.status === 'completed' || shoot.status === 'cancelled' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
                   'bg-blue-500/15 text-blue-400 border-blue-500/25'
                 }`}>
                   {(shoot.status || 'upcoming').replace('_', ' ')}

@@ -388,6 +388,9 @@ export default function ShootSidePanel({
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</p>
                 <p className="text-white capitalize">{shoot.status.replace('_', ' ')}</p>
+                {shoot.status === 'cancelled' && shoot.cancellation_reason && (
+                  <p className="text-xs text-gray-400 mt-1">Reason: {shoot.cancellation_reason}</p>
+                )}
               </div>
             )}
             {(shoot.assigned_operators || []).length > 0 && (

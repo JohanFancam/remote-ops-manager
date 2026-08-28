@@ -60,6 +60,9 @@ export default function ShootQuickView({
               {shoot.location && <span className="text-[11px] text-gray-400">{shoot.location}</span>}
               <span className="text-[11px] text-gray-500 capitalize">{(shoot.status || 'upcoming').replace('_', ' ')}</span>
             </div>
+            {shoot.status === 'cancelled' && shoot.cancellation_reason && (
+              <p className="text-[11px] text-gray-400 mt-1">Cancelled: {shoot.cancellation_reason}</p>
+            )}
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider mr-1">Rig:</span>

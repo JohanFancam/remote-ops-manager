@@ -41,7 +41,6 @@ export default function RemoteEarnings({ user }) {
     const safeEmail = user?.email?.toLowerCase()?.trim();
     return allShoots.filter(s =>
       s.date?.startsWith(monthStr) &&
-      s.status !== 'cancelled' &&
       s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail)
     );
   }, [allShoots, user, monthStr]);
@@ -57,12 +56,17 @@ export default function RemoteEarnings({ user }) {
   const isPaidByAccounts = monthPayRecord?.paid === true;
   const paidDate = monthPayRecord?.paid_date;
 
-  // Apply payment record overrides
+  // Apply payment record overrides; cancelled shoots show R0 unless an earning override exists
   const adjustedBreakdown = breakdown.map(item => {
     const rec = paymentRecords.find(r =>
       r.shoot_id === item.shoot?.id &&
       r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim()
     );
+    if (item.isCancelled) {
+      let amount = item.amount;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      return { ...item, amount, isAdditional: false };
+    }
     let amount = item.amount;
     let isAdditional = item.isAdditional;
     if (rec?.override_fee != null) amount = Number(rec.override_fee);
@@ -74,8 +78,8 @@ export default function RemoteEarnings({ user }) {
   });
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
-  const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional);
-  const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
+  const mainShoots = adjustedBreakdown.filter(b => !b.isCancelled && !b.isAdditional);
+  const additionalShoots = adjustedBreakdown.filter(b => !b.isCancelled && b.isAdditional);
 
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">
@@ -150,17 +154,23 @@ export default function RemoteEarnings({ user }) {
                 </div>
                 <div className="space-y-1">
                   {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-gray-800/40 rounded px-3 py-2">
-                      <div>
-                        <p className="text-sm text-white font-medium">{item.shoot?.title || 'Game'}</p>
+                    <div key={idx} className={`flex items-center justify-between rounded px-3 py-2 ${item.isCancelled ? 'bg-gray-800/30 opacity-60' : 'bg-gray-800/40'}`}>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium truncate ${item.isCancelled ? 'text-gray-400 line-through' : 'text-white'}`}>{item.shoot?.title || 'Game'}</p>
                         <p className="text-xs text-gray-400">
                           {format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d')}
                           {item.shoot?.game_time && ` · ${item.shoot.game_time}`}
                         </p>
+                        {item.isCancelled && (
+                          <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                            <span className="inline-flex items-center rounded-full border border-gray-600 bg-gray-700/40 px-1.5 py-0.5 text-gray-300">Cancelled</span>
+                            {item.cancelReason && <span className="truncate">· {item.cancelReason}</span>}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-green-400">R{item.amount.toLocaleString()}</p>
-                        {item.isAdditional && (
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-sm font-bold ${item.isCancelled ? 'text-gray-500' : 'text-green-400'}`}>R{item.amount.toLocaleString()}</p>
+                        {!item.isCancelled && item.isAdditional && (
                           <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Additional</Badge>
                         )}
                       </div>

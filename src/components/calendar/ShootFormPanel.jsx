@@ -35,7 +35,7 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900 border-gray-700">
-                {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
+                {['upcoming', 'completed', 'cancelled'].map((s) => (
                   <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
                 ))}
               </SelectContent>

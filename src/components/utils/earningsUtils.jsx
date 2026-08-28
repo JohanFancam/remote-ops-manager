@@ -47,12 +47,13 @@ export function getAdditionalShootIds(dayShots) {
 export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
   const safeEmail = operatorEmail?.toLowerCase()?.trim();
   const assigned = shoots.filter(s =>
-    s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail) &&
-    s.status !== 'cancelled'
+    s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail)
   );
+  const activeShoots = assigned.filter(s => s.status !== 'cancelled');
+  const cancelledShoots = assigned.filter(s => s.status === 'cancelled');
 
   const byDate = {};
-  assigned.forEach(s => {
+  activeShoots.forEach(s => {
     if (!byDate[s.date]) byDate[s.date] = [];
     byDate[s.date].push(s);
   });
@@ -78,6 +79,12 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
       total += amount;
       breakdown.push({ date, shoot, amount, isAdditional });
     });
+  });
+
+  cancelledShoots.forEach(shoot => {
+    const amount = shoot.earning_override != null ? (Number(shoot.earning_override) || 0) : 0;
+    total += amount;
+    breakdown.push({ date: shoot.date, shoot, amount, isAdditional: false, isCancelled: true, cancelReason: shoot.cancellation_reason });
   });
 
   return { total, breakdown };
@@ -141,7 +148,7 @@ export function exportOperatorPDF(operatorData) {
     if (y > 270) { doc.addPage(); y = 20; }
     doc.text(item.date || '', 20, y);
     doc.text((item.shoot?.title || '').substring(0, 35), 55, y);
-    doc.text(item.isAdditional ? 'Additional' : 'Main', 135, y);
+    doc.text(item.isCancelled ? 'Cancelled' : (item.isAdditional ? 'Additional' : 'Main'), 135, y);
     doc.text(`R ${item.amount.toLocaleString('en-ZA')}`, 165, y); y += 10;
   });
   doc.line(20, y + 2, 190, y + 2); y += 8;

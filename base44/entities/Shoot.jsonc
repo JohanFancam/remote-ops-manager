@@ -51,6 +51,18 @@
       ],
       "default": "upcoming"
     },
+    "cancellation_reason": {
+      "type": "string",
+      "description": "Short reason why this shoot was cancelled (required when status is cancelled)"
+    },
+    "earning_override": {
+      "type": "number",
+      "description": "Optional admin-set earning amount for a cancelled shoot (otherwise operator earns R0)"
+    },
+    "earning_override_reason": {
+      "type": "string",
+      "description": "Reason required when an admin awards an earning override on a cancelled shoot"
+    },
     "rig_type_override": {
       "type": "string",
       "enum": [

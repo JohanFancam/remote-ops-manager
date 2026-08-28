@@ -152,6 +152,9 @@ export default function AccountsDashboard() {
   }, [pendingUsers, shoots, paymentRecords, users]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
+    if (shoot.status === 'cancelled') {
+      return shoot.earning_override != null ? (Number(shoot.earning_override) || 0) : 0;
+    }
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
     if (rec?.override_fee != null) return rec.override_fee;
     const isAdd = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id);
@@ -225,7 +228,7 @@ export default function AccountsDashboard() {
   };
 
   const monthSummaryRows = useMemo(() => {
-    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth));
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
@@ -258,7 +261,7 @@ export default function AccountsDashboard() {
     });
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
-      const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
+      const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey));
       let total = 0;
       let paidTotal = 0;
       let activeOps = 0;

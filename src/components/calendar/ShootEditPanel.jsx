@@ -91,12 +91,48 @@ export default function ShootEditPanel({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
-                  {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
+                  {['upcoming', 'completed', 'cancelled'].map((s) => (
                     <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Cancellation reason + earning override — only when status is cancelled */}
+            {form.status === 'cancelled' && (
+              <div className="space-y-3 rounded-lg border border-gray-700 bg-gray-800/40 p-3">
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Cancellation reason *</label>
+                  <Input
+                    placeholder="Short reason for cancelling this shoot"
+                    value={form.cancellation_reason || ''}
+                    onChange={e => setForm({ ...form, cancellation_reason: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Earning override (ZAR)</label>
+                  <Input
+                    type="number"
+                    placeholder="Leave blank — operator earns R0"
+                    value={form.earning_override ?? ''}
+                    onChange={e => setForm({ ...form, earning_override: e.target.value === '' ? null : Number(e.target.value) })}
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  />
+                </div>
+                {form.earning_override != null && form.earning_override !== '' && (
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Override reason *</label>
+                    <Input
+                      placeholder="Why is the operator being paid?"
+                      value={form.earning_override_reason || ''}
+                      onChange={e => setForm({ ...form, earning_override_reason: e.target.value })}
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Description */}
             <div>
@@ -114,7 +150,19 @@ export default function ShootEditPanel({
 
         {/* Footer */}
         <div className="border-t border-gray-800 p-4 flex-shrink-0 flex gap-2 sticky bottom-0 bg-gray-900 z-10">
-          <Button onClick={onSave} className="flex-1 bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={() => {
+              if (form.status === 'cancelled' && !(form.cancellation_reason || '').trim()) {
+                alert('Please provide a short reason for cancelling this shoot.');
+                return;
+              }
+              if (form.status === 'cancelled' && form.earning_override != null && form.earning_override !== '' && !(form.earning_override_reason || '').trim()) {
+                alert('Please provide a reason for the earning override.');
+                return;
+              }
+              onSave();
+            }}
+            className="flex-1 bg-blue-600 hover:bg-blue-700">
             {shoot ? 'Save Changes' : 'Create Shoot'}
           </Button>
           <Button onClick={onCancel} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">

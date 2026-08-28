@@ -10,7 +10,7 @@ const statusDot = {
   confirmed: 'bg-green-600',
   in_progress: 'bg-yellow-600',
   completed: 'bg-gray-600',
-  cancelled: 'bg-red-700',
+  cancelled: 'bg-gray-600',
 };
 
 const matchRig = (shoot, rigSettings) => {
