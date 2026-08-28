@@ -25,6 +25,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
     .filter(s => s.assigned_operators?.includes(op.email))
     .sort((a, b) => a.date.localeCompare(b.date) || (a.game_time || '').localeCompare(b.game_time || ''));
 
+  const activeShootCount = opShoots.filter(s => s.status !== 'cancelled').length;
+  const cancelledCount = opShoots.filter(s => s.status === 'cancelled').length;
+
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
 
@@ -48,6 +51,11 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
   const getFee = (shoot) => {
     const rec = getRecord(shoot);
+    if (shoot.status === 'cancelled') {
+      let amount = shoot.earning_override != null ? (Number(shoot.earning_override) || 0) : 0;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      return amount;
+    }
     if (rec?.override_fee != null) return rec.override_fee;
     return isAdditional(shoot) ? additionalRate : baseRate;
   };
@@ -93,7 +101,10 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </span>
           )}
           <div className="text-right">
-            <p className="text-sm text-gray-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-gray-400">
+              {activeShootCount} shoot{activeShootCount !== 1 ? 's' : ''}
+              {cancelledCount > 0 && <span className="text-gray-600"> · {cancelledCount} cancelled</span>}
+            </p>
             <p className="font-mono font-bold text-white">R{total.toFixed(2)}</p>
           </div>
           {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
@@ -129,7 +140,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
           {opShoots.length > 0 && (
             <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
-              <CheckCircle2 className="h-3 w-3" /> Approved Shoots ({opShoots.length})
+              <CheckCircle2 className="h-3 w-3" /> Approved Shoots ({activeShootCount}){cancelledCount > 0 && <span className="text-gray-500 normal-case"> · {cancelledCount} cancelled</span>}
             </p>
           )}
 
@@ -140,19 +151,22 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             const rec = getRecord(shoot);
             const fee = getFee(shoot);
             const additional = isAdditional(shoot);
-            const hasOverrideFee = rec?.override_fee != null;
+            const isCancelled = shoot.status === 'cancelled';
+            const hasOverrideFee = rec?.override_fee != null && !isCancelled;
             const hasManualAdditional = rec?.is_additional != null;
             return (
-              <div key={shoot.id} className="rounded-lg p-3 border border-gray-800 bg-gray-800/40">
+              <div key={shoot.id} className={`rounded-lg p-3 border bg-gray-800/40 ${isCancelled ? 'border-gray-700 opacity-60' : 'border-gray-800'}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{shoot.title}</p>
+                    <p className={`text-sm font-medium truncate ${isCancelled ? 'text-gray-400 line-through' : 'text-white'}`}>{shoot.title}</p>
                     <p className="text-xs text-gray-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
                     <div className="flex gap-1 flex-wrap mt-1">
-                      {additional && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
+                      {isCancelled && <Badge className="text-xs bg-gray-700 text-gray-300 border-gray-600">Cancelled</Badge>}
+                      {additional && !isCancelled && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
                       {hasOverrideFee && <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Fee Override</Badge>}
                       {hasManualAdditional && <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">Manual</Badge>}
                     </div>
+                    {isCancelled && shoot.cancellation_reason && <p className="text-xs text-gray-500 mt-1 italic">Reason: {shoot.cancellation_reason}</p>}
                     {rec?.notes && <p className="text-xs text-gray-400 mt-1 italic">{rec.notes}</p>}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -169,11 +183,13 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                       </>
                     ) : (
                       <>
-                        <span className="font-mono font-bold text-white">R{fee.toFixed(2)}</span>
+                        <span className={`font-mono font-bold ${isCancelled ? 'text-gray-500' : 'text-white'}`}>R{fee.toFixed(2)}</span>
+                        {!isCancelled && (
                         <Button size="sm" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white p-0"
                           onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
                           <Edit2 className="h-3 w-3" />
                         </Button>
+                        )}
                       </>
                     )}
                   </div>
@@ -259,6 +275,7 @@ export default function Accounts() {
   };
 
   const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+  const displayMonthShoots = shoots.filter(s => s.date?.startsWith(filterMonth));
   const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
 
   const remoteUsers = useMemo(() => {
@@ -509,7 +526,7 @@ export default function Accounts() {
               <OperatorRow
                 key={op.email}
                 op={op}
-                shoots={monthShoots}
+                shoots={displayMonthShoots}
                 pendingShoots={monthPendingShoots
                   .filter(s => s.pending_operators?.includes(op.email))
                   .sort((a, b) => a.date.localeCompare(b.date))}
