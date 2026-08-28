@@ -63,7 +63,7 @@ export default function ShootQuickView({
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <span className="text-[11px] text-gray-500 uppercase tracking-wider mr-1">Rig:</span>
-                {['Data', 'Fancam', 'Data/Fancam'].map((type) => {
+                {['Data', 'Fancam'].map((type) => {
                   const active = shoot.rig_type_override === type;
                   return (
                     <button
