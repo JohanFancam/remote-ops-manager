@@ -153,6 +153,50 @@
           "type": "string"
         }
       }
+    },
+    "rig_check_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the standby/admin marked this shoot's rig as tested from the calendar"
+    },
+    "rig_check_checked_from_calendar": {
+      "type": "boolean",
+      "default": false
+    },
+    "rig_check_checked_by": {
+      "type": "string",
+      "description": "Email of the user who marked the rig checked"
+    },
+    "rig_check_checked_by_name": {
+      "type": "string"
+    },
+    "rig_check_checked_at": {
+      "type": "string",
+      "description": "ISO timestamp when the rig was marked checked"
+    },
+    "rig_check_standby_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "rig_check_standby_admin_email": {
+      "type": "string"
+    },
+    "rig_check_standby_admin_name": {
+      "type": "string"
+    },
+    "rig_check_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this rig-checked shoot was archived from the Slack message queue"
+    },
+    "rig_check_archived_at": {
+      "type": "string"
+    },
+    "rig_check_archived_by": {
+      "type": "string"
+    },
+    "rig_check_archived_by_name": {
+      "type": "string"
     }
   },
   "required": [

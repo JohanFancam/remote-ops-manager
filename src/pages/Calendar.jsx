@@ -61,15 +61,23 @@ const isFancamOrMixed = (shoot, rigSettings) => {
 };
 
 const getRigTypeLabel = (shoot, rig) => {
-  if (shoot?.rig_type_override) {
-    const parts = [shoot.rig_type_override];
-    if (rig?.sound) parts.push('Sound');
-    return parts.join('/');
-  }
-  if (!rig) return null;
   const parts = [];
-  if (rig.rig_type) parts.push(rig.rig_type);
-  if (rig.sound) parts.push('Sound');
+  let dataActive = false;
+  let fancamActive = false;
+  if (shoot?.rig_type_override) {
+    if (shoot.rig_type_override.includes('Data')) dataActive = true;
+    if (shoot.rig_type_override.includes('Fancam')) fancamActive = true;
+  } else if (rig) {
+    const rt = rig.rig_type || '';
+    // Data: rig indicates Data and not explicitly disabled
+    if ((rt === 'Data' || rt === 'Data/Fancam') && rig.data_enabled !== false) dataActive = true;
+    // Fancam: rig indicates Fancam, or day/night fancam settings activated (collapsed to "Fancam")
+    if (rt === 'Fancam' || rt === 'Data/Fancam' || rig.fancam_day_enabled || rig.fancam_night_enabled) fancamActive = true;
+  }
+  if (dataActive) parts.push('Data');
+  if (fancamActive) parts.push('Fancam');
+  if (rig?.attention_enabled) parts.push('Attention');
+  if (rig?.sound_enabled) parts.push('Sound');
   return parts.length > 0 ? parts.join('/') : null;
 };
 
