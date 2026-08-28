@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { homeTeamFromTitle } from '../utils/scheduleUtils';
 
 // Builds the copy-ready daily shoot message from a day's ShootReport records.
 // Format:
@@ -20,16 +21,18 @@ export function buildDaySummaryMessage(reports) {
 
   let msg = 'Shoot summary :\n\n';
   reports.forEach(r => {
+    const team = homeTeamFromTitle(r.shoot_title) || 'Shoot';
     msg += r.had_issues
-      ? `${r.shoot_title || 'Shoot'} shoot complete.\n`
-      : `${r.shoot_title || 'Shoot'} shoot complete. No issues to report.\n`;
+      ? `${team} shoot complete.\n`
+      : `${team} shoot complete. No issues to report.\n`;
   });
 
   if (issues.length > 0) {
     msg += '\nShoot issues :\n\n';
     issues.forEach(r => {
+      const team = homeTeamFromTitle(r.shoot_title) || 'Shoot';
       const note = (r.notes || '').trim() || 'Issues reported';
-      msg += `${r.shoot_title || 'Shoot'} - ${note}\n`;
+      msg += `${team} - ${note}\n`;
     });
   }
 

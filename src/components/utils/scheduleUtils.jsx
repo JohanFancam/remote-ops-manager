@@ -90,6 +90,15 @@ export function stripCityFromTeam(team) {
   return words[words.length - 1];
 }
 
+// Returns just the home team (first side of a "vs" title), stripped of city prefix.
+export function homeTeamFromTitle(title) {
+  if (!title) return '';
+  if (isExempt(title)) return title;
+  const match = title.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
+  const home = match ? match[1] : title;
+  return stripCityFromTeam(home);
+}
+
 export function shortenTitle(title) {
   if (!title) return title;
   if (isExempt(title)) return title;
