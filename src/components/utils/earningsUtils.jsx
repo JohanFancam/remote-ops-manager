@@ -90,6 +90,35 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
   return { total, breakdown };
 }
 
+// Per-operator monthly summary mirroring the operator-side (RemoteEarnings) logic:
+//   - "additional" = auto_assigned_for (authoritative) OR time-proximity
+//   - cancelled shoots earn override_fee (payment record) > earning_override (shoot) > 0
+//   - payment record override_fee / is_additional override the computed values
+export function getOperatorMonthlySummary(monthShoots, operatorEmail, baseRate, additionalRate, opRecords) {
+  const { breakdown } = calculateOperatorEarnings(monthShoots, operatorEmail, baseRate, additionalRate);
+  let activeCount = 0, cancelledCount = 0;
+  const adjusted = breakdown.map(item => {
+    const rec = opRecords?.find(r => r.shoot_id === item.shoot?.id);
+    if (item.isCancelled) {
+      let amount = item.amount;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      cancelledCount++;
+      return { ...item, amount, isAdditional: false, override_fee: rec?.override_fee, manual_additional: false, notes: rec?.notes };
+    }
+    let amount = item.amount;
+    let isAdditional = item.isAdditional;
+    if (rec?.override_fee != null) amount = Number(rec.override_fee);
+    if (rec?.is_additional != null) {
+      isAdditional = rec.is_additional;
+      amount = rec.override_fee != null ? Number(rec.override_fee) : (isAdditional ? additionalRate : baseRate);
+    }
+    activeCount++;
+    return { ...item, amount, isAdditional, override_fee: rec?.override_fee, manual_additional: rec?.is_additional != null, notes: rec?.notes };
+  });
+  const total = adjusted.reduce((s, b) => s + b.amount, 0);
+  return { total, breakdown: adjusted, activeCount, cancelledCount };
+}
+
 export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
   const adminEmails = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
   const operatorEmails = [...new Set(

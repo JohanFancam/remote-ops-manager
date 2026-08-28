@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+import { getOperatorMonthlySummary } from '../components/utils/earningsUtils';
 
 function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
   const [expanded, setExpanded] = useState(false);
@@ -21,46 +21,14 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   const [note, setNote] = useState('');
   const [editingNote, setEditingNote] = useState(null);
 
-  const opShoots = shoots
-    .filter(s => s.assigned_operators?.includes(op.email))
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.game_time || '').localeCompare(b.game_time || ''));
-
-  const activeShootCount = opShoots.filter(s => s.status !== 'cancelled').length;
-  const cancelledCount = opShoots.filter(s => s.status === 'cancelled').length;
-
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
 
-  const shootsByDate = useMemo(() => {
-    const byDate = {};
-    opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
-    return byDate;
-  }, [opShoots]);
-
-  const autoAdditionalIds = useMemo(() => {
-    const ids = new Set();
-    Object.values(shootsByDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => ids.add(id)));
-    return ids;
-  }, [shootsByDate]);
-
-  const isAdditional = (shoot) => {
-    const rec = getRecord(shoot);
-    if (rec?.is_additional != null) return rec.is_additional;
-    return autoAdditionalIds.has(shoot.id);
-  };
-
-  const getFee = (shoot) => {
-    const rec = getRecord(shoot);
-    if (shoot.status === 'cancelled') {
-      let amount = shoot.earning_override != null ? (Number(shoot.earning_override) || 0) : 0;
-      if (rec?.override_fee != null) amount = Number(rec.override_fee);
-      return amount;
-    }
-    if (rec?.override_fee != null) return rec.override_fee;
-    return isAdditional(shoot) ? additionalRate : baseRate;
-  };
-
-  const total = opShoots.reduce((s, sh) => s + getFee(sh), 0);
+  const { total, breakdown, activeCount: activeShootCount, cancelledCount } = useMemo(
+    () => getOperatorMonthlySummary(shoots, op.email, baseRate, additionalRate, opRecords),
+    [shoots, op.email, baseRate, additionalRate, opRecords]
+  );
+  const sortedBreakdown = useMemo(() => [...breakdown].sort((a, b) => a.date.localeCompare(b.date)), [breakdown]);
   const hasPending = pendingShoots.length > 0;
 
   const handleSaveFee = async (shoot) => {
@@ -78,7 +46,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
   const handleToggleAdditional = async (shoot) => {
     const rec = getRecord(shoot);
-    const current = isAdditional(shoot);
+    const current = breakdown.find(b => b.shoot?.id === shoot.id)?.isAdditional ?? false;
     await onToggleAdditional({ shoot, email: op.email, name: op.full_name, month, is_additional: !current, existingId: rec?.id });
   };
 
@@ -138,22 +106,24 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </div>
           )}
 
-          {opShoots.length > 0 && (
+          {sortedBreakdown.length > 0 && (
             <p className="text-xs font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1.5">
               <CheckCircle2 className="h-3 w-3" /> Approved Shoots ({activeShootCount}){cancelledCount > 0 && <span className="text-gray-500 normal-case"> · {cancelledCount} cancelled</span>}
             </p>
           )}
 
-          {opShoots.length === 0 && !hasPending && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
-          {opShoots.length === 0 && hasPending && <p className="text-gray-500 text-sm text-center py-2">No approved shoots yet.</p>}
+          {sortedBreakdown.length === 0 && !hasPending && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
+          {sortedBreakdown.length === 0 && hasPending && <p className="text-gray-500 text-sm text-center py-2">No approved shoots yet.</p>}
 
-          {opShoots.map(shoot => {
+          {sortedBreakdown.map(item => {
+            const shoot = item.shoot;
+            if (!shoot) return null;
             const rec = getRecord(shoot);
-            const fee = getFee(shoot);
-            const additional = isAdditional(shoot);
-            const isCancelled = shoot.status === 'cancelled';
-            const hasOverrideFee = rec?.override_fee != null && !isCancelled;
-            const hasManualAdditional = rec?.is_additional != null;
+            const fee = item.amount;
+            const additional = item.isAdditional;
+            const isCancelled = !!item.isCancelled;
+            const hasOverrideFee = item.override_fee != null && !isCancelled;
+            const hasManualAdditional = item.manual_additional === true;
             return (
               <div key={shoot.id} className={`rounded-lg p-3 border bg-gray-800/40 ${isCancelled ? 'border-gray-700 opacity-60' : 'border-gray-800'}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
