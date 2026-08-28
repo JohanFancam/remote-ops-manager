@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Download, AlertCircle, CheckCircle2, Copy, Check,
-  ChevronLeft, ChevronRight, X, Trash2, Plus, Save
+  ChevronLeft, ChevronRight, ChevronDown, X, Trash2, Plus, Save
 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   addMonths, subMonths, getDay, startOfYear, endOfYear, eachMonthOfInterval
 } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import DailyShootSummary from '../components/reports/DailyShootSummary';
 
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
@@ -186,6 +187,7 @@ export default function Reports() {
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [allExpanded, setAllExpanded] = useState(false);
 
   const { data: reports = [] } = useQuery({
     queryKey: ['shootReports'],
@@ -402,28 +404,54 @@ export default function Reports() {
           <span className="text-xs text-gray-600">· Click a day to view details</span>
         </div>
 
-        {/* Monthly report list */}
+        {/* Daily shoot summaries — one copy-ready message per day */}
         {monthReports.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-gray-300 mb-3">All Reports — {monthLabel}</p>
+            <p className="text-sm font-semibold text-gray-300 mb-3">Daily Shoot Summaries</p>
             <div className="space-y-2">
-              {[...monthReports].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')).map(r => (
-                <div key={r.id} className={`rounded-lg p-3 border flex items-start justify-between gap-3
-                  ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-gray-800 bg-gray-900'}`}>
-                  <div className="flex items-start gap-2 flex-1 min-w-0">
-                    {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{r.shoot_title}</p>
-                      <p className="text-xs text-gray-500">{r.shoot_date} · {r.operator_name || r.operator_email || 'Unknown'}</p>
-                      {r.notes && <p className="text-xs text-gray-400 mt-1 italic truncate">{r.notes}</p>}
-                    </div>
-                  </div>
-                  <Badge className={r.had_issues ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs flex-shrink-0' : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs flex-shrink-0'}>
-                    {r.had_issues ? 'Issues' : 'Clean'}
-                  </Badge>
-                </div>
+              {Object.keys(byDay).sort().map(dayStr => (
+                <DailyShootSummary
+                  key={dayStr}
+                  date={new Date(dayStr + 'T12:00:00')}
+                  reports={byDay[dayStr]}
+                />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Monthly report list — collapsed by default */}
+        {monthReports.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setAllExpanded(e => !e)}
+              className="w-full flex items-center gap-2 text-left mb-1"
+            >
+              <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${allExpanded ? '' : '-rotate-90'}`} />
+              <p className="text-sm font-semibold text-gray-300">All Reports — {monthLabel}</p>
+              <span className="text-xs text-gray-500">({monthReports.length})</span>
+            </button>
+            {allExpanded && (
+              <div className="space-y-2 pl-6 pt-2">
+                {[...monthReports].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')).map(r => (
+                  <div key={r.id} className={`rounded-lg p-3 border flex items-start justify-between gap-3
+                    ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-gray-800 bg-gray-900'}`}>
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{r.shoot_title}</p>
+                        <p className="text-xs text-gray-500">{r.shoot_date} · {r.operator_name || r.operator_email || 'Unknown'}</p>
+                        {r.notes && <p className="text-xs text-gray-400 mt-1 italic truncate">{r.notes}</p>}
+                      </div>
+                    </div>
+                    <Badge className={r.had_issues ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs flex-shrink-0' : 'bg-green-500/20 text-green-400 border-green-500/30 text-xs flex-shrink-0'}>
+                      {r.had_issues ? 'Issues' : 'Clean'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
