@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench } from 'lucide-react';
+import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
@@ -24,7 +24,7 @@ const matchRig = (shoot, rigSettings) => {
 // to open the full edit / operator-assign settings.
 export default function ShootQuickView({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage, onRigCheckToggle,
+  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage, onRigCheckToggle, onBack,
 }) {
   if (!shoot) return null;
 
@@ -47,6 +47,17 @@ export default function ShootQuickView({
   return (
     <Dialog open={!!shoot} onOpenChange={(o) => { if (!o) onClose?.(); }}>
       <DialogContent className="bg-gray-900 border-gray-700 max-w-md text-white">
+        {onBack && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to all events
+            </button>
+          </div>
+        )}
         <div className="flex items-start gap-3">
           <span className={`mt-1.5 h-3 w-3 rounded-full flex-shrink-0 ${isFancamBase ? 'bg-orange-500' : 'bg-blue-600'}`} />
           <div className="flex-1 min-w-0">

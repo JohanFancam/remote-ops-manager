@@ -506,7 +506,7 @@ export default function Calendar() {
   const [dayModal, setDayModal] = useState(null); // day whose "X more" popup is open
   const [quickView, setQuickView] = useState(null); // shoot shown in the quick view popup
 
-  const openQuickView = (s) => { setQuickView(s); setDayModal(null); };
+  const openQuickView = (s) => { setQuickView(s); };
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -1678,6 +1678,7 @@ export default function Calendar() {
           onRigCheckToggle={handleRigCheckToggle}
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
+          onBack={dayModal ? () => setQuickView(null) : undefined}
           onClose={() => setQuickView(null)}
         />
       )}
