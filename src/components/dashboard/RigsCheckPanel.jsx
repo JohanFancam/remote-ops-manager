@@ -25,6 +25,13 @@ function getRigTypeLabel(shoot, rig) {
   return parts.length > 0 ? parts.join('/') : null;
 }
 
+function getShootTeamName(shoot, rigSettings) {
+  const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === shoot?.client?.toLowerCase().trim());
+  if (rig?.team) return rig.team;
+  if (shoot?.client) return shoot.client;
+  return shortenTitle(shoot?.title || 'Unknown Team');
+}
+
 function getShootsForOperationalDay(shoots, dateStr) {
   const nextDateStr = format(addDays(new Date(dateStr + 'T12:00:00'), 1), 'yyyy-MM-dd');
   const sameDay = shoots.filter(s =>
@@ -102,9 +109,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     if (checkedShoots.length === 0) return '';
     const items = checkedShoots.map(s => {
       const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-      const label = getRigTypeLabel(s, rig);
-      const name = shortenTitle(s.title);
-      return `• ${name}${label ? ` (${label})` : ''}`;
+      const label = getRigTypeLabel(s, rig) || 'Data';
+      const name = getShootTeamName(s, rigSettings);
+      return `• ${name} - ${label}`;
     });
     return `${messageHeading}\n\n${items.join('\n')}`;
   };
@@ -403,13 +410,14 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
             <div className="space-y-1.5">
               {checkedShoots.map(s => {
                 const rig = rigSettings.find(r => r.team?.toLowerCase().trim() === s.client?.toLowerCase().trim());
-                const label = getRigTypeLabel(s, rig);
+                const label = getRigTypeLabel(s, rig) || 'Data';
+                const name = getShootTeamName(s, rigSettings);
                 return (
                   <div key={s.id} className="flex items-start gap-2 text-sm text-gray-300">
                     <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
                     <span>
-                      <span className="font-medium text-white">{shortenTitle(s.title)}</span>
-                      {label && <span className="text-blue-400 ml-1">({label})</span>}
+                      <span className="font-medium text-white">{name}</span>
+                      <span className="text-blue-400 ml-1">- {label}</span>
                     </span>
                   </div>
                 );
