@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -56,11 +57,13 @@ export default function TaskForm({ open, onClose, task }) {
     onClose?.()
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-3 sm:items-center"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/45 p-3 sm:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -73,7 +76,7 @@ export default function TaskForm({ open, onClose, task }) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 24, opacity: 0 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="w-full max-w-md rounded-3xl bg-paper p-5 shadow-2xl shadow-ink/30"
+            className="relative z-[101] w-full max-w-md rounded-3xl bg-paper p-5 shadow-2xl shadow-ink/30"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold text-ink">
@@ -170,6 +173,7 @@ export default function TaskForm({ open, onClose, task }) {
           </motion.form>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
