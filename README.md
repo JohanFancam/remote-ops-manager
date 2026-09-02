@@ -1,39 +1,33 @@
-**Welcome to your Base44 project** 
+# The Assistant
 
-**About**
+Personal tasks + calendar in a installable web app.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## What’s in v1
 
-This project contains everything you need to run your app locally.
+- **Today** — greeting, due today, overdue, coming up
+- **Tasks** — create / edit / complete / delete; Personal vs Work; priority
+- **Calendar** — month view with tasks on due dates
+- **Settings** — browser notifications, PWA install, defaults
+- **Local-first** — data stored in your browser (`localStorage`)
+- **PWA** — install to home screen (phone/desktop); service worker for offline shell
 
-**Edit the code in your local development environment**
+## Run locally
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+```bash
+npm install
+npm run dev
 ```
 
-Run the app: `npm run dev`
+Open the URL Vite prints (default `http://localhost:5173`).
 
-**Publish your changes**
+## Install on phone (no APK yet)
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+1. Open the app in Chrome (Android) or Safari (iOS)
+2. **Add to Home Screen** / **Install app**
+3. Enable notifications in Settings
 
-**Docs & Support**
+A real `.apk` can be added later with Capacitor wrapping this same UI.
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+## Stack
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+Vite · React · Tailwind · Framer Motion · date-fns
