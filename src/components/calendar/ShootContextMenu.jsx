@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Edit2, Copy, Trash2 } from 'lucide-react';
+import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 export default function ShootContextMenu({ x, y, shoot, onEdit, onDuplicate, onDelete, onClose }) {
   const menuRef = useRef(null);
@@ -36,7 +37,7 @@ export default function ShootContextMenu({ x, y, shoot, onEdit, onDuplicate, onD
       className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 w-44"
     >
       <div className="px-3 py-1.5 border-b border-slate-800 mb-1">
-        <p className="text-xs text-slate-500 truncate">{shoot.title}</p>
+        <p className="text-xs text-slate-500 truncate">{shortenTitle(shoot.title) || 'Untitled'}</p>
       </div>
       {items.map(({ label, icon: Icon, action, color }) => (
         <button

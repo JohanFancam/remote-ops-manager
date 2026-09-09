@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 export default function CalendarContextMenu({
   shoot, isAdmin, isStandby, userEmail,
@@ -43,7 +44,7 @@ export default function CalendarContextMenu({
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full bg-slate-900 border-l border-slate-800 p-0 [&_button[type='button']]:text-slate-100 transition-all duration-300">
         <SheetHeader className="px-4 py-3 border-b border-slate-800">
-          <SheetTitle className="text-base text-slate-100 truncate">{shoot.title}</SheetTitle>
+          <SheetTitle className="text-base text-slate-100 truncate">{shortenTitle(shoot.title) || 'Untitled shoot'}</SheetTitle>
           {shoot.date && <p className="text-[10px] text-slate-500 mt-1">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>}
         </SheetHeader>
 

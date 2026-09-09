@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -178,7 +179,7 @@ export default function ShootSidePanel({
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-800 flex-shrink-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-slate-100 truncate">{shoot.title}</h2>
+            <h2 className="text-base font-semibold text-slate-100 truncate">{shortenTitle(shoot.title) || 'Untitled shoot'}</h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {dayName}, {dateStr} · {timeStr}
             </p>

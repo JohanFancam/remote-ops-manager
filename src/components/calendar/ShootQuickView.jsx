@@ -102,9 +102,6 @@ export default function ShootQuickView({
               <h2 className="text-lg font-semibold leading-snug text-slate-50 break-words">
                 {shortenTitle(shoot.title) || 'Untitled shoot'}
               </h2>
-              {shoot.title && shortenTitle(shoot.title) !== shoot.title && (
-                <p className="mt-0.5 text-xs text-slate-500 break-words">{shoot.title}</p>
-              )}
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
                 {shoot.game_time ? ` · ${shoot.game_time}` : ''}
