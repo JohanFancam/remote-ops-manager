@@ -199,7 +199,7 @@ export default function ShootSidePanel({
             </span>
             {isAdmin && (
               <div className="flex items-center gap-1 text-[11px]">
-                {['Data', 'Fancam', 'Data/Fancam'].map(type => (
+                {['Data', 'Fancam'].map(type => (
                   <button
                     key={type}
                     onClick={() => onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type })}

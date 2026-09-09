@@ -262,7 +262,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         <div className="bg-slate-800/40 rounded-lg p-3">
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Rig Type Override</p>
           <div className="flex gap-1.5">
-            {['Data', 'Fancam', 'Data/Fancam'].map(type => (
+            {['Data', 'Fancam'].map(type => (
               <button
                 key={type}
                 onClick={() => onUpdate(shoot.id, { rig_type_override: shoot.rig_type_override === type ? null : type })}
