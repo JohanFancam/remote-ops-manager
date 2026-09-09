@@ -170,26 +170,26 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
       <CardContent className="pt-4">
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-4 mb-3">
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-slate-100">{myMonthShoots.length}</p>
             <p className="text-xs text-slate-400">Shoots</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <Phone className="h-5 w-5 text-amber-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-slate-100">{myMonthStandby.length}</p>
             <p className="text-xs text-slate-400">Standby</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <Clock className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-slate-100">{totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}</p>
             <p className="text-xs text-slate-400">Est. Hours</p>
           </div>
         </div>
 
-        <p className="text-xs text-gray-600 mb-3">
+        <p className="text-xs text-slate-500 mb-3">
           {activeDayEntries.length} active day{activeDayEntries.length !== 1 ? 's' : ''} × {adminDayHours}h = {totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}h
-          <span className="italic ml-1">(deduplicated — shoots & standby on same day count once)</span>
+          <span className="italic ml-1 text-slate-600">(deduplicated — shoots & standby on same day count once)</span>
         </p>
 
         {expanded && (
