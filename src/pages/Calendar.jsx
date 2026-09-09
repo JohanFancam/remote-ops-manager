@@ -379,7 +379,7 @@ function ShootCalendarEntry({
     }
   };
 
-  const titleText = shoot.title || 'Untitled shoot';
+  const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
   const canQuickAssign = !isPast && !!user?.email;
   const showMinus = isAssigned || isPending;
 

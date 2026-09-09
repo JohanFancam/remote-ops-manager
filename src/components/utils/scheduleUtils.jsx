@@ -63,7 +63,7 @@ const KEEP_FULL_TEAMS = ['Charlotte FC', 'KC Current', 'Kansas City Current'];
 const TWO_WORD_NICKNAMES = [
   'Blue Jackets', 'Red Wings', 'Maple Leafs', 'Golden Knights',
   'Trail Blazers', 'Red Sox', 'Blue Jays', 'White Sox',
-  'Black Hawks', 'Blue Devils', 'Space Force',
+  'Black Hawks', 'Blue Devils', 'Space Force', 'Football Club',
 ];
 
 function isExempt(team) {
@@ -72,11 +72,26 @@ function isExempt(team) {
 
 function stripCityFromTeam(team) {
   const trimmed = team.trim();
+  if (!trimmed) return trimmed;
   if (isExempt(trimmed)) return trimmed;
+
+  // "Chelsea Football Club" → "Chelsea"
+  const fcMatch = trimmed.match(/^(.+?)\s+Football Club$/i);
+  if (fcMatch) return fcMatch[1];
+
   const words = trimmed.split(/\s+/);
-  if (words.length <= 2) return trimmed;
-  const lastTwo = words.slice(-2).join(' ');
-  if (TWO_WORD_NICKNAMES.some((n) => n.toLowerCase() === lastTwo.toLowerCase())) return lastTwo;
+  if (words.length === 1) return trimmed;
+
+  const lastTwo = words.length >= 2 ? words.slice(-2).join(' ') : '';
+  const isTwoWordNickname = TWO_WORD_NICKNAMES.some((n) => n.toLowerCase() === lastTwo.toLowerCase());
+
+  // "Boston Red Sox" / "Toronto Maple Leafs" → nickname pair
+  if (words.length >= 3 && isTwoWordNickname) return lastTwo;
+
+  // Standalone two-word nicknames ("Red Sox", "Maple Leafs") stay as-is
+  if (words.length === 2 && isTwoWordNickname) return trimmed;
+
+  // "Boston Celtics", "New York Rangers", "Los Angeles Lakers" → last word
   return words[words.length - 1];
 }
 
@@ -87,7 +102,5 @@ export function shortenTitle(title) {
   if (match) {
     return `${stripCityFromTeam(match[1])} vs ${stripCityFromTeam(match[2])}`;
   }
-  const words = title.trim().split(/\s+/);
-  if (words.length <= 2) return title;
   return stripCityFromTeam(title);
 }

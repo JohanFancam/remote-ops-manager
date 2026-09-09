@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Plus, Minus, X } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
+import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 /**
  * Google Calendar–style “N more” day list popup.
@@ -84,7 +85,7 @@ export default function DayEventsPopup({
                           {shoot.game_time ? (
                             <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
                           ) : null}
-                          {shoot.title || 'Untitled'}
+                          {shortenTitle(shoot.title) || 'Untitled'}
                         </span>
                       </button>
                       <button

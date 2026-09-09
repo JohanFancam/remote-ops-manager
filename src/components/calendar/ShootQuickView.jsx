@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { X, Plus, Minus, Settings2, MapPin, Users, Clock } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
+import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 function findMatchingRig(shoot, rigSettings = []) {
   if (!shoot) return null;
@@ -99,8 +100,11 @@ export default function ShootQuickView({
             />
             <div className="min-w-0">
               <h2 className="text-lg font-semibold leading-snug text-slate-50 break-words">
-                {shoot.title || 'Untitled shoot'}
+                {shortenTitle(shoot.title) || 'Untitled shoot'}
               </h2>
+              {shoot.title && shortenTitle(shoot.title) !== shoot.title && (
+                <p className="mt-0.5 text-xs text-slate-500 break-words">{shoot.title}</p>
+              )}
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
                 {shoot.game_time ? ` · ${shoot.game_time}` : ''}
