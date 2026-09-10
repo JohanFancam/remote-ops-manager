@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 export default function CalendarContextMenu({
-  shoot, isAdmin, isStandby, userEmail,
+  shoot, isAdmin, isStandby, userEmail, allUsers = [],
   onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
@@ -20,13 +21,25 @@ export default function CalendarContextMenu({
 
   const isAssigned = shoot?.assigned_operators?.includes(userEmail);
   const isPending = shoot?.pending_operators?.includes(userEmail);
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, userEmail, allUsers);
+
+  const selfAssignItem = isAssigned || isPending
+    ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-amber-400' }
+    : claimedByOther
+      ? {
+          label: (shoot?.pending_operators || []).length > 0
+            ? 'Unavailable — Pending Approval'
+            : 'Unavailable — Taken',
+          icon: UserCheck,
+          action: () => {},
+          color: 'text-slate-500',
+          disabled: true,
+        }
+      : { label: 'Assign Me to Shoot', icon: UserCheck, action: () => { onAssignSelf(shoot); onClose(); }, color: 'text-emerald-400' };
 
   const items = [
     { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
-
-    isAssigned || isPending
-      ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-amber-400' }
-      : { label: 'Assign Me to Shoot', icon: UserCheck, action: () => { onAssignSelf(shoot); onClose(); }, color: 'text-emerald-400' },
+    selfAssignItem,
 
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100', divider: true },
@@ -56,12 +69,15 @@ export default function CalendarContextMenu({
         </SheetHeader>
 
         <div className="px-4 py-3 space-y-2">
-          {items.map(({ label, icon: Icon, action, color, divider }) => (
+          {items.map(({ label, icon: Icon, action, color, divider, disabled }) => (
             <React.Fragment key={label}>
               {divider && <div className="border-t border-slate-800 my-1" />}
               <button
-                onClick={action}
-                className={`flex items-center gap-2.5 w-full px-3 py-3 text-sm ${color} hover:bg-slate-800 rounded-lg transition-colors`}
+                onClick={disabled ? undefined : action}
+                disabled={disabled}
+                className={`flex items-center gap-2.5 w-full px-3 py-3 text-sm ${color} rounded-lg transition-colors ${
+                  disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-slate-800'
+                }`}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 {label}

@@ -4,6 +4,7 @@ import { Plus, Minus, X } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
+import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 /**
  * Google Calendar–style “N more” day list popup.
@@ -13,6 +14,8 @@ export default function DayEventsPopup({
   day,
   shoots = [],
   user,
+  isAdmin = false,
+  allUsers = [],
   rigSettings = [],
   onClose,
   onToggleAssign,
@@ -70,8 +73,10 @@ export default function DayEventsPopup({
                 const isPending = shoot.pending_operators?.includes(user?.email);
                 const isPast = (shoot.date || dateStr) < todayStr;
                 const shouldGrey = isPast || isCompleted || isCancelled;
-                const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email;
+                const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
                 const showMinus = isAssigned || isPending;
+                const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
+                  && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
 
                 return (
@@ -81,7 +86,7 @@ export default function DayEventsPopup({
                         isAssigned ? 'bg-slate-800/40' : ''
                       } ${shouldGrey ? 'opacity-55' : ''} ${
                         isCancelled ? 'ring-1 ring-inset ring-red-600/40 bg-red-950/20' : ''
-                      }`}
+                      } ${claimedByOther && !shouldGrey ? 'opacity-70' : ''}`}
                     >
                       <button
                         type="button"
@@ -114,10 +119,20 @@ export default function DayEventsPopup({
                         className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-80 transition-colors disabled:opacity-30 ${
                           showMinus
                             ? 'text-red-300 hover:bg-red-950/50'
-                            : 'text-emerald-300 hover:bg-emerald-950/40'
+                            : claimedByOther
+                              ? 'text-slate-500'
+                              : 'text-emerald-300 hover:bg-emerald-950/40'
                         }`}
-                        title={showMinus ? 'Unassign yourself' : 'Assign yourself'}
-                        aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
+                        title={
+                          showMinus
+                            ? (isPending ? 'Cancel pending' : 'Unassign yourself')
+                            : claimedByOther
+                              ? ((shoot.pending_operators || []).length > 0
+                                ? 'Pending approval — unavailable'
+                                : 'Taken by another operator')
+                              : 'Assign yourself'
+                        }
+                        aria-label={showMinus ? 'Unassign yourself' : claimedByOther ? 'Unavailable' : 'Assign yourself'}
                       >
                         {showMinus ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                       </button>

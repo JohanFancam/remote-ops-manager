@@ -10,7 +10,7 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '../../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator } from '../../utils/assignmentApproval';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -134,14 +134,9 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   // End time = game time + 5 hours
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
 
-  // Check if shoot already has a non-admin operator assigned (one user per shoot rule)
-  // Only consider it "full" if there's a *different* non-admin already assigned
-  const nonAdminAssigned = (shoot.assigned_operators || []).filter(e => {
-    if (e === user?.email) return false; // don't count ourselves
-    const u = allUsers.find(u2 => u2.email === e);
-    return !u || u.role !== 'admin';
-  });
-  const shootFull = !isAdmin && nonAdminAssigned.length > 0 && !isApproved;
+  // One remote claim per shoot: assigned OR pending by someone else blocks self-assign
+  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const shootFull = !isAdmin && claimedByOther && !isApproved && !isPending;
 
   const preCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
   const withinLimit = preCount < AUTO_APPROVE_LIMIT;
@@ -180,6 +175,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         pending_operators: removeEmail(shoot.pending_operators, email),
       });
       await createShootTimeEntry(shoot, email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
+    } else if (claimedByOther) {
+      return;
     } else {
       if (withinLimit && !hasEmail(shoot.assigned_operators, email)) {
         // Approved
@@ -445,18 +442,23 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
           <Button
             size="sm"
             onClick={handleSelfAssign}
+            disabled={shootFull}
             className={
               isApproved ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 w-full'
               : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20 w-full'
+              : shootFull ? 'border border-slate-700 text-slate-500 bg-slate-800/50 w-full cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-500 text-white w-full'
             }
           >
-            {isApproved ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Slot Taken' : '+ Assign Myself'}
+            {isApproved ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Unavailable' : '+ Assign Myself'}
           </Button>
           {!isAdmin && !isApproved && !isPending && (
             <p className="text-xs text-center mt-1 text-slate-500">
-              {shootFull ? 'This shoot is already assigned to another operator' :
-               remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
+              {shootFull
+                ? ((shoot.pending_operators || []).length > 0
+                  ? 'Pending approval — wait until it becomes available'
+                  : 'Taken by another operator')
+                : remainingAutoApprove > 0 ? `${remainingAutoApprove} auto-approvals remaining` : 'Requires admin approval'}
             </p>
           )}
         </div>

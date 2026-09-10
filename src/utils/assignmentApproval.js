@@ -76,6 +76,38 @@ export function isShootAvailableForAutoAssign(shoot) {
 }
 
 /**
+ * True when another remote operator already claimed this shoot
+ * (assigned or pending). Admin assignees do not count as a claim.
+ * `currentEmail` is excluded so the claiming operator can still cancel/unassign.
+ */
+export function isClaimedByOtherOperator(shoot, currentEmail, allUsers = []) {
+  if (!shoot) return false;
+  const me = normalizeEmail(currentEmail);
+
+  const isRemoteClaimEmail = (email) => {
+    const e = normalizeEmail(email);
+    if (!e || (me && e === me)) return false;
+    const u = (allUsers || []).find((x) => normalizeEmail(x.email) === e);
+    // Missing user record → treat as a remote claim (safer lock)
+    if (!u) return true;
+    return u.role !== 'admin';
+  };
+
+  const takenAssigned = (shoot.assigned_operators || []).some(isRemoteClaimEmail);
+  const takenPending = (shoot.pending_operators || []).some((email) => {
+    const e = normalizeEmail(email);
+    return !!e && (!me || e !== me);
+  });
+
+  return takenAssigned || takenPending;
+}
+
+/** Remote operators may self-assign only when the shoot is not claimed by someone else. */
+export function canRemoteSelfAssignToShoot(shoot, currentEmail, allUsers = []) {
+  return !isClaimedByOtherOperator(shoot, currentEmail, allUsers);
+}
+
+/**
  * Find the paired shoot for auto-assign pairing logic.
  * Returns the closest fully-available paired shoot within the time window, or null.
  * A shoot is only returned if it has NO assigned and NO pending operators (by anyone).

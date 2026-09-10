@@ -17,7 +17,7 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields } from '../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
@@ -238,13 +238,9 @@ function ShootCalendarEntry({
     await onRigCheckCancel?.(shoot);
   };
 
-  // For remote users: grey out shoots that already have another non-admin operator assigned
-  const takenByOther = !isAdmin && !isStandby && !isAssigned && !isPending &&
-    (shoot.assigned_operators || []).some(email => {
-      if (email === user?.email) return false;
-      const u = allUsers.find(u2 => u2.email === email);
-      return !u || u.role !== 'admin';
-    });
+  // Remotes cannot self-assign when another remote already claimed (assigned or pending)
+  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const takenByOther = !isAdmin && !isAssigned && !isPending && claimedByOther;
 
   const dotColor = isCancelled
     ? 'bg-red-600'
@@ -345,6 +341,9 @@ function ShootCalendarEntry({
           auto_assigned_for: addEmail(partner.auto_assigned_for, email),
         });
       }
+    } else if (claimedByOther) {
+      // Another remote already claimed — remotes cannot overwrite
+      return;
     } else {
       // Remote user self-assign
       const preCount = getPreApproved(email);
@@ -393,8 +392,8 @@ function ShootCalendarEntry({
   };
 
   const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
-  const canQuickAssign = !isPast && !!user?.email;
   const showMinus = isAssigned || isPending;
+  const canQuickAssign = !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
 
   const quickAssignButton = (
     <button
@@ -408,10 +407,14 @@ function ShootCalendarEntry({
           ? compact
             ? 'text-red-300 hover:bg-red-950/50'
             : 'border-red-500/40 bg-red-950/40 text-red-300 hover:bg-red-950/70'
-          : compact
-            ? 'text-emerald-300 hover:bg-emerald-950/40'
-            : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
-      } ${compact && showMinus ? 'opacity-100' : ''}`}
+          : takenByOther
+            ? compact
+              ? 'text-slate-500'
+              : 'border-slate-700 bg-slate-800/60 text-slate-500'
+            : compact
+              ? 'text-emerald-300 hover:bg-emerald-950/40'
+              : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
+      } ${compact && showMinus ? 'opacity-100' : ''} ${compact && takenByOther ? 'opacity-60' : ''}`}
       title={
         isPast
           ? 'Past shoot'
@@ -419,7 +422,11 @@ function ShootCalendarEntry({
             ? isPending
               ? 'Cancel pending'
               : 'Unassign yourself'
-            : 'Assign yourself'
+            : takenByOther
+              ? hasPending
+                ? 'Pending approval — unavailable'
+                : 'Taken by another operator'
+              : 'Assign yourself'
       }
       aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
     >
@@ -1267,6 +1274,9 @@ export default function Calendar() {
           auto_assigned_for: addEmail(partner.auto_assigned_for, email),
         });
       }
+    } else if (isClaimedByOtherOperator(shoot, email, allUsers)) {
+      // Another remote already claimed — remotes cannot overwrite
+      return;
     } else {
       // Remote user
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
@@ -1783,6 +1793,8 @@ export default function Calendar() {
         day={dayPopup}
         shoots={dayPopup ? getShootsForDay(dayPopup) : []}
         user={user}
+        isAdmin={isAdmin}
+        allUsers={allUsers}
         rigSettings={rigSettings}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
@@ -1819,6 +1831,7 @@ export default function Calendar() {
           isAdmin={isAdmin}
           isStandby={isStandby}
           userEmail={user?.email}
+          allUsers={allUsers}
           onEdit={(shoot) => { startEdit(shoot); setContextMenu(null); }}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}

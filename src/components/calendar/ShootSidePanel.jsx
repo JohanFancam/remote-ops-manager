@@ -3,7 +3,7 @@ import { Edit2, Copy, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
 
@@ -69,6 +69,7 @@ export default function ShootSidePanel({
   const isPast = shoot.date < todayStr;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
 
   // Auto-assign config
   const autoAssignTeams = (() => {
@@ -126,6 +127,8 @@ export default function ShootSidePanel({
         assigned_operators: addEmail(shoot.assigned_operators, email),
         pending_operators: removeEmail(shoot.pending_operators, email),
       });
+    } else if (claimedByOther) {
+      return;
     } else if (withinLimit) {
       // Remote approved
       await onUpdate(shoot.id, {
@@ -341,22 +344,28 @@ export default function ShootSidePanel({
               <Button
                 size="sm"
                 onClick={handleSelfAssign}
-                disabled={false}
+                disabled={claimedByOther && !isAssigned && !isPending}
                 className={`text-xs h-8 w-full ${
                   isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
                   : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20'
+                  : claimedByOther ? 'border border-slate-700 text-slate-500 bg-slate-800/50 cursor-not-allowed'
                   : withinLimit ? 'bg-blue-600 hover:bg-blue-500 text-white'
                   : 'bg-amber-950/40 hover:bg-yellow-600/30 border border-yellow-600/50 text-amber-400'
                 }`}
               >
                 {isAssigned ? 'Unassign Myself'
                   : isPending ? 'Pending — Cancel'
+                  : claimedByOther ? 'Unavailable'
                   : withinLimit ? '+ Assign Myself'
                   : '+ Request Approval'}
               </Button>
               {!isAssigned && !isPending && (
                 <p className="text-[11px] text-center text-slate-500">
-                  {withinLimit
+                  {claimedByOther
+                    ? ((shoot.pending_operators || []).length > 0
+                      ? 'Pending approval — wait until it becomes available'
+                      : 'Taken by another operator')
+                    : withinLimit
                     ? `${remaining} auto-approval${remaining === 1 ? '' : 's'} remaining`
                     : 'Requires admin approval'}
                 </p>

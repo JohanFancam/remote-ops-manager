@@ -4,6 +4,7 @@ import { X, Plus, Minus, Settings2, MapPin, Users, Clock, Check } from 'lucide-r
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 function findMatchingRig(shoot, rigSettings = []) {
   if (!shoot) return null;
@@ -76,8 +77,10 @@ export default function ShootQuickView({
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const pendingEmails = shoot.pending_operators || [];
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
   const showMinus = isAssigned || isPending;
-  const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email;
+  const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
+    && (showMinus || isAdmin || !claimedByOther);
   const rigLabel = getShootRigLabel(shoot, rigSettings);
   const isFancam = /fancam/i.test(rigLabel);
   const dateLabel = shoot.date
@@ -222,11 +225,22 @@ export default function ShootQuickView({
             className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               showMinus
                 ? 'border-red-500/40 bg-red-950/35 text-red-300 hover:bg-red-950/55'
-                : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
+                : claimedByOther
+                  ? 'border-slate-700 bg-slate-800/60 text-slate-500'
+                  : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
             }`}
+            title={
+              claimedByOther && !showMinus
+                ? (pendingEmails.length > 0 ? 'Pending approval — unavailable' : 'Taken by another operator')
+                : undefined
+            }
           >
             {showMinus ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showMinus ? (isPending ? 'Cancel pending' : 'Unassign me') : 'Assign me'}
+            {showMinus
+              ? (isPending ? 'Cancel pending' : 'Unassign me')
+              : claimedByOther
+                ? 'Unavailable'
+                : 'Assign me'}
           </button>
 
           {isAdmin && (
