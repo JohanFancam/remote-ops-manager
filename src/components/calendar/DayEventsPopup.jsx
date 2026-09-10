@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, Minus, X } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
 
 /**
  * Google Calendar–style “N more” day list popup.
@@ -61,10 +62,15 @@ export default function DayEventsPopup({
           ) : (
             <ul className="space-y-0.5">
               {shoots.map((shoot) => {
+                const status = normalizeShootStatus(shoot.status);
+                const isCancelled = status === 'cancelled';
+                const isCompleted = status === 'completed';
+                const isPostponed = status === 'postponed';
                 const isAssigned = shoot.assigned_operators?.includes(user?.email);
                 const isPending = shoot.pending_operators?.includes(user?.email);
                 const isPast = (shoot.date || dateStr) < todayStr;
-                const canToggle = !isPast && !!user?.email;
+                const shouldGrey = isPast || isCompleted || isCancelled;
+                const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email;
                 const showMinus = isAssigned || isPending;
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
 
@@ -73,6 +79,8 @@ export default function DayEventsPopup({
                     <div
                       className={`group flex items-center gap-1 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-slate-800/80 ${
                         isAssigned ? 'bg-slate-800/40' : ''
+                      } ${shouldGrey ? 'opacity-55' : ''} ${
+                        isCancelled ? 'ring-1 ring-inset ring-red-600/40 bg-red-950/20' : ''
                       }`}
                     >
                       <button
@@ -86,6 +94,14 @@ export default function DayEventsPopup({
                             <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
                           ) : null}
                           {shortenTitle(shoot.title) || 'Untitled'}
+                          {(isCancelled || isPostponed || isCompleted) && (
+                            <span className={`ml-1.5 text-[11px] font-medium ${
+                              isCancelled ? 'text-red-400' :
+                              isPostponed ? 'text-amber-300' : 'text-slate-400'
+                            }`}>
+                              · {formatStatusLabel(status)}
+                            </span>
+                          )}
                         </span>
                       </button>
                       <button

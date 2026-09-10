@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, Wifi, RefreshCw, DollarSign, Receipt,
+  Wrench, LogOut, Wifi, RefreshCw, DollarSign, Receipt, TrendingUp,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
@@ -69,6 +69,7 @@ function LayoutContent({ children, currentPageName }) {
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
