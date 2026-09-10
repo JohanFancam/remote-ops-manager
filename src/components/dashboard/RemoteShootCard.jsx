@@ -250,7 +250,9 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
             )}
 
             {/* Complete button */}
-            {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+            {normalizeShootStatus(shoot.status) !== 'completed'
+              && normalizeShootStatus(shoot.status) !== 'cancelled'
+              && normalizeShootStatus(shoot.status) !== 'postponed' && (
               <button
                 onClick={() => setShowCompleteModal(true)}
                 className="w-full py-2 rounded-lg border border-green-700 bg-emerald-950/40 text-emerald-400 text-xs font-semibold hover:bg-emerald-950/40 transition-colors"
@@ -258,7 +260,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                 ✓ Mark Shoot Complete
               </button>
             )}
-            {shoot.status === 'completed' && (
+            {normalizeShootStatus(shoot.status) === 'completed' && (
               <div className="w-full py-2 rounded-lg border border-green-800 bg-emerald-950/40 text-green-500 text-xs font-semibold text-center">
                 ✓ Shoot Complete
               </div>

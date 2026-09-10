@@ -147,15 +147,19 @@ export default function CountdownCard({
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
 
+  const status = normalizeShootStatus(shoot.status);
+  const isStatusCompleted = status === 'completed';
+  const isStatusCancelled = status === 'cancelled';
+  const isStatusPostponed = status === 'postponed';
+  const isTerminalStatus = isStatusCompleted || isStatusCancelled || isStatusPostponed;
+
   const canOpenShootComplete =
-    canMarkPhases &&
-    shoot.status !== 'completed' &&
-    shoot.status !== 'cancelled';
+    canMarkPhases && !isTerminalStatus;
 
   const effectivePhaseStatus = localPhaseStatus || shoot.phase_status || {};
 
   useEffect(() => {
-    if (!onUpdate || !canMarkPhases || !shoot.date || shoot.status === 'completed') return;
+    if (!onUpdate || !canMarkPhases || !shoot.date || isTerminalStatus) return;
 
     const GRACE_MS = 5 * 60 * 1000;
     const candidates = [
@@ -404,15 +408,17 @@ export default function CountdownCard({
 
       <div
         className={`relative rounded-xl border transition-all ${
-          shoot.status === 'completed'
+          isStatusCompleted || isStatusCancelled
             ? 'border-slate-800 bg-slate-900 opacity-70'
-            : expanded
-              ? 'border-slate-800 bg-slate-900/95'
-              : 'border-slate-800 bg-slate-900/95'
+            : isStatusPostponed
+              ? 'border-amber-800/40 bg-slate-900/95 opacity-85'
+              : expanded
+                ? 'border-slate-800 bg-slate-900/95'
+                : 'border-slate-800 bg-slate-900/95'
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
-        {isAssigned && shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+        {isAssigned && !isTerminalStatus && (
           <button
             type="button"
             onClick={handleUnassignSelf}
@@ -474,8 +480,8 @@ export default function CountdownCard({
               {livePhase ? (
                 <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
               ) : (
-                <Badge className={`text-xs border ${statusColors[normalizeShootStatus(shoot.status)] || statusColors.upcoming}`}>
-                  {formatStatusLabel(shoot.status)}
+                <Badge className={`text-xs border ${statusColors[status] || statusColors.upcoming}`}>
+                  {formatStatusLabel(status)}
                 </Badge>
               )}
 
@@ -495,12 +501,12 @@ export default function CountdownCard({
                 label={phase.label}
                 time={phase.time}
                 done={!!effectivePhaseStatus[phase.doneKey]}
-                canClick={canMarkPhases && shoot.status !== 'completed'}
+                canClick={canMarkPhases && !isTerminalStatus}
                 onClick={() => handlePhaseToggle(phase.doneKey)}
               />
             ))}
 
-            {shoot.status !== 'completed' && shoot.status !== 'cancelled' && (
+            {!isTerminalStatus && (
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
                 disabled={!canOpenShootComplete}
@@ -514,7 +520,7 @@ export default function CountdownCard({
               </button>
             )}
 
-            {shoot.status === 'completed' && (
+            {isStatusCompleted && (
               <div className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2.5 text-xs font-medium text-slate-400">
                 ✓ Shoot Complete
               </div>

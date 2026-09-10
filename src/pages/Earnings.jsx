@@ -175,6 +175,11 @@ export default function Earnings() {
                       <div className="text-right">
                         {item.isCancelled ? (
                           <p className="text-sm font-semibold text-red-400">Cancelled</p>
+                        ) : item.isPostponed ? (
+                          <>
+                            <p className="text-sm font-bold text-emerald-400">{formatZAR(item.amount, { withSpace: false })}</p>
+                            <p className="text-xs text-amber-300">Postponed</p>
+                          </>
                         ) : (
                           <p className="text-sm font-bold text-emerald-400">{formatZAR(item.amount, { withSpace: false })}</p>
                         )}
