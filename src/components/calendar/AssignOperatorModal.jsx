@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
-import { X, UserMinus } from 'lucide-react';
+import { X, UserMinus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com', 'mattswartuk@gmail.com'];
 
-export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = [], onConfirm, onUnassign, onClose }) {
+export default function AssignOperatorModal({
+  shoot,
+  allUsers,
+  pendingUsers = [],
+  onConfirm,
+  onUnassign,
+  onApprove,
+  onDecline,
+  onClose,
+}) {
   const userMap = new Map((allUsers || []).map(u => [u.email?.toLowerCase(), u]));
+  const [busyKey, setBusyKey] = useState(null);
 
   // Only remote operators (role === 'user'), not admins/standby
   const assignableUsers = (pendingUsers.length > 0 ? pendingUsers : allUsers)
@@ -44,6 +54,15 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
     });
 
   const [selectedEmail, setSelectedEmail] = useState('');
+
+  const runAction = async (key, fn) => {
+    setBusyKey(key);
+    try {
+      await fn();
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
@@ -85,18 +104,36 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
             <div>
               <p className="text-xs text-amber-400 font-medium mb-2">Pending Approval</p>
               <div className="space-y-1">
-                {pendingRemoteUsers.map(u => (
-                  <div key={u.email} className="flex items-center justify-between bg-amber-950/40 border border-amber-800 rounded-lg px-3 py-2">
-                    <span className="text-sm text-yellow-200">{u.full_name}</span>
-                    <button
-                      onClick={() => { onUnassign?.(u.email, 'pending'); }}
-                      className="text-red-400 hover:text-red-400 transition-colors"
-                      title="Remove pending"
-                    >
-                      <UserMinus className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                {pendingRemoteUsers.map(u => {
+                  const approveKey = `approve_${u.email}`;
+                  const declineKey = `decline_${u.email}`;
+                  return (
+                    <div key={u.email} className="flex items-center justify-between gap-2 bg-amber-950/40 border border-amber-800 rounded-lg px-3 py-2">
+                      <span className="text-sm text-yellow-200 min-w-0 truncate">{u.full_name}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          size="sm"
+                          disabled={busyKey === approveKey}
+                          onClick={() => runAction(approveKey, () => onApprove?.(u.email))}
+                          className="h-7 text-xs bg-green-700 hover:bg-green-600 gap-1 px-2"
+                        >
+                          <Check className="h-3 w-3" />
+                          {busyKey === approveKey ? '…' : 'Approve'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busyKey === declineKey}
+                          onClick={() => runAction(declineKey, () => onDecline?.(u.email))}
+                          className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 gap-1 px-2"
+                        >
+                          <X className="h-3 w-3" />
+                          {busyKey === declineKey ? '…' : 'Decline'}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

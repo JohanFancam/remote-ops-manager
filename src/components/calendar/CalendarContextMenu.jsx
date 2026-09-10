@@ -31,7 +31,14 @@ export default function CalendarContextMenu({
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100', divider: true },
       { label: 'Duplicate Shoot', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-slate-100' },
-      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400' },
+      {
+        label: (shoot?.pending_operators || []).length > 0
+          ? `Review Pending (${shoot.pending_operators.length})`
+          : 'Assign Operators',
+        icon: UserPlus,
+        action: () => { onAssignOperators(shoot); onClose(); },
+        color: 'text-purple-400',
+      },
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
     ] : []),
 

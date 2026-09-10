@@ -1,10 +1,11 @@
 import React from 'react';
-import { Edit2, Copy, Trash2 } from 'lucide-react';
+import { Edit2, Copy, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { getDisplayName } from '@/components/utils/nameUtils';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -54,6 +55,8 @@ export default function ShootSidePanel({
   allShoots = [],
   appSettings = [],
   onUpdate,
+  onApprovePending,
+  onDeclinePending,
   onEdit,
   onDuplicate,
   onDelete,
@@ -397,11 +400,34 @@ export default function ShootSidePanel({
             {(shoot.pending_operators || []).length > 0 && (
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Pending Approval</p>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {shoot.pending_operators.map((email) => {
-                    const user = allUsers.find(u => u.email === email);
-                    const displayName = user?.full_name || email;
-                    return <p key={email} className="text-amber-400">{displayName} (pending)</p>;
+                    const displayName = getDisplayName(allUsers.find(u => u.email === email), email);
+                    return (
+                      <div key={email} className="flex items-center justify-between gap-2 rounded-lg border border-amber-800/40 bg-amber-950/25 px-2.5 py-2">
+                        <p className="text-sm text-amber-300 min-w-0 truncate">{displayName}</p>
+                        {isAdmin && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs bg-green-700 hover:bg-green-600 gap-1 px-2"
+                              onClick={() => onApprovePending?.(shoot, email)}
+                            >
+                              <Check className="h-3 w-3" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 gap-1 px-2"
+                              onClick={() => onDeclinePending?.(shoot, email)}
+                            >
+                              <X className="h-3 w-3" /> Decline
+                            </Button>
+                          </div>
+                        )}
+                        {!isAdmin && <span className="text-xs text-amber-500/80 shrink-0">pending</span>}
+                      </div>
+                    );
                   })}
                 </div>
               </div>

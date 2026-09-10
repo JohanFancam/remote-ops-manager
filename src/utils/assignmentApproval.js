@@ -219,3 +219,23 @@ export function findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, wi
 
   return candidates[0];
 }
+
+/**
+ * Build field updates to approve a pending operator onto a shoot.
+ */
+export function approvePendingFields(shoot, email) {
+  return {
+    assigned_operators: addEmail(shoot.assigned_operators, email),
+    pending_operators: removeEmail(shoot.pending_operators, email),
+  };
+}
+
+/**
+ * Build field updates to decline/remove a pending operator.
+ */
+export function declinePendingFields(shoot, email) {
+  return {
+    pending_operators: removeEmail(shoot.pending_operators, email),
+    auto_assigned_for: removeEmail(shoot.auto_assigned_for, email),
+  };
+}

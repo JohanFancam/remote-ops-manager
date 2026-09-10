@@ -17,7 +17,7 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
@@ -169,6 +169,8 @@ function ShootCalendarEntry({
   onContextMenu,
   onOpenSettings,
   onQuickView,
+  onApprovePending,
+  onDeclinePending,
   getStandbyCoverageForShoot,
   operatorAvailabilityForDay = [],
   rigCheckMessageCopied = false,
@@ -509,6 +511,37 @@ function ShootCalendarEntry({
                 {assignmentLabel}
                 {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
               </p>
+              {isAdmin && hasPending && (
+                <div className="mt-1.5 space-y-1" onClick={(e) => e.stopPropagation()}>
+                  {(shoot.pending_operators || []).map((email) => {
+                    const pendingUser = allUsers.find((u) => u.email === email);
+                    const name = getDisplayName(pendingUser, email);
+                    return (
+                      <div key={email} className="flex items-center justify-between gap-2 rounded-md border border-amber-800/40 bg-amber-950/25 px-2 py-1">
+                        <span className="min-w-0 truncate text-[11px] text-amber-200">{name}</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onApprovePending?.(shoot, email)}
+                            className="inline-flex h-6 items-center gap-0.5 rounded border border-emerald-700/50 bg-emerald-950/40 px-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-900/50"
+                            title={`Approve ${name}`}
+                          >
+                            <Check className="h-3 w-3" /> Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeclinePending?.(shoot, email)}
+                            className="inline-flex h-6 items-center gap-0.5 rounded border border-red-700/40 bg-red-950/30 px-1.5 text-[10px] font-medium text-red-300 hover:bg-red-950/50"
+                            title={`Decline ${name}`}
+                          >
+                            <X className="h-3 w-3" /> Decline
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {isAdmin && unavailableNames.length > 0 && (
                 <p className="text-[11px] text-red-400 break-words whitespace-normal mt-0.5">
                   Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
@@ -1140,6 +1173,52 @@ export default function Calendar() {
     setAssignOperatorsModal(updated);
   };
 
+  const getAutoPairConfig = () => {
+    const teamsRaw = appSettings.find(s => s.key === 'auto_assign_teams')?.value;
+    const windowRaw = appSettings.find(s => s.key === 'auto_assign_window_hours')?.value;
+    return {
+      teams: teamsRaw ? JSON.parse(teamsRaw) : ['Reds', 'Red Sox', 'Rangers'],
+      windowMinutes: (windowRaw ? Number(windowRaw) : 2) * 60,
+    };
+  };
+
+  const syncShootViews = (shootId, patch) => {
+    setSelectedShoot((prev) => (prev && prev.id === shootId ? { ...prev, ...patch } : prev));
+    setQuickViewShoot((prev) => (prev && prev.id === shootId ? { ...prev, ...patch } : prev));
+    setAssignOperatorsModal((prev) => (prev && prev.id === shootId ? { ...prev, ...patch } : prev));
+  };
+
+  /** Admin: approve a pending operator from calendar surfaces. */
+  const handleApprovePending = async (shoot, email) => {
+    if (!shoot?.id || !email || !hasEmail(shoot.pending_operators, email)) return;
+    const patch = approvePendingFields(shoot, email);
+    await handleShootUpdate(shoot.id, patch);
+    syncShootViews(shoot.id, patch);
+
+    const { teams, windowMinutes } = getAutoPairConfig();
+    const partner = findPairedShootForUnassign(shoot, shoots, teams, windowMinutes, email)
+      || findPairedShoot(shoot, shoots, teams, windowMinutes, email);
+    if (partner && hasEmail(partner.pending_operators, email)) {
+      const partnerPatch = approvePendingFields(partner, email);
+      await handleShootUpdate(partner.id, partnerPatch);
+    }
+  };
+
+  /** Admin: decline a pending operator from calendar surfaces. */
+  const handleDeclinePending = async (shoot, email) => {
+    if (!shoot?.id || !email || !hasEmail(shoot.pending_operators, email)) return;
+    const patch = declinePendingFields(shoot, email);
+    await handleShootUpdate(shoot.id, patch);
+    syncShootViews(shoot.id, patch);
+
+    const { teams, windowMinutes } = getAutoPairConfig();
+    const partner = findPairedShootForUnassign(shoot, shoots, teams, windowMinutes, email);
+    if (partner && hasEmail(partner.pending_operators, email)) {
+      const partnerPatch = declinePendingFields(partner, email);
+      await handleShootUpdate(partner.id, partnerPatch);
+    }
+  };
+
   // Context menu self-assign — same business rules as card self-assign
   const handleContextMenuAssignSelf = async (shoot) => {
     if (!user?.email) return;
@@ -1329,6 +1408,8 @@ export default function Calendar() {
         setDayPopup(null);
         setQuickViewShoot(null);
       }}
+      onApprovePending={handleApprovePending}
+      onDeclinePending={handleDeclinePending}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       operatorAvailabilityForDay={getUnavailableForDay(day)}
       rigCheckMessageCopied={rigCheckCopied}
@@ -1722,6 +1803,8 @@ export default function Calendar() {
           onToggleAssign={async (shoot) => {
             await handleContextMenuAssignSelf(shoot);
           }}
+          onApprovePending={handleApprovePending}
+          onDeclinePending={handleDeclinePending}
           onOpenSettings={(shoot) => {
             setSelectedShoot(shoot);
             setSelectedDate(new Date(shoot.date + 'T12:00:00'));
@@ -1747,9 +1830,9 @@ export default function Calendar() {
         />
       )}
 
-      {selectedShoot && (
+      {liveSelectedShoot && (
         <ShootSidePanel
-          shoot={selectedShoot}
+          shoot={liveSelectedShoot}
           user={user}
           isAdmin={isAdmin}
           isStandby={isStandby}
@@ -1758,6 +1841,8 @@ export default function Calendar() {
           allShoots={shoots}
           appSettings={appSettings}
           onUpdate={handleShootUpdate}
+          onApprovePending={handleApprovePending}
+          onDeclinePending={handleDeclinePending}
           onEdit={startEdit}
           onDuplicate={duplicateShoot}
           onDelete={handleDeleteShoot}
@@ -1792,6 +1877,8 @@ export default function Calendar() {
           pendingUsers={pendingUsers}
           onConfirm={handleConfirmAssignOperator}
           onUnassign={handleUnassignOperator}
+          onApprove={(email) => handleApprovePending(assignOperatorsModal, email)}
+          onDecline={(email) => handleDeclinePending(assignOperatorsModal, email)}
           onClose={() => setAssignOperatorsModal(null)}
         />
       )}

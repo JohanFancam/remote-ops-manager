@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { X, Plus, Minus, Settings2, MapPin, Users, Clock } from 'lucide-react';
+import { X, Plus, Minus, Settings2, MapPin, Users, Clock, Check } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
@@ -61,6 +61,8 @@ export default function ShootQuickView({
   rigSettings = [],
   onClose,
   onToggleAssign,
+  onApprovePending,
+  onDeclinePending,
   onOpenSettings,
 }) {
   if (!shoot) return null;
@@ -73,6 +75,7 @@ export default function ShootQuickView({
   const shouldGrey = isPast || isCompleted || isCancelled;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
+  const pendingEmails = shoot.pending_operators || [];
   const showMinus = isAssigned || isPending;
   const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email;
   const rigLabel = getShootRigLabel(shoot, rigSettings);
@@ -179,6 +182,36 @@ export default function ShootQuickView({
                   : 'Unassigned'}
             </span>
           </div>
+
+          {isAdmin && pendingEmails.length > 0 && (
+            <div className="rounded-lg border border-amber-800/40 bg-amber-950/25 px-3 py-2 space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-amber-400">Pending approval</p>
+              {pendingEmails.map((email) => {
+                const name = getDisplayName(allUsers.find((u) => u.email === email), email);
+                return (
+                  <div key={email} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-sm text-amber-100">{name}</span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onApprovePending?.(shoot, email)}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-700/50 bg-emerald-950/40 px-2 text-xs font-medium text-emerald-300 hover:bg-emerald-900/50"
+                      >
+                        <Check className="h-3 w-3" /> Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeclinePending?.(shoot, email)}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-red-700/40 bg-red-950/30 px-2 text-xs font-medium text-red-300 hover:bg-red-950/50"
+                      >
+                        <X className="h-3 w-3" /> Decline
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 px-4 py-3">
