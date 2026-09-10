@@ -3,11 +3,13 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SHOOT_STATUSES, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
 
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 export const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
 
 export default function ShootFormPanel({ form, setForm, editingShoot, onSave, onClose }) {
+  const statusValue = normalizeShootStatus(form.status);
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
@@ -30,13 +32,13 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
               <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100" />
               <input type="time" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-slate-800 border border-slate-800 text-slate-100 rounded-md px-3 py-2 h-9 text-sm w-full" />
             </div>
-            <Select value={form.status || 'upcoming'} onValueChange={(v) => setForm({ ...form, status: v })}>
+            <Select value={statusValue} onValueChange={(v) => setForm({ ...form, status: v })}>
               <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-slate-800">
-                {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
-                  <SelectItem key={s} value={s} className="text-slate-100 capitalize">{s.replace('_', ' ')}</SelectItem>
+                {SHOOT_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s} className="text-slate-100">{formatStatusLabel(s)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

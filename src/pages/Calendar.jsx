@@ -23,15 +23,20 @@ import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
+import {
+  SHOOT_STATUSES,
+  SHOOT_STATUS_DOTS,
+  formatStatusLabel,
+  normalizeShootStatus,
+} from '../utils/shootStatus';
 
 const MONTH_VISIBLE_SHOOTS = 3;
 
 const statusColors = {
   upcoming: 'bg-blue-600',
-  confirmed: 'bg-green-600',
-  in_progress: 'bg-yellow-600',
+  postponed: 'bg-amber-500',
   completed: 'bg-gray-600',
-  cancelled: 'bg-red-700',
+  cancelled: 'bg-red-600',
 };
 
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
@@ -170,11 +175,13 @@ function ShootCalendarEntry({
   rigCheckMessageShootIds = [],
   queryClient,
 }) {
-  // Grey out past shoots (by date) for admin and standby; for remote users grey out by date too
-  // Only completed-status shoots show as greyed for standby — same date logic as admin but completed = also greyed
+  // Grey out past, completed, and cancelled shoots
+  const status = normalizeShootStatus(shoot.status);
   const isPast = shoot.date < todayStr;
-  const isCompleted = shoot.status === 'completed';
-  const shouldGrey = isPast || isCompleted;
+  const isCompleted = status === 'completed';
+  const isCancelled = status === 'cancelled';
+  const isPostponed = status === 'postponed';
+  const shouldGrey = isPast || isCompleted || isCancelled;
 
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
@@ -237,11 +244,15 @@ function ShootCalendarEntry({
       return !u || u.role !== 'admin';
     });
 
-  const dotColor = shouldGrey
-    ? 'bg-gray-600'
-    : fancam
-      ? 'bg-orange-500'
-      : statusColors[shoot.status] || 'bg-blue-600';
+  const dotColor = isCancelled
+    ? 'bg-red-600'
+    : isPostponed
+      ? 'bg-amber-500'
+      : shouldGrey
+        ? 'bg-gray-600'
+        : fancam
+          ? 'bg-orange-500'
+          : (SHOOT_STATUS_DOTS[status] || statusColors[status] || 'bg-blue-600');
 
   const assignedNames = (shoot.assigned_operators || [])
     .map(email => {
@@ -438,7 +449,9 @@ function ShootCalendarEntry({
         }}
         className={`group w-full text-left rounded px-0.5 py-px transition-colors hover:bg-slate-800/90 ${
           shouldGrey ? 'opacity-50' : takenByOther ? 'opacity-40' : ''
-        } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''}`}
+        } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''} ${
+          isCancelled ? 'ring-1 ring-red-600/50 bg-red-950/20' : ''
+        }`}
       >
         <div className="flex items-center gap-1 min-w-0">
           <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -472,7 +485,11 @@ function ShootCalendarEntry({
         if (onQuickView) onQuickView(shoot);
         else onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors px-3 py-2.5 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')}`}
+      className={`w-full text-left rounded-lg border transition-colors px-3 py-2.5 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${
+        isCancelled
+          ? 'border-red-600/60 ring-1 ring-red-600/30'
+          : entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')
+      }`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -536,12 +553,12 @@ function ShootCalendarEntry({
                 )}
               </div>
               <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
-                shoot.status === 'confirmed' ? 'bg-green-500/15 text-emerald-400 border-green-500/25' :
-                shoot.status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
-                shoot.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
+                status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+                status === 'postponed' ? 'bg-amber-500/15 text-amber-300 border-amber-500/25' :
                 'bg-blue-600/15 text-blue-400 border-blue-500/25'
               }`}>
-                {(shoot.status || 'upcoming').replace('_', ' ')}
+                {formatStatusLabel(status)}
               </span>
             </div>
           </div>
@@ -976,6 +993,7 @@ export default function Calendar() {
     if (!form.title || !form.date) return;
     const payload = {
       ...form,
+      status: normalizeShootStatus(form.status),
       setup_offset: Number(form.setup_offset),
       pre_shoot_offset: Number(form.pre_shoot_offset),
       attention_offset: Number(form.attention_offset),
@@ -984,7 +1002,7 @@ export default function Calendar() {
       last_changed_by_name: user?.full_name || user?.email || '',
     };
 
-    // FIX: If a completed shoot is changed back to upcoming/confirmed/etc,
+    // FIX: If a completed shoot is changed back to upcoming/etc,
     // remove the completed phase marker so it appears in the upcoming banner again.
     if (editingShoot?.phase_status?.shoot_complete && payload.status !== 'completed') {
       const { shoot_complete, ...restPhaseStatus } = editingShoot.phase_status;
@@ -1011,7 +1029,10 @@ export default function Calendar() {
       last_changed_by_email: user?.email || '',
       last_changed_by_name: user?.full_name || user?.email || '',
     };
-    if (data.status && data.status !== 'completed') {
+    if (payload.status != null) {
+      payload.status = normalizeShootStatus(payload.status);
+    }
+    if (data.status && normalizeShootStatus(data.status) !== 'completed') {
       const existing = shoots.find(s => s.id === id);
       if (existing?.phase_status?.shoot_complete) {
         const { shoot_complete, ...restPhase } = existing.phase_status;
@@ -1601,6 +1622,8 @@ export default function Calendar() {
               {[
                 { label: 'Upcoming', color: 'bg-blue-600' },
                 { label: 'Completed', color: 'bg-gray-600' },
+                { label: 'Cancelled', color: 'bg-red-600' },
+                { label: 'Postponed', color: 'bg-amber-500' },
                 { label: 'My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },

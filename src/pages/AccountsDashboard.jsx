@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend } from 'recharts';
-import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+import { getAdditionalShootIds, DEFAULT_POSTPONED_RATE } from '../components/utils/earningsUtils';
+import { normalizeShootStatus, formatZAR } from '../utils/shootStatus';
 
 function exportCSV(rows, month) {
   const header = 'Operator,Email,Shoots,Amount (ZAR),Paid,Paid Date,Note\n';
@@ -113,6 +114,7 @@ export default function AccountsDashboard() {
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
@@ -152,10 +154,20 @@ export default function AccountsDashboard() {
   }, [pendingUsers, shoots, paymentRecords, users]);
 
   function calcFee(shoot, opRecords, autoAdditionalIds) {
+    const status = normalizeShootStatus(shoot.status);
+    if (status === 'cancelled') return 0;
+    if (status === 'postponed') return postponedRate;
     const rec = opRecords.find(r => r.shoot_id === shoot.id);
     if (rec?.override_fee != null) return rec.override_fee;
     const isAdd = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id);
     return isAdd ? additionalRate : baseRate;
+  }
+
+  function pairingPoolForDay(dayShots) {
+    return dayShots.filter(s => {
+      const st = normalizeShootStatus(s.status);
+      return st !== 'cancelled' && st !== 'postponed';
+    });
   }
 
   // Get or create the single month-level payment record for an operator
@@ -225,7 +237,8 @@ export default function AccountsDashboard() {
   };
 
   const monthSummaryRows = useMemo(() => {
-    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
+    // Include cancelled (R0) and postponed (R250) so they remain visible on accounts
+    const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth));
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
@@ -233,7 +246,7 @@ export default function AccountsDashboard() {
       const byDate = {};
       opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
       const autoAdditionalIds = new Set();
-      Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
+      Object.values(byDate).forEach(dayShots => getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach(id => autoAdditionalIds.add(id)));
 
       const total = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
 
@@ -245,7 +258,7 @@ export default function AccountsDashboard() {
 
       return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid, paidDate, note, inactive: !!op.inactive };
     }).filter(op => op.shoots > 0);
-  }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
+  }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate, postponedRate]);
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
   const paidCount = monthSummaryRows.filter(r => r.paid).length;
@@ -258,7 +271,7 @@ export default function AccountsDashboard() {
     });
     return months.map(monthDate => {
       const monthKey = format(monthDate, 'yyyy-MM');
-      const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey) && s.status !== 'cancelled');
+      const monthShoots = shoots.filter(s => s.date?.startsWith(monthKey));
       let total = 0;
       let paidTotal = 0;
       let activeOps = 0;
@@ -271,7 +284,7 @@ export default function AccountsDashboard() {
         const byDate = {};
         opShoots.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
         const autoAdditionalIds = new Set();
-        Object.values(byDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => autoAdditionalIds.add(id)));
+        Object.values(byDate).forEach(dayShots => getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach(id => autoAdditionalIds.add(id)));
         const opTotal = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
         total += opTotal;
         const monthRec = paymentRecords.find(r => r.operator_email === op.email && r.period_month === monthKey && !r.shoot_id);
@@ -349,14 +362,14 @@ export default function AccountsDashboard() {
                         // Export after state update (use setTimeout to let state settle)
                         setTimeout(() => {
                           // Recompute rows for this month
-                          const monthShoots = shoots.filter(s => s.date?.startsWith(m) && s.status !== 'cancelled');
+                          const monthShoots = shoots.filter(s => s.date?.startsWith(m));
                           const rows = remoteUsers.map(op => {
                             const opShoots = monthShoots.filter(s2 => s2.assigned_operators?.includes(op.email));
                             const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === m);
                             const byDate = {};
                             opShoots.forEach(s2 => { if (!byDate[s2.date]) byDate[s2.date] = []; byDate[s2.date].push(s2); });
                             const autoAdditionalIds = new Set();
-                            Object.values(byDate).forEach(ds => getAdditionalShootIds(ds).forEach(id => autoAdditionalIds.add(id)));
+                            Object.values(byDate).forEach(ds => getAdditionalShootIds(pairingPoolForDay(ds)).forEach(id => autoAdditionalIds.add(id)));
                             const total = opShoots.reduce((sum, sh) => sum + calcFee(sh, opRecords, autoAdditionalIds), 0);
                             return { email: op.email, name: op.full_name || op.email, shoots: opShoots.length, total, paid: false, paidDate: null, note: '' };
                           }).filter(op => op.shoots > 0);

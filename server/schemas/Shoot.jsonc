@@ -44,10 +44,9 @@
       "type": "string",
       "enum": [
         "upcoming",
-        "confirmed",
-        "in_progress",
-        "completed",
-        "cancelled"
+        "cancelled",
+        "postponed",
+        "completed"
       ],
       "default": "upcoming"
     },

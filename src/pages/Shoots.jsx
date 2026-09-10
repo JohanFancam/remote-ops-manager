@@ -9,15 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Camera, MapPin, Calendar, Clock, Users, Trash2, Edit2, X, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
+import {
+  SHOOT_STATUSES,
+  SHOOT_STATUS_COLORS,
+  formatStatusLabel,
+  normalizeShootStatus,
+  formatZAR,
+} from '../utils/shootStatus';
 
-const STATUSES = ['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'];
-const statusColors = {
-  upcoming: 'bg-blue-600/20 text-blue-400 border-blue-800',
-  confirmed: 'bg-green-500/20 text-emerald-400 border-green-500/30',
-  in_progress: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
-  completed: 'bg-gray-500/20 text-slate-400 border-gray-500/30',
-  cancelled: 'bg-red-950/400/20 text-red-400 border-red-800',
-};
+const STATUSES = SHOOT_STATUSES;
+const statusColors = SHOOT_STATUS_COLORS;
 
 const emptyForm = { title: '', client: '', location: '', date: '', start_time: '', end_time: '', status: 'upcoming', description: '', rate: '', rate_type: 'day_rate', notes: '' };
 
@@ -45,14 +46,22 @@ export default function Shoots() {
 
   const handleAdd = async () => {
     if (!form.title || !form.date) return;
-    await base44.entities.Shoot.create({ ...form, rate: parseFloat(form.rate) || 0 });
+    await base44.entities.Shoot.create({
+      ...form,
+      status: normalizeShootStatus(form.status),
+      rate: parseFloat(form.rate) || 0,
+    });
     setForm(emptyForm);
     setIsAdding(false);
     refresh();
   };
 
   const handleUpdate = async () => {
-    await base44.entities.Shoot.update(editingId, { ...form, rate: parseFloat(form.rate) || 0 });
+    await base44.entities.Shoot.update(editingId, {
+      ...form,
+      status: normalizeShootStatus(form.status),
+      rate: parseFloat(form.rate) || 0,
+    });
     setEditingId(null);
     setForm(emptyForm);
     refresh();
@@ -79,9 +88,13 @@ export default function Shoots() {
   };
 
   const today = new Date();
-  let filtered = statusFilter === 'all' ? shoots : shoots.filter(s => s.status === statusFilter);
+  let filtered = statusFilter === 'all'
+    ? shoots
+    : shoots.filter(s => normalizeShootStatus(s.status) === statusFilter);
   if (!isAdmin) {
-    filtered = filtered.filter(s => s.assigned_operators?.includes(user?.email) || s.status === 'upcoming');
+    filtered = filtered.filter(s =>
+      s.assigned_operators?.includes(user?.email) || normalizeShootStatus(s.status) === 'upcoming'
+    );
   }
 
   const grouped = filtered.reduce((acc, s) => {
@@ -102,7 +115,7 @@ export default function Shoots() {
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-slate-800">
                 <SelectItem value="all" className="text-slate-100">All Status</SelectItem>
-                {STATUSES.map(s => <SelectItem key={s} value={s} className="text-slate-100 capitalize">{s.replace('_', ' ')}</SelectItem>)}
+                {STATUSES.map(s => <SelectItem key={s} value={s} className="text-slate-100">{formatStatusLabel(s)}</SelectItem>)}
               </SelectContent>
             </Select>
             {isAdmin && (
@@ -167,7 +180,9 @@ export default function Shoots() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge className={`text-xs border ${statusColors[shoot.status]}`}>{shoot.status}</Badge>
+                              <Badge className={`text-xs border ${statusColors[normalizeShootStatus(shoot.status)]}`}>
+                                {formatStatusLabel(shoot.status)}
+                              </Badge>
                               {isAdmin && (
                                 <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                                   <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100 hover:bg-slate-800" onClick={() => startEdit(shoot)}>
@@ -187,7 +202,7 @@ export default function Shoots() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                               <div>
                                 <p className="text-xs text-slate-500 mb-0.5">Rate</p>
-                                <p className="text-sm text-slate-100">{shoot.rate ? `R ${shoot.rate} (${shoot.rate_type?.replace('_', ' ')})` : '—'}</p>
+                                <p className="text-sm text-slate-100">{shoot.rate ? `${formatZAR(shoot.rate)} (${shoot.rate_type?.replace('_', ' ')})` : '—'}</p>
                               </div>
                               <div>
                                 <p className="text-xs text-slate-500 mb-0.5">Operators</p>
@@ -262,11 +277,11 @@ function ShootForm({ form, setForm, rigs }) {
           <SelectItem value="fixed" className="text-slate-100">Fixed</SelectItem>
         </SelectContent>
       </Select>
-      <Select value={form.status} onValueChange={v => setForm({...form, status: v})}>
+      <Select value={normalizeShootStatus(form.status)} onValueChange={v => setForm({...form, status: v})}>
         <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100"><SelectValue /></SelectTrigger>
         <SelectContent className="bg-slate-900 border-slate-800">
-          {['upcoming','confirmed','in_progress','completed','cancelled'].map(s => (
-            <SelectItem key={s} value={s} className="text-slate-100 capitalize">{s.replace('_', ' ')}</SelectItem>
+          {STATUSES.map(s => (
+            <SelectItem key={s} value={s} className="text-slate-100">{formatStatusLabel(s)}</SelectItem>
           ))}
         </SelectContent>
       </Select>

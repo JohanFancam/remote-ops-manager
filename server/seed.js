@@ -75,7 +75,11 @@ function seedSettings() {
   ensure('tutorial_admin', 'false', 'Show admin tutorial');
   ensure('tutorial_remote', 'false', 'Show remote tutorial');
   ensure('timezone', 'Africa/Johannesburg', 'Display timezone');
-  ensure('day_rate', '850', 'Default day rate (currency units)');
+  ensure('currency', 'ZAR', 'Display currency (South African Rand)');
+  ensure('day_rate', '850', 'Default day rate (ZAR)');
+  ensure('base_rate', '1000', 'Operator base shoot rate (ZAR)');
+  ensure('additional_rate', '250', 'Additional same-day shoot rate (ZAR)');
+  ensure('postponed_rate', '250', 'Postponed shoot fee (ZAR)');
   ensure('rig_test_checklist', JSON.stringify(CHECKLIST), 'Default rig test checklist items');
   ensure(
     'auto_assign_teams',
@@ -257,20 +261,20 @@ function seedDemoDataset() {
     { day: -2, title: 'Arsenal vs Fulham', client: 'Arsenal', location: 'Emirates Stadium', game: [15, 0], status: 'completed', ops: [ops.jordan, ops.demo], phase: 'done', rate: 800 },
     { day: -1, title: 'Warriors vs Suns', client: 'Warriors', location: 'Chase Center', game: [19, 30], status: 'completed', ops: [ops.sam], phase: 'done', rate: 850 },
     // Today / near
-    { day: 0, title: 'New York Knicks vs Milwaukee Bucks', client: 'Knicks', location: 'Madison Square Garden', game: [12, 0], status: 'confirmed', ops: [ops.demo, admin], phase: 'pre', rate: 900 },
-    { day: 0, title: 'Toronto Maple Leafs vs Ottawa Senators', client: 'Maple Leafs', location: 'Scotiabank Arena', game: [13, 0], status: 'confirmed', ops: [ops.maya], phase: null, rate: 900 },
-    { day: 0, title: 'Los Angeles Lakers vs Denver Nuggets', client: 'Lakers', location: 'Crypto.com Arena', game: [15, 30], status: 'confirmed', ops: [ops.jordan, ops.sam], phase: null, rate: 850 },
-    { day: 0, title: 'Boston Celtics vs Philadelphia 76ers', client: 'Celtics', location: 'TD Garden', game: [16, 0], status: 'confirmed', ops: [ops.maya, ops.jordan], phase: null, rate: 850 },
-    { day: 0, title: 'Golden State Warriors vs Phoenix Suns', client: 'Warriors', location: 'Chase Center', game: [17, 0], status: 'upcoming', ops: [ops.sam], phase: null, rate: 850 },
-    { day: 0, title: 'New York Rangers vs New Jersey Devils', client: 'Rangers', location: 'Madison Square Garden', game: [18, 0], status: 'confirmed', ops: [ops.demo], phase: null, rate: 900 },
-    { day: 0, title: 'Arsenal vs Liverpool', client: 'Arsenal', location: 'Emirates Stadium', game: [19, 0], status: 'confirmed', ops: [ops.jordan, ops.maya], phase: null, rate: 900 },
+    { day: 0, title: 'New York Knicks vs Milwaukee Bucks', client: 'Knicks', location: 'Madison Square Garden', game: [12, 0], status: 'upcoming', ops: [ops.demo, admin], phase: 'pre', rate: 900 },
+    { day: 0, title: 'Toronto Maple Leafs vs Ottawa Senators', client: 'Maple Leafs', location: 'Scotiabank Arena', game: [13, 0], status: 'upcoming', ops: [ops.maya], phase: null, rate: 900 },
+    { day: 0, title: 'Los Angeles Lakers vs Denver Nuggets', client: 'Lakers', location: 'Crypto.com Arena', game: [15, 30], status: 'upcoming', ops: [ops.jordan, ops.sam], phase: null, rate: 850 },
+    { day: 0, title: 'Boston Celtics vs Philadelphia 76ers', client: 'Celtics', location: 'TD Garden', game: [16, 0], status: 'cancelled', ops: [ops.maya, ops.jordan], phase: null, rate: 850 },
+    { day: 0, title: 'Golden State Warriors vs Phoenix Suns', client: 'Warriors', location: 'Chase Center', game: [17, 0], status: 'postponed', ops: [ops.sam], phase: null, rate: 850 },
+    { day: 0, title: 'New York Rangers vs New Jersey Devils', client: 'Rangers', location: 'Madison Square Garden', game: [18, 0], status: 'upcoming', ops: [ops.demo], phase: null, rate: 900 },
+    { day: 0, title: 'Arsenal vs Liverpool', client: 'Arsenal', location: 'Emirates Stadium', game: [19, 0], status: 'upcoming', ops: [ops.jordan, ops.maya], phase: null, rate: 900 },
     { day: 0, title: 'Chelsea Football Club vs Tottenham Hotspur', client: 'Chelsea', location: 'Stamford Bridge', game: [19, 30], status: 'upcoming', ops: [ops.demo], phase: null, rate: 800 },
-    { day: 1, title: 'Lakers vs Nuggets', client: 'Lakers', location: 'Crypto.com Arena', game: [19, 0], status: 'confirmed', ops: [ops.jordan, ops.sam], phase: null, rate: 850 },
+    { day: 1, title: 'Lakers vs Nuggets', client: 'Lakers', location: 'Crypto.com Arena', game: [19, 0], status: 'upcoming', ops: [ops.jordan, ops.sam], phase: null, rate: 850 },
     { day: 1, title: 'Chelsea vs Spurs', client: 'Chelsea', location: 'Stamford Bridge', game: [16, 30], status: 'upcoming', ops: [ops.demo], phase: null, rate: 800 },
-    { day: 2, title: 'Celtics vs 76ers', client: 'Celtics', location: 'TD Garden', game: [19, 30], status: 'confirmed', ops: [ops.maya, ops.jordan], phase: null, rate: 850 },
+    { day: 2, title: 'Celtics vs 76ers', client: 'Celtics', location: 'TD Garden', game: [19, 30], status: 'upcoming', ops: [ops.maya, ops.jordan], phase: null, rate: 850 },
     { day: 3, title: 'Warriors vs Kings', client: 'Warriors', location: 'Chase Center', game: [19, 0], status: 'upcoming', ops: [], pending: [ops.sam], phase: null, rate: 850 },
-    { day: 4, title: 'Rangers vs Devils', client: 'Rangers', location: 'Madison Square Garden', game: [19, 0], status: 'confirmed', ops: [ops.demo], phase: null, rate: 900 },
-    { day: 5, title: 'Arsenal vs Liverpool', client: 'Arsenal', location: 'Emirates Stadium', game: [17, 30], status: 'confirmed', ops: [ops.jordan, ops.maya], phase: null, rate: 900 },
+    { day: 4, title: 'Rangers vs Devils', client: 'Rangers', location: 'Madison Square Garden', game: [19, 0], status: 'upcoming', ops: [ops.demo], phase: null, rate: 900 },
+    { day: 5, title: 'Arsenal vs Liverpool', client: 'Arsenal', location: 'Emirates Stadium', game: [17, 30], status: 'upcoming', ops: [ops.jordan, ops.maya], phase: null, rate: 900 },
     { day: 6, title: 'Knicks vs Nets', client: 'Knicks', location: 'Madison Square Garden', game: [13, 0], status: 'upcoming', ops: [admin], phase: null, rate: 850 },
     { day: 7, title: 'Lakers vs Clippers', client: 'Lakers', location: 'Crypto.com Arena', game: [19, 30], status: 'upcoming', ops: [ops.sam, ops.demo], phase: null, rate: 900 },
     { day: 8, title: 'Maple Leafs vs Canadiens', client: 'Maple Leafs', location: 'Scotiabank Arena', game: [19, 0], status: 'upcoming', ops: [ops.maya], phase: null, rate: 850 },
@@ -472,7 +476,7 @@ function seedDemoDataset() {
   }
 
   // One unpaid pending for accounts view
-  const upcomingPaid = createdShoots.find((s) => s.status === 'confirmed' && (s.assigned_operators || []).length);
+  const upcomingPaid = createdShoots.find((s) => s.status === 'upcoming' && (s.assigned_operators || []).length);
   if (upcomingPaid) {
     createEntity('PaymentRecord', {
       operator_email: ops.demo,

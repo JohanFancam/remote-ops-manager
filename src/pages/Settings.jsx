@@ -194,6 +194,7 @@ export default function Settings() {
   const [rateBaseInput, setRateBaseInput] = useState('');
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
+  const [ratePostponedInput, setRatePostponedInput] = useState('250');
   const [ratesSaved, setRatesSaved] = useState(false);
   const [notifyHoursInput, setNotifyHoursInput] = useState('5');
   const [notifySaved, setNotifySaved] = useState(false);
@@ -254,8 +255,10 @@ export default function Settings() {
     setSlackMsgs(msgs);
     const br = appSettings.find(s => s.key === 'base_rate')?.value;
     const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
+    const pr = appSettings.find(s => s.key === 'postponed_rate')?.value;
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
+    if (pr) setRatePostponedInput(pr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
     const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
@@ -305,6 +308,7 @@ export default function Settings() {
     const pairs = [
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
+      { key: 'postponed_rate', value: ratePostponedInput || '250', description: 'Postponed shoot fee (ZAR)' },
       { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
@@ -453,7 +457,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day.</p>
+              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Standard Shoot Rate (R)</label>
@@ -471,6 +475,16 @@ export default function Settings() {
                     type="number"
                     value={rateAdditionalInput}
                     onChange={e => setRateAdditionalInput(e.target.value)}
+                    placeholder="250"
+                    className="bg-slate-800 border-slate-800 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Postponed Shoot Fee (R)</label>
+                  <Input
+                    type="number"
+                    value={ratePostponedInput}
+                    onChange={e => setRatePostponedInput(e.target.value)}
                     placeholder="250"
                     className="bg-slate-800 border-slate-800 text-slate-100"
                   />

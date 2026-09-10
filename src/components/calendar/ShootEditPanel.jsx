@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { X } from 'lucide-react';
+import { SHOOT_STATUSES, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
 
 export default function ShootEditPanel({
   shoot,
@@ -13,6 +14,7 @@ export default function ShootEditPanel({
   onCancel,
   onClose,
 }) {
+  const statusValue = normalizeShootStatus(form.status);
   return (
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full bg-slate-900 border-l border-slate-800 p-0 [&_button[type='button']]:text-slate-400 overflow-y-auto transition-all duration-300">
@@ -86,13 +88,13 @@ export default function ShootEditPanel({
             {/* Status */}
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider mb-1 block">Status</label>
-              <Select value={form.status || 'upcoming'} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <Select value={statusValue} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-800">
-                  {['upcoming', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((s) => (
-                    <SelectItem key={s} value={s} className="text-slate-100 capitalize">{s.replace('_', ' ')}</SelectItem>
+                  {SHOOT_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s} className="text-slate-100">{formatStatusLabel(s)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

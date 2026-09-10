@@ -2,14 +2,30 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Download, ChevronRight } from 'lucide-react';
-import { getAllOperatorsEarnings, exportSummaryPDF } from '../utils/earningsUtils';
+import {
+  getAllOperatorsEarnings,
+  exportSummaryPDF,
+  DEFAULT_BASE_RATE,
+  DEFAULT_ADDITIONAL_RATE,
+  DEFAULT_POSTPONED_RATE,
+} from '../utils/earningsUtils';
+import { formatZAR } from '../../utils/shootStatus';
 import OperatorDetailModal from './OperatorDetailModal';
 
 // ADDED: user prop to allow the component to filter for a specific operator
-export default function EarningsSummary({ shoots = [], users = [], user }) {
+export default function EarningsSummary({
+  shoots = [],
+  users = [],
+  user,
+  appSettings = [],
+}) {
   const [selectedOperator, setSelectedOperator] = useState(null);
 
-  let operators = getAllOperatorsEarnings(shoots, users);
+  const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || DEFAULT_BASE_RATE;
+  const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || DEFAULT_ADDITIONAL_RATE;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE;
+
+  let operators = getAllOperatorsEarnings(shoots, users, baseRate, additionalRate, postponedRate);
 
   // NEW: Filter for specific operator if they aren't an admin
   // Base44 typically sets user.role. This checks if we should limit the view.
@@ -32,8 +48,8 @@ export default function EarningsSummary({ shoots = [], users = [], user }) {
             </CardTitle>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-xs text-slate-500">Total Earnings</p>
-                <p className="text-lg font-bold text-emerald-400">R {grandTotal.toLocaleString('en-ZA')}</p>
+                <p className="text-xs text-slate-500">Total Earnings (ZAR)</p>
+                <p className="text-lg font-bold text-emerald-400">{formatZAR(grandTotal)}</p>
               </div>
               <Button onClick={handleExport} size="sm" className="bg-blue-600 hover:bg-blue-600">
                 <Download className="h-4 w-4 mr-1" /> PDF
@@ -68,7 +84,7 @@ export default function EarningsSummary({ shoots = [], users = [], user }) {
                       {op.breakdown.filter(b => b.isAdditional).length || '—'}
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-emerald-400 font-bold">R {op.total.toLocaleString('en-ZA')}</span>
+                      <span className="text-emerald-400 font-bold">{formatZAR(op.total)}</span>
                       <ChevronRight className="h-4 w-4 text-gray-600" />
                     </div>
                   </button>

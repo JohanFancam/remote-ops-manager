@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { X, Plus, Minus, Settings2, MapPin, Users, Clock } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 
 function findMatchingRig(shoot, rigSettings = []) {
   if (!shoot) return null;
@@ -40,10 +41,12 @@ export function getShootRigLabel(shoot, rigSettings = []) {
 }
 
 export function shootDotClass(shoot, rigSettings = [], { past = false } = {}) {
-  if (past || shoot?.status === 'completed') return 'bg-slate-500';
+  const status = normalizeShootStatus(shoot?.status);
+  if (status === 'cancelled') return 'bg-red-600';
+  if (past || status === 'completed') return 'bg-slate-500';
+  if (status === 'postponed') return 'bg-amber-500';
   const label = getShootRigLabel(shoot, rigSettings).toLowerCase();
   if (label.includes('fancam')) return 'bg-orange-500';
-  if (shoot?.status === 'confirmed') return 'bg-emerald-500';
   return 'bg-blue-500';
 }
 
@@ -64,14 +67,18 @@ export default function ShootQuickView({
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const isPast = (shoot.date || '') < todayStr;
+  const status = normalizeShootStatus(shoot.status);
+  const isCancelled = status === 'cancelled';
+  const isCompleted = status === 'completed';
+  const shouldGrey = isPast || isCompleted || isCancelled;
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const showMinus = isAssigned || isPending;
-  const canToggle = !isPast && !!user?.email;
+  const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email;
   const rigLabel = getShootRigLabel(shoot, rigSettings);
   const isFancam = /fancam/i.test(rigLabel);
   const dateLabel = shoot.date
-    ? format(new Date(`${shoot.date}T12:00:00`), 'EEEE, MMMM d')
+    ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric' })
     : '';
   const assignedNames = (shoot.assigned_operators || [])
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
@@ -89,14 +96,18 @@ export default function ShootQuickView({
         aria-modal="true"
         aria-label={shoot.title || 'Shoot details'}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-[#1e2433] shadow-2xl shadow-black/50"
+        className={`relative z-10 w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl shadow-black/50 ${
+          isCancelled
+            ? 'border-red-600/50 bg-[#1e2433] opacity-90'
+            : shouldGrey
+              ? 'border-slate-700/80 bg-[#1e2433] opacity-80'
+              : 'border-slate-700/80 bg-[#1e2433]'
+        }`}
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
           <div className="flex min-w-0 items-start gap-3">
             <span
-              className={`mt-1.5 h-3.5 w-3.5 shrink-0 rounded-sm ${
-                isFancam ? 'bg-orange-500' : 'bg-slate-400'
-              }`}
+              className={`mt-1.5 h-3.5 w-3.5 shrink-0 rounded-sm ${shootDotClass(shoot, rigSettings, { past: isPast })}`}
             />
             <div className="min-w-0">
               <h2 className="text-lg font-semibold leading-snug text-slate-50 break-words">
@@ -104,7 +115,14 @@ export default function ShootQuickView({
               </h2>
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
-                {shoot.game_time ? ` · ${shoot.game_time}` : ''}
+                {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time)}` : ''}
+              </p>
+              <p className={`mt-1 text-xs font-medium capitalize ${
+                isCancelled ? 'text-red-400' :
+                status === 'postponed' ? 'text-amber-300' :
+                isCompleted ? 'text-slate-400' : 'text-blue-400'
+              }`}>
+                {formatStatusLabel(status)}
               </p>
             </div>
           </div>

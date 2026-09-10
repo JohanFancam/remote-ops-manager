@@ -5,14 +5,9 @@ import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
+import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
 
-const statusColors = {
-  upcoming: 'bg-blue-600/20 text-blue-400 border-blue-800',
-  confirmed: 'bg-green-500/20 text-emerald-400 border-green-500/30',
-  in_progress: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
-  completed: 'bg-gray-500/20 text-slate-400 border-gray-500/30',
-  cancelled: 'bg-red-950/400/20 text-red-400 border-red-800',
-};
+const statusColors = SHOOT_STATUS_COLORS;
 
 function getLivePhaseLabel(shoot, now) {
   const p = shoot.phase_status || {};
@@ -168,8 +163,8 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
             {livePhase ? (
               <span className={`text-xs font-semibold ${livePhase.color} hidden sm:inline`}>{livePhase.label}</span>
             ) : (
-              <Badge className={`text-xs border ${statusColors[shoot.status] || statusColors.upcoming} hidden sm:inline-flex`}>
-                {shoot.status}
+              <Badge className={`text-xs border ${statusColors[normalizeShootStatus(shoot.status)] || statusColors.upcoming} hidden sm:inline-flex`}>
+                {formatStatusLabel(shoot.status)}
               </Badge>
             )}
             {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}

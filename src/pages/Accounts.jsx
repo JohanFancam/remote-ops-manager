@@ -13,8 +13,9 @@ import {
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+import { normalizeShootStatus } from '../utils/shootStatus';
 
-function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, postponedRate = 250 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -36,17 +37,28 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
   const autoAdditionalIds = useMemo(() => {
     const ids = new Set();
-    Object.values(shootsByDate).forEach(dayShots => getAdditionalShootIds(dayShots).forEach(id => ids.add(id)));
+    Object.values(shootsByDate).forEach(dayShots => {
+      const pool = dayShots.filter(s => {
+        const st = normalizeShootStatus(s.status);
+        return st !== 'cancelled' && st !== 'postponed';
+      });
+      getAdditionalShootIds(pool).forEach(id => ids.add(id));
+    });
     return ids;
   }, [shootsByDate]);
 
   const isAdditional = (shoot) => {
+    const status = normalizeShootStatus(shoot.status);
+    if (status === 'cancelled' || status === 'postponed') return false;
     const rec = getRecord(shoot);
     if (rec?.is_additional != null) return rec.is_additional;
     return autoAdditionalIds.has(shoot.id);
   };
 
   const getFee = (shoot) => {
+    const status = normalizeShootStatus(shoot.status);
+    if (status === 'cancelled') return 0;
+    if (status === 'postponed') return postponedRate;
     const rec = getRecord(shoot);
     if (rec?.override_fee != null) return rec.override_fee;
     return isAdditional(shoot) ? additionalRate : baseRate;
@@ -139,16 +151,21 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
           {opShoots.map(shoot => {
             const rec = getRecord(shoot);
             const fee = getFee(shoot);
+            const status = normalizeShootStatus(shoot.status);
+            const isCancelled = status === 'cancelled';
+            const isPostponed = status === 'postponed';
             const additional = isAdditional(shoot);
-            const hasOverrideFee = rec?.override_fee != null;
-            const hasManualAdditional = rec?.is_additional != null;
+            const hasOverrideFee = !isCancelled && !isPostponed && rec?.override_fee != null;
+            const hasManualAdditional = !isCancelled && !isPostponed && rec?.is_additional != null;
             return (
-              <div key={shoot.id} className="rounded-lg p-3 border border-slate-800 bg-slate-800/40">
+              <div key={shoot.id} className={`rounded-lg p-3 border ${isCancelled ? 'border-red-800/50 bg-red-950/20 opacity-90' : 'border-slate-800 bg-slate-800/40'}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-100 truncate">{shoot.title}</p>
                     <p className="text-xs text-slate-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
                     <div className="flex gap-1 flex-wrap mt-1">
+                      {isCancelled && <Badge className="text-xs bg-red-950/40 text-red-400 border-red-800">Cancelled</Badge>}
+                      {isPostponed && <Badge className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">Postponed</Badge>}
                       {additional && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
                       {hasOverrideFee && <Badge className="text-xs bg-blue-600/20 text-blue-400 border-blue-800">Fee Override</Badge>}
                       {hasManualAdditional && <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">Manual</Badge>}
@@ -156,7 +173,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     {rec?.notes && <p className="text-xs text-slate-400 mt-1 italic">{rec.notes}</p>}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {editingId === shoot.id ? (
+                    {isCancelled ? (
+                      <span className="font-semibold text-red-400 text-sm">Cancelled</span>
+                    ) : editingId === shoot.id ? (
                       <>
                         <Input type="number" value={editFee} onChange={e => setEditFee(e.target.value)}
                           className="bg-slate-700 border-slate-700 text-slate-100 h-7 w-24 text-sm" placeholder="Fee (R)" />
@@ -170,15 +189,19 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     ) : (
                       <>
                         <span className="font-mono font-bold text-slate-100">R{fee.toFixed(2)}</span>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100 p-0"
-                          onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
+                        {!isPostponed && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100 p-0"
+                            onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
                 </div>
+                {!isCancelled && (
                 <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                  {!isPostponed && (
                   <button
                     className={`text-xs px-2 py-1 rounded border transition-colors ${additional
                       ? 'border-orange-700 text-orange-400 bg-orange-950/30 hover:bg-orange-950/60'
@@ -187,6 +210,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     title="Toggle additional shoot rate">
                     {additional ? '⚡ Mark as Standard' : '+ Mark as Additional'}
                   </button>
+                  )}
                   {editingNote === shoot.id ? (
                     <div className="flex gap-2 flex-1">
                       <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Add note..."
@@ -201,6 +225,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     </button>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
@@ -245,6 +270,7 @@ export default function Accounts() {
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 250;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
@@ -258,8 +284,8 @@ export default function Accounts() {
     setFilterMonth(format(d, 'yyyy-MM'));
   };
 
-  const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled');
-  const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && s.status !== 'cancelled' && s.pending_operators?.length > 0);
+  const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth));
+  const monthPendingShoots = shoots.filter(s => s.date?.startsWith(filterMonth) && normalizeShootStatus(s.status) !== 'cancelled' && s.pending_operators?.length > 0);
 
   const remoteUsers = useMemo(() => {
     // Combine admin emails from both PendingUser and platform User entities
@@ -522,6 +548,7 @@ export default function Accounts() {
                 onReject={handleReject}
                 baseRate={baseRate}
                 additionalRate={additionalRate}
+                postponedRate={postponedRate}
               />
             ))}
           </div>

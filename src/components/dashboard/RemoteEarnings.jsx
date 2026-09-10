@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
+import { calculateOperatorEarnings, exportOperatorPDF, DEFAULT_POSTPONED_RATE } from '../utils/earningsUtils';
+import { formatZAR, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { shortenTitle } from '../utils/scheduleUtils';
 
 export default function RemoteEarnings({ user }) {
   const [expanded, setExpanded] = useState(false);
@@ -36,19 +38,20 @@ export default function RemoteEarnings({ user }) {
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE;
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
     return allShoots.filter(s =>
       s.date?.startsWith(monthStr) &&
-      s.status !== 'cancelled' &&
       s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail)
     );
   }, [allShoots, user, monthStr]);
 
-  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate);
+  const { breakdown } = calculateOperatorEarnings(
+    myShootsForMonth, user?.email, baseRate, additionalRate, postponedRate
+  );
 
-  // Check if accounts has marked this month as paid
   const monthPayRecord = paymentRecords.find(r =>
     r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim() &&
     r.period_month === monthStr &&
@@ -57,7 +60,6 @@ export default function RemoteEarnings({ user }) {
   const isPaidByAccounts = monthPayRecord?.paid === true;
   const paidDate = monthPayRecord?.paid_date;
 
-  // Apply payment record overrides
   const adjustedBreakdown = breakdown.map(item => {
     const rec = paymentRecords.find(r =>
       r.shoot_id === item.shoot?.id &&
@@ -65,16 +67,18 @@ export default function RemoteEarnings({ user }) {
     );
     let amount = item.amount;
     let isAdditional = item.isAdditional;
-    if (rec?.override_fee != null) amount = Number(rec.override_fee);
-    if (rec?.is_additional != null) {
-      isAdditional = rec.is_additional;
-      amount = rec.override_fee != null ? Number(rec.override_fee) : (isAdditional ? additionalRate : baseRate);
+    if (!item.isCancelled && !item.isPostponed) {
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      if (rec?.is_additional != null) {
+        isAdditional = rec.is_additional;
+        amount = rec.override_fee != null ? Number(rec.override_fee) : (isAdditional ? additionalRate : baseRate);
+      }
     }
     return { ...item, amount, isAdditional };
   });
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
-  const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional);
+  const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional && !b.isCancelled && !b.isPostponed);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
   return (
@@ -101,7 +105,7 @@ export default function RemoteEarnings({ user }) {
             {isPaidByAccounts ? (
               <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 gap-1 text-xs h-7 px-2">
                 <CheckCircle2 className="h-3 w-3" />
-                Paid{paidDate ? ` · ${format(new Date(paidDate + 'T12:00:00'), 'd MMM')}` : ''}
+                Paid{paidDate ? ` · ${formatDateZA(paidDate)}` : ''}
               </Badge>
             ) : (
               <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 gap-1 text-xs h-7 px-2">
@@ -120,16 +124,16 @@ export default function RemoteEarnings({ user }) {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-400">R{adjustedTotal.toLocaleString()}</p>
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
             <p className="text-xs text-slate-400">Total Earned</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-slate-100">{mainShoots.length}</p>
             <p className="text-xs text-slate-400">Main Shoots</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center">
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
             <p className="text-xs text-slate-400">Additional</p>
           </div>
@@ -150,16 +154,23 @@ export default function RemoteEarnings({ user }) {
                 </div>
                 <div className="space-y-1">
                   {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-slate-800/40 rounded px-3 py-2">
+                    <div key={idx} className={`flex items-center justify-between bg-slate-800/40 rounded px-3 py-2 ${item.isCancelled ? 'opacity-80' : ''}`}>
                       <div>
-                        <p className="text-sm text-slate-100 font-medium">{item.shoot?.title || 'Game'}</p>
+                        <p className="text-sm text-slate-100 font-medium">{shortenTitle(item.shoot?.title) || 'Game'}</p>
                         <p className="text-xs text-slate-400">
-                          {format(new Date(item.date + 'T12:00:00'), 'EEE, MMM d')}
-                          {item.shoot?.game_time && ` · ${item.shoot.game_time}`}
+                          {formatDateZA(item.date, { weekday: 'short' })}
+                          {item.shoot?.game_time && ` · ${formatTimeZA(item.shoot.game_time)}`}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-emerald-400">R{item.amount.toLocaleString()}</p>
+                        {item.isCancelled ? (
+                          <p className="text-sm font-semibold text-red-400">Cancelled</p>
+                        ) : (
+                          <p className="text-sm font-bold text-emerald-400">{formatZAR(item.amount, { withSpace: false })}</p>
+                        )}
+                        {item.isPostponed && (
+                          <Badge className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">Postponed</Badge>
+                        )}
                         {item.isAdditional && (
                           <Badge className="text-xs bg-yellow-500/20 text-amber-400 border-yellow-500/30">Additional</Badge>
                         )}
