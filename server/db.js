@@ -9,6 +9,7 @@ const dataDir = path.join(__dirname, 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 
 const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'remote-ops.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 export const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');

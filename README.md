@@ -15,6 +15,12 @@ npm run dev
 - Web UI: http://localhost:5173  
 - API: http://localhost:3001  
 
+## Go live (public URL)
+
+Non-technical step-by-step: see **[DEPLOY.md](./DEPLOY.md)**.
+
+Short version: create a Railway account with GitHub → deploy this repo → add `/data` volume → set `JWT_SECRET` → open the public URL → `/register`.
+
 ## Demo data
 
 First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typical Base44 Remote Ops Manager workspace — crews, venue rig profiles, calendar shoots, standby windows, payments, and rig tests — so dashboards are reviewable without importing live data.

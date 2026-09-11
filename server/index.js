@@ -24,7 +24,9 @@ import { seedIfEmpty } from './seed.js';
 import { publicUser, ENTITY_TYPES } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.resolve(__dirname, '../uploads');
+const uploadsDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(__dirname, '../uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 seedIfEmpty();
