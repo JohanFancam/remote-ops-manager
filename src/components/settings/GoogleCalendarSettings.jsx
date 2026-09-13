@@ -124,6 +124,38 @@ export default function GoogleCalendarSettings() {
           Use Sync after Google changes (also available on the Calendar page).
         </p>
 
+        {status?.redirectUri && (
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2">
+            <p className="text-xs text-slate-400">
+              In Google Cloud → Credentials → your OAuth client → <span className="text-slate-200">Authorized redirect URIs</span>,
+              add this exact URI (no trailing slash, no query string):
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="text-xs text-blue-300 break-all flex-1">{status.redirectUri}</code>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 h-8"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(status.redirectUri);
+                    setMessage('Redirect URI copied');
+                  } catch {
+                    setError('Could not copy — select the URI manually');
+                  }
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">
+              If Google shows <code className="text-slate-400">redirect_uri_mismatch</code> or{' '}
+              <code className="text-slate-400">flowName=GeneralOAuthLite</code>, the URI in Cloud Console does not match this one.
+            </p>
+          </div>
+        )}
+
         {isLoading ? (
           <p className="text-sm text-slate-500">Checking connection…</p>
         ) : !status?.configured ? (
@@ -132,14 +164,8 @@ export default function GoogleCalendarSettings() {
             <p>
               Set <code className="text-amber-100">GOOGLE_CLIENT_ID</code>,{' '}
               <code className="text-amber-100">GOOGLE_CLIENT_SECRET</code>, and{' '}
-              <code className="text-amber-100">GOOGLE_REDIRECT_URI</code> (see README), then restart the API.
+              <code className="text-amber-100">GOOGLE_REDIRECT_URI</code> (same value as above), then restart the API.
             </p>
-            {status?.redirectUri && (
-              <p>
-                Expected redirect URI:{' '}
-                <code className="text-amber-100 break-all">{status.redirectUri}</code>
-              </p>
-            )}
           </div>
         ) : (
           <>
