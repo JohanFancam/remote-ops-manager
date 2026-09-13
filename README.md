@@ -74,6 +74,17 @@ Admins can pull **title, date, and time** from a Google Calendar into the app ca
 5. In the app: **Settings → Google Calendar → Connect**, pick a calendar, then **Sync**.
 6. On **Calendar**, use **Sync Google** whenever Google changes.
 
+### If Google shows `redirect_uri_mismatch` / `flowName=GeneralOAuthLite`
+
+`flowName=GeneralOAuthLite` is Google’s internal label — the real problem is almost always the redirect URI.
+
+1. Open **Settings → Google Calendar** and copy the shown redirect URI.
+2. In Google Cloud Console → **APIs & Services → Credentials → your OAuth 2.0 Client ID**, paste that **exact** string under **Authorized redirect URIs**.
+3. Do **not** include `?flowName=...`, a trailing slash, or a different port/host.
+4. Client type must be **Web application** (not Desktop / iOS / Android).
+5. If the consent screen is in **Testing**, add your Google account under **Test users**.
+6. Restart the API after changing env vars, then try **Connect** again.
+
 ## Scripts
 
 | Command | Description |
