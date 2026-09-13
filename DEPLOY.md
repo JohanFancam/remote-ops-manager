@@ -50,6 +50,15 @@ UPLOADS_DIR=/data/uploads
 NODE_ENV=production
 ```
 
+Optional — Google Calendar sync (after you create OAuth credentials in Google Cloud):
+
+```text
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=https://YOUR-URL/api/google/callback
+FRONTEND_URL=https://YOUR-URL
+```
+
 (You can replace JWT_SECRET later with any long random string.)
 
 ## Step 5 — Get your public link

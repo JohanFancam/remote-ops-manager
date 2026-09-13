@@ -22,6 +22,16 @@ import {
 import { subscribeEntity } from './events.js';
 import { seedIfEmpty } from './seed.js';
 import { publicUser, ENTITY_TYPES } from './db.js';
+import {
+  getGoogleStatus,
+  getAuthUrl,
+  handleOAuthCallback,
+  clearTokens,
+  syncGoogleCalendar,
+  listGoogleCalendars,
+  saveGoogleSettings,
+  getGoogleSettings,
+} from './googleCalendar.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
@@ -203,6 +213,97 @@ app.delete('/api/entities/:type/:id', authMiddleware, (req, res) => {
     if (!ok) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  next();
+}
+
+function frontendBaseUrl(req) {
+  const fromEnv = process.env.FRONTEND_URL || process.env.APP_URL || '';
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  // Same-origin production (Express serves Vite dist): return to this host
+  const host = req.get('x-forwarded-host') || req.get('host');
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+  if (host && process.env.NODE_ENV === 'production') {
+    return `${proto}://${host}`.replace(/\/$/, '');
+  }
+  const origin = req.get('origin') || req.get('referer') || '';
+  if (origin) {
+    try {
+      return new URL(origin).origin;
+    } catch {
+      // ignore
+    }
+  }
+  return 'http://localhost:5173';
+}
+
+app.get('/api/google/status', authMiddleware, (_req, res) => {
+  res.json(getGoogleStatus());
+});
+
+app.get('/api/google/auth-url', authMiddleware, requireAdmin, (_req, res) => {
+  try {
+    res.json({ url: getAuthUrl('rom-google') });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/google/callback', async (req, res) => {
+  const base = frontendBaseUrl(req);
+  const settingsPath = `${base}/Settings`;
+  try {
+    if (req.query.error) {
+      return res.redirect(`${settingsPath}?google=error&message=${encodeURIComponent(String(req.query.error))}`);
+    }
+    const code = req.query.code;
+    if (!code) {
+      return res.redirect(`${settingsPath}?google=error&message=${encodeURIComponent('Missing OAuth code')}`);
+    }
+    await handleOAuthCallback(String(code));
+    return res.redirect(`${settingsPath}?google=connected`);
+  } catch (err) {
+    console.error('Google OAuth callback failed:', err);
+    return res.redirect(`${settingsPath}?google=error&message=${encodeURIComponent(err.message || 'OAuth failed')}`);
+  }
+});
+
+app.post('/api/google/disconnect', authMiddleware, requireAdmin, (_req, res) => {
+  clearTokens();
+  res.json({ ok: true, ...getGoogleStatus() });
+});
+
+app.get('/api/google/calendars', authMiddleware, requireAdmin, async (_req, res) => {
+  try {
+    const calendars = await listGoogleCalendars();
+    res.json({ calendars, ...getGoogleSettings() });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/google/settings', authMiddleware, requireAdmin, (req, res) => {
+  const calendarId = String(req.body?.calendarId || '').trim();
+  if (!calendarId) {
+    return res.status(400).json({ error: 'calendarId required' });
+  }
+  const settings = saveGoogleSettings({ calendarId });
+  res.json({ ok: true, ...getGoogleStatus(), settings });
+});
+
+app.post('/api/google/sync', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const result = await syncGoogleCalendar({ user: req.user });
+    res.json(result);
+  } catch (err) {
+    console.error('Google Calendar sync failed:', err);
     res.status(err.status || 500).json({ error: err.message });
   }
 });

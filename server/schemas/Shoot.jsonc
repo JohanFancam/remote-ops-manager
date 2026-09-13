@@ -136,6 +136,26 @@
           "type": "string"
         }
       }
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Google Calendar event id when synced from Google"
+    },
+    "google_calendar_id": {
+      "type": "string",
+      "description": "Google Calendar id the event was pulled from"
+    },
+    "source": {
+      "type": "string",
+      "description": "Origin of the shoot (e.g. google_calendar)"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "description": "ISO timestamp of last Google Calendar sync for this shoot"
+    },
+    "google_sync_cancelled": {
+      "type": "boolean",
+      "description": "True when cancelled because the Google event disappeared"
     }
   },
   "required": [

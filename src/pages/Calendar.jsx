@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Upload, Plus, Minus, X, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, X, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, Settings2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -627,12 +629,36 @@ export default function Calendar() {
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
   const [dayPopup, setDayPopup] = useState(null); // Date | null
   const [quickViewShoot, setQuickViewShoot] = useState(null); // shoot | null
+  const [googleSyncing, setGoogleSyncing] = useState(false);
 
   useEffect(() => {
     if (window.innerWidth < 768) {
       setViewMode('week');
     }
   }, []);
+
+  const { data: googleStatus } = useQuery({
+    queryKey: ['googleStatus'],
+    queryFn: () => base44.google.status(),
+    enabled: !!isAdmin,
+  });
+
+  const handleGoogleSync = async () => {
+    if (!isAdmin || googleSyncing) return;
+    setGoogleSyncing(true);
+    try {
+      const result = await base44.google.sync();
+      await queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      await queryClient.invalidateQueries({ queryKey: ['googleStatus'] });
+      toast.success(
+        `Google sync: ${result.created} new · ${result.updated} updated · ${result.cancelled} cancelled`
+      );
+    } catch (err) {
+      toast.error(err.message || 'Google sync failed');
+    } finally {
+      setGoogleSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1670,6 +1696,23 @@ export default function Calendar() {
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             {isAdmin && (
               <>
+                {googleStatus?.connected ? (
+                  <Button
+                    onClick={handleGoogleSync}
+                    disabled={googleSyncing}
+                    variant="outline"
+                    className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                    size="sm"
+                    title={googleStatus.lastSyncAt ? `Last sync ${new Date(googleStatus.lastSyncAt).toLocaleString('en-ZA')}` : 'Pull title, date, and time from Google'}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${googleSyncing ? 'animate-spin' : ''}`} />
+                    {googleSyncing ? 'Syncing…' : 'Sync Google'}
+                  </Button>
+                ) : googleStatus?.configured ? (
+                  <Button asChild variant="outline" className="border-slate-700 text-slate-400 hover:bg-slate-800" size="sm">
+                    <Link to="/Settings">Connect Google</Link>
+                  </Button>
+                ) : null}
                 <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
                 </Button>

@@ -6,6 +6,7 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
+import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -447,6 +448,9 @@ export default function Settings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Google Calendar — Admin only */}
+        {isAdmin && <GoogleCalendarSettings />}
 
         {/* Pay Rates — Admin only */}
         {isAdmin && (

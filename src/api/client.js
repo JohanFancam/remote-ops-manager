@@ -226,6 +226,29 @@ export const api = {
       });
     },
   },
+  google: {
+    status() {
+      return request('/api/google/status');
+    },
+    authUrl() {
+      return request('/api/google/auth-url');
+    },
+    disconnect() {
+      return request('/api/google/disconnect', { method: 'POST' });
+    },
+    calendars() {
+      return request('/api/google/calendars');
+    },
+    saveSettings({ calendarId }) {
+      return request('/api/google/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ calendarId }),
+      });
+    },
+    sync() {
+      return request('/api/google/sync', { method: 'POST' });
+    },
+  },
 };
 
 // Compatibility export used across existing UI files

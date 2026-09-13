@@ -55,7 +55,24 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 ADMIN_NAME=Admin User
 DATABASE_PATH=./server/data/remote-ops.db
+
+# Google Calendar sync (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:3001/api/google/callback
+FRONTEND_URL=http://localhost:5173
 ```
+
+## Google Calendar sync
+
+Admins can pull **title, date, and time** from a Google Calendar into the app calendar (same shoot cards / statuses). Assignments and ops fields stay in the app.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/) create an OAuth client (Web application).
+2. Add authorized redirect URI: `http://localhost:3001/api/google/callback` (or your live `/api/google/callback`).
+3. Enable the **Google Calendar API**.
+4. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` in `.env` / host variables; restart the API.
+5. In the app: **Settings → Google Calendar → Connect**, pick a calendar, then **Sync**.
+6. On **Calendar**, use **Sync Google** whenever Google changes.
 
 ## Scripts
 
