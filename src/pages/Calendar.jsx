@@ -1344,10 +1344,10 @@ export default function Calendar() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); isAdmin ? setAssignStandbyDay(day) : handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${standbyToggleClass(myStandby, otherStandby, primaryStandby)}`}
-                      title={isAdmin ? 'Assign standby for this day' : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
+                      title={isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap standby coverage for this day' : 'Assign standby for this day') : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
-                      {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Reassign' : 'Standby') : myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
+                      {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap' : 'Standby') : myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
                   {!isAdmin && !isStandby && !isPast && (
@@ -1472,7 +1472,7 @@ export default function Calendar() {
                          className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${standbyToggleTextClass(myStandby, otherStandby, primaryStandby)}`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                         {isAdmin ? 'Assign Standby' : myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                         {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap Standby' : 'Assign Standby') : myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                        </Button>
                       )}
                     {!isAdmin && !isStandby && !isPast && (
