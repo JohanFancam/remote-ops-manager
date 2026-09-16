@@ -1667,7 +1667,7 @@ export default function Calendar() {
           allUsers={allUsers}
           currentUser={user}
           existing={assignStandbyDay ? (getStandbyForDay(assignStandbyDay)[0] || null) : null}
-          canRemove={isAdmin}
+          canRemove={isAdmin || isOperatorStandby}
           onClose={() => setAssignStandbyDay(null)}
         />
       )}
