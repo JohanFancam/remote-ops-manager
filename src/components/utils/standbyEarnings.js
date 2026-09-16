@@ -1,4 +1,11 @@
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
+
+function timeToMinutes(t) {
+  if (!t) return null;
+  const [h, m] = String(t).split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+}
 
 // Flat per-day standby earnings for an Operator/Standby user.
 // Each calendar day covered by one of the operator's StandbyDay periods
@@ -14,10 +21,7 @@ export function getOperatorStandbyEarnings(standbyDays, operatorEmail, monthStr,
   );
 
   const daySet = new Set();
-  mine.forEach(s => {
-    const sd = s.start_date || s.date;
-    const ed = s.end_date || sd;
-    if (!sd || !ed) return;
+  const addRangeInclusive = (sd, ed) => {
     const cur = new Date(sd + 'T00:00:00');
     const end = new Date(ed + 'T00:00:00');
     while (cur <= end) {
@@ -25,6 +29,32 @@ export function getOperatorStandbyEarnings(standbyDays, operatorEmail, monthStr,
       if (ds.startsWith(monthStr)) daySet.add(ds);
       cur.setDate(cur.getDate() + 1);
     }
+  };
+
+  mine.forEach(s => {
+    const sd = s.start_date || s.date;
+    const ed = s.end_date || sd;
+    if (!sd) return;
+
+    // Same-day standby period = one paid day.
+    if (sd === ed) {
+      if (sd.startsWith(monthStr)) daySet.add(sd);
+      return;
+    }
+
+    // Overnight single shift: ends the next morning (end_date is exactly one
+    // day after start_date and the shift crosses midnight, e.g. 18:00 → 06:00).
+    // This is ONE paid day — the day the shift started — not two.
+    const startMin = timeToMinutes(s.start_time);
+    const endMin = timeToMinutes(s.end_time);
+    const nextDay = format(addDays(new Date(sd + 'T00:00:00'), 1), 'yyyy-MM-dd');
+    if (ed === nextDay && startMin != null && endMin != null && endMin <= startMin) {
+      if (sd.startsWith(monthStr)) daySet.add(sd);
+      return;
+    }
+
+    // Multi-day standby: pay each calendar day from start to end inclusive.
+    addRangeInclusive(sd, ed);
   });
 
   const days = [...daySet].sort().map(date => ({ date, amount: rate, isStandby: true }));
