@@ -1671,6 +1671,17 @@ export default function Calendar() {
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
 
+      {isAdmin && (
+        <StandbyAssignDialog
+          open={!!assignStandbyDay}
+          day={assignStandbyDay}
+          allUsers={allUsers}
+          currentUser={user}
+          existing={assignStandbyDay ? (getStandbyForDay(assignStandbyDay)[0] || null) : null}
+          onClose={() => setAssignStandbyDay(null)}
+        />
+      )}
+
       {dayModal && (
         <DayEventsModal
           day={dayModal.day}
