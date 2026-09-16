@@ -1361,7 +1361,7 @@ export default function Calendar() {
                       title={isAdmin ? 'Assign standby for this day' : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
-                      {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
+                      {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Reassign' : 'Standby') : myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
                   {!isAdmin && !isStandby && !isPast && (
