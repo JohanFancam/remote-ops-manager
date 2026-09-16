@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Volume2, Timer, Aperture, Sun, X } from 'lucide-react';
+import { Volume2, Timer, Aperture, Sun, X, Radio } from 'lucide-react';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -26,7 +26,7 @@ const ARENA_WIDE = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 
 const emptyForm = {
-  team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '', location: '',
+  team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', live_data: false, shoot_plan: '', location: '',
   remote_rigs: [],
   ...DEFAULT_OFFSETS,
   data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide_enabled: true, data_wide: { ...DEFAULT_DATA_WIDE },
@@ -204,6 +204,18 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
               <Input placeholder="e.g. Madison Square Garden" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} disabled={readOnly}
                 className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 disabled:opacity-60" />
               <p className="text-[10px] text-gray-600 mt-1">Auto-pulls through to this team's shoot details.</p>
+            </div>
+
+            {/* Live Data priority flag */}
+            <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.live_data ? 'border-red-600 bg-red-950/30' : 'border-gray-800 bg-gray-900/40'}`}>
+              <div className="flex items-center gap-2">
+                <Radio className={`h-4 w-4 ${form.live_data ? 'text-red-400' : 'text-gray-600'}`} />
+                <div>
+                  <span className="text-sm font-semibold text-white">Live Data</span>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Priority shoot — attended to immediately if there is an issue.</p>
+                </div>
+              </div>
+              <Toggle enabled={!!form.live_data} onChange={() => setForm({ ...form, live_data: !form.live_data })} readOnly={readOnly} />
             </div>
 
             {/* Shoot Plan */}

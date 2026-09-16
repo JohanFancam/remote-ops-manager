@@ -1,11 +1,12 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft } from 'lucide-react';
+import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft, Radio } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle, getShootLocation } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
+import { getStandbyColorMap, resolveStandbyColor } from '../utils/standbyColors';
 
 const matchRig = (shoot, rigSettings) => {
   if (!shoot) return null;
@@ -31,6 +32,10 @@ export default function ShootQuickView({
   const matched = matchRig(shoot, rigSettings);
   const rigType = shoot.rig_type_override || matched?.rig_type || 'Data';
   const isFancamBase = rigType === 'Fancam' || rigType === 'Data/Fancam';
+  const liveData = !!matched?.live_data;
+  const coverageColor = standbyCoverage
+    ? resolveStandbyColor(standbyCoverage.admin_email, { colorMap: getStandbyColorMap(appSettings), allUsers, currentUserEmail: user?.email })
+    : null;
   const isAssigned = (shoot.assigned_operators || []).includes(user?.email);
   const isPending = (shoot.pending_operators || []).includes(user?.email);
   const added = isAssigned || isPending;
@@ -69,6 +74,11 @@ export default function ShootQuickView({
               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${isFancamBase ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' : 'bg-blue-500/15 text-blue-300 border-blue-500/30'}`}>
                 {rigType}
               </span>
+              {liveData && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border bg-red-500/20 text-red-300 border-red-500/50 animate-pulse" title="Live Data — priority shoot, attend immediately if there is an issue">
+                  <Radio className="h-3 w-3" />LIVE DATA
+                </span>
+              )}
               {getShootLocation(shoot, matched) && <span className="text-[11px] text-gray-400">{getShootLocation(shoot, matched)}</span>}
               <span className="text-[11px] text-gray-500 capitalize">{(shoot.status || 'upcoming').replace('_', ' ')}</span>
             </div>
@@ -109,7 +119,7 @@ export default function ShootQuickView({
             )}
             {!isAdmin && !isStandby && standbyCoverage && (
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-blue-300 flex-shrink-0" />
+                <ShieldCheck className={`h-3 w-3 flex-shrink-0 ${coverageColor?.shield || 'text-blue-300'}`} />
                 <span className="text-gray-500">Standby: </span>{standbyCoverage.admin_name || standbyCoverage.admin_email}
               </p>
             )}

@@ -6,6 +6,7 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import TimezoneSettings from '../components/settings/TimezoneSettings';
+import StandbyColorsSection from '../components/settings/StandbyColorsSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -463,6 +464,11 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Standby Colours — Admin only */}
+        {isAdmin && (
+          <StandbyColorsSection appSettings={appSettings} allUsers={allUsers} />
         )}
 
         {/* Auto-Assignment Rules — Admin only */}

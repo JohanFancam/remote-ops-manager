@@ -33,6 +33,11 @@
       "default": "Data",
       "description": "Primary rig output type"
     },
+    "live_data": {
+      "type": "boolean",
+      "default": false,
+      "description": "Live Data shoot \u2014 gets priority and must be attended to immediately if there is an issue"
+    },
     "shoot_plan": {
       "type": "string",
       "description": "Shoot plan notes"

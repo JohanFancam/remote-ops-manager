@@ -1,9 +1,10 @@
 import React from 'react';
-import { Plus, Minus, Clock, ShieldCheck } from 'lucide-react';
+import { Plus, Minus, Clock, ShieldCheck, Radio } from 'lucide-react';
 import { shortenTitle } from '../utils/scheduleUtils';
 import { displayShootTime } from '../utils/timezoneUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
 import { getDisplayName } from '../utils/nameUtils';
+import { getStandbyColorMap, resolveStandbyColor } from '../utils/standbyColors';
 
 const statusDot = {
   upcoming: 'bg-blue-600',
@@ -58,10 +59,12 @@ export default function MonthEntry({
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandby = standbyCoverage?.admin_email === user?.email;
   const showStandby = canStandby && !!standbyCoverage;
-  // Operator/Standby coverage is purple; admin/standby coverage is blue (mine) / green (other)
-  const isOpStandbyCoverage = allUsers?.find(u => u.email === standbyCoverage?.admin_email)?.role === 'operator_standby';
-  const myColor = isOperatorStandby ? 'purple' : 'blue';
-  const otherColor = isOpStandbyCoverage ? 'purple' : 'green';
+  // Per-user standby colour (admin-managed), with role-based fallback.
+  const standbyColorMap = getStandbyColorMap(appSettings);
+  const coverageColor = resolveStandbyColor(standbyCoverage?.admin_email, { colorMap: standbyColorMap, allUsers, currentUserEmail: user?.email });
+
+  const matchedRig = matchRig(shoot, rigSettings);
+  const liveData = !!matchedRig?.live_data;
 
   const handleAssign = async (e) => {
     e.stopPropagation();
@@ -78,7 +81,7 @@ export default function MonthEntry({
       onContextMenu={(e) => onContextMenu?.(e, shoot)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onQuickView?.(shoot); } }}
       className={`group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left ${
-        showStandby ? `border-l-2 ${isMyStandby ? (myColor === 'purple' ? 'border-l-purple-500' : 'border-l-blue-500') : (otherColor === 'purple' ? 'border-l-purple-500' : 'border-l-green-500')}` : ''
+        showStandby ? `border-l-2 ${coverageColor.borderL}` : ''
       }`}
     >
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
@@ -94,9 +97,17 @@ export default function MonthEntry({
       {!fullTitle && hasPending && !hasAssignedOperators && (
         <span className="flex-shrink-0 text-[9px] px-1 rounded-full bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">Pending</span>
       )}
+      {liveData && (
+        <span
+          className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold px-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse"
+          title="Live Data — priority shoot, attend immediately if there is an issue"
+        >
+          <Radio className="h-2.5 w-2.5" />LIVE
+        </span>
+      )}
       {showStandby && (
         <ShieldCheck
-          className={`h-2.5 w-2.5 flex-shrink-0 ${isMyStandby ? (myColor === 'purple' ? 'text-purple-400' : 'text-blue-400') : (otherColor === 'purple' ? 'text-purple-400' : 'text-green-400')}`}
+          className={`h-2.5 w-2.5 flex-shrink-0 ${coverageColor.shield}`}
           title={isMyStandby ? 'Your standby coverage' : `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`}
         />
       )}

@@ -17,6 +17,7 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle, getShootLocation } from '../components/utils/scheduleUtils';
 import { displayShootTime } from '../components/utils/timezoneUtils';
+import { getStandbyColorMap, resolveStandbyColor } from '../components/utils/standbyColors';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import RigTestAssignModal from '../components/calendar/RigTestAssignModal';
@@ -622,36 +623,21 @@ export default function Calendar() {
 
   const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
 
-  // Standby coverage colours: admin/standby coverage is blue (me) / green (other);
-  // Operator/Standby coverage is purple so it's visually distinct.
-  const isOpStandbyEntry = (entry) =>
-    allUsers.find(u => u.email === entry?.admin_email)?.role === 'operator_standby';
+  // Per-user standby colours (admin-managed in Settings), with role-based fallbacks.
+  const standbyColorMap = getStandbyColorMap(appSettings);
+  const standbyColorFor = (email) => resolveStandbyColor(email, { colorMap: standbyColorMap, allUsers, currentUserEmail: user?.email });
 
-  const standbyBadgeClass = (entry) => {
-    const mine = entry?.admin_email === user?.email;
-    const op = mine ? isOperatorStandby : isOpStandbyEntry(entry);
-    if (op) return 'bg-purple-950/40 border-purple-700/40 text-purple-300';
-    if (mine) return 'bg-blue-950/40 border-blue-700/40 text-blue-300';
-    return 'bg-green-950/40 border-green-700/40 text-green-300';
-  };
+  const standbyBadgeClass = (entry) => standbyColorFor(entry?.admin_email).badge;
 
   const standbyToggleClass = (myStandby, otherStandby, primary) => {
-    if (myStandby) return isOperatorStandby
-      ? 'border-purple-500/40 bg-purple-500/15 text-purple-300'
-      : 'border-blue-500/40 bg-blue-500/15 text-blue-300';
-    if (otherStandby) return isOpStandbyEntry(primary)
-      ? 'border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20'
-      : 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20';
+    if (myStandby) return standbyColorFor(user?.email).toggleMine;
+    if (otherStandby) return standbyColorFor(primary?.admin_email).toggleOther;
     return 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800';
   };
 
   const standbyToggleTextClass = (myStandby, otherStandby, primary) => {
-    if (myStandby) return isOperatorStandby
-      ? 'text-purple-300 hover:bg-purple-950/30 hover:text-purple-200'
-      : 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200';
-    if (otherStandby) return isOpStandbyEntry(primary)
-      ? 'text-purple-300 hover:bg-purple-950/30 hover:text-purple-200'
-      : 'text-green-300 hover:bg-green-950/30 hover:text-green-200';
+    if (myStandby) return standbyColorFor(user?.email).textMine;
+    if (otherStandby) return standbyColorFor(primary?.admin_email).textOther;
     return 'text-gray-300 hover:bg-gray-800 hover:text-white';
   };
 
