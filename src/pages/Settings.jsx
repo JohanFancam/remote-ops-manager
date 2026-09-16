@@ -120,7 +120,7 @@ const SLACK_PHASES = [
 ];
 
 export default function Settings() {
-  const { user, isAdmin, isStandby } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, effectiveRole } = useApp();
   const queryClient = useQueryClient();
 
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -129,6 +129,7 @@ export default function Settings() {
   const [rateBaseInput, setRateBaseInput] = useState('');
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
+  const [rateStandbyInput, setRateStandbyInput] = useState('');
   const [ratesSaved, setRatesSaved] = useState(false);
 
   // Logo
@@ -186,8 +187,10 @@ export default function Settings() {
     setSlackMsgs(msgs);
     const br = appSettings.find(s => s.key === 'base_rate')?.value;
     const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
+    const sr = appSettings.find(s => s.key === 'standby_rate')?.value;
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
+    if (sr) setRateStandbyInput(sr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
   }, [appSettings]);
@@ -209,6 +212,7 @@ export default function Settings() {
     const pairs = [
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
+      { key: 'standby_rate', value: rateStandbyInput || '500', description: 'Flat standby day rate for Operator/Standby users (ZAR)' },
       { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
@@ -279,8 +283,8 @@ export default function Settings() {
               <div className="flex-1 min-w-0">
                 <p className="text-lg font-semibold text-white">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-gray-400 text-sm">{user?.email}</p>
-                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : user?.role === 'standby' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Standby User' : 'Remote Operator'}
+                <Badge className={`mt-1 text-xs ${isAdmin ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : isStandby ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : effectiveRole === 'operator_standby' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : isAccounts ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                {isAdmin ? 'Admin' : isStandby ? 'Standby User' : effectiveRole === 'operator_standby' ? 'Operator/Standby' : isAccounts ? 'Accounts' : 'Remote Operator'}
                 </Badge>
               </div>
             </div>
@@ -381,6 +385,17 @@ export default function Settings() {
                     placeholder="250"
                     className="bg-gray-800 border-gray-700 text-white"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Standby Day Rate — Operator/Standby (R)</label>
+                  <Input
+                    type="number"
+                    value={rateStandbyInput}
+                    onChange={e => setRateStandbyInput(e.target.value)}
+                    placeholder="500"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Flat rate paid per standby day to Operator/Standby users.</p>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Admin Working Hours / Active Day</label>

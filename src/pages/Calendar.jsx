@@ -486,7 +486,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isStandby, isLevel1Admin } = useApp();
+  const { user, isAdmin, isStandby, isOperatorStandby, canStandby, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -608,6 +608,39 @@ export default function Calendar() {
 
   const standbyAdmins = allUsers.filter(u => u.standby === true && u.role === 'admin');
 
+  // Standby coverage colours: admin/standby coverage is blue (me) / green (other);
+  // Operator/Standby coverage is purple so it's visually distinct.
+  const isOpStandbyEntry = (entry) =>
+    allUsers.find(u => u.email === entry?.admin_email)?.role === 'operator_standby';
+
+  const standbyBadgeClass = (entry) => {
+    const mine = entry?.admin_email === user?.email;
+    const op = mine ? isOperatorStandby : isOpStandbyEntry(entry);
+    if (op) return 'bg-purple-950/40 border-purple-700/40 text-purple-300';
+    if (mine) return 'bg-blue-950/40 border-blue-700/40 text-blue-300';
+    return 'bg-green-950/40 border-green-700/40 text-green-300';
+  };
+
+  const standbyToggleClass = (myStandby, otherStandby, primary) => {
+    if (myStandby) return isOperatorStandby
+      ? 'border-purple-500/40 bg-purple-500/15 text-purple-300'
+      : 'border-blue-500/40 bg-blue-500/15 text-blue-300';
+    if (otherStandby) return isOpStandbyEntry(primary)
+      ? 'border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20'
+      : 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20';
+    return 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800';
+  };
+
+  const standbyToggleTextClass = (myStandby, otherStandby, primary) => {
+    if (myStandby) return isOperatorStandby
+      ? 'text-purple-300 hover:bg-purple-950/30 hover:text-purple-200'
+      : 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200';
+    if (otherStandby) return isOpStandbyEntry(primary)
+      ? 'text-purple-300 hover:bg-purple-950/30 hover:text-purple-200'
+      : 'text-green-300 hover:bg-green-950/30 hover:text-green-200';
+    return 'text-gray-300 hover:bg-gray-800 hover:text-white';
+  };
+
   const { data: standbyDays = [] } = useQuery({
     queryKey: ['standbyDays'],
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
@@ -708,7 +741,7 @@ export default function Calendar() {
   };
 
   const handleToggleStandbyDay = async (day) => {
-    if (!(isAdmin || isStandby) || !user?.email) return;
+    if (!canStandby || !user?.email) return;
 
     const dateStr = format(day, 'yyyy-MM-dd');
     const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
@@ -1304,17 +1337,11 @@ export default function Calendar() {
                   <div className={`text-xs font-semibold ${today ? 'text-blue-400' : greyOutDay ? 'text-gray-600' : 'text-gray-300'}`}>
                     {format(day, 'd')}
                   </div>
-                  {(isAdmin || isStandby) && !isPast && (
+                  {canStandby && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
-                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${
-                        myStandby
-                          ? 'border-blue-500/40 bg-blue-500/15 text-blue-300'
-                          : otherStandby
-                          ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
-                          : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800'
-                      }`}
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${standbyToggleClass(myStandby, otherStandby, primaryStandby)}`}
                       title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
@@ -1333,13 +1360,9 @@ export default function Calendar() {
                     </button>
                   )}
                 </div>
-                {primaryStandby && (isAdmin || isStandby) && (
+                {primaryStandby && canStandby && (
                   <div className="mb-1.5 flex flex-wrap gap-1">
-                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${
-                      primaryStandby.admin_email === user?.email
-                        ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
-                        : 'bg-green-950/40 border-green-700/40 text-green-300'
-                    }`}>
+                    <span className={`text-[10px] rounded-full border px-1.5 py-0.5 truncate max-w-full ${standbyBadgeClass(primaryStandby)}`}>
                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                     </span>
                   </div>
@@ -1423,12 +1446,8 @@ export default function Calendar() {
                     <p className="text-xs text-gray-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {primaryStandby && (isAdmin || isStandby) && (
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-                        primaryStandby.admin_email === user?.email
-                          ? 'bg-blue-950/40 border-blue-700/40 text-blue-300'
-                          : 'bg-green-950/40 border-green-700/40 text-green-300'
-                      }`}>
+                    {primaryStandby && canStandby && (
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${standbyBadgeClass(primaryStandby)}`}>
                         <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
                       </span>
                      )}
@@ -1441,23 +1460,17 @@ export default function Calendar() {
                       );
                     })}
                     {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-300">+{dayUnavailable.length - 4} unavailable</span>}
-                    {(isAdmin || isStandby) && !isPast && (
+                    {canStandby && !isPast && (
                        <Button
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleStandbyDay(day)}
-                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${
-                           myStandby
-                             ? 'text-blue-300 hover:bg-blue-950/30 hover:text-blue-200'
-                             : otherStandby
-                             ? 'text-green-300 hover:bg-green-950/30 hover:text-green-200'
-                             : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                         }`}
+                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${standbyToggleTextClass(myStandby, otherStandby, primaryStandby)}`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                          {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                        </Button>
-                     )}
+                      )}
                     {!isAdmin && !isStandby && !isPast && (
                        <Button
                          size="sm"
@@ -1564,6 +1577,7 @@ export default function Calendar() {
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
                 { label: 'My Standby Coverage', color: 'bg-blue-500' },
+                { label: 'Operator/Standby Coverage', color: 'bg-purple-500' },
                 { label: 'Standby Assigned To Someone Else', color: 'bg-green-500' },
                 { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },

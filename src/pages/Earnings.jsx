@@ -5,12 +5,13 @@ import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../components/utils/earningsUtils';
+import { getOperatorStandbyEarnings, standbyBreakdownItem } from '../components/utils/standbyEarnings';
 
 export default function Earnings() {
-  const { user } = useApp();
+  const { user, isOperatorStandby } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [expandedShoot, setExpandedShoot] = useState(null);
   const monthStr = format(currentMonth, 'yyyy-MM');
@@ -36,8 +37,14 @@ export default function Earnings() {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 1000),
   });
 
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-start_date', 500),
+  });
+
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -71,12 +78,18 @@ export default function Earnings() {
   const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
+  const standbyEarnings = useMemo(
+    () => isOperatorStandby ? getOperatorStandbyEarnings(standbyDays, user?.email, monthStr, standbyRate) : { days: [], total: 0 },
+    [isOperatorStandby, standbyDays, user, monthStr, standbyRate]
+  );
+  const grandTotal = adjustedTotal + standbyEarnings.total;
+
   const handleExport = () => {
     exportOperatorPDF({
       name: user?.full_name || user?.email,
       email: user?.email,
-      total: adjustedTotal,
-      breakdown: adjustedBreakdown,
+      total: grandTotal,
+      breakdown: [...adjustedBreakdown, ...standbyEarnings.days.map(standbyBreakdownItem)],
       month: format(currentMonth, 'MMMM yyyy'),
     });
   };
@@ -96,7 +109,7 @@ export default function Earnings() {
           <Button
             onClick={handleExport}
             className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
-            disabled={adjustedBreakdown.length === 0}
+            disabled={adjustedBreakdown.length === 0 && standbyEarnings.days.length === 0}
           >
             <Download className="h-4 w-4" /> PDF
           </Button>
@@ -117,7 +130,7 @@ export default function Earnings() {
         <div className="grid grid-cols-3 gap-3 mb-5">
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-400">R{adjustedTotal.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-400">R{grandTotal.toLocaleString()}</p>
               <p className="text-xs text-gray-400 mt-1">Total Earned</p>
             </CardContent>
           </Card>
@@ -204,6 +217,27 @@ export default function Earnings() {
               );
             })}
           </div>
+        )}
+
+        {standbyEarnings.days.length > 0 && (
+          <Card className="bg-gray-900 border-purple-800/40 mt-4">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-purple-300 flex items-center gap-2">
+                  <Phone className="h-4 w-4" /> Standby Days ({standbyEarnings.days.length})
+                </p>
+                <p className="text-sm font-bold text-green-400">R{standbyEarnings.total.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                {standbyEarnings.days.map(d => (
+                  <div key={d.date} className="flex items-center justify-between text-xs bg-gray-800/40 rounded px-3 py-1.5">
+                    <span className="text-gray-300">{format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}</span>
+                    <span className="text-green-400 font-medium">R{d.amount}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

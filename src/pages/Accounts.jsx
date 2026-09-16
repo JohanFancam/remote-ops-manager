@@ -13,8 +13,9 @@ import {
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { getOperatorMonthlySummary } from '../components/utils/earningsUtils';
+import { getOperatorStandbyEarnings } from '../components/utils/standbyEarnings';
 
-function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, standbyDays = [], standbyRate = 500 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -30,6 +31,22 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   );
   const sortedBreakdown = useMemo(() => [...breakdown].sort((a, b) => a.date.localeCompare(b.date)), [breakdown]);
   const hasPending = pendingShoots.length > 0;
+
+  const standbyEarnings = useMemo(
+    () => getOperatorStandbyEarnings(standbyDays, op.email, month, standbyRate),
+    [standbyDays, op.email, month, standbyRate]
+  );
+  const grandTotal = total + standbyEarnings.total;
+  const roleLabel = op.role === 'operator_standby' ? 'Remote Operator/Standby'
+    : op.role === 'standby' ? 'Standby'
+    : op.role === 'accounts' ? 'Accounts'
+    : op.role === 'admin' ? 'Admin'
+    : 'Remote Operator';
+  const roleBadge = op.role === 'operator_standby'
+    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+    : op.role === 'standby'
+    ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+    : 'bg-gray-700 text-gray-300 border-gray-600';
 
   const handleSaveFee = async (shoot) => {
     const rec = getRecord(shoot);
@@ -56,8 +73,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
     }`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-white">{op.full_name || op.email}</p>
+            <Badge className={`text-xs border ${roleBadge}`}>{roleLabel}</Badge>
             {op.inactive && <Badge className="text-xs bg-gray-700 text-gray-400 border-gray-600">Not in use</Badge>}
           </div>
           <p className="text-xs text-gray-500">{op.email}</p>
@@ -72,8 +90,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             <p className="text-sm text-gray-400">
               {activeShootCount} shoot{activeShootCount !== 1 ? 's' : ''}
               {cancelledCount > 0 && <span className="text-gray-600"> · {cancelledCount} cancelled</span>}
+              {standbyEarnings.count > 0 && <span className="text-purple-400"> · {standbyEarnings.count} standby</span>}
             </p>
-            <p className="font-mono font-bold text-white">R{total.toFixed(2)}</p>
+            <p className="font-mono font-bold text-white">R{grandTotal.toFixed(2)}</p>
           </div>
           {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
         </div>
@@ -114,6 +133,25 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
 
           {sortedBreakdown.length === 0 && !hasPending && <p className="text-gray-500 text-sm text-center py-4">No shoots this month.</p>}
           {sortedBreakdown.length === 0 && hasPending && <p className="text-gray-500 text-sm text-center py-2">No approved shoots yet.</p>}
+
+          {standbyEarnings.days.length > 0 && (
+            <div className="mt-3 border-t border-purple-900/40 pt-3">
+              <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3" /> Standby Days ({standbyEarnings.days.length})
+              </p>
+              <div className="space-y-1.5">
+                {standbyEarnings.days.map(d => (
+                  <div key={d.date} className="flex items-center justify-between rounded-lg p-3 border border-purple-900/40 bg-purple-950/10">
+                    <div>
+                      <p className="text-sm font-medium text-white">Standby Coverage</p>
+                      <p className="text-xs text-gray-500">{d.date}</p>
+                    </div>
+                    <span className="font-mono font-bold text-white">R{d.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {sortedBreakdown.map(item => {
             const shoot = item.shoot;
@@ -229,8 +267,14 @@ export default function Accounts() {
     queryFn: () => base44.entities.AppSettings.list(),
   });
 
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-start_date', 500),
+  });
+
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
@@ -260,8 +304,8 @@ export default function Accounts() {
       ...users.map(u => u.email),
     ]);
     const knownUsers = pendingUsers
-      .filter(u => u.role === 'user' || u.role === 'standby')
-      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
+      .filter(u => u.role === 'user' || u.role === 'standby' || u.role === 'operator_standby')
+      .map(u => ({ email: u.email, full_name: u.full_name || u.email, role: u.role || 'user', inactive: u.inactive || false }));
     const knownEmails = new Set(knownUsers.map(u => u.email));
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
@@ -270,7 +314,11 @@ export default function Accounts() {
       (s.assigned_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e); });
       (s.pending_operators || []).forEach(e => { if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e); });
     });
-    const extraUsers = [...extraEmails].map(email => ({ email, full_name: nameMap[email] || email }));
+    const extraUsers = [...extraEmails].map(email => ({
+      email,
+      full_name: nameMap[email] || email,
+      role: (pendingUsers.find(p => p.email === email)?.role) || (users.find(u => u.email === email)?.role) || 'user',
+    }));
     return [...knownUsers, ...extraUsers];
   }, [pendingUsers, shoots, paymentRecords, users]);
 
@@ -278,9 +326,12 @@ export default function Accounts() {
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opPending = monthPendingShoots.filter(s => s.pending_operators?.includes(op.email));
-      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length };
-    }).filter(op => op.shoots > 0 || op.pending > 0);
-  }, [remoteUsers, monthShoots, monthPendingShoots, filterMonth]);
+      const standbyCount = op.role === 'operator_standby'
+        ? getOperatorStandbyEarnings(standbyDays, op.email, filterMonth, standbyRate).count
+        : 0;
+      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length, standbyCount };
+    }).filter(op => op.shoots > 0 || op.pending > 0 || op.standbyCount > 0);
+  }, [remoteUsers, monthShoots, monthPendingShoots, filterMonth, standbyDays, standbyRate]);
 
   const totalPending = summaryRows.reduce((s, r) => s + r.pending, 0);
   const totalShoots = summaryRows.reduce((s, r) => s + r.shoots, 0);
@@ -509,6 +560,8 @@ export default function Accounts() {
                 onReject={handleReject}
                 baseRate={baseRate}
                 additionalRate={additionalRate}
+                standbyDays={standbyDays}
+                standbyRate={standbyRate}
               />
             ))}
           </div>

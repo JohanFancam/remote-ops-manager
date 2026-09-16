@@ -7,9 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateOperatorEarnings, exportOperatorPDF } from '../utils/earningsUtils';
+import { useApp } from '../AppContext';
+import { getOperatorStandbyEarnings, standbyBreakdownItem } from '../utils/standbyEarnings';
 
 export default function RemoteEarnings({ user }) {
   const [expanded, setExpanded] = useState(false);
+  const { isOperatorStandby } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -34,8 +37,14 @@ export default function RemoteEarnings({ user }) {
     queryFn: () => base44.entities.PaymentRecord.list('-created_date', 1000),
   });
 
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-start_date', 500),
+  });
+
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -81,6 +90,13 @@ export default function RemoteEarnings({ user }) {
   const mainShoots = adjustedBreakdown.filter(b => !b.isCancelled && !b.isAdditional);
   const additionalShoots = adjustedBreakdown.filter(b => !b.isCancelled && b.isAdditional);
 
+  const standbyEarnings = useMemo(
+    () => isOperatorStandby ? getOperatorStandbyEarnings(standbyDays, user?.email, monthStr, standbyRate) : { days: [], total: 0 },
+    [isOperatorStandby, standbyDays, user, monthStr, standbyRate]
+  );
+  const grandTotal = adjustedTotal + standbyEarnings.total;
+  const displayBreakdown = [...adjustedBreakdown, ...standbyEarnings.days.map(standbyBreakdownItem)];
+
   return (
     <Card className="bg-gray-900 border-gray-800 mt-8">
       <CardHeader className="border-b border-gray-800 pb-3">
@@ -98,7 +114,7 @@ export default function RemoteEarnings({ user }) {
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button size="sm" variant="outline" className="border-green-700/50 text-green-400 hover:bg-green-900/30 gap-1.5 text-xs h-7"
-              onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown, month: format(currentMonth, 'MMMM yyyy') })}>
+              onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: grandTotal, breakdown: displayBreakdown, month: format(currentMonth, 'MMMM yyyy') })}>
               <Download className="h-3 w-3" /> PDF
             </Button>
 
@@ -125,7 +141,7 @@ export default function RemoteEarnings({ user }) {
       <CardContent className="pt-4">
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-green-400">R{adjustedTotal.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-400">R{grandTotal.toLocaleString()}</p>
             <p className="text-xs text-gray-400">Total Earned</p>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3 text-center">
@@ -141,19 +157,22 @@ export default function RemoteEarnings({ user }) {
 
         {expanded && (
           <div className="space-y-3">
-            {adjustedBreakdown.length === 0 ? (
+            {displayBreakdown.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No shoots assigned for {format(currentMonth, 'MMMM yyyy')}.</p>
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Shoots This Month</p>
                   <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-300 gap-1 px-2"
-                    onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown })}>
+                    onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: grandTotal, breakdown: displayBreakdown })}>
                     <Download className="h-3 w-3" /> PDF
                   </Button>
                 </div>
+                {standbyEarnings.count > 0 && (
+                  <p className="text-xs text-purple-400 mb-2">+ {standbyEarnings.count} standby day{standbyEarnings.count !== 1 ? 's' : ''} — R{standbyEarnings.total.toLocaleString()}</p>
+                )}
                 <div className="space-y-1">
-                  {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
+                  {[...displayBreakdown].sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
                     <div key={idx} className={`flex items-center justify-between rounded px-3 py-2 ${item.isCancelled ? 'bg-gray-800/30 opacity-60' : 'bg-gray-800/40'}`}>
                       <div className="min-w-0">
                         <p className={`text-sm font-medium truncate ${item.isCancelled ? 'text-gray-400 line-through' : 'text-white'}`}>{item.shoot?.title || 'Game'}</p>

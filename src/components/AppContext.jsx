@@ -16,11 +16,30 @@ export function AppProvider({ children }) {
     queryFn: () => base44.auth.me(),
   });
 
+  // PendingUser holds the admin-managed role (incl. standby / accounts / operator_standby),
+  // which the platform User.role doesn't always reflect. Resolve the effective role from it.
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ['pendingUsers'],
+    queryFn: () => base44.entities.PendingUser.list(),
+    staleTime: 60_000,
+  });
+
   const presenceIdRef = useRef(null);
 
-  const isAdmin = user?.role === 'admin';
-  const isStandby = user?.role === 'standby';
-  const isAccounts = user?.role === 'accounts';
+  const platformRole = user?.role;
+  const pending = pendingUsers.find(p =>
+    p.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim()
+  );
+  const pendingRole = pending?.role;
+  const effectiveRole = pendingRole || platformRole;
+
+  // Admin is authoritative from either the platform role or the admin-managed PendingUser role.
+  const isAdmin = platformRole === 'admin' || pendingRole === 'admin';
+  const isStandby = !isAdmin && effectiveRole === 'standby';
+  const isAccounts = !isAdmin && effectiveRole === 'accounts';
+  const isOperatorStandby = !isAdmin && effectiveRole === 'operator_standby';
+  // Anyone who can claim/swap standby coverage on the calendar.
+  const canStandby = isAdmin || isStandby || isOperatorStandby;
   const adminLevel = null; // removed admin levels
   const isLevel1Admin = isAdmin; // all admins have full access now
   const isLevel2Admin = false;
@@ -81,7 +100,7 @@ export function AppProvider({ children }) {
   }, [user?.email]);
 
   return (
-    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
+    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isOperatorStandby, canStandby, effectiveRole, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
       {children}
     </AppContext.Provider>
   );

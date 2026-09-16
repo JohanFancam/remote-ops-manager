@@ -8,7 +8,8 @@
         "admin",
         "user",
         "standby",
-        "accounts"
+        "accounts",
+        "operator_standby"
       ],
       "default": "user"
     }
