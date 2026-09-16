@@ -25,6 +25,7 @@ import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import MonthEntry from '../components/calendar/MonthEntry';
 import DayEventsModal from '../components/calendar/DayEventsModal';
 import ShootQuickView from '../components/calendar/ShootQuickView';
+import StandbyAssignDialog from '../components/calendar/StandbyAssignDialog';
 
 const statusColors = {
   upcoming: 'bg-blue-600',
@@ -516,6 +517,7 @@ export default function Calendar() {
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
   const [dayModal, setDayModal] = useState(null); // day whose "X more" popup is open
+  const [assignStandbyDay, setAssignStandbyDay] = useState(null); // admin standby-assign dialog
   const [quickView, setQuickView] = useState(null); // shoot shown in the quick view popup
 
   const openQuickView = (s) => { setQuickView(s); };
@@ -1354,9 +1356,9 @@ export default function Calendar() {
                   {canStandby && !isPast && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
+                      onClick={(e) => { e.stopPropagation(); isAdmin ? setAssignStandbyDay(day) : handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${standbyToggleClass(myStandby, otherStandby, primaryStandby)}`}
-                      title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
+                      title={isAdmin ? 'Assign standby for this day' : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
                       {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
@@ -1480,11 +1482,11 @@ export default function Calendar() {
                        <Button
                          size="sm"
                          variant="outline"
-                         onClick={() => handleToggleStandbyDay(day)}
+                         onClick={() => isAdmin ? setAssignStandbyDay(day) : handleToggleStandbyDay(day)}
                          className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${standbyToggleTextClass(myStandby, otherStandby, primaryStandby)}`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                         {isAdmin ? 'Assign Standby' : myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                        </Button>
                       )}
                     {!isAdmin && !isStandby && !isPast && (
