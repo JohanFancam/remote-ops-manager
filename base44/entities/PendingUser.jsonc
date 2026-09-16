@@ -12,7 +12,10 @@
       "type": "string",
       "enum": [
         "user",
-        "admin"
+        "admin",
+        "standby",
+        "accounts",
+        "operator_standby"
       ],
       "default": "user"
     },
