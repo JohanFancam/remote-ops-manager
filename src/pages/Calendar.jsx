@@ -597,6 +597,9 @@ export default function Calendar() {
       map.set(email, {
         ...u,
         email,
+        // Prefer PendingUser role (admin-managed, incl. operator_standby/standby/accounts)
+        // over the platform User.role which is only ever 'admin' or 'user'.
+        role: existing?.role || u.role,
         // Prefer PendingUser full_name (admin-set) over User entity name
         full_name: existing?.full_name || u.full_name || '',
       });
@@ -1342,12 +1345,12 @@ export default function Calendar() {
                   {canStandby && !isPast && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); isAdmin ? setAssignStandbyDay(day) : handleToggleStandbyDay(day); }}
+                      onClick={(e) => { e.stopPropagation(); (isAdmin || isOperatorStandby) ? setAssignStandbyDay(day) : handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] transition-colors ${standbyToggleClass(myStandby, otherStandby, primaryStandby)}`}
-                      title={isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap standby coverage for this day' : 'Assign standby for this day') : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
+                      title={(isAdmin || isOperatorStandby) ? (primaryStandby || myStandby || otherStandby ? 'Swap standby coverage for this day' : 'Assign standby for this day') : myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
                     >
                       <ShieldCheck className="h-3 w-3" />
-                      {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap' : 'Standby') : myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
+                      {(isAdmin || isOperatorStandby) ? (primaryStandby || myStandby || otherStandby ? 'Swap' : 'Standby') : myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
                   {!isAdmin && !isStandby && !isPast && (
@@ -1466,15 +1469,15 @@ export default function Calendar() {
                     {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-300">+{dayUnavailable.length - 4} unavailable</span>}
                     {canStandby && !isPast && (
                        <Button
-                         size="sm"
-                         variant="outline"
-                         onClick={() => isAdmin ? setAssignStandbyDay(day) : handleToggleStandbyDay(day)}
-                         className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${standbyToggleTextClass(myStandby, otherStandby, primaryStandby)}`}
-                       >
-                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                         {isAdmin ? (primaryStandby || myStandby || otherStandby ? 'Swap Standby' : 'Assign Standby') : myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
-                       </Button>
-                      )}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => (isAdmin || isOperatorStandby) ? setAssignStandbyDay(day) : handleToggleStandbyDay(day)}
+                          className={`h-8 rounded-md border-gray-700 bg-gray-950/70 text-xs ${standbyToggleTextClass(myStandby, otherStandby, primaryStandby)}`}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                          {(isAdmin || isOperatorStandby) ? (primaryStandby || myStandby || otherStandby ? 'Swap Standby' : 'Assign Standby') : myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                        </Button>
+                       )}
                     {!isAdmin && !isStandby && !isPast && (
                        <Button
                          size="sm"
@@ -1657,13 +1660,14 @@ export default function Calendar() {
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
 
-      {isAdmin && (
+      {(isAdmin || isOperatorStandby) && (
         <StandbyAssignDialog
           open={!!assignStandbyDay}
           day={assignStandbyDay}
           allUsers={allUsers}
           currentUser={user}
           existing={assignStandbyDay ? (getStandbyForDay(assignStandbyDay)[0] || null) : null}
+          canRemove={isAdmin}
           onClose={() => setAssignStandbyDay(null)}
         />
       )}

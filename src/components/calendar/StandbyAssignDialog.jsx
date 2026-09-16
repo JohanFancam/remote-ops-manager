@@ -14,7 +14,7 @@ const ROLE_LABEL = {
 
 // Admin-only dialog to assign (or reassign / remove) a standby slot to any
 // standby-capable person — including Operator/Standby users.
-export default function StandbyAssignDialog({ open, day, allUsers = [], currentUser, existing, onClose }) {
+export default function StandbyAssignDialog({ open, day, allUsers = [], currentUser, existing, canRemove = true, onClose }) {
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
@@ -102,7 +102,7 @@ export default function StandbyAssignDialog({ open, day, allUsers = [], currentU
           )}
         </div>
         <div className="flex items-center justify-between gap-2 pt-2">
-          {existing ? (
+          {existing && canRemove ? (
             <Button variant="ghost" size="sm" className="text-red-400 hover:bg-red-900/30" onClick={handleRemove} disabled={saving}>
               <Trash2 className="h-4 w-4 mr-1" /> Remove
             </Button>
@@ -110,7 +110,7 @@ export default function StandbyAssignDialog({ open, day, allUsers = [], currentU
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" onClick={handleAssign} disabled={saving || !email}>
-              {saving ? 'Saving…' : existing ? 'Reassign' : 'Assign Standby'}
+              {saving ? 'Saving…' : existing ? 'Swap' : 'Assign Standby'}
             </Button>
           </div>
         </div>
