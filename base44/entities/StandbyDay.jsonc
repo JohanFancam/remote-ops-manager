@@ -61,6 +61,11 @@
           "user_condition": {
             "role": "standby"
           }
+        },
+        {
+          "user_condition": {
+            "role": "operator_standby"
+          }
         }
       ]
     },
@@ -74,6 +79,11 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "role": "operator_standby"
+          }
         }
       ]
     },
@@ -85,6 +95,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operator_standby"
           }
         }
       ]
