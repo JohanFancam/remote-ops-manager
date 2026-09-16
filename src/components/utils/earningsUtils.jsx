@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 
 export const DEFAULT_BASE_RATE = 1000;
 export const DEFAULT_ADDITIONAL_RATE = 250;
+export const DEFAULT_POSTPONED_RATE = 200;
 export const ADDITIONAL_WINDOW_HOURS = 2;
 
 // Parse "HH:MM" into minutes since midnight
@@ -44,12 +45,13 @@ export function getAdditionalShootIds(dayShots) {
   return additionalIds;
 }
 
-export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
+export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE, postponedRate = DEFAULT_POSTPONED_RATE) {
   const safeEmail = operatorEmail?.toLowerCase()?.trim();
   const assigned = shoots.filter(s =>
     s.assigned_operators?.some(e => e?.toLowerCase()?.trim() === safeEmail)
   );
-  const activeShoots = assigned.filter(s => s.status !== 'cancelled');
+  const activeShoots = assigned.filter(s => s.status !== 'cancelled' && s.status !== 'postponed');
+  const postponedShoots = assigned.filter(s => s.status === 'postponed');
   const cancelledShoots = assigned.filter(s => s.status === 'cancelled');
 
   const byDate = {};
@@ -81,6 +83,12 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
     });
   });
 
+  postponedShoots.forEach(shoot => {
+    const amount = postponedRate;
+    total += amount;
+    breakdown.push({ date: shoot.date, shoot, amount, isAdditional: false, isPostponed: true });
+  });
+
   cancelledShoots.forEach(shoot => {
     const amount = shoot.earning_override != null ? (Number(shoot.earning_override) || 0) : 0;
     total += amount;
@@ -94,15 +102,21 @@ export function calculateOperatorEarnings(shoots, operatorEmail, baseRate = DEFA
 //   - "additional" = auto_assigned_for (authoritative) OR time-proximity
 //   - cancelled shoots earn override_fee (payment record) > earning_override (shoot) > 0
 //   - payment record override_fee / is_additional override the computed values
-export function getOperatorMonthlySummary(monthShoots, operatorEmail, baseRate, additionalRate, opRecords) {
-  const { breakdown } = calculateOperatorEarnings(monthShoots, operatorEmail, baseRate, additionalRate);
-  let activeCount = 0, cancelledCount = 0;
+export function getOperatorMonthlySummary(monthShoots, operatorEmail, baseRate, additionalRate, opRecords, postponedRate = DEFAULT_POSTPONED_RATE) {
+  const { breakdown } = calculateOperatorEarnings(monthShoots, operatorEmail, baseRate, additionalRate, postponedRate);
+  let activeCount = 0, cancelledCount = 0, postponedCount = 0;
   const adjusted = breakdown.map(item => {
     const rec = opRecords?.find(r => r.shoot_id === item.shoot?.id);
     if (item.isCancelled) {
       let amount = item.amount;
       if (rec?.override_fee != null) amount = Number(rec.override_fee);
       cancelledCount++;
+      return { ...item, amount, isAdditional: false, override_fee: rec?.override_fee, manual_additional: false, notes: rec?.notes };
+    }
+    if (item.isPostponed) {
+      let amount = item.amount;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      postponedCount++;
       return { ...item, amount, isAdditional: false, override_fee: rec?.override_fee, manual_additional: false, notes: rec?.notes };
     }
     let amount = item.amount;
@@ -116,10 +130,10 @@ export function getOperatorMonthlySummary(monthShoots, operatorEmail, baseRate, 
     return { ...item, amount, isAdditional, override_fee: rec?.override_fee, manual_additional: rec?.is_additional != null, notes: rec?.notes };
   });
   const total = adjusted.reduce((s, b) => s + b.amount, 0);
-  return { total, breakdown: adjusted, activeCount, cancelledCount };
+  return { total, breakdown: adjusted, activeCount, cancelledCount, postponedCount };
 }
 
-export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE) {
+export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_RATE, additionalRate = DEFAULT_ADDITIONAL_RATE, postponedRate = DEFAULT_POSTPONED_RATE) {
   const adminEmails = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
   const operatorEmails = [...new Set(
     shoots.flatMap(s => s.assigned_operators || []).filter(e => e && !adminEmails.has(e))
@@ -127,7 +141,7 @@ export function getAllOperatorsEarnings(shoots, users, baseRate = DEFAULT_BASE_R
 
   return operatorEmails.map(email => {
     const user = users.find(u => u.email === email);
-    const { total, breakdown } = calculateOperatorEarnings(shoots, email, baseRate, additionalRate);
+    const { total, breakdown } = calculateOperatorEarnings(shoots, email, baseRate, additionalRate, postponedRate);
     return { email, name: user?.full_name || email, total, breakdown, shootCount: breakdown.length };
   }).sort((a, b) => b.total - a.total);
 }
@@ -177,7 +191,7 @@ export function exportOperatorPDF(operatorData) {
     if (y > 270) { doc.addPage(); y = 20; }
     doc.text(item.date || '', 20, y);
     doc.text((item.shoot?.title || '').substring(0, 35), 55, y);
-    doc.text(item.isCancelled ? 'Cancelled' : (item.isAdditional ? 'Additional' : 'Main'), 135, y);
+    doc.text(item.isCancelled ? 'Cancelled' : (item.isPostponed ? 'Postponed' : (item.isAdditional ? 'Additional' : 'Main')), 135, y);
     doc.text(`R ${item.amount.toLocaleString('en-ZA')}`, 165, y); y += 10;
   });
   doc.line(20, y + 2, 190, y + 2); y += 8;

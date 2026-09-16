@@ -130,6 +130,7 @@ export default function Settings() {
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [rateStandbyInput, setRateStandbyInput] = useState('');
+  const [ratePostponedInput, setRatePostponedInput] = useState('');
   const [ratesSaved, setRatesSaved] = useState(false);
 
   // Logo
@@ -188,9 +189,11 @@ export default function Settings() {
     const br = appSettings.find(s => s.key === 'base_rate')?.value;
     const ar = appSettings.find(s => s.key === 'additional_rate')?.value;
     const sr = appSettings.find(s => s.key === 'standby_rate')?.value;
+    const pr = appSettings.find(s => s.key === 'postponed_rate')?.value;
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
     if (sr) setRateStandbyInput(sr);
+    if (pr) setRatePostponedInput(pr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
   }, [appSettings]);
@@ -213,6 +216,7 @@ export default function Settings() {
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
       { key: 'standby_rate', value: rateStandbyInput || '500', description: 'Flat standby day rate for Operator/Standby users (ZAR)' },
+      { key: 'postponed_rate', value: ratePostponedInput || '200', description: 'Flat rate paid for a postponed shoot (ZAR)' },
       { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
@@ -396,6 +400,17 @@ export default function Settings() {
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                   <p className="text-xs text-gray-600 mt-1">Flat rate paid per standby day to Operator/Standby users.</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Postponed Shoot Rate (R)</label>
+                  <Input
+                    type="number"
+                    value={ratePostponedInput}
+                    onChange={e => setRatePostponedInput(e.target.value)}
+                    placeholder="200"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Flat rate paid to the assigned operator when a shoot is postponed.</p>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Admin Working Hours / Active Day</label>

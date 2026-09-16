@@ -45,6 +45,7 @@ export default function Earnings() {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 200;
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -55,13 +56,19 @@ export default function Earnings() {
     );
   }, [allShoots, user, monthStr]);
 
-  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate);
+  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate, postponedRate);
 
   const adjustedBreakdown = breakdown.map(item => {
     const rec = paymentRecords.find(r =>
       r.shoot_id === item.shoot?.id &&
       r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim()
     );
+    if (item.isPostponed) {
+      let amount = item.amount;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      const paid = rec?.paid || false;
+      return { ...item, amount, isAdditional: false, paid };
+    }
     let amount = item.amount;
     let isAdditional = item.isAdditional;
     if (rec?.override_fee != null) amount = Number(rec.override_fee);
@@ -193,6 +200,9 @@ export default function Earnings() {
                   {isExpanded && (
                     <CardContent className="px-4 pb-4 pt-0 border-t border-gray-800 space-y-2">
                       <div className="flex flex-wrap gap-2 mt-3">
+                        {item.isPostponed && (
+                          <Badge className="text-xs bg-amber-500/20 text-amber-400 border-amber-500/30">Postponed</Badge>
+                        )}
                         {item.isAdditional && (
                           <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Additional Shoot</Badge>
                         )}

@@ -45,6 +45,7 @@ export default function RemoteEarnings({ user }) {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 200;
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -54,7 +55,7 @@ export default function RemoteEarnings({ user }) {
     );
   }, [allShoots, user, monthStr]);
 
-  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate);
+  const { breakdown } = calculateOperatorEarnings(myShootsForMonth, user?.email, baseRate, additionalRate, postponedRate);
 
   // Check if accounts has marked this month as paid
   const monthPayRecord = paymentRecords.find(r =>
@@ -72,6 +73,11 @@ export default function RemoteEarnings({ user }) {
       r.operator_email?.toLowerCase()?.trim() === user?.email?.toLowerCase()?.trim()
     );
     if (item.isCancelled) {
+      let amount = item.amount;
+      if (rec?.override_fee != null) amount = Number(rec.override_fee);
+      return { ...item, amount, isAdditional: false };
+    }
+    if (item.isPostponed) {
       let amount = item.amount;
       if (rec?.override_fee != null) amount = Number(rec.override_fee);
       return { ...item, amount, isAdditional: false };
@@ -189,7 +195,10 @@ export default function RemoteEarnings({ user }) {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className={`text-sm font-bold ${item.isCancelled ? 'text-gray-500' : 'text-green-400'}`}>R{item.amount.toLocaleString()}</p>
-                        {!item.isCancelled && item.isAdditional && (
+                        {!item.isCancelled && item.isPostponed && (
+                          <Badge className="text-xs bg-amber-500/20 text-amber-400 border-amber-500/30">Postponed</Badge>
+                        )}
+                        {!item.isCancelled && !item.isPostponed && item.isAdditional && (
                           <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Additional</Badge>
                         )}
                       </div>

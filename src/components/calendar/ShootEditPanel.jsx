@@ -39,26 +39,16 @@ export default function ShootEditPanel({
               />
             </div>
 
-            {/* Client & Location */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Client / Team</label>
-                <Input
-                  placeholder="Client"
-                  value={form.client}
-                  onChange={e => setForm({ ...form, client: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Location</label>
-                <Input
-                  placeholder="Venue / Location"
-                  value={form.location}
-                  onChange={e => setForm({ ...form, location: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                />
-              </div>
+            {/* Client / Team */}
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Client / Team</label>
+              <Input
+                placeholder="Client"
+                value={form.client}
+                onChange={e => setForm({ ...form, client: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+              />
+              <p className="text-xs text-gray-600 mt-1">Venue is now managed in the team's Rig Settings.</p>
             </div>
 
             {/* Date & Time */}
@@ -91,7 +81,7 @@ export default function ShootEditPanel({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
-                  {['upcoming', 'completed', 'cancelled'].map((s) => (
+                  {['upcoming', 'completed', 'cancelled', 'postponed'].map((s) => (
                     <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>
                   ))}
                 </SelectContent>

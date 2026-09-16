@@ -117,3 +117,10 @@ export function shortenVenue(venue) {
   const commaIdx = trimmed.indexOf(',');
   return commaIdx > 0 ? trimmed.slice(0, commaIdx).trim() : trimmed;
 }
+
+// Effective shoot location: a shoot's own location (legacy / per-shoot) takes
+// priority, otherwise fall back to the matched rig setting's venue so the
+// location set on the team's rig settings pulls through automatically.
+export function getShootLocation(shoot, rig) {
+  return shoot?.location || rig?.location || '';
+}

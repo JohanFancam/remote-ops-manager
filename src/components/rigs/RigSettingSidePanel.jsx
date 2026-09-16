@@ -26,7 +26,7 @@ const ARENA_WIDE = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
 
 const emptyForm = {
-  team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
+  team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '', location: '',
   remote_rigs: [],
   ...DEFAULT_OFFSETS,
   data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide_enabled: true, data_wide: { ...DEFAULT_DATA_WIDE },
@@ -196,6 +196,14 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-white">{t}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Location / Venue */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Location / Venue</label>
+              <Input placeholder="e.g. Madison Square Garden" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} disabled={readOnly}
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 disabled:opacity-60" />
+              <p className="text-[10px] text-gray-600 mt-1">Auto-pulls through to this team's shoot details.</p>
             </div>
 
             {/* Shoot Plan */}

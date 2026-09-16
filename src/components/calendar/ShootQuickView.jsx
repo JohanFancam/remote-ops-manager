@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
-import { shortenTitle } from '../utils/scheduleUtils';
+import { shortenTitle, getShootLocation } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
@@ -69,7 +69,7 @@ export default function ShootQuickView({
               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${isFancamBase ? 'bg-orange-500/15 text-orange-300 border-orange-500/30' : 'bg-blue-500/15 text-blue-300 border-blue-500/30'}`}>
                 {rigType}
               </span>
-              {shoot.location && <span className="text-[11px] text-gray-400">{shoot.location}</span>}
+              {getShootLocation(shoot, matched) && <span className="text-[11px] text-gray-400">{getShootLocation(shoot, matched)}</span>}
               <span className="text-[11px] text-gray-500 capitalize">{(shoot.status || 'upcoming').replace('_', ' ')}</span>
             </div>
             {shoot.status === 'cancelled' && shoot.cancellation_reason && (

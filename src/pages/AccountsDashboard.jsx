@@ -113,6 +113,7 @@ export default function AccountsDashboard() {
 
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 200;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['shoots'] });
@@ -221,7 +222,7 @@ export default function AccountsDashboard() {
     const monthShoots = shoots.filter(s => s.date?.startsWith(filterMonth));
     return remoteUsers.map(op => {
       const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === filterMonth);
-      const { total, activeCount, cancelledCount } = getOperatorMonthlySummary(monthShoots, op.email, baseRate, additionalRate, opRecords);
+      const { total, activeCount, cancelledCount, postponedCount } = getOperatorMonthlySummary(monthShoots, op.email, baseRate, additionalRate, opRecords, postponedRate);
 
       // Paid status comes from the month-level record
       const monthRec = getMonthRecord(op.email);
@@ -229,8 +230,8 @@ export default function AccountsDashboard() {
       const paidDate = monthRec?.paid_date || null;
       const note = monthRec?.notes || '';
 
-      return { email: op.email, name: op.full_name || op.email, shoots: activeCount, cancelledCount, total, paid, paidDate, note, inactive: !!op.inactive };
-    }).filter(op => op.shoots > 0 || op.cancelledCount > 0);
+      return { email: op.email, name: op.full_name || op.email, shoots: activeCount, cancelledCount, postponedCount, total, paid, paidDate, note, inactive: !!op.inactive };
+    }).filter(op => op.shoots > 0 || op.cancelledCount > 0 || op.postponedCount > 0);
   }, [remoteUsers, shoots, paymentRecords, filterMonth, baseRate, additionalRate]);
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
@@ -251,7 +252,7 @@ export default function AccountsDashboard() {
       let paidOps = 0;
       remoteUsers.forEach(op => {
         const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === monthKey);
-        const { total: opTotal, activeCount, cancelledCount } = getOperatorMonthlySummary(monthShoots, op.email, baseRate, additionalRate, opRecords);
+        const { total: opTotal, activeCount, cancelledCount } = getOperatorMonthlySummary(monthShoots, op.email, baseRate, additionalRate, opRecords, postponedRate);
         if (activeCount + cancelledCount === 0) return;
         activeOps++;
         total += opTotal;
@@ -298,7 +299,7 @@ export default function AccountsDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Standard: R{baseRate} · Additional: R{additionalRate}</p>
+            <p className="text-gray-400 text-sm mt-0.5">Standard: R{baseRate} · Additional: R{additionalRate} · Postponed: R{postponedRate}</p>
           </div>
           <div className="flex items-center gap-4 flex-wrap justify-end">
             <LiveClock />
@@ -333,7 +334,7 @@ export default function AccountsDashboard() {
                           const expMonthShoots = shoots.filter(s => s.date?.startsWith(m));
                           const rows = remoteUsers.map(op => {
                             const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === m);
-                            const { total, activeCount } = getOperatorMonthlySummary(expMonthShoots, op.email, baseRate, additionalRate, opRecords);
+                            const { total, activeCount } = getOperatorMonthlySummary(expMonthShoots, op.email, baseRate, additionalRate, opRecords, postponedRate);
                             return { email: op.email, name: op.full_name || op.email, shoots: activeCount, total, paid: false, paidDate: null, note: '' };
                           }).filter(op => op.shoots > 0);
                           exportCSV(rows, m);
@@ -469,7 +470,7 @@ export default function AccountsDashboard() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                        <span className="text-xs text-gray-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}{row.cancelledCount > 0 && <span className="text-gray-600"> · {row.cancelledCount} cancelled</span>}</span>
+                        <span className="text-xs text-gray-400">{row.shoots} shoot{row.shoots !== 1 ? 's' : ''}{row.cancelledCount > 0 && <span className="text-gray-600"> · {row.cancelledCount} cancelled</span>}{row.postponedCount > 0 && <span className="text-amber-500"> · {row.postponedCount} postponed</span>}</span>
                         <span className="font-mono font-bold text-white text-sm">R{row.total.toLocaleString('en-ZA')}</span>
 
                         {/* Note button */}

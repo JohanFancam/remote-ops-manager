@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { getOperatorMonthlySummary } from '../components/utils/earningsUtils';
 import { getOperatorStandbyEarnings } from '../components/utils/standbyEarnings';
 
-function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, standbyDays = [], standbyRate = 500 }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, standbyDays = [], standbyRate = 500, postponedRate = 200 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -25,9 +25,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   const opRecords = paymentRecords.filter(r => r.operator_email === op.email && r.period_month === month);
   const getRecord = (shoot) => opRecords.find(r => r.shoot_id === shoot.id);
 
-  const { total, breakdown, activeCount: activeShootCount, cancelledCount } = useMemo(
-    () => getOperatorMonthlySummary(shoots, op.email, baseRate, additionalRate, opRecords),
-    [shoots, op.email, baseRate, additionalRate, opRecords]
+  const { total, breakdown, activeCount: activeShootCount, cancelledCount, postponedCount } = useMemo(
+    () => getOperatorMonthlySummary(shoots, op.email, baseRate, additionalRate, opRecords, postponedRate),
+    [shoots, op.email, baseRate, additionalRate, opRecords, postponedRate]
   );
   const sortedBreakdown = useMemo(() => [...breakdown].sort((a, b) => a.date.localeCompare(b.date)), [breakdown]);
   const hasPending = pendingShoots.length > 0;
@@ -90,6 +90,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             <p className="text-sm text-gray-400">
               {activeShootCount} shoot{activeShootCount !== 1 ? 's' : ''}
               {cancelledCount > 0 && <span className="text-gray-600"> · {cancelledCount} cancelled</span>}
+              {postponedCount > 0 && <span className="text-amber-500"> · {postponedCount} postponed</span>}
               {standbyEarnings.count > 0 && <span className="text-purple-400"> · {standbyEarnings.count} standby</span>}
             </p>
             <p className="font-mono font-bold text-white">R{grandTotal.toFixed(2)}</p>
@@ -160,7 +161,8 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             const fee = item.amount;
             const additional = item.isAdditional;
             const isCancelled = !!item.isCancelled;
-            const hasOverrideFee = item.override_fee != null && !isCancelled;
+            const isPostponed = !!item.isPostponed;
+            const hasOverrideFee = item.override_fee != null && !isCancelled && !isPostponed;
             const hasManualAdditional = item.manual_additional === true;
             return (
               <div key={shoot.id} className={`rounded-lg p-3 border bg-gray-800/40 ${isCancelled ? 'border-gray-700 opacity-60' : 'border-gray-800'}`}>
@@ -170,7 +172,8 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     <p className="text-xs text-gray-500">{shoot.date}{shoot.game_time ? ` · ${shoot.game_time}` : ''}</p>
                     <div className="flex gap-1 flex-wrap mt-1">
                       {isCancelled && <Badge className="text-xs bg-gray-700 text-gray-300 border-gray-600">Cancelled</Badge>}
-                      {additional && !isCancelled && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
+                      {isPostponed && <Badge className="text-xs bg-amber-500/20 text-amber-400 border-amber-500/30">Postponed</Badge>}
+                      {additional && !isCancelled && !isPostponed && <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>}
                       {hasOverrideFee && <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Fee Override</Badge>}
                       {hasManualAdditional && <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">Manual</Badge>}
                     </div>
@@ -192,7 +195,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     ) : (
                       <>
                         <span className={`font-mono font-bold ${isCancelled ? 'text-gray-500' : 'text-white'}`}>R{fee.toFixed(2)}</span>
-                        {!isCancelled && (
+                        {!isCancelled && !isPostponed && (
                         <Button size="sm" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-white p-0"
                           onClick={() => { setEditingId(shoot.id); setEditFee(String(fee)); }}>
                           <Edit2 className="h-3 w-3" />
@@ -203,6 +206,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                  {!isCancelled && !isPostponed ? (
                   <button
                     className={`text-xs px-2 py-1 rounded border transition-colors ${additional
                       ? 'border-orange-700 text-orange-400 bg-orange-950/30 hover:bg-orange-950/60'
@@ -211,6 +215,9 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     title="Toggle additional shoot rate">
                     {additional ? '⚡ Mark as Standard' : '+ Mark as Additional'}
                   </button>
+                  ) : (
+                    <span className="text-xs text-gray-600">{isPostponed ? 'Flat postponed rate' : 'Cancelled shoot'}</span>
+                  )}
                   {editingNote === shoot.id ? (
                     <div className="flex gap-2 flex-1">
                       <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Add note..."
@@ -275,6 +282,7 @@ export default function Accounts() {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || 500;
+  const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 200;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
@@ -562,6 +570,7 @@ export default function Accounts() {
                 additionalRate={additionalRate}
                 standbyDays={standbyDays}
                 standbyRate={standbyRate}
+                postponedRate={postponedRate}
               />
             ))}
           </div>

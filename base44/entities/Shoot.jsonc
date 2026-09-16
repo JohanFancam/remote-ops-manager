@@ -47,7 +47,8 @@
         "confirmed",
         "in_progress",
         "completed",
-        "cancelled"
+        "cancelled",
+        "postponed"
       ],
       "default": "upcoming"
     },

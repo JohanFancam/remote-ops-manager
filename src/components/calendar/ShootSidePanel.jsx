@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '@/utils/assignmentApproval';
-import { getSchedule, shortenTitle, shortenVenue } from '../utils/scheduleUtils';
+import { getSchedule, shortenTitle, shortenVenue, getShootLocation } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
 
 const timeToMinutes = (timeStr) => {
@@ -378,10 +378,10 @@ export default function ShootSidePanel({
                 <p className="text-white">{shoot.client}</p>
               </div>
             )}
-            {shoot.location && (
+            {getShootLocation(shoot, rig) && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
-                <p className="text-white">{shortenVenue(shoot.location)}</p>
+                <p className="text-white">{shortenVenue(getShootLocation(shoot, rig))}</p>
               </div>
             )}
             {shoot.status && (

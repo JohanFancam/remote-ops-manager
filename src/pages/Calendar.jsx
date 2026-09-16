@@ -15,7 +15,7 @@ import {
 import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
-import { shortenTitle } from '../components/utils/scheduleUtils';
+import { shortenTitle, getShootLocation } from '../components/utils/scheduleUtils';
 import { displayShootTime } from '../components/utils/timezoneUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign } from '../utils/assignmentApproval';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
@@ -32,6 +32,7 @@ const statusColors = {
   in_progress: 'bg-yellow-600',
   completed: 'bg-gray-600',
   cancelled: 'bg-gray-600',
+  postponed: 'bg-amber-500',
 };
 
 const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
@@ -189,6 +190,8 @@ function ShootCalendarEntry({
   const isPending = shoot.pending_operators?.includes(user?.email);
   const hasPending = (shoot.pending_operators || []).length > 0;
   const fancam = isFancamOrMixed(shoot, rigSettings);
+  const matchedRig = findMatchingRig(shoot, rigSettings);
+  const location = getShootLocation(shoot, matchedRig);
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
 
@@ -404,8 +407,8 @@ function ShootCalendarEntry({
               <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-white truncate`}>
                 {(() => { const t = displayShootTime(shoot); return t ? `${t} ` : ''; })()}{shortenTitle(shoot.title)}
               </p>
-              {(shoot.client || shoot.location) && !compact && (
-                <p className="text-xs text-gray-500 truncate">{shoot.client || shoot.location}</p>
+              {(shoot.client || location) && !compact && (
+                <p className="text-xs text-gray-500 truncate">{shoot.client || location}</p>
               )}
               <p className={`${compact ? 'text-[11px]' : 'text-xs'} ${hasPending && !assignedNames ? 'text-yellow-400' : 'text-gray-400'} truncate`}>
                 {assignmentLabel}
@@ -444,6 +447,7 @@ function ShootCalendarEntry({
               {!compact && (
                 <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
                   shoot.status === 'confirmed' ? 'bg-green-500/15 text-green-400 border-green-500/25' :
+                  shoot.status === 'postponed' ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' :
                   shoot.status === 'completed' || shoot.status === 'cancelled' ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' :
                   'bg-blue-500/15 text-blue-400 border-blue-500/25'
                 }`}>

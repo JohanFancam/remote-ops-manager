@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Team name \u2014 matches shoot client/title"
     },
+    "location": {
+      "type": "string",
+      "description": "Default venue / stadium for this team \u2014 auto-pulls through to matched shoots"
+    },
     "venue_type": {
       "type": "string",
       "enum": [
