@@ -35,7 +35,7 @@ const isFancamOrMixed = (shoot, rigSettings) => {
 
 // Compact single-line entry used inside the month grid and the "X more" popup.
 export default function MonthEntry({
-  shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
+  shoot, user, isAdmin, isStandby, canStandby = false, isOperatorStandby = false, allUsers, allShoots, rigSettings, appSettings, todayStr,
   queryClient, onUpdate, onQuickView, onContextMenu, getStandbyCoverageForShoot,
   primaryStandbyAdminEmail = '',
   fullTitle = false,
@@ -57,8 +57,11 @@ export default function MonthEntry({
 
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandby = standbyCoverage?.admin_email === user?.email;
-  const showStandby = (isAdmin || isStandby) && !!standbyCoverage;
-  const showBlueStandby = isMyStandby;
+  const showStandby = canStandby && !!standbyCoverage;
+  // Operator/Standby coverage is purple; admin/standby coverage is blue (mine) / green (other)
+  const isOpStandbyCoverage = allUsers?.find(u => u.email === standbyCoverage?.admin_email)?.role === 'operator_standby';
+  const myColor = isOperatorStandby ? 'purple' : 'blue';
+  const otherColor = isOpStandbyCoverage ? 'purple' : 'green';
 
   const handleAssign = async (e) => {
     e.stopPropagation();
@@ -75,7 +78,7 @@ export default function MonthEntry({
       onContextMenu={(e) => onContextMenu?.(e, shoot)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onQuickView?.(shoot); } }}
       className={`group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left ${
-        showStandby ? (showBlueStandby ? 'border-l-2 border-l-blue-500' : 'border-l-2 border-l-green-500') : ''
+        showStandby ? `border-l-2 ${isMyStandby ? (myColor === 'purple' ? 'border-l-purple-500' : 'border-l-blue-500') : (otherColor === 'purple' ? 'border-l-purple-500' : 'border-l-green-500')}` : ''
       }`}
     >
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} />
@@ -93,7 +96,7 @@ export default function MonthEntry({
       )}
       {showStandby && (
         <ShieldCheck
-          className={`h-2.5 w-2.5 flex-shrink-0 ${showBlueStandby ? 'text-blue-400' : 'text-green-400'}`}
+          className={`h-2.5 w-2.5 flex-shrink-0 ${isMyStandby ? (myColor === 'purple' ? 'text-purple-400' : 'text-blue-400') : (otherColor === 'purple' ? 'text-purple-400' : 'text-green-400')}`}
           title={isMyStandby ? 'Your standby coverage' : `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`}
         />
       )}

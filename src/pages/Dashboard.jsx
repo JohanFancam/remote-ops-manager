@@ -14,7 +14,7 @@ import StandbyUserQuota from '../components/dashboard/StandbyUserQuota';
 import RigTestPanel from '../components/dashboard/RigTestPanel';
 
 export default function Dashboard() {
-  const { user, isAdmin, isStandby } = useApp();
+  const { user, isAdmin, isStandby, isOperatorStandby, canStandby } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -103,16 +103,16 @@ export default function Dashboard() {
   const remoteShoots = (!isAdmin && !isStandby) ? allAssignedShoots : [];
 
   const myStandbyDays = useMemo(() => {
-    if ((!isAdmin && !isStandby) || !user?.email) return [];
+    if (!canStandby || !user?.email) return [];
     return standbyDays.filter((sd) => sd.admin_email === user.email);
-  }, [standbyDays, isAdmin, isStandby, user?.email]);
+  }, [standbyDays, canStandby, user?.email]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-white">
-            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator')}`}
+            {`Welcome, ${user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : isOperatorStandby ? 'Operator/Standby' : 'Operator')}`}
           </h1>
         </div>
 
@@ -155,7 +155,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {(isAdmin || isStandby) && (
+        {canStandby && (
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>

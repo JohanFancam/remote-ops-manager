@@ -159,6 +159,8 @@ function ShootCalendarEntry({
   user,
   isAdmin,
   isStandby,
+  canStandby = false,
+  isOperatorStandby = false,
   allUsers,
   allShoots,
   rigSettings,
@@ -196,12 +198,18 @@ function ShootCalendarEntry({
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
 
   // Standby coverage indication: outline every shoot a standby person covers so
-  // admins and standby users can see at a glance which shoots are covered.
-  // Blue = my standby, green = another standby person.
-  const standbyCoverageClass = (isAdmin || isStandby) && standbyCoverage
+  // anyone with standby duty can see at a glance which shoots are covered.
+  // Blue = my standby (admin/standby), green = another standby person,
+  // purple = Operator/Standby coverage.
+  const isOpStandbyCoverage = allUsers.find(u => u.email === standbyCoverage?.admin_email)?.role === 'operator_standby';
+  const standbyCoverageClass = canStandby && standbyCoverage
     ? (isMyStandbyCoverage
-      ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
-      : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]')
+      ? (isOperatorStandby
+        ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
+        : 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]')
+      : (isOpStandbyCoverage
+        ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
+        : 'border-green-500 ring-1 ring-green-500/45 shadow-[0_0_0_1px_rgba(34,197,94,0.22)]'))
     : '';
 
   const myAssignedShootClass = isAssigned
@@ -1277,6 +1285,8 @@ export default function Calendar() {
       user={user}
       isAdmin={isAdmin}
       isStandby={isStandby}
+      canStandby={canStandby}
+      isOperatorStandby={isOperatorStandby}
       allUsers={allUsers}
       allShoots={shoots}
       rigSettings={rigSettings}
@@ -1392,6 +1402,8 @@ export default function Calendar() {
                       user={user}
                       isAdmin={isAdmin}
                       isStandby={isStandby}
+                      canStandby={canStandby}
+                      isOperatorStandby={isOperatorStandby}
                       allUsers={allUsers}
                       allShoots={shoots}
                       rigSettings={rigSettings}
@@ -1664,6 +1676,8 @@ export default function Calendar() {
           user={user}
           isAdmin={isAdmin}
           isStandby={isStandby}
+          canStandby={canStandby}
+          isOperatorStandby={isOperatorStandby}
           allUsers={allUsers}
           allShoots={shoots}
           rigSettings={rigSettings}
