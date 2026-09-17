@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, CheckCircle2, Undo2 } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle2, Undo2, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { parseCSV, normalizeRigType, normalizeTime, buildTitle, classifyRow, findExistingMatchup } from './csvMatch';
 import CSVReviewTable from './CSVReviewTable';
@@ -16,12 +16,15 @@ export default function CSVImportModal({ open, onClose, onImported }) {
   const [result, setResult] = useState(null);
   const [createdIds, setCreatedIds] = useState([]);
   const [undoing, setUndoing] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [errors, setErrors] = useState([]);
 
   const reset = () => {
     setStep('select'); setFile(null);
     setClassified({ news: [], duplicates: [], reviews: [] });
     setDecisions({}); setLoading(false); setError('');
     setResult(null); setCreatedIds([]); setUndoing(false);
+    setProgress(null); setErrors([]);
   };
 
   const handleFile = async (e) => {
@@ -81,9 +84,12 @@ export default function CSVImportModal({ open, onClose, onImported }) {
       ...classified.reviews.filter(r => decisions[r.idx] === 'add'),
     ];
     const seen = new Set();
+    const total = toImport.length;
+    let processed = 0;
+    setProgress({ current: 0, total, currentTitle: '' });
     for (const item of toImport) {
       const key = `${item.title.toLowerCase()}|${item.row.date}|${item.gameTime}`;
-      if (seen.has(key)) continue;
+      if (seen.has(key)) { processed++; setProgress({ current: processed, total, currentTitle: item.title }); continue; }
       seen.add(key);
       const homeTeam = item.row['client/team'] || item.row.team || '';
       const rigType = normalizeRigType(item.row.type || item.row.rig_type || item.row.format);
@@ -100,11 +106,17 @@ export default function CSVImportModal({ open, onClose, onImported }) {
         });
         if (created?.id) ids.push(created.id);
         success++;
-      } catch { failed++; }
+      } catch (err) {
+        failed++;
+        setErrors(prev => [...prev, { title: item.title, date: item.row.date, time: item.gameTime, error: err?.message || 'Failed to create shoot' }]);
+      }
+      processed++;
+      setProgress({ current: processed, total, currentTitle: item.title });
     }
 
     const skipped = classified.duplicates.length + classified.reviews.filter(r => decisions[r.idx] !== 'add').length;
     setCreatedIds(ids);
+    setProgress(null);
     setResult({ success, skipped, failed, undone: false });
     if (success > 0) onImported?.();
     setStep('result');
@@ -211,11 +223,36 @@ export default function CSVImportModal({ open, onClose, onImported }) {
               </div>
             )}
 
+            {loading && progress && (
+              <div className="mb-4 bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                    Importing shoots...
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono">
+                    {progress.current} / {progress.total}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-200 ease-out"
+                    style={{ width: `${progress.total ? Math.round((progress.current / progress.total) * 100) : 0}%` }}
+                  />
+                </div>
+                {progress.currentTitle && (
+                  <p className="text-xs text-gray-500 mt-2 truncate">
+                    {progress.current < progress.total ? 'Creating' : 'Created'}: {progress.currentTitle}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 mt-2">
               <Button onClick={handleImport} disabled={loading} className="bg-blue-600 hover:bg-blue-700 flex-1">
                 {loading ? 'Importing...' : `Import ${classified.news.length + reviewCount} Shoot(s)`}
               </Button>
-              <Button variant="outline" onClick={reset} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button variant="outline" onClick={reset} disabled={loading} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 Back
               </Button>
             </div>
@@ -236,6 +273,22 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                 <p className="text-xl font-bold text-white mb-1">{result?.success} shoots imported</p>
                 {result?.skipped > 0 && <p className="text-yellow-400 text-sm">{result.skipped} skipped as duplicates</p>}
                 {result?.failed > 0 && <p className="text-red-400 text-sm">{result.failed} rows failed</p>}
+                {errors.length > 0 && (
+                  <div className="mt-4 text-left bg-red-950/30 border border-red-800/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    <p className="text-xs font-semibold text-red-300 mb-2 flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5" /> Error report ({errors.length})
+                    </p>
+                    <ul className="space-y-1.5">
+                      {errors.map((e, i) => (
+                        <li key={i} className="text-xs text-gray-300">
+                          <span className="text-red-400 font-medium">{e.title || 'Untitled'}</span>
+                          <span className="text-gray-500"> — {e.date}{e.time ? ` ${e.time}` : ''}</span>
+                          <span className="text-gray-400 block ml-3">{e.error}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {createdIds.length > 0 && (
                   <Button onClick={handleUndo} disabled={undoing} variant="outline" className="mt-6 border-amber-700/50 text-amber-400 hover:bg-amber-900/30">
                     {undoing ? 'Undoing...' : <><Undo2 className="h-4 w-4 mr-1" /> Undo Import</>}
