@@ -63,11 +63,13 @@ export default function AdminStandbyShootList({
         const startDate = sd.start_date || sd.date;
         const endDate = sd.end_date || startDate;
         if (!startDate) return null;
-        return {
-          ...sd,
-          startDt: new Date(`${startDate}T${sd.start_time || '18:00'}`),
-          endDt: new Date(`${endDate}T${sd.end_time || '06:00'}`),
-        };
+        const startDt = new Date(`${startDate}T${sd.start_time || '18:00'}`);
+        let endDt = new Date(`${endDate}T${sd.end_time || '06:00'}`);
+        // Overnight single-day standby (18:00 → 06:00 stored on one date): the end
+        // is at or before the start, so roll it forward to the next day so shoots
+        // during the overnight window (incl. early morning) are matched.
+        if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1);
+        return { ...sd, startDt, endDt };
       })
       .filter(Boolean)
       .sort((a, b) => a.startDt - b.startDt);
