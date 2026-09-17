@@ -88,15 +88,24 @@ extra accounts.
 ### Importing the real crew
 
 ```bash
-node scripts/import-users.mjs users.csv                             # dry run
-DEFAULT_PASSWORD=Welcome123 node scripts/import-users.mjs users.csv --confirm
+node scripts/import-users.mjs users.csv                              # dry run
+node scripts/import-users.mjs users.csv --confirm --generate-passwords
 ```
 
 CSV needs a header row with `email` plus optionally `full_name` (or `first_name` /
 `last_name`) and `role` (`admin`, `standby`, `accounts`, `user`). JSON arrays work too.
-Each person gets a Manage Users entry and a login. Without `DEFAULT_PASSWORD` no
-passwords are set and users self-register at `/register` with those exact emails.
-Re-running is safe — existing accounts are updated, passwords untouched.
+Each person gets a Manage Users entry and a login.
+
+| Password option | Result |
+|-----------------|--------|
+| `--generate-passwords` | unique random password per new account, printed once |
+| `DEFAULT_PASSWORD=...` | same starting password for every new account |
+| neither | no logins; people self-register at `/register` with those emails |
+| `--reset-passwords` | also re-issue passwords for accounts that already exist |
+
+Re-running is safe: existing accounts are updated and their passwords left alone
+unless `--reset-passwords` is passed. Generated passwords are shown only in that
+run's output — they are stored hashed, so capture them before closing the terminal.
 
 ## Stack
 
