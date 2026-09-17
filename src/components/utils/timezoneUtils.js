@@ -193,3 +193,15 @@ export function tzAbbrev(tz) {
     return useTz;
   }
 }
+
+// True while a shoot's game is actually in progress (SAST game window + duration).
+// Used so the "LIVE DATA" indicator only pulses during the game — solid before/after.
+export function isGameInProgress(shoot, durationMinutes = 180) {
+  const t = shoot?.game_time || shoot?.start_time;
+  if (!shoot?.date || !t) return false;
+  const start = saToUtc(shoot.date, t);
+  if (!start) return false;
+  const end = new Date(start.getTime() + durationMinutes * 60000);
+  const now = new Date();
+  return now >= start && now <= end;
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Minus, Clock, ShieldCheck, Radio } from 'lucide-react';
 import { shortenTitle } from '../utils/scheduleUtils';
-import { displayShootTime } from '../utils/timezoneUtils';
+import { displayShootTime, isGameInProgress } from '../utils/timezoneUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
 import { getDisplayName } from '../utils/nameUtils';
 import { getStandbyColorMap, resolveStandbyColor } from '../utils/standbyColors';
@@ -65,6 +65,7 @@ export default function MonthEntry({
 
   const matchedRig = matchRig(shoot, rigSettings);
   const liveData = !!matchedRig?.live_data;
+  const gameLive = isGameInProgress(shoot);
 
   const handleAssign = async (e) => {
     e.stopPropagation();
@@ -98,7 +99,7 @@ export default function MonthEntry({
       )}
       {liveData && (
         <span
-          className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold px-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse"
+          className={`flex-shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold px-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 ${gameLive ? 'animate-pulse' : ''}`}
           title="Live Data — priority shoot, attend immediately if there is an issue"
         >
           <Radio className="h-2.5 w-2.5" />LIVE

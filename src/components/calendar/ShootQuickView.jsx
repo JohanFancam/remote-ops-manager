@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft, Radio, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle, getShootLocation } from '../utils/scheduleUtils';
-import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
+import { displayShootTime, tzAbbrev, isGameInProgress } from '../utils/timezoneUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import { performSelfAssign } from '../utils/shootSelfAssign';
 import { getStandbyColorMap, resolveStandbyColor } from '../utils/standbyColors';
@@ -33,6 +33,7 @@ export default function ShootQuickView({
   const rigType = shoot.rig_type_override || matched?.rig_type || 'Data';
   const isFancamBase = rigType === 'Fancam' || rigType === 'Data/Fancam';
   const liveData = !!matched?.live_data;
+  const gameLive = isGameInProgress(shoot);
   const coverageColor = standbyCoverage
     ? resolveStandbyColor(standbyCoverage.admin_email, { colorMap: getStandbyColorMap(appSettings), allUsers, currentUserEmail: user?.email })
     : null;
@@ -75,7 +76,7 @@ export default function ShootQuickView({
                 {rigType}
               </span>
               {liveData && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border bg-red-500/20 text-red-300 border-red-500/50 animate-pulse" title="Live Data — priority shoot, attend immediately if there is an issue">
+                <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border bg-red-500/20 text-red-300 border-red-500/50 ${gameLive ? 'animate-pulse' : ''}`} title="Live Data — priority shoot, attend immediately if there is an issue">
                   <Radio className="h-3 w-3" />LIVE DATA
                 </span>
               )}
