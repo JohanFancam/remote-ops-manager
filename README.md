@@ -111,6 +111,15 @@ Re-running is safe — existing accounts are updated, passwords untouched.
 
 ## Environment (optional)
 
+`server/env.js` reads a `.env` file in the project root at startup, so `npm start`,
+`node server/index.js`, and PM2 all pick these up. Real environment variables take
+precedence over the file.
+
+> Changing `DATABASE_PATH` points the app at a different database. If you already have
+> live data, move the existing `remote-ops.db` (plus its `-wal`/`-shm` files, and any
+> `vapid-keys.json` / `google-oauth.json` beside it) to the new location first, or the
+> app will start against an empty database.
+
 ```bash
 PORT=3001
 JWT_SECRET=change-me-in-production

@@ -1,3 +1,5 @@
+// Must come first: everything below reads process.env for its configuration
+import './env.js';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
