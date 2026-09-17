@@ -23,21 +23,39 @@ Short version: create a Railway account with GitHub → deploy this repo → add
 
 ## Shipping updates (Lightsail / VPS)
 
-Deploys are manual — pushing to GitHub does not change the live site until you deploy.
-
-```bash
-cd /home/ubuntu/remote-ops-manager
-./deploy.sh
-```
-
 `deploy.sh` pulls the current branch, installs dependencies, rebuilds the frontend
 (with a memory cap so 1 GB hosts don't get OOM-killed), restarts PM2, and hits `/api/health`.
 
-First time only:
+Run it on the server:
 
 ```bash
-chmod +x deploy.sh
+cd /home/ubuntu/remote-ops-manager
+./deploy.sh          # chmod +x deploy.sh the first time
 ```
+
+### Automatic deploy on push
+
+`.github/workflows/deploy.yml` SSHes into the server and runs the same script whenever
+a deploy branch is pushed (also runnable from the Actions tab). It needs four repository
+secrets under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `DEPLOY_HOST` | server IP or domain |
+| `DEPLOY_USER` | `ubuntu` |
+| `DEPLOY_SSH_KEY` | private key whose public half is in the server's `~/.ssh/authorized_keys` |
+| `DEPLOY_PATH` | optional, defaults to `/home/ubuntu/remote-ops-manager` |
+
+Generate a dedicated key for this rather than reusing a personal one:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/gh_deploy -N ""
+cat ~/.ssh/gh_deploy.pub >> ~/.ssh/authorized_keys   # on the server
+cat ~/.ssh/gh_deploy                                 # paste into DEPLOY_SSH_KEY
+```
+
+The server still needs its own read access to GitHub for `git pull` — a read-only
+deploy key on the repo is the least privileged option.
 
 ## Demo data
 

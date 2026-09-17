@@ -1,0 +1,31 @@
+name: Deploy
+
+# Pushing to a deploy branch updates the live server. Run manually from the
+# Actions tab with "Run workflow" when you need to redeploy the same commit.
+on:
+  push:
+    branches:
+      - main
+      - cursor/modern-standalone-a34f
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # A cold build on a 1 GB instance takes a few minutes
+          command_timeout: 15m
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH || '/home/ubuntu/remote-ops-manager' }}
+            ./deploy.sh
