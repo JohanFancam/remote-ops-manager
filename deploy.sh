@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Pull the latest code and restart the app on a Lightsail / VPS host.
+# Usage: ./deploy.sh
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+PM2_NAME="${PM2_NAME:-remote-ops}"
+# 1 GB hosts run out of memory during the Vite build without a cap
+BUILD_MEMORY="${BUILD_MEMORY:-768}"
+
+cd "$APP_DIR"
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+echo "==> Deploying $PM2_NAME from $BRANCH in $APP_DIR"
+
+echo "==> Fetching latest code"
+git pull --ff-only origin "$BRANCH"
+
+echo "==> Installing dependencies"
+npm ci
+
+echo "==> Building frontend"
+NODE_OPTIONS="--max-old-space-size=$BUILD_MEMORY" npm run build
+
+echo "==> Restarting app"
+if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
+  pm2 restart "$PM2_NAME" --update-env
+else
+  pm2 start server/index.js --name "$PM2_NAME" --update-env
+fi
+pm2 save
+
+echo "==> Health check"
+sleep 3
+curl -fsS "http://127.0.0.1:${PORT:-3001}/api/health" && echo
+
+echo "==> Deploy complete"
