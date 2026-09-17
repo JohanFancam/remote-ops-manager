@@ -98,3 +98,33 @@ export const isDuplicateRow = (row, existing) => {
     return titlesMatch(title, sTitle);
   });
 };
+
+// First existing shoot whose matchup title matches this row's title (for review display).
+export const findExistingMatchup = (row, existing) => {
+  const title = buildTitle(row);
+  return (existing || []).find(s => (s.title || '').trim() && titlesMatch(title, (s.title || '').trim())) || null;
+};
+
+// Classify a CSV row against existing shoots:
+//  'duplicate' — exact match (same title + date, time matches if both present)
+//  'review'    — same matchup exists but date or time differs (needs admin review)
+//  'new'       — no matchup match
+export const classifyRow = (row, existing) => {
+  const title = buildTitle(row);
+  const tNorm = normalizeTime(row.time || '');
+  const dateStr = row.date;
+  let hasExact = false;
+  let hasMatchup = false;
+  for (const s of existing || []) {
+    const sTitle = (s.title || '').trim();
+    if (!sTitle || !titlesMatch(title, sTitle)) continue;
+    hasMatchup = true;
+    if ((s.date || '') === dateStr) {
+      const sTime = normalizeTime(s.game_time || s.start_time || '');
+      if (!tNorm || !sTime || tNorm === sTime) hasExact = true;
+    }
+  }
+  if (hasExact) return 'duplicate';
+  if (hasMatchup) return 'review';
+  return 'new';
+};

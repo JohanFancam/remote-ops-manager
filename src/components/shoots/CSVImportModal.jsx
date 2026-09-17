@@ -1,90 +1,129 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, CheckCircle2, Copy } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle2, Undo2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { parseCSV, normalizeRigType, normalizeTime, buildTitle, isDuplicateRow } from './csvMatch';
+import { parseCSV, normalizeRigType, normalizeTime, buildTitle, classifyRow, findExistingMatchup } from './csvMatch';
+import CSVReviewTable from './CSVReviewTable';
 
 export default function CSVImportModal({ open, onClose, onImported }) {
+  const [step, setStep] = useState('select'); // select | review | result
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState([]);
+  const [classified, setClassified] = useState({ news: [], duplicates: [], reviews: [] });
+  const [decisions, setDecisions] = useState({});
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [result, setResult] = useState(null);
+  const [createdIds, setCreatedIds] = useState([]);
+  const [undoing, setUndoing] = useState(false);
 
-  const handleFile = (e) => {
+  const reset = () => {
+    setStep('select'); setFile(null);
+    setClassified({ news: [], duplicates: [], reviews: [] });
+    setDecisions({}); setLoading(false); setError('');
+    setResult(null); setCreatedIds([]); setUndoing(false);
+  };
+
+  const handleFile = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
     setFile(f);
     setError('');
-    setResult(null);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const rows = parseCSV(ev.target.result);
-        setPreview(rows.slice(0, 8));
-      } catch {
-        setError('Could not parse CSV file.');
-      }
-    };
-    reader.readAsText(f);
-  };
-
-  const handleImport = async () => {
-    if (!file) return;
-    setLoading(true);
-    setError('');
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
-
-      // Fetch existing shoots to detect duplicates.
+      const text = await f.text();
+      const parsed = parseCSV(text);
       const existing = await base44.entities.Shoot.list('-date', 500);
 
-      let success = 0, skipped = 0, failed = 0;
+      const news = [], duplicates = [], reviews = [];
       const batchSeen = new Set();
-
-      for (const row of rows) {
-        if (!row.team || !row.date) { failed++; continue; }
-
+      parsed.forEach((row, idx) => {
+        if (!row.team || !row.date) return;
         const title = buildTitle(row);
         const gameTime = normalizeTime(row.time || '');
-        const homeTeam = row['client/team'] || row.team || '';
-        const rigType = normalizeRigType(row.type || row.rig_type || row.format);
-
-        // Duplicate against existing calendar records (same title + date + time).
-        if (isDuplicateRow({ ...row, time: gameTime }, existing)) { skipped++; continue; }
-
-        // Duplicate within this same CSV batch.
         const batchKey = `${title.toLowerCase()}|${row.date}|${gameTime}`;
-        if (batchSeen.has(batchKey)) { skipped++; continue; }
+        if (batchSeen.has(batchKey)) { duplicates.push({ row, idx, title, gameTime }); return; }
         batchSeen.add(batchKey);
 
-        try {
-          await base44.entities.Shoot.create({
-            title,
-            client: homeTeam,
-            location: row.stadium || row.venue || '',
-            date: row.date,
-            game_time: gameTime,
-            status: 'upcoming',
-            ...(rigType ? { rig_type_override: rigType } : {}),
-            ...(row.calendar ? { calendar_source: row.calendar } : {}),
+        const status = classifyRow({ ...row, time: gameTime }, existing);
+        const item = { row, idx, title, gameTime };
+        if (status === 'duplicate') {
+          duplicates.push(item);
+        } else if (status === 'review') {
+          const match = findExistingMatchup({ ...row, time: gameTime }, existing);
+          reviews.push({
+            ...item,
+            existingDate: match?.date || '',
+            existingTime: normalizeTime(match?.game_time || match?.start_time || ''),
           });
-          success++;
-        } catch { failed++; }
-      }
+        } else {
+          news.push(item);
+        }
+      });
 
-      setResult({ success, skipped, failed });
-      if (success > 0) onImported?.();
+      // Review rows default to "skip" — admin must actively choose to add.
+      const dec = {};
+      reviews.forEach(r => { dec[r.idx] = 'skip'; });
+      setDecisions(dec);
+      setClassified({ news, duplicates, reviews });
+      setStep('review');
     } catch {
-      setError('Failed to import file.');
-    } finally {
-      setLoading(false);
+      setError('Could not parse CSV file.');
     }
   };
 
-  const reset = () => { setFile(null); setPreview([]); setResult(null); setError(''); };
+  const handleImport = async () => {
+    setLoading(true);
+    setError('');
+    const ids = [];
+    let success = 0, failed = 0;
+    const toImport = [
+      ...classified.news,
+      ...classified.reviews.filter(r => decisions[r.idx] === 'add'),
+    ];
+    const seen = new Set();
+    for (const item of toImport) {
+      const key = `${item.title.toLowerCase()}|${item.row.date}|${item.gameTime}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const homeTeam = item.row['client/team'] || item.row.team || '';
+      const rigType = normalizeRigType(item.row.type || item.row.rig_type || item.row.format);
+      try {
+        const created = await base44.entities.Shoot.create({
+          title: item.title,
+          client: homeTeam,
+          location: item.row.stadium || item.row.venue || '',
+          date: item.row.date,
+          game_time: item.gameTime,
+          status: 'upcoming',
+          ...(rigType ? { rig_type_override: rigType } : {}),
+          ...(item.row.calendar ? { calendar_source: item.row.calendar } : {}),
+        });
+        if (created?.id) ids.push(created.id);
+        success++;
+      } catch { failed++; }
+    }
+
+    const skipped = classified.duplicates.length + classified.reviews.filter(r => decisions[r.idx] !== 'add').length;
+    setCreatedIds(ids);
+    setResult({ success, skipped, failed, undone: false });
+    if (success > 0) onImported?.();
+    setStep('result');
+    setLoading(false);
+  };
+
+  const handleUndo = async () => {
+    if (!createdIds.length) return;
+    setUndoing(true);
+    for (const id of createdIds) {
+      try { await base44.entities.Shoot.delete(id); } catch { /* ignore */ }
+    }
+    setCreatedIds([]);
+    setResult(r => ({ ...r, undone: true, success: 0 }));
+    onImported?.();
+    setUndoing(false);
+  };
+
+  const reviewCount = classified.reviews.filter(r => decisions[r.idx] === 'add').length;
 
   return (
     <Dialog open={open} onOpenChange={() => { reset(); onClose(); }}>
@@ -93,17 +132,19 @@ export default function CSVImportModal({ open, onClose, onImported }) {
           <DialogTitle className="text-white">Import Shoots from CSV</DialogTitle>
         </DialogHeader>
 
-        <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4 space-y-2">
-          <p className="font-semibold text-gray-300">Expected CSV columns:</p>
-          <code className="text-xs text-blue-300 block">team, opponent, date (YYYY-MM-DD), time (HH:MM), Client/Team</code>
-          <ul className="text-xs text-gray-400 space-y-0.5 mt-1">
-            <li><b>date</b> must be <b>YYYY-MM-DD</b> and <b>time</b> must be <b>HH:MM</b> in South African time (SAST).</li>
-            <li><b>Client/Team</b> is the home team — the first team in the "Team vs Opponent" title (e.g. Lightning vs Predators → Lightning).</li>
-          </ul>
-          <p className="text-xs text-gray-500 mt-1">Only games not already on the calendar are imported — duplicates are skipped automatically.</p>
-        </div>
+        {step !== 'result' && (
+          <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4 space-y-2">
+            <p className="font-semibold text-gray-300">Expected CSV columns:</p>
+            <code className="text-xs text-blue-300 block">team, opponent, date (YYYY-MM-DD), time (HH:MM), Client/Team</code>
+            <ul className="text-xs text-gray-400 space-y-0.5 mt-1">
+              <li><b>date</b> must be <b>YYYY-MM-DD</b> and <b>time</b> must be <b>HH:MM</b> in South African time (SAST).</li>
+              <li><b>Client/Team</b> is the home team — the first team in the "Team vs Opponent" title (e.g. Lightning vs Predators → Lightning).</li>
+            </ul>
+            <p className="text-xs text-gray-500 mt-1">Exact duplicates are skipped; rows with the same team but a different date/time must be reviewed before importing.</p>
+          </div>
+        )}
 
-        {!result ? (
+        {step === 'select' && (
           <>
             <label className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors
               ${file ? 'border-blue-600 bg-blue-950/20' : 'border-gray-700 hover:border-gray-600'}`}>
@@ -112,7 +153,6 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                 <>
                   <FileText className="h-10 w-10 text-blue-400" />
                   <p className="text-white font-medium">{file.name}</p>
-                  <p className="text-gray-400 text-sm">{preview.length} rows previewed</p>
                 </>
               ) : (
                 <>
@@ -122,32 +162,46 @@ export default function CSVImportModal({ open, onClose, onImported }) {
               )}
             </label>
 
-            {preview.length > 0 && (
-              <div className="overflow-x-auto">
-                <p className="text-xs text-gray-500 mb-2">Preview (first {preview.length} rows):</p>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-gray-500 border-b border-gray-700">
-                      <th className="text-left pb-1 pr-3">Team</th>
-                      <th className="text-left pb-1 pr-3">Opponent</th>
-                      <th className="text-left pb-1 pr-3">Date</th>
-                      <th className="text-left pb-1 pr-3">Time</th>
-                      <th className="text-left pb-1">Client/Team</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {preview.map((row, i) => (
-                      <tr key={i} className="text-gray-300">
-                        <td className="py-1.5 pr-3">{row.team}</td>
-                        <td className="py-1.5 pr-3">{row.opponent}</td>
-                        <td className="py-1.5 pr-3">{row.date}</td>
-                        <td className="py-1.5 pr-3">{row.time || '—'}</td>
-                        <td className="py-1.5">{row['client/team'] || row.team || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {error && (
+              <div className="flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="h-4 w-4" />
+                {error}
               </div>
+            )}
+
+            <div className="flex gap-3 mt-2">
+              <Button onClick={() => { reset(); onClose(); }} variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 flex-1">
+                Cancel
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === 'review' && (
+          <>
+            <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+              <div className="bg-green-950/30 border border-green-800/40 rounded-lg p-2">
+                <p className="text-2xl font-bold text-green-400">{classified.news.length + reviewCount}</p>
+                <p className="text-xs text-gray-400">to import</p>
+              </div>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-2">
+                <p className="text-2xl font-bold text-gray-300">{classified.duplicates.length}</p>
+                <p className="text-xs text-gray-400">duplicates (skip)</p>
+              </div>
+              <div className="bg-amber-950/30 border border-amber-800/40 rounded-lg p-2">
+                <p className="text-2xl font-bold text-amber-400">{classified.reviews.length}</p>
+                <p className="text-xs text-gray-400">need review</p>
+              </div>
+            </div>
+
+            {classified.reviews.length > 0 && (
+              <CSVReviewTable
+                reviews={classified.reviews}
+                decisions={decisions}
+                onChange={(idx, val) => setDecisions(d => ({ ...d, [idx]: val }))}
+                onAddAll={() => setDecisions(d => { const n = { ...d }; classified.reviews.forEach(r => { n[r.idx] = 'add'; }); return n; })}
+                onSkipAll={() => setDecisions(d => { const n = { ...d }; classified.reviews.forEach(r => { n[r.idx] = 'skip'; }); return n; })}
+              />
             )}
 
             {error && (
@@ -158,21 +212,38 @@ export default function CSVImportModal({ open, onClose, onImported }) {
             )}
 
             <div className="flex gap-3 mt-2">
-              <Button onClick={handleImport} disabled={!file || loading} className="bg-blue-600 hover:bg-blue-700 flex-1">
-                {loading ? 'Importing...' : 'Import Shoots'}
+              <Button onClick={handleImport} disabled={loading} className="bg-blue-600 hover:bg-blue-700 flex-1">
+                {loading ? 'Importing...' : `Import ${classified.news.length + reviewCount} Shoot(s)`}
               </Button>
-              <Button variant="outline" onClick={() => { reset(); onClose(); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                Cancel
+              <Button variant="outline" onClick={reset} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                Back
               </Button>
             </div>
           </>
-        ) : (
+        )}
+
+        {step === 'result' && (
           <div className="text-center py-8">
-            <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
-            <p className="text-xl font-bold text-white mb-1">{result.success} shoots imported</p>
-            {result.skipped > 0 && <p className="text-yellow-400 text-sm">{result.skipped} skipped as duplicates</p>}
-            {result.failed > 0 && <p className="text-red-400 text-sm">{result.failed} rows failed (missing team or date)</p>}
-            <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-blue-600 hover:bg-blue-700">Done</Button>
+            {result?.undone ? (
+              <>
+                <Undo2 className="h-14 w-14 text-blue-400 mx-auto mb-4" />
+                <p className="text-xl font-bold text-white mb-1">Import undone</p>
+                <p className="text-gray-400 text-sm">All shoots from this import were removed.</p>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
+                <p className="text-xl font-bold text-white mb-1">{result?.success} shoots imported</p>
+                {result?.skipped > 0 && <p className="text-yellow-400 text-sm">{result.skipped} skipped as duplicates</p>}
+                {result?.failed > 0 && <p className="text-red-400 text-sm">{result.failed} rows failed</p>}
+                {createdIds.length > 0 && (
+                  <Button onClick={handleUndo} disabled={undoing} variant="outline" className="mt-6 border-amber-700/50 text-amber-400 hover:bg-amber-900/30">
+                    {undoing ? 'Undoing...' : <><Undo2 className="h-4 w-4 mr-1" /> Undo Import</>}
+                  </Button>
+                )}
+              </>
+            )}
+            <Button onClick={() => { reset(); onClose(); }} className="mt-3 bg-blue-600 hover:bg-blue-700">Done</Button>
           </div>
         )}
       </DialogContent>
