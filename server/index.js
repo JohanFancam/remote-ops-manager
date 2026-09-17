@@ -18,6 +18,7 @@ import {
   createEntity,
   updateEntity,
   deleteEntity,
+  getEntity,
 } from './entities.js';
 import { subscribeEntity } from './events.js';
 import { seedIfEmpty } from './seed.js';
@@ -32,6 +33,16 @@ import {
   saveGoogleSettings,
   getGoogleSettings,
 } from './googleCalendar.js';
+import {
+  getVapidPublicKey,
+  savePushSubscription,
+  removePushSubscription,
+} from './push.js';
+import {
+  handleShootChange,
+  handleAvailabilityChange,
+  runReminderPass,
+} from './notifications.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
@@ -188,30 +199,81 @@ app.post('/api/entities/:type/filter', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/entities/:type', authMiddleware, (req, res) => {
+app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
-    const created = createEntity(req.params.type, req.body || {}, req.user);
+    const type = req.params.type;
+    const created = createEntity(type, req.body || {}, req.user);
+    if (type === 'OperatorAvailability') {
+      handleAvailabilityChange(null, created, req.user, 'create').catch((err) => {
+        console.warn('Availability notification failed:', err.message);
+      });
+    }
     res.status(201).json(created);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.patch('/api/entities/:type/:id', authMiddleware, (req, res) => {
+app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
-    const updated = updateEntity(req.params.type, req.params.id, req.body || {});
+    const { type, id } = req.params;
+    const previous = getEntity(type, id);
+    const updated = updateEntity(type, id, req.body || {});
     if (!updated) return res.status(404).json({ error: 'Not found' });
+
+    if (type === 'Shoot' && previous) {
+      handleShootChange(previous, updated, req.user).catch((err) => {
+        console.warn('Shoot notification failed:', err.message);
+      });
+    }
+    if (type === 'OperatorAvailability' && previous) {
+      handleAvailabilityChange(previous, updated, req.user, 'update').catch((err) => {
+        console.warn('Availability notification failed:', err.message);
+      });
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.delete('/api/entities/:type/:id', authMiddleware, (req, res) => {
+app.delete('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
-    const ok = deleteEntity(req.params.type, req.params.id);
+    const { type, id } = req.params;
+    const previous = getEntity(type, id);
+    const ok = deleteEntity(type, id);
     if (!ok) return res.status(404).json({ error: 'Not found' });
+    if (type === 'OperatorAvailability' && previous) {
+      handleAvailabilityChange(previous, null, req.user, 'delete').catch((err) => {
+        console.warn('Availability notification failed:', err.message);
+      });
+    }
     res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/push/vapid-public-key', authMiddleware, (_req, res) => {
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+app.post('/api/push/subscribe', authMiddleware, (req, res) => {
+  try {
+    const subscription = req.body?.subscription || req.body;
+    const saved = savePushSubscription(req.user, subscription);
+    res.status(201).json({ ok: true, id: saved.id });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/push/unsubscribe', authMiddleware, (req, res) => {
+  try {
+    const endpoint = req.body?.endpoint || req.body?.subscription?.endpoint;
+    const result = removePushSubscription(endpoint, req.user.email);
+    res.json({ ok: true, ...result });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
@@ -354,4 +416,11 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`Remote Ops API listening on http://localhost:${PORT}`);
   console.log(`Entity types: User, ${ENTITY_TYPES.join(', ')}`);
+
+  // Day-of / starting-soon reminders (every minute)
+  const runReminders = () => {
+    runReminderPass().catch((err) => console.warn('Reminder pass failed:', err.message));
+  };
+  setTimeout(runReminders, 15_000);
+  setInterval(runReminders, 60_000);
 });

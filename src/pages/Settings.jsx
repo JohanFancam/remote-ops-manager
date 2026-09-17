@@ -7,6 +7,7 @@ import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
+import EnablePushCard from '../components/notifications/EnablePushCard';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -450,6 +451,18 @@ export default function Settings() {
         )}
 
         {/* Google Calendar — Admin only */}
+        {/* Push / install — all roles */}
+        <Card className="bg-slate-900 border-slate-800 mb-6">
+          <CardHeader className="border-b border-slate-800 pb-4">
+            <CardTitle className="text-slate-100 flex items-center gap-2">
+              <Bell className="h-5 w-5 text-blue-400" /> Device Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <EnablePushCard />
+          </CardContent>
+        </Card>
+
         {isAdmin && <GoogleCalendarSettings />}
 
         {/* Pay Rates — Admin only */}

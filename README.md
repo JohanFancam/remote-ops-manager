@@ -61,7 +61,31 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:3001/api/google/callback
 FRONTEND_URL=http://localhost:5173
+
+# Web Push (optional — auto-generated to server/data/vapid.json if omitted)
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@example.com
 ```
+
+## Notifications (PWA + Web Push)
+
+Operators and admins can **install the web app** on phones/laptops and enable push alerts.
+
+| Event | Who gets notified |
+|-------|-------------------|
+| Shoot date/time changed | Assigned + pending operators |
+| Shoot cancelled | Assigned + pending operators |
+| Pending assignment approved | That operator |
+| Operator assigned / moved / removed | That operator |
+| Operator self-assigns / unassigns / requests | Admins + standby |
+| Operator marks themselves out | Admins + standby |
+| Shoot today / starting soon | Assigned operators |
+| Morning digest of who is out | Admins + standby |
+
+**Setup for users:** Settings → **Device Notifications** → Enable, then “Add to Home Screen” / Install on the phone or laptop.
+
+HTTPS is required for push outside localhost (Lightsail with a domain + Let’s Encrypt).
 
 ## Google Calendar sync
 

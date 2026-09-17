@@ -1,15 +1,19 @@
 {
   "name": "Remote Ops Manager",
   "short_name": "Remote Ops",
+  "description": "Shoot calendar, assignments, and crew notifications",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#050816",
   "theme_color": "#050816",
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

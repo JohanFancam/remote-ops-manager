@@ -249,6 +249,23 @@ export const api = {
       return request('/api/google/sync', { method: 'POST' });
     },
   },
+  push: {
+    vapidPublicKey() {
+      return request('/api/push/vapid-public-key');
+    },
+    subscribe(subscription) {
+      return request('/api/push/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ subscription }),
+      });
+    },
+    unsubscribe(endpoint) {
+      return request('/api/push/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint }),
+      });
+    },
+  },
 };
 
 // Compatibility export used across existing UI files

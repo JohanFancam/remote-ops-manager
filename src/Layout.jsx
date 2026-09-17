@@ -10,8 +10,10 @@ import {
   Wrench, LogOut, Wifi, RefreshCw, DollarSign, Receipt, TrendingUp,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
+import ShootNotifications from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
+import { registerServiceWorker } from './lib/pushNotifications';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,10 @@ function LayoutContent({ children, currentPageName }) {
   }, []);
 
   useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
+  useEffect(() => {
     if (!isLoading && isAccounts && !didRedirect.current && (currentPageName === 'Dashboard' || currentPageName === null)) {
       didRedirect.current = true;
       navigate('/AccountsDashboard', { replace: true });
@@ -52,6 +58,14 @@ function LayoutContent({ children, currentPageName }) {
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
   });
+
+  const { data: shoots = [] } = useQuery({
+    queryKey: ['shoots'],
+    queryFn: () => base44.entities.Shoot.list('-date', 500),
+    enabled: !!user,
+  });
+
+  const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
 
   const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
   const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
@@ -117,12 +131,21 @@ function LayoutContent({ children, currentPageName }) {
           </div>
 
           {!collapsed && (
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center gap-2 rounded-xl border border-[color:var(--rom-line)] bg-white/[0.03] px-2.5 py-2">
                 <span className="rom-live-dot" />
                 <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
+              {user && (
+                <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
+              )}
+            </div>
+          )}
+
+          {collapsed && user && (
+            <div className="px-2 pb-2">
+              <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
             </div>
           )}
 

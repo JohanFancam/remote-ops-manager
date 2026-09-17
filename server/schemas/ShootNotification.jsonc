@@ -3,13 +3,18 @@
   "type": "object",
   "properties": {
     "notification_key": { "type": "string" },
+    "type": { "type": "string" },
     "shoot_id": { "type": "string" },
+    "shoot_title": { "type": "string" },
+    "shoot_date": { "type": "string" },
+    "shoot_time": { "type": "string" },
     "title": { "type": "string" },
     "message": { "type": "string" },
     "target_user_email": { "type": "string" },
     "target_role": { "type": "string" },
     "dismissed_by": { "type": "array", "items": { "type": "string" } },
     "created_at": { "type": "string" },
-    "expires_at": { "type": "string" }
+    "expires_at": { "type": "string" },
+    "url": { "type": "string" }
   }
 }

@@ -102,4 +102,5 @@ export const ENTITY_TYPES = [
   'Report',
   'Event',
   'ShootNotification',
+  'PushSubscription',
 ];
