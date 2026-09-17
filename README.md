@@ -36,8 +36,9 @@ cd /home/ubuntu/remote-ops-manager
 ### Automatic deploy on push
 
 `.github/workflows/deploy.yml` SSHes into the server and runs the same script whenever
-a deploy branch is pushed (also runnable from the Actions tab). It needs four repository
-secrets under **Settings → Secrets and variables → Actions**:
+a deploy branch is pushed (also runnable from the Actions tab). Until the secrets below
+exist the workflow skips with a notice instead of failing. Add them under
+**Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 |--------|-------|

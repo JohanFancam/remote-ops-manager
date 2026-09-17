@@ -17,11 +17,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # Forks and repos without deploy secrets should skip rather than fail
+      - name: Check deploy secrets
+        id: check
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Deploy skipped::Set the DEPLOY_HOST, DEPLOY_USER, and DEPLOY_SSH_KEY secrets to enable automatic deploys."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy over SSH
+        if: steps.check.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          username: ${{ secrets.DEPLOY_USER || 'ubuntu' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           # A cold build on a 1 GB instance takes a few minutes
           command_timeout: 15m
