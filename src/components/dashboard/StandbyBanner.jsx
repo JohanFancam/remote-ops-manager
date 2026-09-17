@@ -33,7 +33,15 @@ export default function StandbyBanner({ todayStr, currentUser }) {
 
     const startDt = new Date(`${sd}T${entry.start_time || '00:00'}`);
     // If no end_time is set, use end of day so multi-day slots stay visible all day
-    const endDt = new Date(`${ed}T${entry.end_time || '23:59:59'}`);
+    let endDt = new Date(`${ed}T${entry.end_time || '23:59:59'}`);
+    // Overnight shift (18:00 → 06:00 stored on a single calendar day): the end is
+    // at or before the start, so it crosses midnight — roll end forward one day so
+    // the slot stays active through the early morning without assigning the next
+    // calendar day as a new standby day.
+    if (endDt <= startDt) {
+      endDt = new Date(`${ed}T${entry.end_time || '06:00'}`);
+      endDt.setDate(endDt.getDate() + 1);
+    }
 
     return now >= startDt && now <= endDt;
   });

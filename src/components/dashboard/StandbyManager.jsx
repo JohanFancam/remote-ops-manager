@@ -112,15 +112,14 @@ export default function StandbyManager({ user, allUsers = [] }) {
     let end_date = form.end_date || form.start_date;
     let start_time = form.start_time || '';
     let end_time = form.end_time || '';
-    // A single-day standby with no explicit times defaults to the overnight
-    // 18:00 → 06:00-next-day coverage window (same as the calendar toggle),
-    // so the coverage logic and earnings treat it as one paid overnight shift.
+    // A single-day standby with no explicit times is stored as ONE calendar day
+    // (start_date = end_date) with an overnight 18:00 → 06:00 time window. The
+    // coverage bleeds into the next morning, but the standby itself belongs to a
+    // single day — assigning the 17th does NOT also assign the 18th.
     if (isSingleDay && !hasTimes) {
       start_time = '18:00';
       end_time = '06:00';
-      const nextDay = new Date(form.start_date + 'T00:00:00');
-      nextDay.setDate(nextDay.getDate() + 1);
-      end_date = format(nextDay, 'yyyy-MM-dd');
+      end_date = start_date;
     }
     await base44.entities.StandbyDay.create({
       start_date,

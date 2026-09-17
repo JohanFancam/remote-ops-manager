@@ -691,8 +691,10 @@ export default function Calendar() {
     return standbyDays.filter(item => {
       const startDateStr = item.start_date || item.date;
       if (!startDateStr) return false;
-      const fallbackEnd = format(addDays(new Date(`${startDateStr}T00:00:00`), 1), 'yyyy-MM-dd');
-      const endDateStr = item.end_date || fallbackEnd;
+      // A standby belongs to its start date only. Overnight coverage bleeds into
+      // the next morning, but that does not make the person "on standby" the next
+      // day — so the indicator shows on start_date and nowhere else.
+      const endDateStr = item.end_date || startDateStr;
       return startDateStr <= dateStr && dateStr <= endDateStr;
     });
   };
@@ -756,7 +758,6 @@ export default function Calendar() {
     if (!canStandby || !user?.email) return;
 
     const dateStr = format(day, 'yyyy-MM-dd');
-    const endDateStr = format(addDays(day, 1), 'yyyy-MM-dd');
     const dayStandby = getStandbyForDay(day);
     const primaryStandby = dayStandby[0] || null;
     const myStandby = dayStandby.find(item => item.admin_email === user.email);
@@ -778,7 +779,7 @@ export default function Calendar() {
         date: dateStr,
         start_date: dateStr,
         start_time: primaryStandby.start_time || '18:00',
-        end_date: primaryStandby.end_date || endDateStr,
+        end_date: dateStr,
         end_time: primaryStandby.end_time || '06:00',
         admin_email: user.email,
         admin_name: user.full_name || user.email,
@@ -795,7 +796,7 @@ export default function Calendar() {
         date: dateStr,
         start_date: dateStr,
         start_time: '18:00',
-        end_date: endDateStr,
+        end_date: dateStr,
         end_time: '06:00',
         admin_email: user.email,
         admin_name: user.full_name || user.email,

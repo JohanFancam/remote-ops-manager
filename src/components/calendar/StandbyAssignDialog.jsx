@@ -27,10 +27,6 @@ export default function StandbyAssignDialog({ open, day, allUsers = [], currentU
     ['admin', 'standby', 'operator_standby'].includes(u.role)
   );
 
-  const endDateStr = day
-    ? format(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1), 'yyyy-MM-dd')
-    : '';
-
   const handleAssign = async () => {
     if (!email || !day) return;
     setSaving(true);
@@ -47,7 +43,7 @@ export default function StandbyAssignDialog({ open, day, allUsers = [], currentU
           date: dateStr,
           start_date: dateStr,
           start_time: '18:00',
-          end_date: endDateStr,
+          end_date: dateStr,
           end_time: '06:00',
           admin_email: u.email,
           admin_name: u.full_name || u.email,
