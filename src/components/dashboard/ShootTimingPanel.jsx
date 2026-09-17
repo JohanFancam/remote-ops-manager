@@ -107,15 +107,15 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
     <div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-slate-50 rounded-lg p-3 text-center">
+        <div className="bg-slate-800/40 rounded-lg p-3 text-center">
           <p className="text-xl font-bold text-purple-400">{monthShoots.length}</p>
           <p className="text-xs text-slate-400">This Month</p>
         </div>
-        <div className="bg-slate-50 rounded-lg p-3 text-center">
+        <div className="bg-slate-800/40 rounded-lg p-3 text-center">
           <p className="text-xl font-bold text-blue-400">{formatDuration(monthAvg)}</p>
           <p className="text-xs text-slate-400">Avg Duration</p>
         </div>
-        <div className="bg-slate-50 rounded-lg p-3 text-center">
+        <div className="bg-slate-800/40 rounded-lg p-3 text-center">
           <p className="text-xl font-bold text-emerald-400">{formatDuration(avgMs)}</p>
           <p className="text-xs text-slate-400">All-Time Avg</p>
         </div>

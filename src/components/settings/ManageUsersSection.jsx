@@ -47,7 +47,7 @@ function AddUserForm({ onClose, onAdded }) {
   };
 
   return (
-    <div className="border border-slate-800 rounded-lg p-4 bg-slate-50 space-y-3 mb-4">
+    <div className="border border-slate-800 rounded-lg p-4 bg-slate-800/40 space-y-3 mb-4">
       <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">New User</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -246,7 +246,7 @@ export default function ManageUsersSection() {
             onAdded={refresh}
           />
         )}
-        <div className="divide-y divide-gray-800 -mx-6 -mb-6">
+        <div className="divide-y divide-slate-800 -mx-6 -mb-6">
           {pendingUsers.length === 0 && <p className="text-slate-500 text-sm p-6 text-center">No users added yet.</p>}
           {pendingUsers.map(pu => (
             <PendingUserRow key={pu.id} pu={pu} onRefresh={refresh} />

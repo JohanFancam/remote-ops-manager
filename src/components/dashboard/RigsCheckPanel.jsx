@@ -266,7 +266,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                       <label key={s.id} className={`flex items-start gap-2 cursor-pointer p-2 rounded-lg border transition-colors ${
                         checked[s.id]
                           ? 'bg-emerald-950/40 border-green-800/40'
-                          : 'bg-slate-50 border-slate-800/40 hover:border-orange-700/40'
+                          : 'bg-slate-800/40 border-slate-800/40 hover:border-orange-700/40'
                       }`}>
                         <input
                           type="checkbox"

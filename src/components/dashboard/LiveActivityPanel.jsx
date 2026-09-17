@@ -44,7 +44,7 @@ export default function LiveActivityPanel({ shoots = [], allUsers = [] }) {
           const PhaseIcon = latestPhase?.icon || Clock;
 
           return (
-            <div key={shoot.id} className="bg-slate-50 rounded-lg p-3">
+            <div key={shoot.id} className="bg-slate-800/40 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-100 truncate">{shoot.title}</span>
                 {shoot.game_time && (

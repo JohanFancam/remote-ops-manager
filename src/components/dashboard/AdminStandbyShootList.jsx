@@ -140,7 +140,7 @@ export default function AdminStandbyShootList({
 
       {viewMode === 'month' && (
         <div>
-          <div className="mb-3 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+          <div className="mb-3 flex items-center gap-2 rounded-xl bg-slate-800/40 px-3 py-2">
             <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))} className="rounded p-1 hover:bg-slate-700 transition-colors"><ChevronLeft className="h-4 w-4 text-slate-400" /></button>
             <div className="flex-1 text-center text-sm font-semibold text-slate-100">{format(monthDate, 'MMMM yyyy')}</div>
             <button onClick={() => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))} className="rounded p-1 hover:bg-slate-700 transition-colors"><ChevronRight className="h-4 w-4 text-slate-400" /></button>
@@ -156,7 +156,7 @@ export default function AdminStandbyShootList({
               const isToday = ds === todayStr;
               const isSelected = ds === monthSelectedDate;
               return (
-                <button key={ds} onClick={() => setMonthSelectedDate(isSelected ? null : ds)} className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-blue-600' : isToday ? 'bg-slate-700' : dayShoots.length > 0 ? 'bg-slate-800 hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                <button key={ds} onClick={() => setMonthSelectedDate(isSelected ? null : ds)} className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-blue-600' : isToday ? 'bg-slate-700' : dayShoots.length > 0 ? 'bg-slate-800 hover:bg-slate-700' : 'hover:bg-slate-800/60'}`}>
                   <span className={`text-xs font-medium ${isSelected ? 'text-slate-100' : isToday ? 'text-blue-400' : dayShoots.length > 0 ? 'text-slate-100' : 'text-gray-600'}`}>{format(day, 'd')}</span>
                   {dayShoots.length > 0 && <span className={`mt-0.5 text-xs font-bold ${isSelected ? 'text-blue-200' : 'text-blue-400'}`}>{dayShoots.length}</span>}
                 </button>

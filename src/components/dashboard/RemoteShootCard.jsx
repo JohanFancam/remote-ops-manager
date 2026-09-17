@@ -36,7 +36,7 @@ function PhaseRow({ label, Icon, done, onClick, canClick, time }) {
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
       className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors border ${
-        done ? 'bg-emerald-950/40 border-green-800/50' : 'bg-transparent border-transparent hover:border-slate-700 hover:bg-slate-50'
+        done ? 'bg-emerald-950/40 border-green-800/50' : 'bg-transparent border-transparent hover:border-slate-700 hover:bg-slate-800/60'
       } ${canClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <span className="flex items-center gap-2">
@@ -47,7 +47,7 @@ function PhaseRow({ label, Icon, done, onClick, canClick, time }) {
       <div className="flex items-center gap-2">
         {time && <span className="font-mono text-xs text-gray-600">{time}</span>}
         {canClick && (
-          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-emerald-950/40' : 'border-slate-800 text-slate-500 bg-slate-50'}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded border ${done ? 'border-green-700 text-green-500 bg-emerald-950/40' : 'border-slate-800 text-slate-500 bg-slate-800/40'}`}>
             {done ? 'undo' : 'mark done'}
           </span>
         )}
@@ -218,7 +218,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                     { label: 'Wide', enabled: matchedRig.wide_enabled !== false, cam: matchedRig.wide },
                     { label: 'Attention', enabled: !!matchedRig.attention_enabled, cam: matchedRig.attention },
                   ].map(({ label, enabled, cam }) => enabled ? (
-                    <div key={label} className="flex items-center justify-between bg-slate-50 rounded px-2 py-1">
+                    <div key={label} className="flex items-center justify-between bg-slate-800/40 rounded px-2 py-1">
                       <span className="text-xs text-slate-400 w-16">{label}</span>
                       <span className="text-xs text-slate-400 font-mono">
                         {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
