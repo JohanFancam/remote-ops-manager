@@ -1726,6 +1726,7 @@ export default function Calendar() {
           standbyCoverage={getStandbyCoverageForShoot(quickView)}
           onRigCheckToggle={handleRigCheckToggle}
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
+          onDuplicate={duplicateShoot}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
           onBack={dayModal ? () => setQuickView(null) : undefined}
           onClose={() => setQuickView(null)}

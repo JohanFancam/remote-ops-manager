@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft, Radio } from 'lucide-react';
+import { Pencil, Users, Plus, Minus, Clock, ShieldCheck, Wrench, ArrowLeft, Radio, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { shortenTitle, getShootLocation } from '../utils/scheduleUtils';
 import { displayShootTime, tzAbbrev } from '../utils/timezoneUtils';
@@ -25,7 +25,7 @@ const matchRig = (shoot, rigSettings) => {
 // to open the full edit / operator-assign settings.
 export default function ShootQuickView({
   shoot, user, isAdmin, isStandby, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onEdit, onAssignOperators, onClose, standbyCoverage, onRigCheckToggle, onBack,
+  queryClient, onUpdate, onEdit, onDuplicate, onAssignOperators, onClose, standbyCoverage, onRigCheckToggle, onBack,
 }) {
   if (!shoot) return null;
 
@@ -160,6 +160,9 @@ export default function ShootQuickView({
               </button>
               <button onClick={() => onAssignOperators?.(shoot)} className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-800 transition-colors">
                 <Users className="h-3.5 w-3.5" />Operators
+              </button>
+              <button onClick={() => onDuplicate?.(shoot)} className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-800 transition-colors" title="Create a copy of this shoot you can edit">
+                <Copy className="h-3.5 w-3.5" />Duplicate
               </button>
             </>
           )}
