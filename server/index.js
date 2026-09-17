@@ -43,6 +43,12 @@ import {
   handleAvailabilityChange,
   runReminderPass,
 } from './notifications.js';
+import {
+  importEntityRows,
+  inferEntityType,
+  parseFileContents,
+  countBrokenShootReferences,
+} from './entityImport.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
@@ -67,6 +73,12 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
+
+// Import files are parsed in memory rather than written to the uploads folder
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024, files: 20 },
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'remote-ops-api' });
@@ -305,6 +317,54 @@ function frontendBaseUrl(req) {
   }
   return 'http://localhost:5173';
 }
+
+/**
+ * Import Base44 entity exports from the browser. Send the same request with
+ * confirm=true to write; without it the response is a preview only.
+ */
+app.post('/api/import/entities', authMiddleware, requireAdmin, importUpload.array('files'), (req, res) => {
+  try {
+    const files = req.files || [];
+    if (!files.length) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const confirm = String(req.body?.confirm || '') === 'true';
+    const explicitType = String(req.body?.entityType || '').trim();
+
+    const targets = [];
+    for (const file of files) {
+      const entityType = explicitType || inferEntityType(file.originalname);
+      if (!entityType) {
+        return res.status(400).json({
+          error: `Could not tell which entity "${file.originalname}" holds. Rename it to start with the entity name, e.g. Shoot_export.csv`,
+        });
+      }
+      targets.push({ file, entityType });
+    }
+
+    // Shoots first so shoot_id references in the other files resolve
+    targets.sort((a, b) => (a.entityType === 'Shoot' ? -1 : b.entityType === 'Shoot' ? 1 : 0));
+
+    const results = [];
+    for (const { file, entityType } of targets) {
+      const text = file.buffer.toString('utf8');
+      const rows = parseFileContents(file.originalname, text);
+      const result = importEntityRows({ entityType, rows, confirm, user: req.user });
+      results.push({ fileName: file.originalname, ...result });
+    }
+
+    res.json({
+      ok: true,
+      confirmed: confirm,
+      results,
+      references: countBrokenShootReferences(),
+    });
+  } catch (err) {
+    console.error('Entity import failed:', err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
 
 app.get('/api/google/status', authMiddleware, (_req, res) => {
   res.json(getGoogleStatus());

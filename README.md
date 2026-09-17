@@ -72,6 +72,11 @@ First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typica
 
 ### Importing Base44 entity exports
 
+Admins can do this in the browser: **Settings → Import Data**, pick the exported CSV
+or JSON files, **Preview**, then **Import**. No SSH or file copying needed.
+
+The same thing from a shell:
+
 ```bash
 node scripts/import-entities.mjs auto exports/*.csv             # dry run
 node scripts/import-entities.mjs auto exports/*.csv --confirm

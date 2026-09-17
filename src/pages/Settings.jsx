@@ -6,6 +6,7 @@ import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
+import DataImportSection from '../components/settings/DataImportSection';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -351,6 +352,9 @@ export default function Settings() {
         </Card>
 
         {isAdmin && <GoogleCalendarSettings />}
+
+        {/* Import Base44 exports — Admin only */}
+        {isAdmin && <DataImportSection />}
 
         {/* Pay Rates — Admin only */}
         {isAdmin && (

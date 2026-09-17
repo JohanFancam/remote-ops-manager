@@ -249,6 +249,15 @@ export const api = {
       return request('/api/google/sync', { method: 'POST' });
     },
   },
+  dataImport: {
+    entities({ files, confirm = false, entityType = '' }) {
+      const form = new FormData();
+      for (const file of files) form.append('files', file);
+      form.append('confirm', String(confirm));
+      if (entityType) form.append('entityType', entityType);
+      return request('/api/import/entities', { method: 'POST', body: form });
+    },
+  },
   push: {
     vapidPublicKey() {
       return request('/api/push/vapid-public-key');
