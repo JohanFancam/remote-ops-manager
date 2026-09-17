@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut } from 'lucide-react';
+  Wrench, Settings, LogOut, Receipt } from 'lucide-react';
 import { useApp } from './AppContext';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
-import { createPageUrl } from '@/utils';
 
 const adminNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -50,15 +49,31 @@ const allStandbyMenuItems = [
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
+// Accounts only track and export earnings — no calendar or shoot pages
+const accountsNavItems = [
+  { label: 'Earnings', icon: Receipt, path: '/AccountsDashboard' },
+];
+
+const allAccountsMenuItems = [
+  { label: 'Earnings', icon: Receipt, path: '/AccountsDashboard' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isStandby, isLoading, user } = useApp();
+  const { isAdmin, isStandby, isAccounts, isLoading, user } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoading) return null;
 
-  const navItems = isAdmin ? adminNavItems : isStandby ? standbyNavItems : remoteNavItems;
-  const allMenuItems = isAdmin ? allAdminMenuItems : isStandby ? allStandbyMenuItems : allRemoteMenuItems;
+  const navItems = isAdmin ? adminNavItems
+    : isAccounts ? accountsNavItems
+    : isStandby ? standbyNavItems
+    : remoteNavItems;
+  const allMenuItems = isAdmin ? allAdminMenuItems
+    : isAccounts ? allAccountsMenuItems
+    : isStandby ? allStandbyMenuItems
+    : allRemoteMenuItems;
 
   // Split nav items: first half before center, second half after
   const half = Math.ceil(navItems.length / 2);

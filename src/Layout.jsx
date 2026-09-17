@@ -95,8 +95,10 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
+  // Accounts only track and export earnings; Settings is for their own profile/alerts
   const accountsNav = [
-    { name: 'Dashboard', icon: Receipt, page: 'AccountsDashboard' },
+    { name: 'Earnings', icon: Receipt, page: 'AccountsDashboard' },
+    { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const navItems = isAdmin ? adminNav : isStandby ? standbyNav : isAccounts ? accountsNav : remoteNav;
