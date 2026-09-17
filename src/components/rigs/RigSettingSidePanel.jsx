@@ -18,6 +18,8 @@ const DEFAULT_FANCAM_DAY_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '400'
 const DEFAULT_FANCAM_NIGHT_HD = { shutter: '1/400', aperture: 'F5.6', iso: '5000' };
 const DEFAULT_FANCAM_NIGHT_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '3200' };
 const DEFAULT_ATTENTION_HD = { shutter: '1/100', aperture: 'F11', iso: 'Auto' };
+const DEFAULT_INDOOR_HD = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
+const DEFAULT_INDOOR_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
 
 // Arena defaults — standard 1/200 | F5.6 | 3200 ISO for all cameras
 const ARENA_HD = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
@@ -33,7 +35,8 @@ const emptyForm = {
   fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide_enabled: true, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
   fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide_enabled: true, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
   attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
-  sound_enabled: false, notes: '',
+  indoor_enabled: false, indoor_hd: { ...DEFAULT_INDOOR_HD }, indoor_wide_enabled: true, indoor_wide: { ...DEFAULT_INDOOR_WIDE },
+  sound_enabled: false, sound_trigger_enabled: false, sound_trigger_offset: 10, notes: '',
 };
 
 function Toggle({ enabled, onChange, readOnly }) {
@@ -295,9 +298,9 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   readOnly={readOnly}
                 />
 
-                {/* 2. Fancam Day Settings */}
+                {/* 2. Outdoor Day Settings */}
                 <CameraSection
-                  title="Fancam Day Settings"
+                  title="Outdoor Day Settings"
                   note="Standard: HD 1/400 | F5.6–F11 | 400–1000 ISO   ·   Wide 1/400 | F5.6–F11 | 400–1000 ISO"
                   enabled={form.fancam_day_enabled}
                   onToggle={() => setForm({ ...form, fancam_day_enabled: !form.fancam_day_enabled })}
@@ -311,9 +314,9 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   freeTextFields={['aperture', 'iso']}
                 />
 
-                {/* 3. Fancam Night Settings */}
+                {/* 3. Outdoor Night Settings */}
                 <CameraSection
-                  title="Fancam Night Settings"
+                  title="Outdoor Night Settings"
                   note="Standard: HD 1/400 | F5.6 | 5000 ISO   ·   Wide 1/400 | F5.6 | 3200 ISO"
                   enabled={form.fancam_night_enabled}
                   onToggle={() => setForm({ ...form, fancam_night_enabled: !form.fancam_night_enabled })}
@@ -326,9 +329,24 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   readOnly={readOnly}
                 />
 
-                {/* 4. Attention Camera */}
+                {/* 4. Indoor Settings */}
                 <CameraSection
-                  title="Attention Camera"
+                  title="Indoor Settings"
+                  note="Standard: HD 1/400 | F5.6 | AUTO ISO   ·   Wide 1/400 | F5.6 | AUTO ISO"
+                  enabled={form.indoor_enabled}
+                  onToggle={() => setForm({ ...form, indoor_enabled: !form.indoor_enabled })}
+                  camKeyHd="indoor_hd" camKeyWide="indoor_wide"
+                  camHd={form.indoor_hd || DEFAULT_INDOOR_HD}
+                  camWide={form.indoor_wide || DEFAULT_INDOOR_WIDE}
+                  wideEnabled={form.indoor_wide_enabled !== false}
+                  onWideToggle={() => setForm({ ...form, indoor_wide_enabled: !form.indoor_wide_enabled })}
+                  onCamChange={updateCam}
+                  readOnly={readOnly}
+                />
+
+                {/* 5. Attention */}
+                <CameraSection
+                  title="Attention"
                   note="Standard: HD 1/100 | F11 | AUTO ISO"
                   enabled={form.attention_enabled}
                   onToggle={() => setForm({ ...form, attention_enabled: !form.attention_enabled })}
@@ -349,6 +367,32 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     <p className="text-[10px] text-gray-500 mt-0.5 ml-6">Sound enabled for this rig</p>
                   </div>
                   <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} readOnly={readOnly} />
+                </div>
+
+                {/* 6. Sound Trigger */}
+                <div className={`rounded-lg border p-3 transition-colors ${form.sound_trigger_enabled ? 'border-green-700 bg-green-950/20' : 'border-gray-800 bg-gray-900/40'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className={`h-4 w-4 ${form.sound_trigger_enabled ? 'text-green-400' : 'text-gray-600'}`} />
+                      <div>
+                        <span className="text-sm font-semibold text-white">Sound Trigger</span>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Starts the sound recording this many minutes after the game begins.</p>
+                      </div>
+                    </div>
+                    <Toggle enabled={!!form.sound_trigger_enabled} onChange={() => setForm({ ...form, sound_trigger_enabled: !form.sound_trigger_enabled })} readOnly={readOnly} />
+                  </div>
+                  {form.sound_trigger_enabled && (
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-500 block mb-1">Minutes after game start</label>
+                      <Input
+                        type="number"
+                        value={form.sound_trigger_offset ?? 10}
+                        onChange={e => setForm({ ...form, sound_trigger_offset: Number(e.target.value) })}
+                        disabled={readOnly}
+                        className="bg-gray-700 border-gray-600 text-white h-8 text-sm disabled:opacity-60"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

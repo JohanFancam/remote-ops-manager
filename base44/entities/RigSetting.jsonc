@@ -90,38 +90,56 @@
     "fancam_day_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Fancam Day Settings section enabled"
+      "description": "Outdoor Day Settings section enabled"
     },
     "fancam_day_hd": {
       "type": "object",
-      "description": "Fancam Day HD Camera: shutter, aperture, iso"
+      "description": "Outdoor Day HD Camera: shutter, aperture, iso"
     },
     "fancam_day_wide_enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Fancam Day Wide Camera enabled"
+      "description": "Outdoor Day Wide Camera enabled"
     },
     "fancam_day_wide": {
       "type": "object",
-      "description": "Fancam Day Wide Camera: shutter, aperture, iso"
+      "description": "Outdoor Day Wide Camera: shutter, aperture, iso"
     },
     "fancam_night_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Fancam Night Settings section enabled"
+      "description": "Outdoor Night Settings section enabled"
     },
     "fancam_night_hd": {
       "type": "object",
-      "description": "Fancam Night HD Camera: shutter, aperture, iso"
+      "description": "Outdoor Night HD Camera: shutter, aperture, iso"
     },
     "fancam_night_wide_enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Fancam Night Wide Camera enabled"
+      "description": "Outdoor Night Wide Camera enabled"
     },
     "fancam_night_wide": {
       "type": "object",
-      "description": "Fancam Night Wide Camera: shutter, aperture, iso"
+      "description": "Outdoor Night Wide Camera: shutter, aperture, iso"
+    },
+    "indoor_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indoor Settings section enabled"
+    },
+    "indoor_hd": {
+      "type": "object",
+      "description": "Indoor HD Camera: shutter, aperture, iso"
+    },
+    "indoor_wide_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Indoor Wide Camera enabled"
+    },
+    "indoor_wide": {
+      "type": "object",
+      "description": "Indoor Wide Camera: shutter, aperture, iso"
     },
     "attention_enabled": {
       "type": "boolean",
@@ -136,6 +154,16 @@
       "type": "boolean",
       "default": false,
       "description": "Sound Recording enabled"
+    },
+    "sound_trigger_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sound Trigger enabled \u2014 starts sound recording after the game begins"
+    },
+    "sound_trigger_offset": {
+      "type": "number",
+      "default": 10,
+      "description": "Minutes after game start that the sound trigger fires (default 10)"
     },
     "notes": {
       "type": "string"
