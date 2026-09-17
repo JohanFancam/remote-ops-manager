@@ -2,8 +2,10 @@
  * Import the real crew from a CSV or JSON file exported from the old project.
  *
  * Usage:
- *   node scripts/import-users.mjs users.csv             # dry run
- *   node scripts/import-users.mjs users.csv --confirm   # create/update
+ *   node scripts/import-users.mjs users.csv                          # dry run
+ *   node scripts/import-users.mjs users.csv --confirm                # no logins
+ *   node scripts/import-users.mjs users.csv --confirm --generate-passwords
+ *   DEFAULT_PASSWORD=Start123 node scripts/import-users.mjs users.csv --confirm
  *
  * CSV needs a header row; these column names are recognised (case-insensitive):
  *   email          (required)
@@ -12,21 +14,47 @@
  *
  * JSON must be an array of objects with the same fields.
  *
- * Creates a PendingUser (so the name/role shows in Manage Users) and a login
- * account. Existing accounts keep their password and are updated in place.
+ * Password options:
+ *   --generate-passwords   unique random password per new account, printed once
+ *   DEFAULT_PASSWORD=...   same starting password for every new account
+ *   neither                no logins created; people self-register
+ *   --reset-passwords      also re-issue passwords for accounts that exist
+ *
+ * Creates a PendingUser (so the name/role shows in Manage Users) plus the login.
+ * Existing accounts keep their password unless --reset-passwords is passed.
  */
 import fs from 'fs';
 import path from 'path';
+import { randomInt } from 'crypto';
 import { findUserByEmail, createUser, updateUser } from '../server/auth.js';
 import { listEntities, createEntity, updateEntity } from '../server/entities.js';
 
 const [fileArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const confirm = process.argv.includes('--confirm');
+const generatePasswords = process.argv.includes('--generate-passwords');
+const resetPasswords = process.argv.includes('--reset-passwords');
 const defaultPassword = process.env.DEFAULT_PASSWORD || '';
 
 if (!fileArg) {
-  console.error('Usage: node scripts/import-users.mjs <users.csv|users.json> [--confirm]');
+  console.error('Usage: node scripts/import-users.mjs <users.csv|users.json> [--confirm] [--generate-passwords] [--reset-passwords]');
   process.exit(1);
+}
+
+// Omits characters that get misread when a password is typed from a message: 0/O, 1/l/I
+const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+
+function generatePassword(length = 12) {
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)];
+  }
+  return out;
+}
+
+function passwordFor(person) {
+  if (generatePasswords) return generatePassword();
+  if (defaultPassword) return defaultPassword;
+  return '';
 }
 
 const filePath = path.resolve(fileArg);
@@ -114,10 +142,18 @@ console.log(`Parsed ${people.length} users from ${path.basename(filePath)}`);
 people.forEach((p) => console.log(`  ${p.role.padEnd(8)} ${p.email}${p.full_name ? ` — ${p.full_name}` : ''}`));
 if (skipped.length) console.log(`Skipped ${skipped.length} row(s) without a usable email`);
 
+if (generatePasswords) {
+  console.log('\nPasswords: a unique random one per new account, printed at the end.');
+} else if (defaultPassword) {
+  console.log('\nPasswords: DEFAULT_PASSWORD applied to every new account.');
+} else {
+  console.log('\nPasswords: none — people self-register at /register with these emails.');
+}
+
 if (!confirm) {
   console.log('\nDry run. Re-run with --confirm to import.');
-  if (!defaultPassword) {
-    console.log('Tip: set DEFAULT_PASSWORD=... to also create logins; otherwise users self-register.');
+  if (!generatePasswords && !defaultPassword) {
+    console.log('Add --generate-passwords (or set DEFAULT_PASSWORD=...) to create logins too.');
   }
   process.exit(0);
 }
@@ -127,6 +163,7 @@ let createdPending = 0;
 let updatedPending = 0;
 let createdLogins = 0;
 let updatedLogins = 0;
+const issued = [];
 
 for (const person of people) {
   const existingPending = pendingUsers.find(
@@ -152,27 +189,49 @@ for (const person of people) {
 
   const existingUser = findUserByEmail(person.email);
   if (existingUser) {
-    updateUser(existingUser.id, {
+    const patch = {
       full_name: person.full_name || existingUser.full_name,
       role: person.role,
       standby: person.role === 'standby' ? true : !!existingUser.standby,
-    });
+    };
+    const newPassword = resetPasswords ? passwordFor(person) : '';
+    if (newPassword) {
+      patch.password = newPassword;
+      issued.push({ email: person.email, password: newPassword, status: 'reset' });
+    }
+    updateUser(existingUser.id, patch);
     updatedLogins += 1;
-  } else if (defaultPassword) {
-    createUser({
-      email: person.email,
-      password: defaultPassword,
-      full_name: person.full_name,
-      role: person.role,
-      standby: person.role === 'standby',
-    });
-    createdLogins += 1;
+  } else {
+    const password = passwordFor(person);
+    if (password) {
+      createUser({
+        email: person.email,
+        password,
+        full_name: person.full_name,
+        role: person.role,
+        standby: person.role === 'standby',
+      });
+      issued.push({ email: person.email, password, status: 'new' });
+      createdLogins += 1;
+    }
   }
 }
 
 console.log(`\nManage Users entries: ${createdPending} created, ${updatedPending} updated`);
 console.log(`Login accounts: ${createdLogins} created, ${updatedLogins} updated`);
-if (!defaultPassword && createdLogins === 0) {
+
+if (issued.length) {
+  const width = Math.max(...issued.map((i) => i.email.length));
+  console.log('\nPasswords — shown once, they are stored hashed:');
+  for (const item of issued) {
+    console.log(`  ${item.email.padEnd(width)}  ${item.password}  (${item.status})`);
+  }
+  console.log('\nSend each person their own password privately and have them change it after signing in.');
+} else if (generatePasswords || defaultPassword) {
+  console.log('Every account already existed, so no new passwords were issued.');
+  console.log('Add --reset-passwords to re-issue them.');
+} else {
   console.log('No passwords set — users register at /register with these exact emails.');
 }
+
 console.log('\nRestart the app: pm2 restart remote-ops --update-env');
