@@ -99,55 +99,42 @@ export const isDuplicateRow = (row, existing) => {
   });
 };
 
-// Absolute difference in calendar days between two YYYY-MM-DD strings.
-const dayDiff = (a, b) => {
-  if (!a || !b) return Infinity;
-  return Math.abs(new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime()) / 86400000;
-};
-
-// Only flag a "review" conflict when the same matchup already exists within this
-// many days of the CSV row. The same two teams play each other multiple times per
-// season, so a matchup months away is a different game — not a rescheduled one.
-const REVIEW_WINDOW_DAYS = 3;
-
-// Nearest existing shoot whose matchup title matches this row's title, within the
-// review window (used to show the conflicting existing date/time in the review table).
+// The existing shoot on the SAME date with a matching matchup title (used to show
+// the conflicting existing time in the review table). A different date is a
+// different game — never a reschedule.
 export const findExistingMatchup = (row, existing) => {
   const title = buildTitle(row);
   const dateStr = row.date;
-  let best = null;
-  let bestDiff = Infinity;
   for (const s of existing || []) {
     const sTitle = (s.title || '').trim();
-    if (!sTitle || !titlesMatch(title, sTitle)) continue;
-    const diff = dayDiff(dateStr, s.date);
-    if (diff > REVIEW_WINDOW_DAYS) continue;
-    if (diff < bestDiff) { bestDiff = diff; best = s; }
+    if (!sTitle || (s.date || '') !== dateStr) continue;
+    if (titlesMatch(title, sTitle)) return s;
   }
-  return best;
+  return null;
 };
 
-// Classify a CSV row against existing shoots:
-//  'duplicate' — exact match (same title + date, time matches if both present)
-//  'review'    — same matchup exists within ±3 days but date/time differs (reschedule)
-//  'new'       — no matchup within the window (different game)
+// Classify a CSV row against existing shoots (same-date only):
+//  'duplicate' — same title + same date + (time matches or either time absent)
+//  'review'    — same title + same date but the time differs (a reschedule)
+//  'new'       — no matchup on that date (different game)
 export const classifyRow = (row, existing) => {
   const title = buildTitle(row);
   const tNorm = normalizeTime(row.time || '');
   const dateStr = row.date;
   let hasExact = false;
-  let hasMatchup = false;
+  let hasReview = false;
   for (const s of existing || []) {
     const sTitle = (s.title || '').trim();
-    if (!sTitle || !titlesMatch(title, sTitle)) continue;
-    if (dayDiff(dateStr, s.date) > REVIEW_WINDOW_DAYS) continue;
-    hasMatchup = true;
-    if ((s.date || '') === dateStr) {
-      const sTime = normalizeTime(s.game_time || s.start_time || '');
-      if (!tNorm || !sTime || tNorm === sTime) hasExact = true;
+    if (!sTitle || (s.date || '') !== dateStr) continue;
+    if (!titlesMatch(title, sTitle)) continue;
+    const sTime = normalizeTime(s.game_time || s.start_time || '');
+    if (!tNorm || !sTime || tNorm === sTime) {
+      hasExact = true;
+    } else {
+      hasReview = true; // same date + matchup, but the time changed
     }
   }
   if (hasExact) return 'duplicate';
-  if (hasMatchup) return 'review';
+  if (hasReview) return 'review';
   return 'new';
 };
