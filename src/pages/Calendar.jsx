@@ -672,8 +672,15 @@ export default function Calendar() {
       const startTime = standby.start_time || '18:00';
       const endTime = standby.end_time || '06:00';
 
-      const startDateTime = new Date(`${startDateStr}T${startTime}:00`);
-      const endDateTime = new Date(`${endDateStr}T${endTime}:00`);
+      let startDateTime = new Date(`${startDateStr}T${startTime}:00`);
+      let endDateTime = new Date(`${endDateStr}T${endTime}:00`);
+      // Overnight shift: when the end is on or before the start (e.g. 18:00 → 06:00
+      // stored on the same date, or end_date omitted), the window crosses midnight
+      // and must extend to the next day so 18:00 → 06:00-next-day coverage works for
+      // every standby-capable role (admin / standby / operator_standby).
+      if (endDateTime <= startDateTime) {
+        endDateTime = new Date(`${format(addDays(new Date(`${endDateStr}T00:00:00`), 1), 'yyyy-MM-dd')}T${endTime}:00`);
+      }
 
       return shootDateTime >= startDateTime && shootDateTime <= endDateTime;
     }) || null;

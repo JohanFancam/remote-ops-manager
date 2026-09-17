@@ -106,15 +106,31 @@ export default function StandbyManager({ user, allUsers = [] }) {
 
   const handleClaim = async () => {
     if (!form.start_date) return;
+    const isSingleDay = !form.end_date || form.end_date === form.start_date;
+    const hasTimes = form.start_time || form.end_time;
+    let start_date = form.start_date;
+    let end_date = form.end_date || form.start_date;
+    let start_time = form.start_time || '';
+    let end_time = form.end_time || '';
+    // A single-day standby with no explicit times defaults to the overnight
+    // 18:00 → 06:00-next-day coverage window (same as the calendar toggle),
+    // so the coverage logic and earnings treat it as one paid overnight shift.
+    if (isSingleDay && !hasTimes) {
+      start_time = '18:00';
+      end_time = '06:00';
+      const nextDay = new Date(form.start_date + 'T00:00:00');
+      nextDay.setDate(nextDay.getDate() + 1);
+      end_date = format(nextDay, 'yyyy-MM-dd');
+    }
     await base44.entities.StandbyDay.create({
-      start_date: form.start_date,
-      start_time: form.start_time || '',
-      end_date: form.end_date || form.start_date,
-      end_time: form.end_time || '',
+      start_date,
+      start_time,
+      end_date,
+      end_time,
       notes: form.notes || '',
       admin_email: user.email,
       admin_name: user.full_name || user.email,
-      date: form.start_date,
+      date: start_date,
     });
     refresh();
     setShowForm(false);

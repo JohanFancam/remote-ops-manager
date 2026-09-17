@@ -99,16 +99,38 @@ export const isDuplicateRow = (row, existing) => {
   });
 };
 
-// First existing shoot whose matchup title matches this row's title (for review display).
+// Absolute difference in calendar days between two YYYY-MM-DD strings.
+const dayDiff = (a, b) => {
+  if (!a || !b) return Infinity;
+  return Math.abs(new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime()) / 86400000;
+};
+
+// Only flag a "review" conflict when the same matchup already exists within this
+// many days of the CSV row. The same two teams play each other multiple times per
+// season, so a matchup months away is a different game — not a rescheduled one.
+const REVIEW_WINDOW_DAYS = 3;
+
+// Nearest existing shoot whose matchup title matches this row's title, within the
+// review window (used to show the conflicting existing date/time in the review table).
 export const findExistingMatchup = (row, existing) => {
   const title = buildTitle(row);
-  return (existing || []).find(s => (s.title || '').trim() && titlesMatch(title, (s.title || '').trim())) || null;
+  const dateStr = row.date;
+  let best = null;
+  let bestDiff = Infinity;
+  for (const s of existing || []) {
+    const sTitle = (s.title || '').trim();
+    if (!sTitle || !titlesMatch(title, sTitle)) continue;
+    const diff = dayDiff(dateStr, s.date);
+    if (diff > REVIEW_WINDOW_DAYS) continue;
+    if (diff < bestDiff) { bestDiff = diff; best = s; }
+  }
+  return best;
 };
 
 // Classify a CSV row against existing shoots:
 //  'duplicate' — exact match (same title + date, time matches if both present)
-//  'review'    — same matchup exists but date or time differs (needs admin review)
-//  'new'       — no matchup match
+//  'review'    — same matchup exists within ±3 days but date/time differs (reschedule)
+//  'new'       — no matchup within the window (different game)
 export const classifyRow = (row, existing) => {
   const title = buildTitle(row);
   const tNorm = normalizeTime(row.time || '');
@@ -118,6 +140,7 @@ export const classifyRow = (row, existing) => {
   for (const s of existing || []) {
     const sTitle = (s.title || '').trim();
     if (!sTitle || !titlesMatch(title, sTitle)) continue;
+    if (dayDiff(dateStr, s.date) > REVIEW_WINDOW_DAYS) continue;
     hasMatchup = true;
     if ((s.date || '') === dateStr) {
       const sTime = normalizeTime(s.game_time || s.start_time || '');
