@@ -102,6 +102,39 @@ function parseCsv(text) {
   });
 }
 
+/** Clean numeric literal; leading zeros are left alone in case they are codes */
+const NUMERIC = /^-?(0|[1-9]\d*)(\.\d+)?$/;
+
+function parseJsonish(value) {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Exports carry fields that predate this app's schemas (rig_check_completed,
+ * live_data, ...). Leaving those as text is dangerous: the string "false" is
+ * truthy, so `!!shoot.rig_check_completed` would report every shoot as checked.
+ * Infer a type from the value when the schema has nothing to say.
+ */
+function inferType(value) {
+  const trimmed = String(value).trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'true') return true;
+  if (lower === 'false') return false;
+  if (lower === 'null') return undefined;
+
+  const parsed = parseJsonish(trimmed);
+  if (parsed !== undefined) return parsed;
+
+  if (NUMERIC.test(trimmed)) return Number(trimmed);
+  return trimmed;
+}
+
 function coerce(value, spec) {
   if (value === undefined || value === null || value === '') return undefined;
   const type = spec?.type;
@@ -115,18 +148,14 @@ function coerce(value, spec) {
   }
   if (type === 'array' || type === 'object') {
     if (typeof value !== 'string') return value;
-    const trimmed = value.trim();
-    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        // fall through to comma splitting
-      }
-    }
-    if (type === 'array') return trimmed.split(',').map((v) => v.trim()).filter(Boolean);
+    const parsed = parseJsonish(value);
+    if (parsed !== undefined) return parsed;
+    if (type === 'array') return value.trim().split(',').map((v) => v.trim()).filter(Boolean);
     return undefined;
   }
-  return String(value);
+  if (type === 'string') return String(value);
+
+  return inferType(value);
 }
 
 function buildRecord(row, properties) {
@@ -199,7 +228,7 @@ for (const { file, entityType } of targets) {
     }
   }
   if (unknown.size) {
-    console.log(`  columns not in the schema (kept as text): ${[...unknown].join(', ')}`);
+    console.log(`  columns not in the schema (type inferred): ${[...unknown].join(', ')}`);
   }
   if (prepared[0]) {
     console.log(`  sample: ${JSON.stringify(prepared[0].data).slice(0, 220)}`);

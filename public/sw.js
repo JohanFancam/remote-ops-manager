@@ -1,5 +1,5 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v2';
+const CACHE = 'rom-shell-v3';
 const SHELL = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
 
   // Page loads must come from the network so a deploy is picked up immediately;
   // the cache is only a fallback when offline.
-  if (request.mode === 'navigate') {
+  if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -50,8 +50,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Vite fingerprints filenames, so hashed assets can be served from cache safely
-  const isHashedAsset = url.pathname.startsWith('/assets/');
-  if (isHashedAsset) {
+  if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((response) => {
         putInCache(request, response);
@@ -61,18 +60,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        putInCache(request, response);
-        return response;
-      })
-      .catch(async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        return new Response('', { status: 504, statusText: 'Offline' });
-      })
-  );
+  // Everything else stays uncached: synthesising a fallback here only turned
+  // aborted requests into confusing error statuses in the console.
 });
 
 self.addEventListener('push', (event) => {
