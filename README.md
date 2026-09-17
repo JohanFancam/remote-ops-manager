@@ -53,6 +53,32 @@ First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typica
 
 To bring over **live** Base44 data: export entities from Base44, then `POST /api/entities/:Type`.
 
+### Removing demo data on a live install
+
+```bash
+node scripts/clear-demo-data.mjs            # dry run — lists what goes
+node scripts/clear-demo-data.mjs --confirm  # delete
+pm2 restart remote-ops --update-env
+```
+
+Deletes sample shoots, rig profiles, and `@example.com` crew, keeps real users and
+rate settings, and writes a marker so the server never re-seeds demo data. It refuses
+to run if no admin account would be left. Use `KEEP_EMAILS=a@b.com,c@d.com` to protect
+extra accounts.
+
+### Importing the real crew
+
+```bash
+node scripts/import-users.mjs users.csv                             # dry run
+DEFAULT_PASSWORD=Welcome123 node scripts/import-users.mjs users.csv --confirm
+```
+
+CSV needs a header row with `email` plus optionally `full_name` (or `first_name` /
+`last_name`) and `role` (`admin`, `standby`, `accounts`, `user`). JSON arrays work too.
+Each person gets a Manage Users entry and a login. Without `DEFAULT_PASSWORD` no
+passwords are set and users self-register at `/register` with those exact emails.
+Re-running is safe — existing accounts are updated, passwords untouched.
+
 ## Stack
 
 | Layer | Tech |

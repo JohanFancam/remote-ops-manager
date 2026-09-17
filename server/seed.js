@@ -37,13 +37,43 @@ const CHECKLIST = [
 
 const CAM = (shutter, aperture, iso) => ({ shutter, aperture, iso });
 
-export function seedIfEmpty() {
-  seedUsers();
-  seedSettings();
-  seedDemoDataset();
+export const DEMO_SEED_DISABLED_KEY = 'demo_seed_disabled';
+
+/**
+ * Demo users/shoots are for evaluating the UI. Live installs disable them via
+ * SEED_DEMO_DATA=false or the AppSettings marker written by clear-demo-data.
+ */
+export function isDemoSeedDisabled() {
+  if (String(process.env.SEED_DEMO_DATA || '').toLowerCase() === 'false') return true;
+  return listEntities('AppSettings').some(
+    (s) => s.key === DEMO_SEED_DISABLED_KEY && String(s.value) === 'true'
+  );
 }
 
-function seedUsers() {
+export function seedIfEmpty() {
+  const demoDisabled = isDemoSeedDisabled();
+  seedUsers(demoDisabled);
+  seedSettings();
+  if (!demoDisabled) seedDemoDataset();
+}
+
+function seedUsers(demoDisabled = false) {
+  if (demoDisabled) {
+    // Keep a way in if the database is brand new, but never recreate the demo crew
+    const hasUsers = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;
+    if (!hasUsers) {
+      createUser({
+        email: process.env.ADMIN_EMAIL || 'admin@example.com',
+        password: process.env.ADMIN_PASSWORD || 'admin123',
+        full_name: process.env.ADMIN_NAME || 'Admin User',
+        role: 'admin',
+        standby: true,
+      });
+      console.log('Seeded initial admin only (demo data disabled).');
+    }
+    return;
+  }
+
   const roster = [
     { email: 'admin@example.com', password: process.env.ADMIN_PASSWORD || 'admin123', full_name: process.env.ADMIN_NAME || 'Admin User', role: 'admin', standby: true },
     { email: 'operator@example.com', password: 'operator123', full_name: 'Demo Operator', role: 'user' },
