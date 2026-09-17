@@ -2,20 +2,16 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
-import { getDisplayName } from '../components/utils/nameUtils';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
-import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Users, UserPlus, User, Trash2, RefreshCw, Phone, PhoneOff,
-  MessageSquare, Save, Image, Send, X, DollarSign, Edit2, Bell
+  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell
 } from 'lucide-react';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
@@ -147,38 +143,6 @@ function AppVersionBump({ appSettings, queryClient }) {
   );
 }
 
-function TutorialToggle({ appSettings, settingKey, label, queryClient }) {
-  const current = appSettings.find(s => s.key === settingKey)?.value;
-  const enabled = current !== 'false';
-  const [saving, setSaving] = React.useState(false);
-
-  const toggle = async () => {
-    setSaving(true);
-    const existing = appSettings.find(s => s.key === settingKey);
-    const newVal = enabled ? 'false' : 'true';
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value: newVal });
-    } else {
-      await base44.entities.AppSettings.create({ key: settingKey, value: newVal, description: `Tutorial enabled for ${label}` });
-    }
-    setSaving(false);
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm text-slate-400">{label}</span>
-      <button
-        onClick={toggle}
-        disabled={saving}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
-      >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-slate-900 transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-      </button>
-    </div>
-  );
-}
-
 const SLACK_PHASES = [
   { key: 'setup_complete', label: 'Setup Complete', placeholder: 'Setup complete — {team} shoot ready to go!' },
   { key: 'pre_shoot_started', label: 'Pre-Shoot Started', placeholder: 'Pre-shoot started — {team}' },
@@ -187,20 +151,16 @@ const SLACK_PHASES = [
 ];
 
 export default function Settings() {
-  const { user, isAdmin, isStandby } = useApp();
+  const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
 
   const [slackMsgs, setSlackMsgs] = useState({});
   const [slackSaved, setSlackSaved] = useState(false);
-  const [standbyDone, setStandbyDone] = useState(false);
   const [rateBaseInput, setRateBaseInput] = useState('');
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [ratePostponedInput, setRatePostponedInput] = useState('250');
   const [ratesSaved, setRatesSaved] = useState(false);
-  const [notifyHoursInput, setNotifyHoursInput] = useState('5');
-  const [notifySaved, setNotifySaved] = useState(false);
-  const [whatsappMsg, setWhatsappMsg] = useState("Hi! 👋 Please check the Remote Ops app for your latest shoot schedule. Thanks!");
 
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
@@ -263,48 +223,7 @@ export default function Settings() {
     if (pr) setRatePostponedInput(pr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
-    const nh = appSettings.find(s => s.key === 'notify_hours_before')?.value;
-    if (nh) setNotifyHoursInput(nh);
-    const wm = appSettings.find(s => s.key === 'whatsapp_reminder_msg')?.value;
-    if (wm) setWhatsappMsg(wm);
   }, [appSettings]);
-
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['allUsers'] });
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const handleStandbyToggle = async () => {
-    const current = user?.standby || false;
-    await base44.auth.updateMe({ standby: !current });
-    setStandbyDone(true);
-    setTimeout(() => setStandbyDone(false), 2000);
-    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-  };
-
-  const handleSaveNotifySettings = async () => {
-    const key = 'notify_hours_before';
-    const existing = appSettings.find(s => s.key === key);
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value: notifyHoursInput });
-    } else {
-      await base44.entities.AppSettings.create({ key, value: notifyHoursInput, description: 'Hours before setup to notify operators' });
-    }
-    setNotifySaved(true);
-    setTimeout(() => setNotifySaved(false), 2000);
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
-
-  const handleSaveWhatsappMsg = async () => {
-    const key = 'whatsapp_reminder_msg';
-    const existing = appSettings.find(s => s.key === key);
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value: whatsappMsg });
-    } else {
-      await base44.entities.AppSettings.create({ key, value: whatsappMsg, description: 'WhatsApp reminder message template' });
-    }
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-  };
 
   const handleSaveRates = async () => {
     const pairs = [
@@ -419,38 +338,6 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Standby Toggle — Admin only */}
-        {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <Phone className="h-5 w-5 text-amber-400" /> Standby Contact
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <p className="text-slate-400 text-sm mb-4">
-                When on standby, your name will appear in operator shoot details as the contact person.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${isStandby ? 'border-yellow-700 bg-amber-950/40' : 'border-slate-800 bg-slate-800/40'}`}>
-                  {isStandby ? <Phone className="h-4 w-4 text-amber-400" /> : <PhoneOff className="h-4 w-4 text-slate-500" />}
-                  <span className={isStandby ? 'text-amber-400 font-medium text-sm' : 'text-slate-400 text-sm'}>
-                    {isStandby ? 'On Standby' : 'Not on Standby'}
-                  </span>
-                </div>
-                <Button
-                  onClick={handleStandbyToggle}
-                  className={isStandby ? 'bg-slate-700 hover:bg-gray-600' : 'bg-yellow-700 hover:bg-yellow-600'}
-                  size="sm"
-                >
-                  {standbyDone ? '✓ Saved' : isStandby ? 'Go Off Standby' : 'Go On Standby'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Google Calendar — Admin only */}
         {/* Push / install — all roles */}
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
@@ -526,74 +413,9 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Notification Settings — Admin only */}
-        {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <Bell className="h-5 w-5 text-blue-400" /> Shoot Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">
-                Remote operators see an in-app notification badge when a shoot setup is approaching.
-                Set how many hours before setup they are notified.
-              </p>
-              <div className="flex items-end gap-3 flex-wrap">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Notify operators (hours before setup)</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="48"
-                    value={notifyHoursInput}
-                    onChange={e => setNotifyHoursInput(e.target.value)}
-                    className="bg-slate-800 border-slate-800 text-slate-100 w-32"
-                  />
-                </div>
-                <Button onClick={handleSaveNotifySettings} className="bg-blue-600 hover:bg-blue-600 gap-2">
-                  <Save className="h-4 w-4" /> {notifySaved ? '✓ Saved!' : 'Save'}
-                </Button>
-              </div>
-
-              <div className="border-t border-slate-800 pt-4 space-y-3">
-                <p className="text-xs text-slate-400 mb-1 font-medium flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-emerald-400" /> WhatsApp Schedule Reminder
-                </p>
-                <p className="text-xs text-slate-500">Customize the message that opens in WhatsApp when you send a reminder.</p>
-                <Textarea
-                  value={whatsappMsg}
-                  onChange={e => setWhatsappMsg(e.target.value)}
-                  className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm min-h-[100px]"
-                />
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    onClick={() => {
-                      handleSaveWhatsappMsg();
-                      window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
-                    }}
-                    className="bg-green-700 hover:bg-green-600 gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Open WhatsApp Reminder
-                  </Button>
-                  <Button onClick={handleSaveWhatsappMsg} variant="outline" className="border-slate-700 text-slate-400 hover:bg-slate-800 gap-2">
-                    <Save className="h-4 w-4" /> Save Message
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Message Templates — Admin only */}
         {isAdmin && (
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
-        )}
-
-        {/* Rig Check Permissions — Admin only */}
-        {isAdmin && (
-          <RigCheckUsersSettings appSettings={appSettings} allUsers={allUsers} />
         )}
 
         {/* App Version / Refresh Reminder — Admin only */}
@@ -607,22 +429,6 @@ export default function Settings() {
             <CardContent className="pt-4">
               <p className="text-xs text-slate-500 mb-1">Use this after deploying changes to remind all logged-in users to refresh their browser.</p>
               <AppVersionBump appSettings={appSettings} queryClient={queryClient} />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tutorial Settings — Admin only */}
-        {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <Bell className="h-5 w-5 text-purple-400" /> Tutorial Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">Control whether the onboarding tutorial is shown to admins and remote operators. Users can re-open it anytime from the sidebar.</p>
-              <TutorialToggle appSettings={appSettings} settingKey="tutorial_admin" label="Admin Tutorial" queryClient={queryClient} />
-              <TutorialToggle appSettings={appSettings} settingKey="tutorial_remote" label="Remote Operator Tutorial" queryClient={queryClient} />
             </CardContent>
           </Card>
         )}
