@@ -6,6 +6,22 @@ import { base44 } from '@/api/base44Client';
 import { parseCSV, normalizeRigType, normalizeTime, buildTitle, classifyRow, findExistingMatchup } from './csvMatch';
 import CSVReviewTable from './CSVReviewTable';
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Create a shoot, retrying with backoff if the platform rate-limits us.
+async function createWithRetry(payload, retries = 4) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await base44.entities.Shoot.create(payload);
+    } catch (err) {
+      const msg = (err?.message || '').toLowerCase();
+      const isRateLimit = msg.includes('rate limit') || msg.includes('429') || msg.includes('too many');
+      if (attempt === retries || !isRateLimit) throw err;
+      await sleep(700 * (attempt + 1)); // 700ms, 1.4s, 2.1s, 2.8s
+    }
+  }
+}
+
 export default function CSVImportModal({ open, onClose, onImported }) {
   const [step, setStep] = useState('select'); // select | review | result
   const [file, setFile] = useState(null);
@@ -94,7 +110,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
       const homeTeam = item.row['client/team'] || item.row.team || '';
       const rigType = normalizeRigType(item.row.type || item.row.rig_type || item.row.format);
       try {
-        const created = await base44.entities.Shoot.create({
+        const created = await createWithRetry({
           title: item.title,
           client: homeTeam,
           location: item.row.stadium || item.row.venue || '',
@@ -112,6 +128,8 @@ export default function CSVImportModal({ open, onClose, onImported }) {
       }
       processed++;
       setProgress({ current: processed, total, currentTitle: item.title });
+      // Small throttle so we don't burst the platform's per-second write limit.
+      if (processed < total) await sleep(150);
     }
 
     const skipped = classified.duplicates.length + classified.reviews.filter(r => decisions[r.idx] !== 'add').length;
