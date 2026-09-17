@@ -49,6 +49,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
 
         const title = buildTitle(row);
         const gameTime = normalizeTime(row.time || '');
+        const homeTeam = row['client/team'] || row.team || '';
         const rigType = normalizeRigType(row.type || row.rig_type || row.format);
 
         // Duplicate against existing calendar records (same title + date + time).
@@ -62,7 +63,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
         try {
           await base44.entities.Shoot.create({
             title,
-            client: row.team || '',
+            client: homeTeam,
             location: row.stadium || row.venue || '',
             date: row.date,
             game_time: gameTime,
@@ -94,12 +95,10 @@ export default function CSVImportModal({ open, onClose, onImported }) {
 
         <div className="text-sm text-gray-400 bg-gray-800 rounded-lg p-3 mb-4 space-y-2">
           <p className="font-semibold text-gray-300">Expected CSV columns:</p>
-          <code className="text-xs text-blue-300 block">team, opponent, date (YYYY-MM-DD), time (HH:MM), stadium, type, calendar</code>
+          <code className="text-xs text-blue-300 block">team, opponent, date (YYYY-MM-DD), time (HH:MM), Client/Team</code>
           <ul className="text-xs text-gray-400 space-y-0.5 mt-1">
-            <li><b>time</b> must be in South African time (SAST).</li>
-            <li><b>stadium</b> is the stadium name only — no addresses.</li>
-            <li><b>type</b> is Data, Fancam or Data/Fancam.</li>
-            <li><b>calendar</b> is which calendar this game was loaded from.</li>
+            <li><b>date</b> must be <b>YYYY-MM-DD</b> and <b>time</b> must be <b>HH:MM</b> in South African time (SAST).</li>
+            <li><b>Client/Team</b> is the home team — the first team in the "Team vs Opponent" title (e.g. Lightning vs Predators → Lightning).</li>
           </ul>
           <p className="text-xs text-gray-500 mt-1">Only games not already on the calendar are imported — duplicates are skipped automatically.</p>
         </div>
@@ -133,9 +132,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                       <th className="text-left pb-1 pr-3">Opponent</th>
                       <th className="text-left pb-1 pr-3">Date</th>
                       <th className="text-left pb-1 pr-3">Time</th>
-                      <th className="text-left pb-1 pr-3">Stadium</th>
-                      <th className="text-left pb-1 pr-3">Type</th>
-                      <th className="text-left pb-1">Calendar</th>
+                      <th className="text-left pb-1">Client/Team</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -145,9 +142,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
                         <td className="py-1.5 pr-3">{row.opponent}</td>
                         <td className="py-1.5 pr-3">{row.date}</td>
                         <td className="py-1.5 pr-3">{row.time || '—'}</td>
-                        <td className="py-1.5 pr-3">{row.stadium || row.venue || '—'}</td>
-                        <td className="py-1.5 pr-3">{row.type || '—'}</td>
-                        <td className="py-1.5">{row.calendar || '—'}</td>
+                        <td className="py-1.5">{row['client/team'] || row.team || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
