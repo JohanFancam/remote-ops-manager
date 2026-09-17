@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -45,9 +46,15 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
 
   const [selectedEmail, setSelectedEmail] = useState('');
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+    >
+      <div
+        className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
             <h2 className="text-base font-semibold text-white">Manage Operators</h2>
@@ -133,6 +140,7 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

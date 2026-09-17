@@ -1035,6 +1035,8 @@ export default function Calendar() {
   };
 
   const handleAssignOperators = (shoot) => {
+    setQuickView(null);
+    setDayModal(null);
     setAssignOperatorsModal(shoot);
   };
 
