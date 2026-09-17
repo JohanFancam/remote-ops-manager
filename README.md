@@ -70,7 +70,22 @@ First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typica
 | Standby | `priya.nair@example.com` | `standby123` |
 | Accounts | `accounts@example.com` | `accounts123` |
 
-To bring over **live** Base44 data: export entities from Base44, then `POST /api/entities/:Type`.
+### Importing Base44 entity exports
+
+```bash
+node scripts/import-entities.mjs auto exports/*.csv             # dry run
+node scripts/import-entities.mjs auto exports/*.csv --confirm
+node scripts/import-entities.mjs Shoot Shoot_export.csv --confirm   # explicit type
+```
+
+`auto` reads the entity type from the filename (`Shoot_export_1234.csv` → `Shoot`).
+The script coerces values using each entity's schema — CSV delivers everything as
+text, so `"false"` would otherwise be stored as a truthy string and a fee of `"500"`
+as text. Original ids are preserved so cross-references such as `PaymentRecord.shoot_id`
+still resolve, and re-running updates rows by id instead of duplicating them.
+
+**Import `Shoot` first.** Payment records, shoot reports, and time entries all
+reference `shoot_id`; without the shoots those rows have nothing to attach to.
 
 ### Removing demo data on a live install
 
