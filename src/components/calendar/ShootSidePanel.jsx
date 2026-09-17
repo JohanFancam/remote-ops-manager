@@ -50,6 +50,7 @@ export default function ShootSidePanel({
   user,
   isAdmin,
   isStandby,
+  isOperator,
   rigSettings,
   allUsers = [],
   allShoots = [],
@@ -84,12 +85,12 @@ export default function ShootSidePanel({
     const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value;
     return raw ? JSON.parse(raw) : [];
   })();
-  const userEligibleForAutoAssign = !isAdmin && !isStandby && user && (
+  const userEligibleForAutoAssign = isOperator && user && (
     autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
   );
 
   // Count pre-approved slots (reads live cache when available)
-  const preCount = !isAdmin && !isStandby && user?.email
+  const preCount = isOperator && user?.email
     ? getPreApprovedCount(queryClient?.getQueryData(['shoots']) || allShoots, user.email, shoot.id, todayStr)
     : 0;
   const withinLimit = preCount < AUTO_APPROVE_LIMIT;
@@ -339,7 +340,7 @@ export default function ShootSidePanel({
               </Button>
             </>
           )}
-          {!isAdmin && !isStandby && !isPast && (
+          {isOperator && !isPast && (
             <div className="flex flex-col gap-1.5 w-full">
               <Button
                 size="sm"

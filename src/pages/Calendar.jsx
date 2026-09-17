@@ -157,6 +157,7 @@ function ShootCalendarEntry({
   user,
   isAdmin,
   isStandby,
+  isOperator,
   allUsers,
   allShoots,
   rigSettings,
@@ -208,7 +209,7 @@ function ShootCalendarEntry({
     ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
     : '';
 
-  const pendingShootClass = !isAdmin && !isStandby && isPending
+  const pendingShootClass = isOperator && isPending
     ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
     : '';
 
@@ -611,7 +612,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isStandby, isLevel1Admin } = useApp();
+  const { user, isAdmin, isStandby, isOperator, isLevel1Admin } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -1423,6 +1424,7 @@ export default function Calendar() {
       user={user}
       isAdmin={isAdmin}
       isStandby={isStandby}
+      isOperator={isOperator}
       allUsers={allUsers}
       allShoots={shoots}
       rigSettings={rigSettings}
@@ -1535,7 +1537,7 @@ export default function Calendar() {
                       <ShieldCheck className="h-2.5 w-2.5" />
                     </button>
                   )}
-                  {!isAdmin && !isStandby && !isPast && (
+                  {isOperator && !isPast && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
@@ -1652,7 +1654,7 @@ export default function Calendar() {
                          {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
                        </Button>
                      )}
-                    {!isAdmin && !isStandby && !isPast && (
+                    {isOperator && !isPast && (
                        <Button
                          size="sm"
                          variant="outline"
@@ -1892,6 +1894,7 @@ export default function Calendar() {
           user={user}
           isAdmin={isAdmin}
           isStandby={isStandby}
+          isOperator={isOperator}
           rigSettings={rigSettings}
           allUsers={allUsers}
           allShoots={shoots}

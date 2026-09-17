@@ -142,7 +142,7 @@ export default function AutoAssignSettings({ appSettings, allUsers = [] }) {
                 <span className="text-sm text-slate-400">{u.full_name || u.email}</span>
                 <span className="text-xs text-gray-600">{u.email}</span>
                 <span className={`text-xs ml-auto px-1.5 py-0.5 rounded-full ${u.role === 'standby' ? 'bg-yellow-900/40 text-amber-400' : 'bg-green-900/40 text-emerald-400'}`}>
-                  {u.role === 'standby' ? 'Standby' : 'Remote'}
+                  {u.role === 'standby' ? 'Op / Standby' : 'Remote'}
                 </span>
               </label>
             ))}

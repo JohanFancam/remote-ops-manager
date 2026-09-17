@@ -8,10 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Users, UserPlus, Edit2, Save, X, Send, Trash2 } from 'lucide-react';
 
 const ROLE_OPTIONS = [
-  { value: 'user', label: 'Remote Operator' },
-  { value: 'standby', label: 'Standby User' },
-  { value: 'accounts', label: 'Accounts' },
   { value: 'admin', label: 'Admin' },
+  { value: 'accounts', label: 'Accounts' },
+  { value: 'user', label: 'Remote Operator' },
+  { value: 'standby', label: 'Operator / Standby' },
 ];
 
 const roleBadgeClass = {
@@ -20,7 +20,12 @@ const roleBadgeClass = {
   accounts: 'bg-green-500/20 text-emerald-400 border-green-500/30',
   user: 'bg-slate-700 text-slate-400 border-slate-700',
 };
-const roleLabel = { admin: 'Admin', standby: 'Standby', accounts: 'Accounts', user: 'Operator' };
+const roleLabel = {
+  admin: 'Admin',
+  accounts: 'Accounts',
+  user: 'Remote Operator',
+  standby: 'Operator / Standby',
+};
 
 function AddUserForm({ onClose, onAdded }) {
   const [firstName, setFirstName] = useState('');

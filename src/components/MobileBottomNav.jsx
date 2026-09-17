@@ -20,9 +20,11 @@ const remoteNavItems = [
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
 ];
 
+// Operator / Standby keeps the operator pages and adds standby coverage
 const standbyNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
 ];
 
 const allAdminMenuItems = [
@@ -44,6 +46,7 @@ const allRemoteMenuItems = [
 const allStandbyMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 

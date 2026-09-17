@@ -19,8 +19,11 @@ export function AppProvider({ children }) {
   const presenceIdRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
+  // "Operator / Standby": shoots like a remote operator and also covers standby
   const isStandby = user?.role === 'standby';
   const isAccounts = user?.role === 'accounts';
+  // Anyone who takes shoots and earns from them
+  const isOperator = user?.role === 'user' || isStandby;
   const adminLevel = null; // removed admin levels
   const isLevel1Admin = isAdmin; // all admins have full access now
   const isLevel2Admin = false;
@@ -81,7 +84,7 @@ export function AppProvider({ children }) {
   }, [user?.email]);
 
   return (
-    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
+    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isOperator, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
       {children}
     </AppContext.Provider>
   );

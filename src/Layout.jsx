@@ -22,9 +22,9 @@ const SIDEBAR_COLLAPSE_WIDTH = 1400;
 
 function roleLabel(isAdmin, isStandby, isAccounts) {
   if (isAdmin) return 'Admin';
-  if (isStandby) return 'Standby';
+  if (isStandby) return 'Operator / Standby';
   if (isAccounts) return 'Accounts';
-  return 'Operator';
+  return 'Remote Operator';
 }
 
 function LayoutContent({ children, currentPageName }) {
@@ -87,9 +87,11 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
+  // Operator / Standby gets the operator pages plus standby coverage on the calendar
   const standbyNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 

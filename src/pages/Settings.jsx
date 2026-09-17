@@ -301,7 +301,7 @@ export default function Settings() {
                 <p className="text-lg font-semibold text-slate-100">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-slate-400 text-sm">{user?.email}</p>
                 <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
-                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Standby User' : 'Remote Operator'}
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : 'Remote Operator'}
                 </Badge>
               </div>
             </div>

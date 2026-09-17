@@ -13,7 +13,7 @@ import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList
 import StandbyUserQuota from '../components/dashboard/StandbyUserQuota';
 
 export default function Dashboard() {
-  const { user, isAdmin, isStandby } = useApp();
+  const { user, isAdmin, isStandby, isOperator } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -98,9 +98,6 @@ export default function Dashboard() {
     return visibleShoots.filter((s) => s.assigned_operators?.includes(user?.email));
   }, [visibleShoots, user?.email]);
 
-  const selfAssignedShoots = (isAdmin || isStandby) ? allAssignedShoots : [];
-  const remoteShoots = (!isAdmin && !isStandby) ? allAssignedShoots : [];
-
   const myStandbyDays = useMemo(() => {
     if ((!isAdmin && !isStandby) || !user?.email) return [];
     return standbyDays.filter((sd) => sd.admin_email === user.email);
@@ -146,7 +143,7 @@ export default function Dashboard() {
           </div>
           <div className="rom-panel">
             <AdminDayShootView
-              shoots={(isAdmin || isStandby) ? selfAssignedShoots : remoteShoots}
+              shoots={allAssignedShoots}
               isAdmin={isAdmin || isStandby}
               rigSettings={rigSettings}
               onUpdate={handleShootUpdate}
@@ -180,7 +177,7 @@ export default function Dashboard() {
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
 
-        {(!isAdmin && !isStandby) && (
+        {isOperator && (
           <section className="mb-8">
             <div className="mb-3">
               <h2 className="rom-section-title">Pending Approval</h2>
@@ -192,7 +189,7 @@ export default function Dashboard() {
           </section>
         )}
 
-        {(!isAdmin && !isStandby) && (
+        {isOperator && (
           <div className="mt-6">
             <RemoteEarnings user={user} />
           </div>
