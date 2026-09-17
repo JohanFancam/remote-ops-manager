@@ -1,5 +1,5 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v1';
+const CACHE = 'rom-shell-v2';
 const SHELL = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -16,25 +16,62 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function putInCache(request, response) {
+  if (!response || !response.ok) return;
+  const copy = response.clone();
+  caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+}
+
+const OFFLINE_RESPONSE = () => new Response(
+  '<h1>Offline</h1><p>Reconnect and reload to use Remote Ops.</p>',
+  { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+);
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/uploads')) return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetched = fetch(request)
+  // Page loads must come from the network so a deploy is picked up immediately;
+  // the cache is only a fallback when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
-          if (response && response.ok && url.origin === self.location.origin) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(request, copy));
-          }
+          putInCache('/index.html', response);
           return response;
         })
-        .catch(() => cached);
-      return cached || fetched;
-    })
+        .catch(async () => (await caches.match('/index.html')) || OFFLINE_RESPONSE())
+    );
+    return;
+  }
+
+  // Vite fingerprints filenames, so hashed assets can be served from cache safely
+  const isHashedAsset = url.pathname.startsWith('/assets/');
+  if (isHashedAsset) {
+    event.respondWith(
+      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+        putInCache(request, response);
+        return response;
+      }))
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        putInCache(request, response);
+        return response;
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return new Response('', { status: 504, statusText: 'Offline' });
+      })
   );
 });
 
