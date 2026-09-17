@@ -37,7 +37,7 @@ const isFancamOrMixed = (shoot, rigSettings) => {
 // Compact single-line entry used inside the month grid and the "X more" popup.
 export default function MonthEntry({
   shoot, user, isAdmin, isStandby, canStandby = false, isOperatorStandby = false, allUsers, allShoots, rigSettings, appSettings, todayStr,
-  queryClient, onUpdate, onQuickView, onContextMenu, getStandbyCoverageForShoot,
+  queryClient, onUpdate, onQuickView, getStandbyCoverageForShoot,
   primaryStandbyAdminEmail = '',
   fullTitle = false,
 }) {
@@ -78,7 +78,6 @@ export default function MonthEntry({
       role="button"
       tabIndex={0}
       onClick={(e) => { e.stopPropagation(); onQuickView?.(shoot); }}
-      onContextMenu={(e) => onContextMenu?.(e, shoot)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onQuickView?.(shoot); } }}
       className={`group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-gray-800/70 cursor-pointer text-left ${
         showStandby ? `border-l-2 ${coverageColor.borderL}` : ''

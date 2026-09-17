@@ -1413,7 +1413,6 @@ export default function Calendar() {
                       queryClient={queryClient}
                       onUpdate={handleShootUpdate}
                       onQuickView={openQuickView}
-                      onContextMenu={handleContextMenu}
                       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
                       primaryStandbyAdminEmail={getPrimaryStandbyForDay(day)?.admin_email}
                     />
@@ -1703,7 +1702,6 @@ export default function Calendar() {
           queryClient={queryClient}
           onUpdate={handleShootUpdate}
           onQuickView={openQuickView}
-          onContextMenu={handleContextMenu}
           getStandbyCoverageForShoot={getStandbyCoverageForShoot}
           primaryStandbyAdminEmail={dayModal ? getPrimaryStandbyForDay(dayModal.day)?.admin_email : ''}
           onClose={() => setDayModal(null)}
