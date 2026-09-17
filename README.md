@@ -21,6 +21,24 @@ Non-technical step-by-step: see **[DEPLOY.md](./DEPLOY.md)**.
 
 Short version: create a Railway account with GitHub → deploy this repo → add `/data` volume → set `JWT_SECRET` → open the public URL → `/register`.
 
+## Shipping updates (Lightsail / VPS)
+
+Deploys are manual — pushing to GitHub does not change the live site until you deploy.
+
+```bash
+cd /home/ubuntu/remote-ops-manager
+./deploy.sh
+```
+
+`deploy.sh` pulls the current branch, installs dependencies, rebuilds the frontend
+(with a memory cap so 1 GB hosts don't get OOM-killed), restarts PM2, and hits `/api/health`.
+
+First time only:
+
+```bash
+chmod +x deploy.sh
+```
+
 ## Demo data
 
 First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typical Base44 Remote Ops Manager workspace — crews, venue rig profiles, calendar shoots, standby windows, payments, and rig tests — so dashboards are reviewable without importing live data.
