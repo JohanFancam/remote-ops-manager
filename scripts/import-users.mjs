@@ -109,6 +109,10 @@ function normaliseRole(raw) {
   return 'user';
 }
 
+function isTruthy(value) {
+  return ['true', '1', 'yes', 'y'].includes(String(value || '').trim().toLowerCase());
+}
+
 function normaliseRow(row) {
   const email = String(row.email || row.user_email || '').trim().toLowerCase();
   const name = row.full_name || row.name || row.display_name
@@ -117,6 +121,8 @@ function normaliseRow(row) {
     email,
     full_name: String(name || '').trim(),
     role: normaliseRole(row.role || row.user_role),
+    // Exports carry a "not in use" flag; keep those people listed but unable to sign in
+    inactive: isTruthy(row.inactive),
   };
 }
 
@@ -139,7 +145,9 @@ for (const row of Array.isArray(rows) ? rows : []) {
 }
 
 console.log(`Parsed ${people.length} users from ${path.basename(filePath)}`);
-people.forEach((p) => console.log(`  ${p.role.padEnd(8)} ${p.email}${p.full_name ? ` — ${p.full_name}` : ''}`));
+people.forEach((p) => console.log(
+  `  ${p.role.padEnd(8)} ${p.email}${p.full_name ? ` — ${p.full_name}` : ''}${p.inactive ? '  [not in use]' : ''}`
+));
 if (skipped.length) console.log(`Skipped ${skipped.length} row(s) without a usable email`);
 
 if (generatePasswords) {
@@ -163,6 +171,7 @@ let createdPending = 0;
 let updatedPending = 0;
 let createdLogins = 0;
 let updatedLogins = 0;
+let skippedInactive = 0;
 const issued = [];
 
 for (const person of people) {
@@ -174,7 +183,7 @@ for (const person of people) {
       full_name: person.full_name || existingPending.full_name || '',
       role: person.role,
       invited: true,
-      inactive: false,
+      inactive: person.inactive,
     });
     updatedPending += 1;
   } else {
@@ -183,6 +192,7 @@ for (const person of people) {
       full_name: person.full_name,
       role: person.role,
       invited: true,
+      inactive: person.inactive,
     });
     createdPending += 1;
   }
@@ -193,14 +203,18 @@ for (const person of people) {
       full_name: person.full_name || existingUser.full_name,
       role: person.role,
       standby: person.role === 'standby' ? true : !!existingUser.standby,
+      inactive: person.inactive,
     };
-    const newPassword = resetPasswords ? passwordFor(person) : '';
+    const newPassword = resetPasswords && !person.inactive ? passwordFor(person) : '';
     if (newPassword) {
       patch.password = newPassword;
       issued.push({ email: person.email, password: newPassword, status: 'reset' });
     }
     updateUser(existingUser.id, patch);
     updatedLogins += 1;
+  } else if (person.inactive) {
+    // Listed in Manage Users but no sign-in until reactivated
+    skippedInactive += 1;
   } else {
     const password = passwordFor(person);
     if (password) {
@@ -219,6 +233,9 @@ for (const person of people) {
 
 console.log(`\nManage Users entries: ${createdPending} created, ${updatedPending} updated`);
 console.log(`Login accounts: ${createdLogins} created, ${updatedLogins} updated`);
+if (skippedInactive) {
+  console.log(`Marked "not in use", no login created: ${skippedInactive}`);
+}
 
 if (issued.length) {
   const width = Math.max(...issued.map((i) => i.email.length));
