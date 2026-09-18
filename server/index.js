@@ -11,6 +11,7 @@ import {
   signToken,
   createUser,
   updateUser,
+  resetLoginPasswords,
 } from './auth.js';
 import {
   listEntities,
@@ -176,6 +177,49 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
   }
 
   res.json({ ok: true, email, role, message: 'Invite recorded. User can register with this email.' });
+});
+
+/**
+ * Admin-only: generate new unique passwords. Plaintext is returned once in
+ * this response and stored hashed — it cannot be retrieved later.
+ *
+ * Body:
+ *   emails?: string[]     omit to reset every existing login
+ *   includeSelf?: boolean also reset the signed-in admin (default false)
+ *   allowCreate?: boolean create a login if the email has none (per-user)
+ *   createFrom?: { [email]: { full_name, role, inactive } }
+ */
+app.post('/api/users/reset-passwords', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const rawEmails = req.body?.emails;
+    const emails = Array.isArray(rawEmails)
+      ? rawEmails.map((e) => String(e || '').trim().toLowerCase()).filter(Boolean)
+      : null;
+    const includeSelf = !!req.body?.includeSelf;
+    const allowCreate = !!req.body?.allowCreate;
+    const createFrom = {};
+    if (req.body?.createFrom && typeof req.body.createFrom === 'object') {
+      for (const [key, value] of Object.entries(req.body.createFrom)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+        createFrom[String(key).trim().toLowerCase()] = value && typeof value === 'object' ? value : {};
+      }
+    }
+
+    const result = resetLoginPasswords({
+      emails,
+      skipEmail: req.user.email,
+      includeSkipEmail: includeSelf,
+      allowCreate,
+      createFrom,
+    });
+    res.json({
+      ok: true,
+      issued: result.issued,
+      skipped: result.skipped,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 app.post('/api/app-logs', authMiddleware, (req, res) => {

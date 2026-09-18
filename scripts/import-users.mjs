@@ -25,9 +25,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { randomInt } from 'crypto';
 import { findUserByEmail, createUser, updateUser } from '../server/auth.js';
 import { listEntities, createEntity, updateEntity } from '../server/entities.js';
+import { generatePassword, formatPasswordList } from '../server/passwords.js';
 
 const [fileArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const confirm = process.argv.includes('--confirm');
@@ -40,18 +40,7 @@ if (!fileArg) {
   process.exit(1);
 }
 
-// Omits characters that get misread when a password is typed from a message: 0/O, 1/l/I
-const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-
-function generatePassword(length = 12) {
-  let out = '';
-  for (let i = 0; i < length; i += 1) {
-    out += PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)];
-  }
-  return out;
-}
-
-function passwordFor(person) {
+function passwordFor() {
   if (generatePasswords) return generatePassword();
   if (defaultPassword) return defaultPassword;
   return '';
@@ -205,7 +194,7 @@ for (const person of people) {
       standby: person.role === 'standby' ? true : !!existingUser.standby,
       inactive: person.inactive,
     };
-    const newPassword = resetPasswords && !person.inactive ? passwordFor(person) : '';
+    const newPassword = resetPasswords && !person.inactive ? passwordFor() : '';
     if (newPassword) {
       patch.password = newPassword;
       issued.push({ email: person.email, password: newPassword, status: 'reset' });
@@ -216,7 +205,7 @@ for (const person of people) {
     // Listed in Manage Users but no sign-in until reactivated
     skippedInactive += 1;
   } else {
-    const password = passwordFor(person);
+    const password = passwordFor();
     if (password) {
       createUser({
         email: person.email,
@@ -238,11 +227,8 @@ if (skippedInactive) {
 }
 
 if (issued.length) {
-  const width = Math.max(...issued.map((i) => i.email.length));
   console.log('\nPasswords — shown once, they are stored hashed:');
-  for (const item of issued) {
-    console.log(`  ${item.email.padEnd(width)}  ${item.password}  (${item.status})`);
-  }
+  console.log(formatPasswordList(issued).split('\n').map((line) => `  ${line}`).join('\n'));
   console.log('\nSend each person their own password privately and have them change it after signing in.');
 } else if (generatePasswords || defaultPassword) {
   console.log('Every account already existed, so no new passwords were issued.');

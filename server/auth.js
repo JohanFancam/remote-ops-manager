@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db, nowIso, newId, publicUser, parseJson } from './db.js';
+import { generatePassword } from './passwords.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'remote-ops-dev-secret-change-me';
 const TOKEN_TTL = process.env.JWT_TTL || '30d';
@@ -98,6 +99,111 @@ export function updateUser(id, patch = {}) {
 
 export function listUsers() {
   return db.prepare('SELECT * FROM users ORDER BY created_date DESC').all().map(publicUser);
+}
+
+export function listUserRows() {
+  return db.prepare('SELECT * FROM users ORDER BY lower(email) ASC').all();
+}
+
+function issuedEntry(row, password, status) {
+  return {
+    email: row.email,
+    full_name: row.full_name || '',
+    role: row.role || 'user',
+    password,
+    status,
+  };
+}
+
+export function issueNewPassword(userRow) {
+  const password = generatePassword();
+  updateUser(userRow.id, { password });
+  return issuedEntry(userRow, password, 'reset');
+}
+
+export function createLoginWithGeneratedPassword({
+  email,
+  full_name = '',
+  role = 'user',
+  standby = false,
+}) {
+  const password = generatePassword();
+  const user = createUser({
+    email,
+    password,
+    full_name,
+    role,
+    standby: role === 'standby' || !!standby,
+  });
+  return issuedEntry(user, password, 'new');
+}
+
+/**
+ * Re-issue unique random passwords. Hashed in the database; plaintext only
+ * in the returned `issued` list (shown once to the admin).
+ *
+ * @param {object} options
+ * @param {string[] | null} [options.emails] emails to reset; omit/null = every login
+ * @param {string} [options.skipEmail] usually the admin running the request
+ * @param {boolean} [options.includeSkipEmail] also reset skipEmail
+ * @param {boolean} [options.allowCreate] create a login when the email has none
+ * @param {Record<string, { full_name?: string, role?: string, inactive?: boolean }>} [options.createFrom]
+ */
+export function resetLoginPasswords({
+  emails = null,
+  skipEmail = '',
+  includeSkipEmail = false,
+  allowCreate = false,
+  createFrom = {},
+} = {}) {
+  const skip = includeSkipEmail ? '' : String(skipEmail || '').trim().toLowerCase();
+  const rows = listUserRows();
+  const byEmail = new Map(rows.map((r) => [String(r.email).toLowerCase(), r]));
+  const selected = emails == null
+    ? rows.map((r) => String(r.email).toLowerCase())
+    : emails.map((e) => String(e || '').trim().toLowerCase()).filter(Boolean);
+
+  const seen = new Set();
+  const issued = [];
+  const skipped = [];
+
+  for (const email of selected) {
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+
+    const row = byEmail.get(email);
+    const pending = createFrom[email] || {};
+
+    if (row) {
+      if (row.inactive) {
+        skipped.push({ email, reason: 'inactive' });
+        continue;
+      }
+      if (skip && email === skip) {
+        skipped.push({ email, reason: 'self' });
+        continue;
+      }
+      issued.push(issueNewPassword(row));
+      continue;
+    }
+
+    if (pending.inactive) {
+      skipped.push({ email, reason: 'inactive' });
+      continue;
+    }
+    if (allowCreate) {
+      issued.push(createLoginWithGeneratedPassword({
+        email,
+        full_name: pending.full_name || '',
+        role: pending.role || 'user',
+        standby: pending.role === 'standby',
+      }));
+      continue;
+    }
+    skipped.push({ email, reason: 'not_found' });
+  }
+
+  return { issued, skipped };
 }
 
 export function authMiddleware(req, res, next) {
