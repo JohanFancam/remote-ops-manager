@@ -344,9 +344,9 @@ export default function AccountsDashboard() {
                   width={42}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="total" name="Cost" radius={[4, 4, 0, 0]}>
-                  {yearChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
+                <Bar dataKey="total" name="Cost" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                  {yearChartData.map((entry) => (
+                    <Cell key={entry.monthKey} fill={entry.isCurrentMonth ? '#3b82f6' : '#374151'} />
                   ))}
                 </Bar>
               </BarChart>
