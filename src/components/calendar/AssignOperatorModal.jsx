@@ -13,7 +13,7 @@ export default function AssignOperatorModal({ shoot, allUsers, pendingUsers = []
     .filter(u => u && typeof u.email === 'string' && u.email.trim() !== '')
     .filter(u => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
     .filter(u => !u.inactive)
-    .filter(u => u.role === 'user')
+    .filter(u => ['user', 'standby', 'operator_standby'].includes(u.role))
     .filter(u => {
       const email = u.email.trim().toLowerCase();
       return !shoot.assigned_operators?.includes(email) && !shoot.pending_operators?.includes(email)
