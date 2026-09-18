@@ -134,7 +134,13 @@ app.post('/api/auth/register', (req, res) => {
   const role = pending?.role || 'user';
   const name = full_name || pending?.full_name || '';
 
-  const user = createUser({ email, password, full_name: name, role });
+  const user = createUser({
+    email,
+    password,
+    full_name: name,
+    role,
+    standby: role === 'standby',
+  });
   if (pending?.id) {
     updateEntity('PendingUser', pending.id, { invited: true });
   }
@@ -151,6 +157,10 @@ app.patch('/api/auth/me', authMiddleware, (req, res) => {
   delete body.password;
   delete body.password_hash;
   delete body.must_change_password;
+  delete body.role;
+  delete body.standby;
+  delete body.inactive;
+  delete body.email;
   const updated = updateUser(req.user.id, body);
   res.json(updated);
 });
@@ -176,9 +186,9 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts'];
   let role = String(req.body?.role || 'user');
-  // Base44 inviteUser only accepted admin|user — keep that constraint for compatibility
-  if (role !== 'admin' && role !== 'user') role = 'user';
+  if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });
 
   const existing = filterEntities('PendingUser', { email });
@@ -293,6 +303,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     const previous = getEntity(type, id);
     const patch = { ...(req.body || {}) };
     if (type === 'User') {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin only' });
+      }
       delete patch.password;
       delete patch.password_hash;
       delete patch.must_change_password;

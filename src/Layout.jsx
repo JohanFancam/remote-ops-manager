@@ -10,6 +10,7 @@ import {
   Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
+import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
 import ShootNotifications from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
@@ -254,6 +255,7 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
+      {user && !isAccounts && <ShootCompleteReminder user={user} />}
       {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
       {!isLoading && user && !isAccounts && (

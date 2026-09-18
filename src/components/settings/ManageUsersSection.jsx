@@ -176,9 +176,7 @@ function AddUserForm({ onClose, onAdded }) {
     setSaving(true);
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
     await base44.entities.PendingUser.create({ full_name, email: email.trim().toLowerCase(), role, invited: true });
-    // inviteUser only accepts "user" or "admin" — map other roles to "user"
-    const inviteRole = role === 'admin' ? 'admin' : 'user';
-    await base44.users.inviteUser(email.trim().toLowerCase(), inviteRole);
+    await base44.users.inviteUser(email.trim().toLowerCase(), role);
     setSaving(false);
     setDone(true);
     onAdded();
@@ -255,20 +253,40 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
 
   const handleSave = async () => {
     setSaving(true);
+    setResetError('');
     const full_name = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
-    await base44.entities.PendingUser.update(pu.id, {
-      full_name,
-      email: form.email.trim().toLowerCase(),
-      role: form.role,
-      inactive: form.inactive,
-    });
-    setSaving(false);
-    setEditing(false);
-    onRefresh();
+    const email = form.email.trim().toLowerCase();
+    const role = form.role;
+    const inactive = form.inactive;
+    try {
+      if (pu.id) {
+        await base44.entities.PendingUser.update(pu.id, { full_name, email, role, inactive });
+      } else {
+        await base44.entities.PendingUser.create({ full_name, email, role, inactive, invited: true });
+      }
+      if (pu.userId) {
+        await base44.entities.User.update(pu.userId, {
+          full_name,
+          email,
+          role,
+          inactive,
+          standby: role === 'standby',
+        });
+      }
+      setEditing(false);
+      onRefresh();
+    } catch (err) {
+      setResetError(err.message || 'Could not save user changes');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    await base44.entities.PendingUser.delete(pu.id);
+    if (pu.id) await base44.entities.PendingUser.delete(pu.id);
+    if (pu.userId) {
+      await base44.entities.User.update(pu.userId, { inactive: true });
+    }
     onRefresh();
   };
 
@@ -330,6 +348,7 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
               className="w-4 h-4 accent-blue-500" />
             Mark as "Not in use"
           </label>
+          {resetError && <p className="text-xs text-red-400">{resetError}</p>}
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" className="bg-blue-600 hover:bg-blue-500 h-8 gap-1" onClick={handleSave} disabled={saving}>
               <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
@@ -393,6 +412,38 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
   );
 }
 
+function mergeCrew(pendingUsers = [], users = []) {
+  const map = new Map();
+  users.forEach((u) => {
+    const email = String(u.email || '').trim().toLowerCase();
+    if (!email) return;
+    map.set(email, {
+      id: null,
+      userId: u.id,
+      email,
+      full_name: u.full_name || '',
+      role: u.role || 'user',
+      inactive: !!u.inactive,
+    });
+  });
+  pendingUsers.forEach((pu) => {
+    const email = String(pu.email || '').trim().toLowerCase();
+    if (!email) return;
+    const existing = map.get(email);
+    map.set(email, {
+      id: pu.id,
+      userId: existing?.userId || null,
+      email,
+      full_name: pu.full_name || existing?.full_name || '',
+      role: existing?.role || pu.role || 'user',
+      inactive: existing?.inactive ?? !!pu.inactive,
+    });
+  });
+  return Array.from(map.values()).sort((a, b) =>
+    (a.full_name || a.email).localeCompare(b.full_name || b.email)
+  );
+}
+
 export default function ManageUsersSection() {
   const queryClient = useQueryClient();
   const { user } = useApp();
@@ -409,7 +460,17 @@ export default function ManageUsersSection() {
     queryFn: () => base44.entities.PendingUser.list(),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+  const { data: loginUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const crew = mergeCrew(pendingUsers, loginUsers);
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+    queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+  };
 
   const handleBulkReset = async () => {
     setError('');
@@ -432,7 +493,7 @@ export default function ManageUsersSection() {
       <CardHeader className="border-b border-slate-800 pb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-400" /> Manage Users ({pendingUsers.length})
+            <Users className="h-5 w-5 text-blue-400" /> Manage Users ({crew.length})
           </CardTitle>
           <div className="flex items-center gap-2">
             {!showAddForm && (
@@ -504,10 +565,10 @@ export default function ManageUsersSection() {
           />
         )}
         <div className="divide-y divide-slate-800 -mx-6 -mb-6">
-          {pendingUsers.length === 0 && <p className="text-slate-500 text-sm p-6 text-center">No users added yet.</p>}
-          {pendingUsers.map(pu => (
+          {crew.length === 0 && <p className="text-slate-500 text-sm p-6 text-center">No users added yet.</p>}
+          {crew.map(pu => (
             <PendingUserRow
-              key={pu.id}
+              key={pu.userId || pu.id || pu.email}
               pu={pu}
               onRefresh={refresh}
               currentEmail={currentEmail}

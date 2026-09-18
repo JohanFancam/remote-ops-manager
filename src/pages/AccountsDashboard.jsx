@@ -15,7 +15,9 @@ import {
   DEFAULT_BASE_RATE,
   DEFAULT_ADDITIONAL_RATE,
   DEFAULT_POSTPONED_RATE,
+  DEFAULT_STANDBY_RATE,
   operatorAssignedCost,
+  operatorStandbyCost,
 } from '../components/utils/earningsUtils';
 import { formatZAR } from '../utils/shootStatus';
 
@@ -151,10 +153,16 @@ export default function AccountsDashboard() {
     queryFn: () => base44.entities.AppSettings.list(),
   });
 
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
+
   const rates = useMemo(() => ({
     baseRate: parseFloat(appSettings.find((s) => s.key === 'base_rate')?.value) || DEFAULT_BASE_RATE,
     additionalRate: parseFloat(appSettings.find((s) => s.key === 'additional_rate')?.value) || DEFAULT_ADDITIONAL_RATE,
     postponedRate: parseFloat(appSettings.find((s) => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE,
+    standbyRate: parseFloat(appSettings.find((s) => s.key === 'standby_rate')?.value) || DEFAULT_STANDBY_RATE,
   }), [appSettings]);
 
   const refresh = () => {
@@ -178,9 +186,17 @@ export default function AccountsDashboard() {
       ...pendingUsers.map((u) => u.email),
       ...users.map((u) => u.email),
     ]);
-    const knownUsers = pendingUsers
+    const knownUsers = users
       .filter((u) => u.role === 'user' || u.role === 'standby')
-      .map((u) => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
+      .map((u) => {
+        const pending = pendingUsers.find((p) => String(p.email || '').toLowerCase() === String(u.email || '').toLowerCase());
+        return {
+          email: u.email,
+          full_name: pending?.full_name || u.full_name || u.email,
+          inactive: u.inactive || pending?.inactive || false,
+          role: u.role,
+        };
+      });
     const knownEmails = new Set(knownUsers.map((u) => u.email));
     const nameMap = {};
     paymentRecords.forEach((r) => {
@@ -213,21 +229,25 @@ export default function AccountsDashboard() {
     return remoteUsers.map((op) => {
       const opShoots = monthShoots.filter((s) => s.assigned_operators?.includes(op.email));
       const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === monthKey);
-      const { total } = operatorAssignedCost(opShoots, opRecords, rates);
+      const { total: shootTotal } = operatorAssignedCost(opShoots, opRecords, rates);
+      const standby = op.role === 'standby'
+        ? operatorStandbyCost(standbyDays, op.email, monthKey, rates.standbyRate)
+        : { count: 0, total: 0 };
       const monthRec = paymentRecords.find((r) =>
         r.operator_email === op.email && r.period_month === monthKey && !r.shoot_id
       );
       return {
         email: op.email,
         name: op.full_name || op.email,
-        total,
+        total: shootTotal + standby.total,
         paid: monthRec?.paid === true,
         paidDate: monthRec?.paid_date || null,
         inactive: !!op.inactive,
         shoots: opShoots.length,
+        standbyCount: standby.count,
       };
-    }).filter((op) => op.shoots > 0).sort((a, b) => b.total - a.total);
-  }, [remoteUsers, shoots, paymentRecords, rates]);
+    }).filter((op) => op.shoots > 0 || op.standbyCount > 0).sort((a, b) => b.total - a.total);
+  }, [remoteUsers, shoots, paymentRecords, rates, standbyDays]);
 
   const monthSummaryRows = useMemo(
     () => operatorCostsForMonth(filterMonth),
@@ -250,9 +270,11 @@ export default function AccountsDashboard() {
       let total = 0;
       remoteUsers.forEach((op) => {
         const opShoots = monthShoots.filter((s) => s.assigned_operators?.includes(op.email));
-        if (opShoots.length === 0) return;
         const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === monthKey);
         total += operatorAssignedCost(opShoots, opRecords, rates).total;
+        if (op.role === 'standby') {
+          total += operatorStandbyCost(standbyDays, op.email, monthKey, rates.standbyRate).total;
+        }
       });
       return {
         month: format(monthDate, 'MMM'),
@@ -261,7 +283,7 @@ export default function AccountsDashboard() {
         isCurrentMonth: monthKey === filterMonth,
       };
     });
-  }, [shoots, remoteUsers, paymentRecords, filterMonth, rates]);
+  }, [shoots, remoteUsers, paymentRecords, filterMonth, rates, standbyDays]);
 
   const yearTotal = yearChartData.reduce((s, d) => s + d.total, 0);
 
@@ -528,6 +550,10 @@ export default function AccountsDashboard() {
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-100 truncate">{row.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {row.shoots} shoot{row.shoots === 1 ? '' : 's'}
+                        {row.standbyCount ? ` · ${row.standbyCount} standby` : ''}
+                      </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="font-mono font-bold text-slate-100 text-sm">{money(row.total)}</span>

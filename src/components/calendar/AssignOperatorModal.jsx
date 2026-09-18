@@ -17,12 +17,17 @@ export default function AssignOperatorModal({
   const userMap = new Map((allUsers || []).map(u => [u.email?.toLowerCase(), u]));
   const [busyKey, setBusyKey] = useState(null);
 
-  // Only remote operators (role === 'user'), not admins/standby
+  const isAssignableRole = (role) => role === 'user' || role === 'standby';
+
+  // Remote operators and Operator / Standby — not admins or accounts
   const assignableUsers = (pendingUsers.length > 0 ? pendingUsers : allUsers)
     .filter(u => u && typeof u.email === 'string' && u.email.trim() !== '')
     .filter(u => !EXCLUDED_EMAILS.includes(u.email.trim().toLowerCase()))
     .filter(u => !u.inactive)
-    .filter(u => u.role === 'user')
+    .filter(u => {
+      const live = userMap.get(u.email.trim().toLowerCase());
+      return isAssignableRole(live?.role || u.role);
+    })
     .filter(u => {
       const email = u.email.trim().toLowerCase();
       return !shoot.assigned_operators?.includes(email) && !shoot.pending_operators?.includes(email)
@@ -30,19 +35,22 @@ export default function AssignOperatorModal({
     })
     .map(u => {
       const live = userMap.get(u.email.trim().toLowerCase());
+      const role = live?.role || u.role;
       return {
         email: u.email.trim().toLowerCase(),
         full_name: live?.full_name || u.full_name || u.email,
+        role,
       };
     })
     .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
 
-  // Currently assigned remote operators
+  // Currently assigned operators (including Operator / Standby)
   const assignedRemoteUsers = (shoot.assigned_operators || [])
     .map(email => {
       const u = userMap.get(email.toLowerCase()) || allUsers.find(x => x.email === email);
-      if (!u || u.role === 'admin') return null;
-      return { email, full_name: u?.full_name || email };
+      const role = u?.role;
+      if (role === 'admin' || role === 'accounts') return null;
+      return { email, full_name: u?.full_name || email, role };
     })
     .filter(Boolean);
 
@@ -148,7 +156,9 @@ export default function AssignOperatorModal({
             >
               <option value="">Select operator…</option>
               {assignableUsers.map(u => (
-                <option key={u.email} value={u.email}>{u.full_name}</option>
+                <option key={u.email} value={u.email}>
+                  {u.full_name}{u.role === 'standby' ? ' (Operator / Standby)' : ''}
+                </option>
               ))}
             </select>
             {assignableUsers.length === 0 && (

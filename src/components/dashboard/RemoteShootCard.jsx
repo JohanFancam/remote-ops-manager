@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, MapPin, Tv2, Flag, Camera, Zap, Volume2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
+import { matchRig, resolveShootLocation } from '../utils/rigUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
@@ -71,16 +72,14 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
 
   const effectivePhase = localPhase || shoot.phase_status || {};
   const gameDate = getGameDateTime(shoot);
-  const schedule = getSchedule(shoot);
+  const matchedRig = matchRig(shoot, rigSettings);
+  const schedule = getSchedule(shoot, matchedRig);
+  const venue = resolveShootLocation(shoot, matchedRig);
   const diff = gameDate ? gameDate - now : null;
   const livePhase = getLivePhaseLabel({ ...shoot, phase_status: effectivePhase }, now);
-
-  const matchedRig = rigSettings.find(r =>
-    r.team && shoot.client &&
-    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
-  );
   const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound === true;
+  const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
+  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
@@ -109,7 +108,8 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
     { label: 'Setup', key: 'setup_complete', Icon: Zap, time: schedule.setup },
     { label: 'Pre-Shoot', key: 'pre_shoot_started', Icon: Camera, time: schedule.pre_shoot },
     showAttention ? { label: 'Attention', key: 'attention_started', Icon: AlertTriangle, time: schedule.attention } : null,
-    showSound ? { label: 'Sound Check', key: 'sound_started', Icon: Volume2, time: schedule.sound } : null,
+    showSound ? { label: 'Sound Recording', key: 'sound_started', Icon: Volume2, time: schedule.sound } : null,
+    showSoundTrigger ? { label: 'Sound Trigger', key: 'sound_trigger_started', Icon: Volume2, time: schedule.sound_trigger } : null,
     { label: 'Game Time', key: 'game_started', Icon: Flag, time: schedule.game },
   ].filter(Boolean) : [];
 
@@ -153,7 +153,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
             <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
               <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
               {shoot.game_time && <span className="font-mono">{shoot.game_time}</span>}
-              {shoot.location && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" />{shoot.location}</span>}
+              {venue && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" />{venue}</span>}
               {operators.length > 0 && <span>Op: {operators.join(', ')}</span>}
             </div>
           </div>
@@ -214,21 +214,30 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                 <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Rig Config</p>
                 <div className="space-y-1 mb-2">
                   {[
-                    { label: 'HD', enabled: matchedRig.hd_enabled !== false, cam: matchedRig.hd },
-                    { label: 'Wide', enabled: matchedRig.wide_enabled !== false, cam: matchedRig.wide },
-                    { label: 'Attention', enabled: !!matchedRig.attention_enabled, cam: matchedRig.attention },
-                  ].map(({ label, enabled, cam }) => enabled ? (
+                    { label: 'Data HD', enabled: matchedRig.data_enabled !== false, cam: matchedRig.data_hd },
+                    { label: 'Data Wide', enabled: matchedRig.data_enabled !== false && matchedRig.data_wide_enabled !== false, cam: matchedRig.data_wide },
+                    { label: 'Outdoor Day HD', enabled: !!matchedRig.fancam_day_enabled, cam: matchedRig.fancam_day_hd },
+                    { label: 'Outdoor Night HD', enabled: !!matchedRig.fancam_night_enabled, cam: matchedRig.fancam_night_hd },
+                    { label: 'Indoor HD', enabled: !!matchedRig.indoor_enabled, cam: matchedRig.indoor_hd },
+                    { label: 'Attention', enabled: !!matchedRig.attention_enabled, cam: matchedRig.attention_hd },
+                  ].map(({ label, enabled, cam }) => enabled && cam ? (
                     <div key={label} className="flex items-center justify-between bg-slate-800/40 rounded px-2 py-1">
-                      <span className="text-xs text-slate-400 w-16">{label}</span>
+                      <span className="text-xs text-slate-400">{label}</span>
                       <span className="text-xs text-slate-400 font-mono">
                         {cam?.shutter || '—'} · {cam?.aperture || '—'} · ISO {cam?.iso || '—'}
                       </span>
                     </div>
                   ) : null)}
-                  {matchedRig.sound && (
+                  {showSound && (
                     <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded px-2 py-1">
                       <Volume2 className="h-3 w-3 text-emerald-400" />
                       <span className="text-xs text-emerald-400">Sound Recording</span>
+                    </div>
+                  )}
+                  {showSoundTrigger && (
+                    <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded px-2 py-1">
+                      <Volume2 className="h-3 w-3 text-emerald-400" />
+                      <span className="text-xs text-emerald-400">Sound Trigger · {schedule?.sound_trigger || '+10 min'}</span>
                     </div>
                   )}
                 </div>

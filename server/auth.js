@@ -70,6 +70,17 @@ export function updateUser(id, patch = {}) {
     ...rest
   } = patch;
 
+  if (role !== undefined) delete extra.role;
+  if (standby !== undefined) delete extra.standby;
+  if (inactive !== undefined) delete extra.inactive;
+  if (email !== undefined) delete extra.email;
+  if (full_name !== undefined) delete extra.full_name;
+  delete rest.role;
+  delete rest.standby;
+  delete rest.inactive;
+  delete rest.email;
+  delete rest.full_name;
+
   const next = {
     email: email !== undefined ? String(email).trim().toLowerCase() : row.email,
     full_name: full_name !== undefined ? full_name : row.full_name,

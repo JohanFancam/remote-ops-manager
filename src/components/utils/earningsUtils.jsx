@@ -9,6 +9,7 @@ import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 export const DEFAULT_BASE_RATE = 1000;
 export const DEFAULT_ADDITIONAL_RATE = 250;
+export const DEFAULT_STANDBY_RATE = 500;
 export const ADDITIONAL_WINDOW_HOURS = 2;
 export { DEFAULT_POSTPONED_RATE };
 
@@ -57,6 +58,20 @@ export function additionalIdsForShoots(opShoots) {
     getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach((id) => ids.add(id));
   });
   return ids;
+}
+
+export function operatorStandbySessions(standbyDays = [], email, monthKey) {
+  const safe = String(email || '').toLowerCase().trim();
+  if (!safe || !monthKey) return [];
+  return standbyDays.filter((sd) => {
+    const start = sd.start_date || sd.date || '';
+    return String(sd.admin_email || '').toLowerCase().trim() === safe && start.startsWith(monthKey);
+  });
+}
+
+export function operatorStandbyCost(standbyDays, email, monthKey, standbyRate = DEFAULT_STANDBY_RATE) {
+  const sessions = operatorStandbySessions(standbyDays, email, monthKey);
+  return { count: sessions.length, total: sessions.length * Number(standbyRate || 0), sessions };
 }
 
 /** Sum of assigned-shoot fees for one operator in a month (Pending / Approve totals). */

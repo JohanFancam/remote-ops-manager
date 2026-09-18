@@ -41,26 +41,15 @@ export default function ShootEditPanel({
               />
             </div>
 
-            {/* Client & Location */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-400 uppercase tracking-wider mb-1 block">Client / Team</label>
-                <Input
-                  placeholder="Client"
-                  value={form.client}
-                  onChange={e => setForm({ ...form, client: e.target.value })}
-                  className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 uppercase tracking-wider mb-1 block">Location</label>
-                <Input
-                  placeholder="Venue / Location"
-                  value={form.location}
-                  onChange={e => setForm({ ...form, location: e.target.value })}
-                  className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500"
-                />
-              </div>
+            <div>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-1 block">Client / Team</label>
+              <Input
+                placeholder="Client"
+                value={form.client}
+                onChange={e => setForm({ ...form, client: e.target.value })}
+                className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Location and schedule offsets come from the matching Rig setting.</p>
             </div>
 
             {/* Date & Time */}
@@ -111,28 +100,6 @@ export default function ShootEditPanel({
               />
             </div>
 
-            {/* Schedule Offsets */}
-            <div className="bg-slate-800/60 rounded-lg p-3">
-              <p className="text-xs text-slate-400 mb-3 font-medium uppercase tracking-wider">Schedule Offsets (minutes before game time)</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'setup_offset', label: 'Setup' },
-                  { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
-                  { key: 'attention_offset', label: 'Attention' },
-                  { key: 'sound_offset', label: 'Sound' },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <label className="text-xs text-slate-500 block mb-1">{label}</label>
-                    <Input
-                      type="number"
-                      value={form[key]}
-                      onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}
-                      className="bg-slate-700 border-slate-700 text-slate-100 h-8 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 

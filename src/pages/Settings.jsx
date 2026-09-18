@@ -184,6 +184,7 @@ export default function Settings() {
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [ratePostponedInput, setRatePostponedInput] = useState('250');
+  const [rateStandbyInput, setRateStandbyInput] = useState('500');
   const [ratesSaved, setRatesSaved] = useState(false);
 
   // Logo
@@ -219,9 +220,14 @@ export default function Settings() {
       const email = u.email?.trim().toLowerCase();
       if (!email) return;
       const existing = map.get(email);
-      // Use PendingUser role only if it's a non-empty string; otherwise fall back to User entity role
-      const resolvedRole = (existing?.role && existing.role !== '') ? existing.role : (u.role || 'user');
-      map.set(email, { ...u, email, full_name: existing?.full_name || u.full_name || '', role: resolvedRole, inactive: existing?.inactive || false });
+      // Login role on User is the source of truth; PendingUser only fills missing name.
+      map.set(email, {
+        ...u,
+        email,
+        full_name: existing?.full_name || u.full_name || '',
+        role: u.role || existing?.role || 'user',
+        inactive: u.inactive || existing?.inactive || false,
+      });
     });
     return Array.from(map.values());
   }, [rawUsers, pendingUsers]);
@@ -245,6 +251,8 @@ export default function Settings() {
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
     if (pr) setRatePostponedInput(pr);
+    const sr = appSettings.find(s => s.key === 'standby_rate')?.value;
+    if (sr) setRateStandbyInput(sr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
   }, [appSettings]);
@@ -254,6 +262,7 @@ export default function Settings() {
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
       { key: 'postponed_rate', value: ratePostponedInput || '250', description: 'Postponed shoot fee (ZAR)' },
+      { key: 'standby_rate', value: rateStandbyInput || '500', description: 'Operator/Standby session fee (ZAR)' },
       { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
@@ -402,7 +411,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee.</p>
+              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee. Operator / Standby users earn the standby session fee for each 18:00–06:00 coverage night.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Standard Shoot Rate (R)</label>
@@ -433,6 +442,17 @@ export default function Settings() {
                     placeholder="250"
                     className="bg-slate-800 border-slate-800 text-slate-100"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Operator / Standby Session (R)</label>
+                  <Input
+                    type="number"
+                    value={rateStandbyInput}
+                    onChange={e => setRateStandbyInput(e.target.value)}
+                    placeholder="500"
+                    className="bg-slate-800 border-slate-800 text-slate-100"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">One 18:00–06:00 standby session</p>
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Admin Working Hours / Active Day</label>

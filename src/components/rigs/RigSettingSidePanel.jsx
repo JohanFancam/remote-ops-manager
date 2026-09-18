@@ -18,6 +18,8 @@ const DEFAULT_FANCAM_DAY_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '400'
 const DEFAULT_FANCAM_NIGHT_HD = { shutter: '1/400', aperture: 'F5.6', iso: '5000' };
 const DEFAULT_FANCAM_NIGHT_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: '3200' };
 const DEFAULT_ATTENTION_HD = { shutter: '1/100', aperture: 'F11', iso: 'Auto' };
+const DEFAULT_INDOOR_HD = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
+const DEFAULT_INDOOR_WIDE = { shutter: '1/400', aperture: 'F5.6', iso: 'Auto' };
 
 // Arena defaults — standard 1/200 | F5.6 | 3200 ISO for all cameras
 const ARENA_HD = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
@@ -25,12 +27,16 @@ const ARENA_WIDE = { shutter: '1/200', aperture: 'F5.6', iso: '3200' };
 
 const emptyForm = {
   team: '', venue_type: 'Indoor', sport: 'NBA', rig_type: 'Data', shoot_plan: '',
+  location: '',
+  setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30,
+  sound_trigger_offset: 10, game_duration_minutes: 150,
   remote_rigs: [],
   data_enabled: true, data_hd: { ...DEFAULT_DATA_HD }, data_wide_enabled: true, data_wide: { ...DEFAULT_DATA_WIDE },
   fancam_day_enabled: false, fancam_day_hd: { ...DEFAULT_FANCAM_DAY_HD }, fancam_day_wide_enabled: true, fancam_day_wide: { ...DEFAULT_FANCAM_DAY_WIDE },
   fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide_enabled: true, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
+  indoor_enabled: true, indoor_hd: { ...DEFAULT_INDOOR_HD }, indoor_wide_enabled: true, indoor_wide: { ...DEFAULT_INDOOR_WIDE },
   attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
-  sound_enabled: false, notes: '',
+  sound_enabled: false, sound_trigger_enabled: false, notes: '',
 };
 
 function Toggle({ enabled, onChange, readOnly }) {
@@ -160,6 +166,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Team Name *" value={form.team} onChange={e => setForm({ ...form, team: e.target.value })} disabled={readOnly}
                 className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500 disabled:opacity-60" />
+              <Input placeholder="Location / Venue" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} disabled={readOnly}
+                className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500 disabled:opacity-60 col-span-2" />
               <Select value={form.sport} onValueChange={v => setForm({ ...form, sport: v })} disabled={readOnly}>
                 <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100 disabled:opacity-60"><SelectValue placeholder="Sport" /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-800">
@@ -226,11 +234,31 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
               </div>
             </div>
 
-            {/* Camera Settings — 5 Sections */}
+            <div>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Schedule Offsets</label>
+              <p className="text-[10px] text-slate-500 mb-2">Minutes relative to game time. Negative is before kickoff. These times are used on the dashboard, not the calendar card.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'setup_offset', label: 'Setup' },
+                  { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
+                  { key: 'attention_offset', label: 'Attention' },
+                  { key: 'sound_offset', label: 'Sound Recording' },
+                  { key: 'sound_trigger_offset', label: 'Sound Trigger' },
+                  { key: 'game_duration_minutes', label: 'Game length (min)' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-xs text-slate-500 block mb-1">{label}</label>
+                    <Input type="number" value={form[key] ?? ''} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} disabled={readOnly}
+                      className="bg-slate-800 border-slate-800 text-slate-100 h-8 text-sm disabled:opacity-60" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Camera Settings */}
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider mb-3 block">Camera Settings</label>
               <div className="space-y-3">
-                {/* 1. Data Settings */}
                 <CameraSection
                   title="Data Settings"
                   note="Standard: HD 1/400 | F5.6 | AUTO ISO   ·   Wide 1/400 | F5.6 | AUTO ISO"
@@ -245,9 +273,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   readOnly={readOnly}
                 />
 
-                {/* 2. Fancam Day Settings */}
                 <CameraSection
-                  title="Fancam Day Settings"
+                  title="Outdoor Day Settings"
                   note="Standard: HD 1/400 | F5.6–F11 | 400–1000 ISO   ·   Wide 1/400 | F5.6–F11 | 400–1000 ISO"
                   enabled={form.fancam_day_enabled}
                   onToggle={() => setForm({ ...form, fancam_day_enabled: !form.fancam_day_enabled })}
@@ -261,9 +288,8 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   freeTextFields={['aperture', 'iso']}
                 />
 
-                {/* 3. Fancam Night Settings */}
                 <CameraSection
-                  title="Fancam Night Settings"
+                  title="Outdoor Night Settings"
                   note="Standard: HD 1/400 | F5.6 | 5000 ISO   ·   Wide 1/400 | F5.6 | 3200 ISO"
                   enabled={form.fancam_night_enabled}
                   onToggle={() => setForm({ ...form, fancam_night_enabled: !form.fancam_night_enabled })}
@@ -276,9 +302,22 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   readOnly={readOnly}
                 />
 
-                {/* 4. Attention Camera */}
                 <CameraSection
-                  title="Attention Camera"
+                  title="Indoor Settings"
+                  note="Default: 1/400 | F5.6 | Auto"
+                  enabled={form.indoor_enabled}
+                  onToggle={() => setForm({ ...form, indoor_enabled: !form.indoor_enabled })}
+                  camKeyHd="indoor_hd" camKeyWide="indoor_wide"
+                  camHd={form.indoor_hd || DEFAULT_INDOOR_HD}
+                  camWide={form.indoor_wide || DEFAULT_INDOOR_WIDE}
+                  wideEnabled={form.indoor_wide_enabled !== false}
+                  onWideToggle={() => setForm({ ...form, indoor_wide_enabled: !form.indoor_wide_enabled })}
+                  onCamChange={updateCam}
+                  readOnly={readOnly}
+                />
+
+                <CameraSection
+                  title="Attention Settings"
                   note="Standard: HD 1/100 | F11 | AUTO ISO"
                   enabled={form.attention_enabled}
                   onToggle={() => setForm({ ...form, attention_enabled: !form.attention_enabled })}
@@ -289,7 +328,6 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   readOnly={readOnly}
                 />
 
-                {/* 5. Sound Recording */}
                 <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.sound_enabled ? 'border-green-700 bg-emerald-950/40' : 'border-slate-800 bg-slate-900/40'}`}>
                   <div>
                     <div className="flex items-center gap-2">
@@ -299,6 +337,19 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     <p className="text-[10px] text-slate-500 mt-0.5 ml-6">Sound enabled for this rig</p>
                   </div>
                   <Toggle enabled={form.sound_enabled} onChange={() => setForm({ ...form, sound_enabled: !form.sound_enabled })} readOnly={readOnly} />
+                </div>
+
+                <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.sound_trigger_enabled ? 'border-green-700 bg-emerald-950/40' : 'border-slate-800 bg-slate-900/40'}`}>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Timer className={`h-4 w-4 ${form.sound_trigger_enabled ? 'text-emerald-400' : 'text-gray-600'}`} />
+                      <span className="text-sm font-semibold text-slate-100">Sound Trigger</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5 ml-6">
+                      Starts {Math.abs(Number(form.sound_trigger_offset ?? 10))} min after the game has started
+                    </p>
+                  </div>
+                  <Toggle enabled={form.sound_trigger_enabled} onChange={() => setForm({ ...form, sound_trigger_enabled: !form.sound_trigger_enabled })} readOnly={readOnly} />
                 </div>
               </div>
             </div>

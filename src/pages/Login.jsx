@@ -116,17 +116,11 @@ export default function Login() {
           </form>
 
           <p className="text-center text-sm text-slate-500 mt-6">
-            New here?{' '}
+            New remote operator?{' '}
             <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
               Create an account
             </Link>
           </p>
-
-          <div className="mt-7 rounded-xl border border-[color:var(--rom-line)] bg-[#070d1c]/80 p-3 text-xs text-slate-500 rom-mono">
-            <p className="font-medium text-slate-400 mb-1 font-sans">Demo</p>
-            <p>admin@example.com / admin123</p>
-            <p>operator@example.com / operator123</p>
-          </div>
         </div>
       </div>
     </div>

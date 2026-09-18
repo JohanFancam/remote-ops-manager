@@ -50,7 +50,7 @@ export default function Register() {
 
         <h1 className="rom-brand text-2xl text-slate-50">Create account</h1>
         <p className="text-sm text-slate-500 mt-1 mb-7">
-          Register with an invited email to join the crew.
+          New crew sign up as a remote operator. An admin can change your role later.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">

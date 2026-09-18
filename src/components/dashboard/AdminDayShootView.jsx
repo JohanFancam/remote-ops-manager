@@ -3,9 +3,10 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'dat
 import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucide-react';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
+import { matchRig } from '../utils/rigUtils';
 
-function getPrimaryDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
+function getPrimaryDateTime(shoot, rigSettings = []) {
+  const phaseDates = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings));
   return (
     phaseDates.setup ||
     phaseDates.pre_shoot ||
@@ -57,8 +58,8 @@ export default function AdminDayShootView({
   const sortedShoots = useMemo(() => {
     return [...shoots]
       .filter((shoot) => !isShootCancelled(shoot))
-      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-  }, [shoots]);
+      .sort((a, b) => getPrimaryDateTime(a, rigSettings) - getPrimaryDateTime(b, rigSettings));
+  }, [shoots, rigSettings]);
 
   const pageSize = viewMode === 'tile' ? 4 : 3;
 
@@ -66,10 +67,10 @@ export default function AdminDayShootView({
     const now = new Date();
     const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
     return sortedShoots.filter((shoot) => {
-      const gameDate = getScheduleDateTimes(shoot).game || getPrimaryDateTime(shoot);
+      const gameDate = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings)).game || getPrimaryDateTime(shoot, rigSettings);
       return isShootComplete(shoot) || gameDate < relevanceWindowStart;
     }).length;
-  }, [sortedShoots]);
+  }, [sortedShoots, rigSettings]);
 
   useEffect(() => {
     // Default to the page that starts at the first upcoming shoot, so past
@@ -98,7 +99,7 @@ export default function AdminDayShootView({
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => {
-    const gameDate = getScheduleDateTimes(shoot).game || getPrimaryDateTime(shoot);
+    const gameDate = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings)).game || getPrimaryDateTime(shoot, rigSettings);
     const isPast = isShootComplete(shoot) || gameDate < new Date();
     return (
       <div key={shoot.id} className={isPast ? 'opacity-50 grayscale-[0.3]' : ''}>

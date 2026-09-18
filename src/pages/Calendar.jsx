@@ -41,8 +41,7 @@ const statusColors = {
   cancelled: 'bg-red-600',
 };
 
-const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
-const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
+const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '' };
 
 // Fuzzy rig match: shoot client/title contains team name OR team name contains shoot client/title keyword
 const findMatchingRig = (shoot, rigSettings) => {
@@ -472,6 +471,7 @@ function ShootCalendarEntry({
               <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
             ) : null}
             {titleText}
+            {standbyCoverage ? <span className="ml-1 text-blue-300">· SB</span> : null}
           </p>
           <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
@@ -509,13 +509,15 @@ function ShootCalendarEntry({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
-                {shoot.game_time ? (
-                  <span className="font-mono text-xs font-medium text-slate-400 mr-1.5 tabular-nums">{shoot.game_time}</span>
-                ) : null}
                 {titleText}
               </p>
-              {(shoot.client || shoot.location) && (
-                <p className="text-xs text-slate-500 break-words whitespace-normal mt-0.5">{shoot.client || shoot.location}</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {shoot.game_time ? <span className="font-mono tabular-nums">{shoot.game_time}</span> : 'Schedule TBC'}
+              </p>
+              {standbyCoverage && (
+                <p className="text-[11px] text-blue-300 mt-0.5">
+                  Standby: {standbyCoverage.admin_name?.split(' ')[0] || standbyCoverage.admin_email}
+                </p>
               )}
               <p className={`text-xs ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'} break-words whitespace-normal mt-0.5`}>
                 {assignmentLabel}
@@ -612,7 +614,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isStandby, isOperator, isLevel1Admin } = useApp();
+  const { user, isAdmin, isStandby, isOperator } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -791,6 +793,22 @@ export default function Calendar() {
   const getStandbyForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
+  };
+
+  const getShootsCoveredByStandbyDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    const nextStr = format(addDays(day, 1), 'yyyy-MM-dd');
+    const start = new Date(`${dateStr}T18:00:00`);
+    const end = new Date(`${nextStr}T06:00:00`);
+    return shoots
+      .filter((s) => {
+        if (!s?.date || normalizeShootStatus(s.status) === 'cancelled') return false;
+        const t = s.game_time || s.start_time || '12:00';
+        const dt = new Date(`${s.date}T00:00:00`);
+        dt.setMinutes(timeToMinutes(t));
+        return dt >= start && dt <= end;
+      })
+      .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
   };
 
   const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;
@@ -1061,10 +1079,6 @@ export default function Calendar() {
     const payload = {
       ...form,
       status: normalizeShootStatus(form.status),
-      setup_offset: Number(form.setup_offset),
-      pre_shoot_offset: Number(form.pre_shoot_offset),
-      attention_offset: Number(form.attention_offset),
-      sound_offset: Number(form.sound_offset),
       last_changed_by_email: user?.email || '',
       last_changed_by_name: user?.full_name || user?.email || '',
     };
@@ -1488,6 +1502,10 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
+            const coveredStandbyLabel = coveredStandbyShoots
+              .map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim())
+              .join(', ');
             const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
@@ -1525,16 +1543,23 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
-                      className={`inline-flex items-center rounded-full border px-1 py-px text-[9px] transition-colors ${
+                      className={`inline-flex items-center rounded-full border px-1.5 py-px text-[9px] font-semibold leading-none transition-colors ${
                         myStandby
-                          ? 'border-blue-500/40 bg-blue-600/15 text-blue-400'
+                          ? 'border-blue-500/40 bg-blue-600/15 text-blue-300'
                           : otherStandby
                           ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
-                          : 'border-transparent text-slate-600 hover:text-slate-300 hover:bg-slate-800'
+                          : 'border-slate-700 text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                       }`}
-                      title={myStandby ? 'Remove yourself from standby for this day' : otherStandby ? 'Swap this standby day to yourself' : 'Assign yourself to standby for this day'}
+                      title={
+                        (myStandby
+                          ? 'Remove yourself from standby (18:00–06:00)'
+                          : otherStandby
+                            ? 'Swap this 18:00–06:00 standby session to yourself'
+                            : 'Assign yourself to standby 18:00–06:00')
+                        + (coveredStandbyLabel ? ` · covering ${coveredStandbyLabel}` : '')
+                      }
                     >
-                      <ShieldCheck className="h-2.5 w-2.5" />
+                      Standby
                     </button>
                   )}
                   {isOperator && !isPast && (
@@ -1556,6 +1581,7 @@ export default function Calendar() {
                          : 'bg-emerald-950/40 text-green-300'
                      }`}>
                        {primaryStandby.admin_name?.split(' ')[0] || primaryStandby.admin_email}
+                       {coveredStandbyShoots.length ? ` · ${coveredStandbyShoots.length} shoot${coveredStandbyShoots.length === 1 ? '' : 's'}` : ''}
                      </span>
                    </div>
                  )}
@@ -1605,6 +1631,7 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
             const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
@@ -1617,6 +1644,11 @@ export default function Calendar() {
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
                     <p className="text-xs text-slate-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
+                    {primaryStandby && coveredStandbyShoots.length > 0 && (
+                      <p className="text-[11px] text-blue-300/80 mt-1">
+                        Standby covering: {coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
@@ -1626,6 +1658,7 @@ export default function Calendar() {
                            : 'bg-emerald-950/40 border-emerald-800 text-green-300'
                        }`}>
                          <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
+                         {coveredStandbyShoots.length ? ` · ${coveredStandbyShoots.length} shoot${coveredStandbyShoots.length === 1 ? '' : 's'}` : ''}
                        </span>
                      )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
