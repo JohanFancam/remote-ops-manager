@@ -146,8 +146,6 @@ const ENTITY_NAMES = [
   'TimeEntry',
   'PaymentRecord',
   'ShootReport',
-  'RigTest',
-  'ReferenceImage',
   'Report',
   'Event',
   'ShootNotification',

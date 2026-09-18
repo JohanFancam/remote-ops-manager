@@ -99,8 +99,6 @@ export const ENTITY_TYPES = [
   'TimeEntry',
   'PaymentRecord',
   'ShootReport',
-  'RigTest',
-  'ReferenceImage',
   'Report',
   'Event',
   'ShootNotification',

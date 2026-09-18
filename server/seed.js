@@ -25,16 +25,6 @@ function hm(hours, minutes = 0) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-const CHECKLIST = [
-  'Power on all rigs and confirm boot',
-  'Check network / remote connectivity',
-  'Verify camera feeds (HD + Wide)',
-  'Test audio / sound recording',
-  'Confirm rig type settings match team profile',
-  'Review storage / SD cards',
-  'Check battery levels',
-];
-
 const CAM = (shutter, aperture, iso) => ({ shutter, aperture, iso });
 
 export const DEMO_SEED_DISABLED_KEY = 'demo_seed_disabled';
@@ -110,7 +100,6 @@ function seedSettings() {
   ensure('base_rate', '1000', 'Operator base shoot rate (ZAR)');
   ensure('additional_rate', '250', 'Additional same-day shoot rate (ZAR)');
   ensure('postponed_rate', '250', 'Postponed shoot fee (ZAR)');
-  ensure('rig_test_checklist', JSON.stringify(CHECKLIST), 'Default rig test checklist items');
   ensure(
     'auto_assign_teams',
     JSON.stringify(['Lakers', 'Celtics', 'Knicks', 'Warriors', 'Rangers', 'Maple Leafs']),
@@ -396,36 +385,6 @@ function seedDemoDataset() {
     date: ymd(addDays(today, 5)),
   });
 
-  // Rig tests
-  createEntity('RigTest', {
-    title: 'Weekly Rig Test — West Coast',
-    scheduled_date: ymd(addDays(today, 1)),
-    due_date: ymd(addDays(today, 2)),
-    assigned_to: admin,
-    assigned_name: 'Admin User',
-    checklist: CHECKLIST.map((item, i) => ({ item, checked: i < 2 })),
-    status: 'in_progress',
-    comments: '',
-  });
-  createEntity('RigTest', {
-    title: 'Garden Fan Cam Validation',
-    scheduled_date: ymd(addDays(today, 3)),
-    assigned_to: ops.priya,
-    assigned_name: 'Priya Nair',
-    checklist: CHECKLIST.map((item) => ({ item, checked: false })),
-    status: 'pending',
-  });
-  createEntity('RigTest', {
-    title: 'Monthly Network Sweep',
-    scheduled_date: ymd(addDays(today, -7)),
-    assigned_to: admin,
-    assigned_name: 'Admin User',
-    checklist: CHECKLIST.map((item) => ({ item, checked: true })),
-    status: 'completed',
-    completed_at: addDays(today, -6).toISOString(),
-    comments: 'All remotes green.',
-  });
-
   // Presence
   const now = new Date().toISOString();
   for (const [email, name, role] of [
@@ -550,23 +509,6 @@ function seedDemoDataset() {
     type: 'maintenance',
     description: 'GSW remote firmware update',
     all_day: true,
-  });
-
-  createEntity('ReferenceImage', {
-    title: 'Arena baseline framing',
-    description: 'Example wide baseline for NBA arenas',
-    image_url: '/favicon.svg',
-    type: 'do',
-    category: 'Camera Setup',
-    sort_order: 1,
-  });
-  createEntity('ReferenceImage', {
-    title: 'Avoid low angle fan cam',
-    description: 'Crowds block the lens when mounted too low',
-    image_url: '/favicon.svg',
-    type: 'dont',
-    category: 'Camera Setup',
-    sort_order: 2,
   });
 
   createEntity('Report', {
