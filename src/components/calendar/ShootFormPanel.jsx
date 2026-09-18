@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SHOOT_STATUSES, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
 
-const DEFAULT_OFFSETS = { setup_offset: -150, pre_shoot_offset: -120, attention_offset: -30, sound_offset: -30 };
-export const emptyForm = { title: '', client: '', location: '', date: '', game_time: '', status: 'upcoming', description: '', ...DEFAULT_OFFSETS };
+export const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '' };
 
 export default function ShootFormPanel({ form, setForm, editingShoot, onSave, onClose }) {
   const statusValue = normalizeShootStatus(form.status);
@@ -27,7 +26,7 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
           <div className="grid grid-cols-1 gap-3">
             <Input placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
             <Input placeholder="Client / Team" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
-            <Input placeholder="Venue / Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
+            <p className="text-[11px] text-slate-500">Location and schedule offsets come from the matching Rig setting for this team.</p>
             <div className="grid grid-cols-2 gap-3">
               <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100" />
               <input type="time" value={form.game_time} onChange={e => setForm({ ...form, game_time: e.target.value })} className="bg-slate-800 border border-slate-800 text-slate-100 rounded-md px-3 py-2 h-9 text-sm w-full" />
@@ -45,22 +44,6 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
             <Input placeholder="Notes / Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
           </div>
 
-          <div className="bg-slate-800/60 rounded-lg p-3">
-            <p className="text-xs text-slate-400 mb-2 font-medium">Schedule Offsets (minutes before game time)</p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'setup_offset', label: 'Setup' },
-                { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
-                { key: 'attention_offset', label: 'Attention' },
-                { key: 'sound_offset', label: 'Sound' },
-              ].map(({ key, label }) => (
-                <div key={key}>
-                  <label className="text-xs text-slate-500 block mb-1">{label}</label>
-                  <Input type="number" value={form[key]} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} className="bg-slate-700 border-slate-700 text-slate-100 h-8 text-sm" />
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

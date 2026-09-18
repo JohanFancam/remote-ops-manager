@@ -181,6 +181,12 @@ export const api = {
         body: JSON.stringify(data || {}),
       });
     },
+    async changePassword({ current_password, new_password }) {
+      return request('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password, new_password }),
+      });
+    },
     async logout(redirectUrl) {
       try {
         await request('/api/auth/logout', { method: 'POST' });
@@ -204,6 +210,12 @@ export const api = {
       return request('/api/users/invite', {
         method: 'POST',
         body: JSON.stringify({ email, role }),
+      });
+    },
+    resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {
+      return request('/api/users/reset-passwords', {
+        method: 'POST',
+        body: JSON.stringify({ emails, includeSelf, allowCreate, createFrom }),
       });
     },
   },

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useApp } from '@/components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Edit2, Save, X, Send, Trash2 } from 'lucide-react';
+import { Users, UserPlus, Edit2, Save, X, Send, Trash2, KeyRound, Copy, Download, Check } from 'lucide-react';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
@@ -27,6 +28,139 @@ const roleLabel = {
   standby: 'Operator / Standby',
 };
 
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return true;
+  }
+}
+
+function listAsText(issued) {
+  const width = Math.max(0, ...issued.map((i) => i.email.length));
+  return issued
+    .map((item) => `${item.email.padEnd(width)}  ${item.password}`)
+    .join('\n');
+}
+
+function downloadList(issued) {
+  const lines = [
+    'Remote Ops Manager passwords',
+    `Generated ${new Date().toISOString()}`,
+    'Shown once. Passwords are stored hashed — this file is the only copy.',
+    '',
+    listAsText(issued),
+    '',
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `remote-ops-passwords-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function IssuedPasswords({ issued, skipped, onDismiss }) {
+  const [copied, setCopied] = useState('');
+
+  const markCopied = (key) => {
+    setCopied(key);
+    setTimeout(() => setCopied((current) => (current === key ? '' : current)), 1500);
+  };
+
+  const handleCopyAll = async () => {
+    await copyText(listAsText(issued));
+    markCopied('all');
+  };
+
+  const handleCopyOne = async (item) => {
+    await copyText(`${item.email}  ${item.password}`);
+    markCopied(item.email);
+  };
+
+  return (
+    <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-amber-200">Copy these passwords now</p>
+          <p className="text-xs text-amber-200/70 mt-1">
+            They are stored hashed and cannot be shown again after you leave this page.
+            Each person will be asked to choose their own password the next time they sign in.
+          </p>
+        </div>
+        <Button size="sm" variant="ghost" className="h-7 text-slate-400 hover:text-slate-100" onClick={onDismiss}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded-md border border-slate-800 bg-slate-950/70">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-800">
+              <th className="px-3 py-2 font-medium">Email</th>
+              <th className="px-3 py-2 font-medium">Password</th>
+              <th className="px-3 py-2 font-medium w-16" />
+            </tr>
+          </thead>
+          <tbody>
+            {issued.map((item) => (
+              <tr key={item.email} className="border-b border-slate-800/80 last:border-0">
+                <td className="px-3 py-2 text-slate-200 align-top">
+                  <div className="font-medium">{item.full_name || item.email}</div>
+                  {item.full_name ? <div className="text-xs text-slate-500">{item.email}</div> : null}
+                </td>
+                <td className="px-3 py-2 font-mono text-amber-100 tracking-wide align-top">{item.password}</td>
+                <td className="px-3 py-2 align-top">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-slate-400 hover:text-slate-100"
+                    onClick={() => handleCopyOne(item)}
+                    title="Copy"
+                  >
+                    {copied === item.email ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-slate-950 h-8 gap-1.5 text-xs" onClick={handleCopyAll}>
+          {copied === 'all' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied === 'all' ? 'Copied list' : 'Copy all'}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-slate-700 text-slate-200 hover:bg-slate-800 h-8 gap-1.5 text-xs"
+          onClick={() => downloadList(issued)}
+        >
+          <Download className="h-3.5 w-3.5" /> Download .txt
+        </Button>
+      </div>
+      {skipped?.length > 0 && (
+        <p className="text-xs text-slate-500">
+          Skipped: {skipped.map((s) => `${s.email} (${s.reason === 'self' ? 'you — still signed in' : s.reason})`).join(', ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AddUserForm({ onClose, onAdded }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -42,9 +176,7 @@ function AddUserForm({ onClose, onAdded }) {
     setSaving(true);
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
     await base44.entities.PendingUser.create({ full_name, email: email.trim().toLowerCase(), role, invited: true });
-    // inviteUser only accepts "user" or "admin" — map other roles to "user"
-    const inviteRole = role === 'admin' ? 'admin' : 'user';
-    await base44.users.inviteUser(email.trim().toLowerCase(), inviteRole);
+    await base44.users.inviteUser(email.trim().toLowerCase(), role);
     setSaving(false);
     setDone(true);
     onAdded();
@@ -93,7 +225,7 @@ function AddUserForm({ onClose, onAdded }) {
   );
 }
 
-function PendingUserRow({ pu, onRefresh }) {
+function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
   const [editing, setEditing] = useState(false);
 
   // Split full_name into first/last on open
@@ -109,6 +241,9 @@ function PendingUserRow({ pu, onRefresh }) {
 
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const isSelf = currentEmail && String(pu.email || '').toLowerCase() === currentEmail;
 
   const openEdit = () => {
     const { first, last } = splitName(pu.full_name);
@@ -118,21 +253,64 @@ function PendingUserRow({ pu, onRefresh }) {
 
   const handleSave = async () => {
     setSaving(true);
+    setResetError('');
     const full_name = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
-    await base44.entities.PendingUser.update(pu.id, {
-      full_name,
-      email: form.email.trim().toLowerCase(),
-      role: form.role,
-      inactive: form.inactive,
-    });
-    setSaving(false);
-    setEditing(false);
-    onRefresh();
+    const email = form.email.trim().toLowerCase();
+    const role = form.role;
+    const inactive = form.inactive;
+    try {
+      if (pu.id) {
+        await base44.entities.PendingUser.update(pu.id, { full_name, email, role, inactive });
+      } else {
+        await base44.entities.PendingUser.create({ full_name, email, role, inactive, invited: true });
+      }
+      if (pu.userId) {
+        await base44.entities.User.update(pu.userId, {
+          full_name,
+          email,
+          role,
+          inactive,
+          standby: role === 'standby',
+        });
+      }
+      setEditing(false);
+      onRefresh();
+    } catch (err) {
+      setResetError(err.message || 'Could not save user changes');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    await base44.entities.PendingUser.delete(pu.id);
+    if (pu.id) await base44.entities.PendingUser.delete(pu.id);
+    if (pu.userId) {
+      await base44.entities.User.update(pu.userId, { inactive: true });
+    }
     onRefresh();
+  };
+
+  const handleResetPassword = async () => {
+    if (pu.inactive) return;
+    setResetError('');
+    setResetting(true);
+    try {
+      const email = String(pu.email || '').trim().toLowerCase();
+      const result = await base44.users.resetPasswords({
+        emails: [email],
+        includeSelf: isSelf,
+        allowCreate: true,
+        createFrom: {
+          [email]: { full_name: pu.full_name || '', role: pu.role || 'user', inactive: !!pu.inactive },
+        },
+      });
+      if (result.issued?.length) onIssued(result);
+      else setResetError(result.skipped?.[0]?.reason === 'inactive' ? 'Marked not in use — no login.' : 'No login to reset.');
+    } catch (err) {
+      setResetError(err.message || 'Could not reset password');
+    } finally {
+      setResetting(false);
+    }
   };
 
   const displayName = pu.full_name || pu.email;
@@ -170,6 +348,7 @@ function PendingUserRow({ pu, onRefresh }) {
               className="w-4 h-4 accent-blue-500" />
             Mark as "Not in use"
           </label>
+          {resetError && <p className="text-xs text-red-400">{resetError}</p>}
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" className="bg-blue-600 hover:bg-blue-500 h-8 gap-1" onClick={handleSave} disabled={saving}>
               <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
@@ -180,6 +359,7 @@ function PendingUserRow({ pu, onRefresh }) {
           </div>
         </div>
       ) : (
+        <div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0 text-sm">
@@ -197,6 +377,18 @@ function PendingUserRow({ pu, onRefresh }) {
             <Badge className={`text-xs border ${roleBadgeClass[pu.role] || roleBadgeClass.user}`}>
               {roleLabel[pu.role] || pu.role}
             </Badge>
+            {!pu.inactive && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-slate-500 hover:text-amber-300 hover:bg-slate-800"
+                onClick={handleResetPassword}
+                disabled={resetting}
+                title={isSelf ? 'Reset my password' : 'New password'}
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-blue-400 hover:bg-slate-800" onClick={openEdit}>
               <Edit2 className="h-3.5 w-3.5" />
             </Button>
@@ -213,38 +405,159 @@ function PendingUserRow({ pu, onRefresh }) {
             )}
           </div>
         </div>
+        {resetError && <p className="text-xs text-red-400 mt-2">{resetError}</p>}
+        </div>
       )}
     </div>
   );
 }
 
+function mergeCrew(pendingUsers = [], users = []) {
+  const map = new Map();
+  users.forEach((u) => {
+    const email = String(u.email || '').trim().toLowerCase();
+    if (!email) return;
+    map.set(email, {
+      id: null,
+      userId: u.id,
+      email,
+      full_name: u.full_name || '',
+      role: u.role || 'user',
+      inactive: !!u.inactive,
+    });
+  });
+  pendingUsers.forEach((pu) => {
+    const email = String(pu.email || '').trim().toLowerCase();
+    if (!email) return;
+    const existing = map.get(email);
+    map.set(email, {
+      id: pu.id,
+      userId: existing?.userId || null,
+      email,
+      full_name: pu.full_name || existing?.full_name || '',
+      role: existing?.role || pu.role || 'user',
+      inactive: existing?.inactive ?? !!pu.inactive,
+    });
+  });
+  return Array.from(map.values()).sort((a, b) =>
+    (a.full_name || a.email).localeCompare(b.full_name || b.email)
+  );
+}
+
 export default function ManageUsersSection() {
   const queryClient = useQueryClient();
+  const { user } = useApp();
+  const currentEmail = String(user?.email || '').toLowerCase();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [includeSelf, setIncludeSelf] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [issuedResult, setIssuedResult] = useState(null);
 
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
     queryFn: () => base44.entities.PendingUser.list(),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+  const { data: loginUsers = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const crew = mergeCrew(pendingUsers, loginUsers);
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+    queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+  };
+
+  const handleBulkReset = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const result = await base44.users.resetPasswords({ includeSelf });
+      setIssuedResult(result);
+      setConfirmBulk(false);
+      setIncludeSelf(false);
+      refresh();
+    } catch (err) {
+      setError(err.message || 'Could not regenerate passwords');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Card className="bg-slate-900 border-slate-800 mb-6">
       <CardHeader className="border-b border-slate-800 pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-400" /> Manage Users ({pendingUsers.length})
+            <Users className="h-5 w-5 text-blue-400" /> Manage Users ({crew.length})
           </CardTitle>
-          {!showAddForm && (
-            <Button size="sm" onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 hover:bg-blue-600 gap-1.5 text-xs">
-              <UserPlus className="h-3.5 w-3.5" /> Add User
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!showAddForm && (
+              <Button size="sm" onClick={() => setShowAddForm(true)}
+                className="bg-blue-600 hover:bg-blue-600 gap-1.5 text-xs">
+                <UserPlus className="h-3.5 w-3.5" /> Add User
+              </Button>
+            )}
+            {!confirmBulk && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setConfirmBulk(true); setError(''); }}
+                className="border-slate-700 text-slate-200 hover:bg-slate-800 gap-1.5 text-xs"
+              >
+                <KeyRound className="h-3.5 w-3.5" /> Regenerate passwords
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
+        {issuedResult?.issued?.length > 0 && (
+          <IssuedPasswords
+            issued={issuedResult.issued}
+            skipped={issuedResult.skipped}
+            onDismiss={() => setIssuedResult(null)}
+          />
+        )}
+        {confirmBulk && (
+          <div className="mb-4 rounded-lg border border-slate-700 bg-slate-800/40 p-4 space-y-3">
+            <p className="text-sm text-slate-200">Replace sign-in passwords for every active account?</p>
+            <p className="text-xs text-slate-400">
+              Your own password is left alone so you stay signed in. People marked “not in use” are skipped.
+              The new list appears once — copy or download it before you leave. On next sign-in each person
+              is prompted to change the generated password.
+            </p>
+            <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeSelf}
+                onChange={(e) => setIncludeSelf(e.target.checked)}
+                className="w-4 h-4 accent-blue-500"
+              />
+              Also reset my password ({user?.email})
+            </label>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-slate-950 h-8 text-xs" onClick={handleBulkReset} disabled={busy}>
+                {busy ? 'Generating…' : 'Generate new passwords'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-slate-400 hover:text-slate-100 text-xs"
+                onClick={() => { setConfirmBulk(false); setIncludeSelf(false); setError(''); }}
+                disabled={busy}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+        {error && !confirmBulk && <p className="text-xs text-red-400 mb-3">{error}</p>}
         {showAddForm && (
           <AddUserForm
             onClose={() => setShowAddForm(false)}
@@ -252,9 +565,15 @@ export default function ManageUsersSection() {
           />
         )}
         <div className="divide-y divide-slate-800 -mx-6 -mb-6">
-          {pendingUsers.length === 0 && <p className="text-slate-500 text-sm p-6 text-center">No users added yet.</p>}
-          {pendingUsers.map(pu => (
-            <PendingUserRow key={pu.id} pu={pu} onRefresh={refresh} />
+          {crew.length === 0 && <p className="text-slate-500 text-sm p-6 text-center">No users added yet.</p>}
+          {crew.map(pu => (
+            <PendingUserRow
+              key={pu.userId || pu.id || pu.email}
+              pu={pu}
+              onRefresh={refresh}
+              currentEmail={currentEmail}
+              onIssued={setIssuedResult}
+            />
           ))}
         </div>
       </CardContent>

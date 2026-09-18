@@ -11,6 +11,7 @@ import RigsCheck from './pages/RigsCheck'
 import AccountsDashboard from './pages/AccountsDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ChangePassword from './pages/ChangePassword';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -24,8 +25,12 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
+function mustChangePassword(user) {
+  return user?.must_change_password === true || user?.must_change_password === 'true';
+}
+
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, user } = useAuth();
   const location = useLocation();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -43,6 +48,10 @@ const AuthenticatedApp = () => {
   if (!isAuthenticated || authError?.type === 'auth_required') {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;
+  }
+
+  if (mustChangePassword(user)) {
+    return <ChangePassword />;
   }
 
   return (

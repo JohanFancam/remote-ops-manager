@@ -12,10 +12,10 @@ import {
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+import { getAdditionalShootIds, pairingPoolForDay, feeForShoot, operatorStandbyCost, DEFAULT_STANDBY_RATE } from '../components/utils/earningsUtils';
 import { normalizeShootStatus } from '../utils/shootStatus';
 
-function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, postponedRate = 250 }) {
+function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, postponedRate = 250, standbyTotal = 0, standbyCount = 0 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editFee, setEditFee] = useState('');
@@ -38,11 +38,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   const autoAdditionalIds = useMemo(() => {
     const ids = new Set();
     Object.values(shootsByDate).forEach(dayShots => {
-      const pool = dayShots.filter(s => {
-        const st = normalizeShootStatus(s.status);
-        return st !== 'cancelled' && st !== 'postponed';
-      });
-      getAdditionalShootIds(pool).forEach(id => ids.add(id));
+      getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach(id => ids.add(id));
     });
     return ids;
   }, [shootsByDate]);
@@ -56,15 +52,17 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   };
 
   const getFee = (shoot) => {
-    const status = normalizeShootStatus(shoot.status);
-    if (status === 'cancelled') return 0;
-    if (status === 'postponed') return postponedRate;
     const rec = getRecord(shoot);
-    if (rec?.override_fee != null) return rec.override_fee;
-    return isAdditional(shoot) ? additionalRate : baseRate;
+    return feeForShoot(shoot, {
+      record: rec,
+      isAdditional: rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id),
+      baseRate,
+      additionalRate,
+      postponedRate,
+    });
   };
 
-  const total = opShoots.reduce((s, sh) => s + getFee(sh), 0);
+  const total = opShoots.reduce((s, sh) => s + getFee(sh), 0) + standbyTotal;
   const hasPending = pendingShoots.length > 0;
 
   const handleSaveFee = async (shoot) => {
@@ -105,7 +103,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </span>
           )}
           <div className="text-right">
-            <p className="text-sm text-slate-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-slate-400">{opShoots.length} shoot{opShoots.length !== 1 ? 's' : ''}{standbyCount ? ` · ${standbyCount} standby` : ''}</p>
             <p className="font-mono font-bold text-slate-100">R{total.toFixed(2)}</p>
           </div>
           {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
@@ -145,7 +143,14 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             </p>
           )}
 
-          {opShoots.length === 0 && !hasPending && <p className="text-slate-500 text-sm text-center py-4">No shoots this month.</p>}
+          {standbyCount > 0 && (
+            <div className="rounded-lg p-3 border border-blue-800/40 bg-blue-950/20">
+              <p className="text-sm font-medium text-slate-100">Standby sessions</p>
+              <p className="text-xs text-slate-400">{standbyCount} × 18:00–06:00</p>
+              <p className="font-mono font-bold text-blue-300 mt-1">R{standbyTotal.toFixed(2)}</p>
+            </div>
+          )}
+          {opShoots.length === 0 && !hasPending && standbyCount === 0 && <p className="text-slate-500 text-sm text-center py-4">No shoots this month.</p>}
           {opShoots.length === 0 && hasPending && <p className="text-slate-500 text-sm text-center py-2">No approved shoots yet.</p>}
 
           {opShoots.map(shoot => {
@@ -271,6 +276,12 @@ export default function Accounts() {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || 250;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || DEFAULT_STANDBY_RATE;
+
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['paymentRecords'] });
@@ -298,9 +309,17 @@ export default function Accounts() {
       ...pendingUsers.map(u => u.email),
       ...users.map(u => u.email),
     ]);
-    const knownUsers = pendingUsers
+    const knownUsers = users
       .filter(u => u.role === 'user' || u.role === 'standby')
-      .map(u => ({ email: u.email, full_name: u.full_name || u.email, inactive: u.inactive || false }));
+      .map(u => {
+        const pending = pendingUsers.find(p => String(p.email || '').toLowerCase() === String(u.email || '').toLowerCase());
+        return {
+          email: u.email,
+          full_name: pending?.full_name || u.full_name || u.email,
+          inactive: u.inactive || pending?.inactive || false,
+          role: u.role,
+        };
+      });
     const knownEmails = new Set(knownUsers.map(u => u.email));
     const nameMap = {};
     paymentRecords.forEach(r => { if (r.operator_email && r.operator_name) nameMap[r.operator_email] = r.operator_name; });
@@ -317,9 +336,19 @@ export default function Accounts() {
     return remoteUsers.map(op => {
       const opShoots = monthShoots.filter(s => s.assigned_operators?.includes(op.email));
       const opPending = monthPendingShoots.filter(s => s.pending_operators?.includes(op.email));
-      return { ...op, name: op.full_name || op.email, shoots: opShoots.length, pending: opPending.length };
-    }).filter(op => op.shoots > 0 || op.pending > 0);
-  }, [remoteUsers, monthShoots, monthPendingShoots, filterMonth]);
+      const standby = op.role === 'standby'
+        ? operatorStandbyCost(standbyDays, op.email, filterMonth, standbyRate)
+        : { count: 0, total: 0 };
+      return {
+        ...op,
+        name: op.full_name || op.email,
+        shoots: opShoots.length,
+        pending: opPending.length,
+        standbyCount: standby.count,
+        standbyTotal: standby.total,
+      };
+    }).filter(op => op.shoots > 0 || op.pending > 0 || op.standbyCount > 0);
+  }, [remoteUsers, monthShoots, monthPendingShoots, filterMonth, standbyDays, standbyRate]);
 
   const totalPending = summaryRows.reduce((s, r) => s + r.pending, 0);
   const totalShoots = summaryRows.reduce((s, r) => s + r.shoots, 0);
@@ -549,6 +578,8 @@ export default function Accounts() {
                 baseRate={baseRate}
                 additionalRate={additionalRate}
                 postponedRate={postponedRate}
+                standbyCount={op.standbyCount}
+                standbyTotal={op.standbyTotal}
               />
             ))}
           </div>

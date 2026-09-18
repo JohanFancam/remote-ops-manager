@@ -11,6 +11,8 @@ import {
   signToken,
   createUser,
   updateUser,
+  resetLoginPasswords,
+  changePassword,
 } from './auth.js';
 import {
   listEntities,
@@ -132,7 +134,13 @@ app.post('/api/auth/register', (req, res) => {
   const role = pending?.role || 'user';
   const name = full_name || pending?.full_name || '';
 
-  const user = createUser({ email, password, full_name: name, role });
+  const user = createUser({
+    email,
+    password,
+    full_name: name,
+    role,
+    standby: role === 'standby',
+  });
   if (pending?.id) {
     updateEntity('PendingUser', pending.id, { invited: true });
   }
@@ -145,8 +153,28 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 app.patch('/api/auth/me', authMiddleware, (req, res) => {
-  const updated = updateUser(req.user.id, req.body || {});
+  const body = { ...(req.body || {}) };
+  delete body.password;
+  delete body.password_hash;
+  delete body.must_change_password;
+  delete body.role;
+  delete body.standby;
+  delete body.inactive;
+  delete body.email;
+  const updated = updateUser(req.user.id, body);
   res.json(updated);
+});
+
+app.post('/api/auth/change-password', authMiddleware, (req, res) => {
+  try {
+    const updated = changePassword(req.userRow, {
+      currentPassword: String(req.body?.current_password || ''),
+      newPassword: String(req.body?.new_password || ''),
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 app.post('/api/auth/logout', (_req, res) => {
@@ -158,9 +186,9 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts'];
   let role = String(req.body?.role || 'user');
-  // Base44 inviteUser only accepted admin|user — keep that constraint for compatibility
-  if (role !== 'admin' && role !== 'user') role = 'user';
+  if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });
 
   const existing = filterEntities('PendingUser', { email });
@@ -176,6 +204,49 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
   }
 
   res.json({ ok: true, email, role, message: 'Invite recorded. User can register with this email.' });
+});
+
+/**
+ * Admin-only: generate new unique passwords. Plaintext is returned once in
+ * this response and stored hashed — it cannot be retrieved later.
+ *
+ * Body:
+ *   emails?: string[]     omit to reset every existing login
+ *   includeSelf?: boolean also reset the signed-in admin (default false)
+ *   allowCreate?: boolean create a login if the email has none (per-user)
+ *   createFrom?: { [email]: { full_name, role, inactive } }
+ */
+app.post('/api/users/reset-passwords', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const rawEmails = req.body?.emails;
+    const emails = Array.isArray(rawEmails)
+      ? rawEmails.map((e) => String(e || '').trim().toLowerCase()).filter(Boolean)
+      : null;
+    const includeSelf = !!req.body?.includeSelf;
+    const allowCreate = !!req.body?.allowCreate;
+    const createFrom = {};
+    if (req.body?.createFrom && typeof req.body.createFrom === 'object') {
+      for (const [key, value] of Object.entries(req.body.createFrom)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+        createFrom[String(key).trim().toLowerCase()] = value && typeof value === 'object' ? value : {};
+      }
+    }
+
+    const result = resetLoginPasswords({
+      emails,
+      skipEmail: req.user.email,
+      includeSkipEmail: includeSelf,
+      allowCreate,
+      createFrom,
+    });
+    res.json({
+      ok: true,
+      issued: result.issued,
+      skipped: result.skipped,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 app.post('/api/app-logs', authMiddleware, (req, res) => {
@@ -230,7 +301,16 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
     const previous = getEntity(type, id);
-    const updated = updateEntity(type, id, req.body || {});
+    const patch = { ...(req.body || {}) };
+    if (type === 'User') {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin only' });
+      }
+      delete patch.password;
+      delete patch.password_hash;
+      delete patch.must_change_password;
+    }
+    const updated = updateEntity(type, id, patch);
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
     if (type === 'Shoot' && previous) {

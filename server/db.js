@@ -63,6 +63,19 @@ export function parseJson(value, fallback = {}) {
 export function publicUser(row) {
   if (!row) return null;
   const extra = parseJson(row.data, {});
+  // JSON leftovers must never override the login columns — that was why
+  // admin role changes appeared to save but the person stayed a remote user.
+  const {
+    id: _id,
+    email: _email,
+    full_name: _fullName,
+    role: _role,
+    standby: _standby,
+    inactive: _inactive,
+    password: _password,
+    password_hash: _hash,
+    ...safeExtra
+  } = extra;
   return {
     id: row.id,
     email: row.email,
@@ -72,7 +85,8 @@ export function publicUser(row) {
     inactive: !!row.inactive,
     created_date: row.created_date,
     updated_date: row.updated_date,
-    ...extra,
+    ...safeExtra,
+    must_change_password: extra.must_change_password === true || extra.must_change_password === 'true',
   };
 }
 

@@ -19,7 +19,7 @@ export function getGameDateTime(shoot) {
   return new Date(year, month - 1, day, h, m, 0, 0);
 }
 
-export function getScheduleDateTimes(shoot) {
+export function getScheduleDateTimes(shoot, rig) {
   const gameDate = getGameDateTime(shoot);
   if (!gameDate) {
     return {
@@ -27,34 +27,37 @@ export function getScheduleDateTimes(shoot) {
       pre_shoot: null,
       attention: null,
       sound: null,
+      sound_trigger: null,
       game: null,
     };
   }
 
   const withOffset = (offsetMinutes) => {
     const d = new Date(gameDate);
-    d.setMinutes(d.getMinutes() + offsetMinutes);
+    d.setMinutes(d.getMinutes() + Number(offsetMinutes || 0));
     return d;
   };
 
   return {
-    setup: withOffset(shoot?.setup_offset ?? -150),
-    pre_shoot: withOffset(shoot?.pre_shoot_offset ?? -120),
-    attention: withOffset(shoot?.attention_offset ?? -30),
-    sound: withOffset(shoot?.sound_offset ?? -30),
+    setup: withOffset(rig?.setup_offset ?? shoot?.setup_offset ?? -150),
+    pre_shoot: withOffset(rig?.pre_shoot_offset ?? shoot?.pre_shoot_offset ?? -120),
+    attention: withOffset(rig?.attention_offset ?? shoot?.attention_offset ?? -30),
+    sound: withOffset(rig?.sound_offset ?? shoot?.sound_offset ?? -30),
+    sound_trigger: withOffset(rig?.sound_trigger_offset ?? shoot?.sound_trigger_offset ?? 10),
     game: gameDate,
   };
 }
 
-export function getSchedule(shoot) {
+export function getSchedule(shoot, rig) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
-  const dates = getScheduleDateTimes(shoot);
+  const dates = getScheduleDateTimes(shoot, rig);
   return {
     setup: dates.setup ? minutesToTime(dates.setup.getHours() * 60 + dates.setup.getMinutes()) : null,
     pre_shoot: dates.pre_shoot ? minutesToTime(dates.pre_shoot.getHours() * 60 + dates.pre_shoot.getMinutes()) : null,
     attention: dates.attention ? minutesToTime(dates.attention.getHours() * 60 + dates.attention.getMinutes()) : null,
     sound: dates.sound ? minutesToTime(dates.sound.getHours() * 60 + dates.sound.getMinutes()) : null,
+    sound_trigger: dates.sound_trigger ? minutesToTime(dates.sound_trigger.getHours() * 60 + dates.sound_trigger.getMinutes()) : null,
     game: gameTime,
   };
 }

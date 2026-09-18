@@ -110,10 +110,12 @@ export default function Rigs() {
                 {/* Section badges */}
                 <div className="px-4 py-2 flex flex-wrap gap-1.5">
                   {rig.data_enabled !== false && <Badge className="bg-blue-600/20 text-blue-400 border-blue-800 text-xs">Data</Badge>}
-                  {rig.fancam_day_enabled && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">Fancam Day</Badge>}
-                  {rig.fancam_night_enabled && <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">Fancam Night</Badge>}
+                  {rig.fancam_day_enabled && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">Outdoor Day</Badge>}
+                  {rig.fancam_night_enabled && <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">Outdoor Night</Badge>}
+                  {rig.indoor_enabled && <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-xs">Indoor</Badge>}
                   {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 text-xs">Attention</Badge>}
                   {rig.sound_enabled && <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 text-xs">Sound</Badge>}
+                  {rig.sound_trigger_enabled && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">Sound Trigger</Badge>}
                 </div>
 
                 {/* Remote rigs */}

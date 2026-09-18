@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
-import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import { removeEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -141,9 +141,10 @@ export default function CountdownCard({
 
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound_enabled === true;
+  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
 
   const gameDate = getGameDateTime(shoot);
-  const phaseDates = getScheduleDateTimes(shoot);
+  const phaseDates = getScheduleDateTimes(shoot, matchedRig);
   const isAssigned = shoot.assigned_operators?.includes(userEmail);
   const canMarkPhases = isAdmin || isAssigned;
 
@@ -248,10 +249,11 @@ export default function CountdownCard({
       `• Setup: ${timeLabel(phaseDates.setup)}`,
       `• Pre-Shoot: ${timeLabel(phaseDates.pre_shoot)}`,
       showAttention ? `• Attention: ${timeLabel(phaseDates.attention)}` : null,
-      showSound ? `• Sound Check: ${timeLabel(phaseDates.sound)}` : null,
+      showSound ? `• Sound Recording: ${timeLabel(phaseDates.sound)}` : null,
+      showSoundTrigger ? `• Sound Trigger: ${timeLabel(phaseDates.sound_trigger)}` : null,
       `• Game Time: ${timeLabel(gameDate)}`,
       '',
-      `• Venue: ${shoot.location || 'TBC'}`,
+      `• Venue: ${shoot.location || matchedRig?.location || 'TBC'}`,
       `• Shoot Type: ${shootTypeLabel}`,
     ].filter((line) => line !== null);
     return lines.join('\n');
@@ -284,9 +286,16 @@ export default function CountdownCard({
       : null,
     showSound
       ? {
-          label: 'Sound Check',
+          label: 'Sound Recording',
           time: phaseDates.sound ? format(phaseDates.sound, 'HH:mm') : null,
           doneKey: 'sound_started',
+        }
+      : null,
+    showSoundTrigger
+      ? {
+          label: 'Sound Trigger',
+          time: phaseDates.sound_trigger ? format(phaseDates.sound_trigger, 'HH:mm') : null,
+          doneKey: 'sound_trigger_started',
         }
       : null,
     {
@@ -379,7 +388,10 @@ export default function CountdownCard({
   const fancamNightHdValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_hd ? formatCameraValue(matchedRig.fancam_night_hd) : null;
   const fancamNightWideValue = matchedRig?.fancam_night_enabled && matchedRig?.fancam_night_wide_enabled !== false && matchedRig?.fancam_night_wide ? formatCameraValue(matchedRig.fancam_night_wide) : null;
   const attentionValue = showAttention && matchedRig?.attention_hd ? formatCameraValue(matchedRig.attention_hd) : null;
+  const indoorHdValue = matchedRig?.indoor_enabled && matchedRig?.indoor_hd ? formatCameraValue(matchedRig.indoor_hd) : null;
+  const indoorWideValue = matchedRig?.indoor_enabled && matchedRig?.indoor_wide_enabled !== false && matchedRig?.indoor_wide ? formatCameraValue(matchedRig.indoor_wide) : null;
   const soundValue = showSound ? 'Enabled' : null;
+  const soundTriggerValue = showSoundTrigger ? (phaseDates.sound_trigger ? format(phaseDates.sound_trigger, 'HH:mm') : '+10 min') : null;
 
   return (
     <>
@@ -591,12 +603,15 @@ export default function CountdownCard({
               <div className="mt-3 space-y-2">
                 {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} accent={highlightData} />}
                 {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} accent={highlightData} />}
-                {fancamDayHdValue && <RigConfigRow label="Fancam Day HD" value={fancamDayHdValue} accent={highlightFancam} />}
-                {fancamDayWideValue && <RigConfigRow label="Fancam Day Wide" value={fancamDayWideValue} accent={highlightFancam} />}
-                {fancamNightHdValue && <RigConfigRow label="Fancam Night HD" value={fancamNightHdValue} accent={highlightFancam} />}
-                {fancamNightWideValue && <RigConfigRow label="Fancam Night Wide" value={fancamNightWideValue} accent={highlightFancam} />}
+                {fancamDayHdValue && <RigConfigRow label="Outdoor Day HD" value={fancamDayHdValue} accent={highlightFancam} />}
+                {fancamDayWideValue && <RigConfigRow label="Outdoor Day Wide" value={fancamDayWideValue} accent={highlightFancam} />}
+                {fancamNightHdValue && <RigConfigRow label="Outdoor Night HD" value={fancamNightHdValue} accent={highlightFancam} />}
+                {fancamNightWideValue && <RigConfigRow label="Outdoor Night Wide" value={fancamNightWideValue} accent={highlightFancam} />}
+                {indoorHdValue && <RigConfigRow label="Indoor HD" value={indoorHdValue} />}
+                {indoorWideValue && <RigConfigRow label="Indoor Wide" value={indoorWideValue} />}
                 {attentionValue && <RigConfigRow label="Attention" value={attentionValue} accent={showAttention || highlightData || highlightFancam} />}
                 {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound || highlightData || highlightFancam} />}
+                {soundTriggerValue && <RigConfigRow label="Sound Trigger" value={soundTriggerValue} accent={showSoundTrigger} />}
               </div>
             </div>
 

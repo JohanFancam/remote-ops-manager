@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { calculateOperatorEarnings, exportOperatorPDF, DEFAULT_POSTPONED_RATE } from '../components/utils/earningsUtils';
+import { calculateOperatorEarnings, exportOperatorPDF, DEFAULT_POSTPONED_RATE, DEFAULT_STANDBY_RATE, operatorStandbyCost } from '../components/utils/earningsUtils';
 import { formatZAR, formatDateZA, formatTimeZA } from '../utils/shootStatus';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 
@@ -41,6 +41,17 @@ export default function Earnings() {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || DEFAULT_STANDBY_RATE;
+
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
+
+  const standbyPay = useMemo(
+    () => (user?.role === 'standby' ? operatorStandbyCost(standbyDays, user?.email, monthStr, standbyRate) : { count: 0, total: 0, sessions: [] }),
+    [user?.role, user?.email, standbyDays, monthStr, standbyRate]
+  );
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -72,7 +83,7 @@ export default function Earnings() {
     return { ...item, amount, isAdditional, paid };
   }).sort((a, b) => a.date.localeCompare(b.date));
 
-  const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
+  const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0) + standbyPay.total;
   const paidTotal = adjustedBreakdown.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional && !b.isCancelled && !b.isPostponed);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
@@ -101,7 +112,7 @@ export default function Earnings() {
           <Button
             onClick={handleExport}
             className="bg-green-700 hover:bg-green-600 gap-2 text-sm"
-            disabled={adjustedBreakdown.length === 0}
+            disabled={adjustedBreakdown.length === 0 && standbyPay.count === 0}
           >
             <Download className="h-4 w-4" /> PDF
           </Button>
@@ -117,7 +128,7 @@ export default function Earnings() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className={`grid gap-3 mb-5 ${user?.role === 'standby' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
@@ -136,6 +147,14 @@ export default function Earnings() {
               <p className="text-xs text-slate-400 mt-1">Additional</p>
             </CardContent>
           </Card>
+          {user?.role === 'standby' && (
+            <Card className="bg-slate-900 border-blue-800/40">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-blue-300">{standbyPay.count}</p>
+                <p className="text-xs text-slate-400 mt-1">Standby · {formatZAR(standbyPay.total, { withSpace: false })}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {paidTotal > 0 && (
@@ -145,7 +164,7 @@ export default function Earnings() {
           </div>
         )}
 
-        {adjustedBreakdown.length === 0 ? (
+        {adjustedBreakdown.length === 0 && standbyPay.count === 0 ? (
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-12 text-center">
               <Camera className="h-10 w-10 text-gray-700 mx-auto mb-3" />
@@ -154,6 +173,19 @@ export default function Earnings() {
           </Card>
         ) : (
           <div className="space-y-2">
+            {standbyPay.sessions.map((sd) => (
+              <Card key={sd.id || `${sd.start_date}-${sd.admin_email}`} className="bg-slate-900 border-blue-800/40">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">Standby session</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {formatDateZA(sd.start_date || sd.date, { weekday: 'short' })} · 18:00–06:00
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-blue-300">{formatZAR(standbyRate, { withSpace: false })}</p>
+                </div>
+              </Card>
+            ))}
             {adjustedBreakdown.map((item, idx) => {
               const isExpanded = expandedShoot === idx;
               return (

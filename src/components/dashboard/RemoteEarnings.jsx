@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Camera, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { calculateOperatorEarnings, exportOperatorPDF, DEFAULT_POSTPONED_RATE } from '../utils/earningsUtils';
+import { calculateOperatorEarnings, exportOperatorPDF, DEFAULT_POSTPONED_RATE, DEFAULT_STANDBY_RATE, operatorStandbyCost } from '../utils/earningsUtils';
 import { formatZAR, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { shortenTitle } from '../utils/scheduleUtils';
 
@@ -39,6 +39,17 @@ export default function RemoteEarnings({ user }) {
   const baseRate = parseFloat(appSettings.find(s => s.key === 'base_rate')?.value) || 1000;
   const additionalRate = parseFloat(appSettings.find(s => s.key === 'additional_rate')?.value) || 250;
   const postponedRate = parseFloat(appSettings.find(s => s.key === 'postponed_rate')?.value) || DEFAULT_POSTPONED_RATE;
+  const standbyRate = parseFloat(appSettings.find(s => s.key === 'standby_rate')?.value) || DEFAULT_STANDBY_RATE;
+
+  const { data: standbyDays = [] } = useQuery({
+    queryKey: ['standbyDays'],
+    queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+  });
+
+  const standbyPay = useMemo(
+    () => (user?.role === 'standby' ? operatorStandbyCost(standbyDays, user?.email, monthStr, standbyRate) : { count: 0, total: 0, sessions: [] }),
+    [user?.role, user?.email, standbyDays, monthStr, standbyRate]
+  );
 
   const myShootsForMonth = useMemo(() => {
     const safeEmail = user?.email?.toLowerCase()?.trim();
@@ -77,7 +88,7 @@ export default function RemoteEarnings({ user }) {
     return { ...item, amount, isAdditional };
   });
 
-  const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0);
+  const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0) + standbyPay.total;
   const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional && !b.isCancelled && !b.isPostponed);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
@@ -123,7 +134,7 @@ export default function RemoteEarnings({ user }) {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
             <p className="text-xs text-slate-400">Total Earned</p>
@@ -137,11 +148,17 @@ export default function RemoteEarnings({ user }) {
             <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
             <p className="text-xs text-slate-400">Additional</p>
           </div>
+          {user?.role === 'standby' && (
+            <div className="rounded-lg border border-blue-800/40 bg-blue-950/30 p-3 text-center">
+              <p className="text-2xl font-bold text-blue-300">{standbyPay.count}</p>
+              <p className="text-xs text-slate-400">Standby · {formatZAR(standbyPay.total, { withSpace: false })}</p>
+            </div>
+          )}
         </div>
 
         {expanded && (
           <div className="space-y-3">
-            {adjustedBreakdown.length === 0 ? (
+            {adjustedBreakdown.length === 0 && standbyPay.count === 0 ? (
               <p className="text-sm text-slate-500 text-center py-4">No shoots assigned for {format(currentMonth, 'MMMM yyyy')}.</p>
             ) : (
               <div>
@@ -153,6 +170,17 @@ export default function RemoteEarnings({ user }) {
                   </Button>
                 </div>
                 <div className="space-y-1">
+                  {standbyPay.sessions.map((sd) => (
+                    <div key={sd.id || `${sd.start_date}-${sd.admin_email}`} className="flex items-center justify-between bg-blue-950/30 border border-blue-800/30 rounded px-3 py-2">
+                      <div>
+                        <p className="text-sm text-slate-100 font-medium">Standby session</p>
+                        <p className="text-xs text-slate-400">
+                          {formatDateZA(sd.start_date || sd.date, { weekday: 'short' })} · 18:00–06:00
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-blue-300">{formatZAR(standbyRate, { withSpace: false })}</p>
+                    </div>
+                  ))}
                   {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
                     <div key={idx} className={`flex items-center justify-between bg-slate-800/40 rounded px-3 py-2 ${item.isCancelled ? 'opacity-80' : ''}`}>
                       <div>

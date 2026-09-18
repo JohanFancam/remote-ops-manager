@@ -3,9 +3,10 @@ import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucid
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
+import { matchRig } from '../utils/rigUtils';
 
-function getPrimaryDateTime(shoot) {
-  const phaseDates = getScheduleDateTimes(shoot);
+function getPrimaryDateTime(shoot, rigSettings = []) {
+  const phaseDates = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings));
   return phaseDates.setup || phaseDates.pre_shoot || phaseDates.game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
 }
 
@@ -17,8 +18,8 @@ function isCancelled(shoot) {
   return shoot?.status === 'cancelled';
 }
 
-function getShootDateTime(shoot) {
-  return getScheduleDateTimes(shoot).game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
+function getShootDateTime(shoot, rigSettings = []) {
+  return getScheduleDateTimes(shoot, matchRig(shoot, rigSettings)).game || new Date(`${shoot.date}T${shoot.game_time || '23:59'}`);
 }
 
 function getRigTypeLabel(shoot, rig) {
@@ -78,7 +79,7 @@ export default function AdminStandbyShootList({
     shoots
       .filter((shoot) => !isCancelled(shoot))
       .forEach((shoot) => {
-        const shootDt = getShootDateTime(shoot);
+        const shootDt = getShootDateTime(shoot, rigSettings);
         const covered = myStandbyWindows.some((w) => shootDt >= w.startDt && shootDt <= w.endDt);
         if (covered && !seen.has(shoot.id)) seen.set(shoot.id, shoot);
       });
@@ -87,9 +88,9 @@ export default function AdminStandbyShootList({
     const relevanceWindowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
 
     return Array.from(seen.values())
-      .filter((shoot) => !isCompleted(shoot) && getShootDateTime(shoot) >= relevanceWindowStart)
-      .sort((a, b) => getPrimaryDateTime(a) - getPrimaryDateTime(b));
-  }, [shoots, myStandbyWindows]);
+      .filter((shoot) => !isCompleted(shoot) && getShootDateTime(shoot, rigSettings) >= relevanceWindowStart)
+      .sort((a, b) => getPrimaryDateTime(a, rigSettings) - getPrimaryDateTime(b, rigSettings));
+  }, [shoots, myStandbyWindows, rigSettings]);
 
   const pageSize = viewMode === 'tile' ? 4 : 3;
 

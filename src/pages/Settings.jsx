@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell
+  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound
 } from 'lucide-react';
+import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
   const defaultRigs = 'Rigs ready for today: {list}';
@@ -151,6 +152,28 @@ const SLACK_PHASES = [
   { key: 'sound_started', label: 'Sound Started', placeholder: 'Sound check in progress — {team}' },
 ];
 
+function ChangePasswordCard() {
+  const queryClient = useQueryClient();
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div>
+      <ChangePasswordForm
+        requireCurrent
+        submitLabel={saved ? 'Password updated' : 'Update password'}
+        inputClassName="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm w-full rounded-md px-3 py-2 border"
+        buttonClassName="inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium px-4 py-2"
+        errorClassName="rounded-md border border-red-800/80 bg-red-950/40 text-red-400 text-sm px-3 py-2"
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2500);
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Settings() {
   const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
@@ -161,6 +184,7 @@ export default function Settings() {
   const [adminDayHoursInput, setAdminDayHoursInput] = useState('9.5');
   const [rateAdditionalInput, setRateAdditionalInput] = useState('');
   const [ratePostponedInput, setRatePostponedInput] = useState('250');
+  const [rateStandbyInput, setRateStandbyInput] = useState('500');
   const [ratesSaved, setRatesSaved] = useState(false);
 
   // Logo
@@ -196,9 +220,14 @@ export default function Settings() {
       const email = u.email?.trim().toLowerCase();
       if (!email) return;
       const existing = map.get(email);
-      // Use PendingUser role only if it's a non-empty string; otherwise fall back to User entity role
-      const resolvedRole = (existing?.role && existing.role !== '') ? existing.role : (u.role || 'user');
-      map.set(email, { ...u, email, full_name: existing?.full_name || u.full_name || '', role: resolvedRole, inactive: existing?.inactive || false });
+      // Login role on User is the source of truth; PendingUser only fills missing name.
+      map.set(email, {
+        ...u,
+        email,
+        full_name: existing?.full_name || u.full_name || '',
+        role: u.role || existing?.role || 'user',
+        inactive: u.inactive || existing?.inactive || false,
+      });
     });
     return Array.from(map.values());
   }, [rawUsers, pendingUsers]);
@@ -222,6 +251,8 @@ export default function Settings() {
     if (br) setRateBaseInput(br);
     if (ar) setRateAdditionalInput(ar);
     if (pr) setRatePostponedInput(pr);
+    const sr = appSettings.find(s => s.key === 'standby_rate')?.value;
+    if (sr) setRateStandbyInput(sr);
     const adh = appSettings.find(s => s.key === 'admin_day_hours')?.value;
     if (adh) setAdminDayHoursInput(adh);
   }, [appSettings]);
@@ -231,6 +262,7 @@ export default function Settings() {
       { key: 'base_rate', value: rateBaseInput || '1000', description: 'Standard shoot rate (ZAR)' },
       { key: 'additional_rate', value: rateAdditionalInput || '250', description: 'Additional shoot rate (ZAR)' },
       { key: 'postponed_rate', value: ratePostponedInput || '250', description: 'Postponed shoot fee (ZAR)' },
+      { key: 'standby_rate', value: rateStandbyInput || '500', description: 'Operator/Standby session fee (ZAR)' },
       { key: 'admin_day_hours', value: adminDayHoursInput || '9.5', description: 'Admin working hours per active day (shoots/standby)' },
     ];
     for (const pair of pairs) {
@@ -309,6 +341,20 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        <Card className="bg-slate-900 border-slate-800 mb-6">
+          <CardHeader className="border-b border-slate-800 pb-4">
+            <CardTitle className="text-slate-100 flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-blue-400" /> Change password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <p className="text-xs text-slate-500 mb-4">
+              Use this to replace a generated password, or whenever you want a new one.
+            </p>
+            <ChangePasswordCard />
+          </CardContent>
+        </Card>
+
         {/* App Logo — Admin only */}
         {isAdmin && (
           <Card className="bg-slate-900 border-slate-800 mb-6">
@@ -365,7 +411,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee.</p>
+              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee. Operator / Standby users earn the standby session fee for each 18:00–06:00 coverage night.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Standard Shoot Rate (R)</label>
@@ -396,6 +442,17 @@ export default function Settings() {
                     placeholder="250"
                     className="bg-slate-800 border-slate-800 text-slate-100"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Operator / Standby Session (R)</label>
+                  <Input
+                    type="number"
+                    value={rateStandbyInput}
+                    onChange={e => setRateStandbyInput(e.target.value)}
+                    placeholder="500"
+                    className="bg-slate-800 border-slate-800 text-slate-100"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">One 18:00–06:00 standby session</p>
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Admin Working Hours / Active Day</label>
