@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
-import { removeEmail, hasEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
+import { removeEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
 import {
   AlertDialog,
   AlertDialogAction,

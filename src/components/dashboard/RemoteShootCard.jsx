@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, MapPin, Tv2, Flag, Camera, Zap, Volume2, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, MapPin, Flag, Camera, Zap, Volume2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '../utils/rigUtils';

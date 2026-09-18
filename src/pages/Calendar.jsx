@@ -4,8 +4,6 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Upload, Plus, Minus, X, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, Settings2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -26,7 +24,6 @@ import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
 import {
-  SHOOT_STATUSES,
   SHOOT_STATUS_DOTS,
   formatStatusLabel,
   normalizeShootStatus,
