@@ -127,6 +127,15 @@ Re-running is safe: existing accounts are updated and their passwords left alone
 unless `--reset-passwords` is passed. Generated passwords are shown only in that
 run's output — they are stored hashed, so capture them before closing the terminal.
 
+To re-issue passwords later without a CSV, admins can use **Settings → Manage Users
+→ Regenerate passwords** (copy or download the list immediately). From a shell:
+
+```bash
+node scripts/reset-passwords.mjs                         # dry run
+node scripts/reset-passwords.mjs --confirm               # every active login
+node scripts/reset-passwords.mjs --confirm --keep johan@fancam.com
+```
+
 ## Stack
 
 | Layer | Tech |

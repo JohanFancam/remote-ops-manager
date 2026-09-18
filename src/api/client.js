@@ -206,6 +206,12 @@ export const api = {
         body: JSON.stringify({ email, role }),
       });
     },
+    resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {
+      return request('/api/users/reset-passwords', {
+        method: 'POST',
+        body: JSON.stringify({ emails, includeSelf, allowCreate, createFrom }),
+      });
+    },
   },
   integrations: {
     Core: {
