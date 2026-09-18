@@ -73,6 +73,7 @@ export function publicUser(row) {
     created_date: row.created_date,
     updated_date: row.updated_date,
     ...extra,
+    must_change_password: extra.must_change_password === true || extra.must_change_password === 'true',
   };
 }
 

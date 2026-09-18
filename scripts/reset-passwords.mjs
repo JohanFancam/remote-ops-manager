@@ -84,4 +84,5 @@ if (result.issued.length) {
   console.log('\nPasswords — shown once, they are stored hashed:');
   console.log(formatPasswordList(result.issued).split('\n').map((line) => `  ${line}`).join('\n'));
   console.log('\nSend each person their own password privately.');
+  console.log('They will be asked to choose a new password the next time they sign in.');
 }

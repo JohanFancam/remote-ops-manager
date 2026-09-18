@@ -115,9 +115,20 @@ function issuedEntry(row, password, status) {
   };
 }
 
+export const MIN_PASSWORD_LENGTH = 8;
+
+export function userMustChangePassword(userOrRow) {
+  if (!userOrRow) return false;
+  if (userOrRow.must_change_password === true || userOrRow.must_change_password === 'true') {
+    return true;
+  }
+  const extra = parseJson(userOrRow.data, {});
+  return extra.must_change_password === true || extra.must_change_password === 'true';
+}
+
 export function issueNewPassword(userRow) {
   const password = generatePassword();
-  updateUser(userRow.id, { password });
+  updateUser(userRow.id, { password, must_change_password: true });
   return issuedEntry(userRow, password, 'reset');
 }
 
@@ -134,8 +145,52 @@ export function createLoginWithGeneratedPassword({
     full_name,
     role,
     standby: role === 'standby' || !!standby,
+    extra: { must_change_password: true },
   });
   return issuedEntry(user, password, 'new');
+}
+
+/**
+ * Replace the signed-in user's password. Generated-password logins
+ * (must_change_password) may omit currentPassword; everyone else must
+ * prove they know the existing one.
+ */
+export function changePassword(userRow, { currentPassword = '', newPassword = '' } = {}) {
+  if (!userRow) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const next = String(newPassword || '');
+  if (next.length < MIN_PASSWORD_LENGTH) {
+    const err = new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    err.status = 400;
+    throw err;
+  }
+
+  const forced = userMustChangePassword(userRow);
+  const current = String(currentPassword || '');
+  if (!forced || current) {
+    if (!current) {
+      const err = new Error('Current password required');
+      err.status = 400;
+      throw err;
+    }
+    if (!verifyPassword(current, userRow.password_hash)) {
+      const err = new Error('Current password is incorrect');
+      err.status = 401;
+      throw err;
+    }
+  }
+
+  if (verifyPassword(next, userRow.password_hash)) {
+    const err = new Error('Choose a different password from the one you signed in with');
+    err.status = 400;
+    throw err;
+  }
+
+  return updateUser(userRow.id, { password: next, must_change_password: false });
 }
 
 /**

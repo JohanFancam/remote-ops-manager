@@ -98,6 +98,7 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
           <p className="text-sm font-medium text-amber-200">Copy these passwords now</p>
           <p className="text-xs text-amber-200/70 mt-1">
             They are stored hashed and cannot be shown again after you leave this page.
+            Each person will be asked to choose their own password the next time they sign in.
           </p>
         </div>
         <Button size="sm" variant="ghost" className="h-7 text-slate-400 hover:text-slate-100" onClick={onDismiss}>
@@ -466,7 +467,8 @@ export default function ManageUsersSection() {
             <p className="text-sm text-slate-200">Replace sign-in passwords for every active account?</p>
             <p className="text-xs text-slate-400">
               Your own password is left alone so you stay signed in. People marked “not in use” are skipped.
-              The new list appears once — copy or download it before you leave.
+              The new list appears once — copy or download it before you leave. On next sign-in each person
+              is prompted to change the generated password.
             </p>
             <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
               <input

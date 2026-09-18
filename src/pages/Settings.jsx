@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell
+  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound
 } from 'lucide-react';
+import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
   const defaultRigs = 'Rigs ready for today: {list}';
@@ -150,6 +151,28 @@ const SLACK_PHASES = [
   { key: 'attention_started', label: 'Attention Started', placeholder: 'Attention phase started — {team}' },
   { key: 'sound_started', label: 'Sound Started', placeholder: 'Sound check in progress — {team}' },
 ];
+
+function ChangePasswordCard() {
+  const queryClient = useQueryClient();
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div>
+      <ChangePasswordForm
+        requireCurrent
+        submitLabel={saved ? 'Password updated' : 'Update password'}
+        inputClassName="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm w-full rounded-md px-3 py-2 border"
+        buttonClassName="inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium px-4 py-2"
+        errorClassName="rounded-md border border-red-800/80 bg-red-950/40 text-red-400 text-sm px-3 py-2"
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2500);
+        }}
+      />
+    </div>
+  );
+}
 
 export default function Settings() {
   const { user, isAdmin } = useApp();
@@ -306,6 +329,20 @@ export default function Settings() {
                 </Badge>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800 mb-6">
+          <CardHeader className="border-b border-slate-800 pb-4">
+            <CardTitle className="text-slate-100 flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-blue-400" /> Change password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <p className="text-xs text-slate-500 mb-4">
+              Use this to replace a generated password, or whenever you want a new one.
+            </p>
+            <ChangePasswordCard />
           </CardContent>
         </Card>
 

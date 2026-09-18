@@ -181,6 +181,12 @@ export const api = {
         body: JSON.stringify(data || {}),
       });
     },
+    async changePassword({ current_password, new_password }) {
+      return request('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password, new_password }),
+      });
+    },
     async logout(redirectUrl) {
       try {
         await request('/api/auth/logout', { method: 'POST' });

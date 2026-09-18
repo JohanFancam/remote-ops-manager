@@ -86,6 +86,12 @@ export const AuthProvider = ({ children }) => {
     return currentUser;
   };
 
+  const changePassword = async ({ current_password, new_password }) => {
+    const updated = await api.auth.changePassword({ current_password, new_password });
+    setUser(updated);
+    return updated;
+  };
+
   const register = async ({ email, password, full_name }) => {
     const currentUser = await api.auth.register({ email, password, full_name });
     setUser(currentUser);
@@ -115,6 +121,7 @@ export const AuthProvider = ({ children }) => {
         appPublicSettings,
         login,
         register,
+        changePassword,
         logout,
         navigateToLogin,
         checkAppState,

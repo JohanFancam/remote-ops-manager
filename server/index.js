@@ -12,6 +12,7 @@ import {
   createUser,
   updateUser,
   resetLoginPasswords,
+  changePassword,
 } from './auth.js';
 import {
   listEntities,
@@ -146,8 +147,24 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 app.patch('/api/auth/me', authMiddleware, (req, res) => {
-  const updated = updateUser(req.user.id, req.body || {});
+  const body = { ...(req.body || {}) };
+  delete body.password;
+  delete body.password_hash;
+  delete body.must_change_password;
+  const updated = updateUser(req.user.id, body);
   res.json(updated);
+});
+
+app.post('/api/auth/change-password', authMiddleware, (req, res) => {
+  try {
+    const updated = changePassword(req.userRow, {
+      currentPassword: String(req.body?.current_password || ''),
+      newPassword: String(req.body?.new_password || ''),
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 app.post('/api/auth/logout', (_req, res) => {
@@ -274,7 +291,13 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
     const previous = getEntity(type, id);
-    const updated = updateEntity(type, id, req.body || {});
+    const patch = { ...(req.body || {}) };
+    if (type === 'User') {
+      delete patch.password;
+      delete patch.password_hash;
+      delete patch.must_change_password;
+    }
+    const updated = updateEntity(type, id, patch);
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
     if (type === 'Shoot' && previous) {
