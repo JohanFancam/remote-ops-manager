@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, Wifi, RefreshCw, DollarSign, Receipt, TrendingUp,
+  Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootNotifications from './components/dashboard/ShootNotifications';
@@ -33,7 +33,6 @@ function LayoutContent({ children, currentPageName }) {
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
   );
   const navigate = useNavigate();
-  const didRedirect = useRef(false);
 
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${SIDEBAR_COLLAPSE_WIDTH - 1}px)`);
@@ -48,8 +47,9 @@ function LayoutContent({ children, currentPageName }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && isAccounts && !didRedirect.current && (currentPageName === 'Dashboard' || currentPageName === null)) {
-      didRedirect.current = true;
+    if (isLoading || !isAccounts) return;
+    const page = currentPageName || 'Dashboard';
+    if (page !== 'AccountsDashboard' && page !== 'Settings') {
       navigate('/AccountsDashboard', { replace: true });
     }
   }, [isLoading, isAccounts, currentPageName, navigate]);
@@ -62,7 +62,7 @@ function LayoutContent({ children, currentPageName }) {
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 500),
-    enabled: !!user,
+    enabled: !!user && !isAccounts,
   });
 
   const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
@@ -95,9 +95,8 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  // Accounts only track and export earnings; Settings is for their own profile/alerts
   const accountsNav = [
-    { name: 'Earnings', icon: Receipt, page: 'AccountsDashboard' },
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'AccountsDashboard' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -141,13 +140,13 @@ function LayoutContent({ children, currentPageName }) {
                 <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
-              {user && (
+              {user && !isAccounts && (
                 <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
               )}
             </div>
           )}
 
-          {collapsed && user && (
+          {collapsed && user && !isAccounts && (
             <div className="px-2 pb-2">
               <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
             </div>
@@ -183,7 +182,7 @@ function LayoutContent({ children, currentPageName }) {
             })}
           </nav>
 
-          {!collapsed && (
+          {!collapsed && !isAccounts && (
             <div className="px-2.5 pb-1">
               <TutorialReopenButton
                 isAdmin={isAdmin}
@@ -255,9 +254,9 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
-      {user && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
+      {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
-      {!isLoading && user && (
+      {!isLoading && user && !isAccounts && (
         <TutorialOverlay
           isAdmin={isAdmin}
           tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled}

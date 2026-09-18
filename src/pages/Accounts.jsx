@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { getAdditionalShootIds } from '../components/utils/earningsUtils';
+import { getAdditionalShootIds, pairingPoolForDay, feeForShoot } from '../components/utils/earningsUtils';
 import { normalizeShootStatus } from '../utils/shootStatus';
 
 function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveFee, onSaveNote, onToggleAdditional, onApprove, onReject, baseRate, additionalRate, postponedRate = 250 }) {
@@ -38,11 +38,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   const autoAdditionalIds = useMemo(() => {
     const ids = new Set();
     Object.values(shootsByDate).forEach(dayShots => {
-      const pool = dayShots.filter(s => {
-        const st = normalizeShootStatus(s.status);
-        return st !== 'cancelled' && st !== 'postponed';
-      });
-      getAdditionalShootIds(pool).forEach(id => ids.add(id));
+      getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach(id => ids.add(id));
     });
     return ids;
   }, [shootsByDate]);
@@ -56,12 +52,14 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
   };
 
   const getFee = (shoot) => {
-    const status = normalizeShootStatus(shoot.status);
-    if (status === 'cancelled') return 0;
-    if (status === 'postponed') return postponedRate;
     const rec = getRecord(shoot);
-    if (rec?.override_fee != null) return rec.override_fee;
-    return isAdditional(shoot) ? additionalRate : baseRate;
+    return feeForShoot(shoot, {
+      record: rec,
+      isAdditional: rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id),
+      baseRate,
+      additionalRate,
+      postponedRate,
+    });
   };
 
   const total = opShoots.reduce((s, sh) => s + getFee(sh), 0);

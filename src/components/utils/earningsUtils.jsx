@@ -22,6 +22,54 @@ function timeToMinutes(timeStr) {
 
 // Determine which shoots on a given day are "additional" (within 2hrs of a standard shoot)
 // Returns array of shoot ids that are additional
+export function pairingPoolForDay(dayShots) {
+  return dayShots.filter((s) => {
+    const st = normalizeShootStatus(s.status);
+    return st !== 'cancelled' && st !== 'postponed';
+  });
+}
+
+/** Fee for one assigned shoot — matches Pending / Approve. */
+export function feeForShoot(shoot, {
+  record,
+  isAdditional,
+  baseRate = DEFAULT_BASE_RATE,
+  additionalRate = DEFAULT_ADDITIONAL_RATE,
+  postponedRate = DEFAULT_POSTPONED_RATE,
+} = {}) {
+  const status = normalizeShootStatus(shoot.status);
+  if (status === 'cancelled') return 0;
+  if (status === 'postponed') return postponedRate;
+  if (record?.override_fee != null) return Number(record.override_fee) || 0;
+  const additional = record?.is_additional != null ? !!record.is_additional : !!isAdditional;
+  return additional ? additionalRate : baseRate;
+}
+
+export function additionalIdsForShoots(opShoots) {
+  const byDate = {};
+  opShoots.forEach((s) => {
+    if (!s?.date) return;
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+  const ids = new Set();
+  Object.values(byDate).forEach((dayShots) => {
+    getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach((id) => ids.add(id));
+  });
+  return ids;
+}
+
+/** Sum of assigned-shoot fees for one operator in a month (Pending / Approve totals). */
+export function operatorAssignedCost(opShoots, opRecords = [], rates = {}) {
+  const autoAdditionalIds = additionalIdsForShoots(opShoots);
+  const total = opShoots.reduce((sum, shoot) => {
+    const rec = opRecords.find((r) => r.shoot_id === shoot.id);
+    const isAdditional = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id);
+    return sum + feeForShoot(shoot, { record: rec, isAdditional, ...rates });
+  }, 0);
+  return { total, autoAdditionalIds };
+}
+
 export function getAdditionalShootIds(dayShots) {
   const sorted = [...dayShots].sort((a, b) => {
     const ta = timeToMinutes(a.game_time || a.start_time);
