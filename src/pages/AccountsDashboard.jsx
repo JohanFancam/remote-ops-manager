@@ -102,6 +102,13 @@ export default function AccountsDashboard() {
     return { min: availableMonths[0], max: availableMonths[availableMonths.length - 1] };
   }, [availableMonths]);
 
+  const rangeMonthOptions = useMemo(() => {
+    const year = filterMonth.slice(0, 4);
+    const start = [monthBounds.min, `${year}-01`].sort()[0];
+    const end = [monthBounds.max, `${year}-12`].sort()[1];
+    return monthsInRange(start, end);
+  }, [monthBounds, filterMonth]);
+
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
     queryFn: () => base44.entities.PendingUser.list(),
@@ -619,31 +626,33 @@ export default function AccountsDashboard() {
                   <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                     <div>
                       <p className="text-[11px] text-slate-500 mb-1">From</p>
-                      <input
-                        type="month"
+                      <select
                         value={rangeFrom}
-                        min={monthBounds.min}
-                        max={monthBounds.max}
                         onChange={(e) => {
                           setExportMode('range');
                           setRangeFrom(e.target.value);
                         }}
                         className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
-                      />
+                      >
+                        {rangeMonthOptions.map((m) => (
+                          <option key={m} value={m}>{format(new Date(`${m}-01`), 'MMMM yyyy')}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <p className="text-[11px] text-slate-500 mb-1">To</p>
-                      <input
-                        type="month"
+                      <select
                         value={rangeTo}
-                        min={monthBounds.min}
-                        max={monthBounds.max}
                         onChange={(e) => {
                           setExportMode('range');
                           setRangeTo(e.target.value);
                         }}
                         className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
-                      />
+                      >
+                        {rangeMonthOptions.map((m) => (
+                          <option key={m} value={m}>{format(new Date(`${m}-01`), 'MMMM yyyy')}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </span>
