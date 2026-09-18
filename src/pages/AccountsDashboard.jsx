@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ChevronLeft, ChevronRight, Download, TrendingUp, Users,
-  DollarSign, CheckCircle2, Circle, RefreshCw, ChevronDown
+  DollarSign, CheckCircle2, Circle, RefreshCw, X
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
@@ -19,22 +19,50 @@ import {
 } from '../components/utils/earningsUtils';
 import { formatZAR } from '../utils/shootStatus';
 
-function exportCSV(rows, month) {
-  const header = 'Operator,Amount (ZAR)\n';
-  const body = rows
-    .map((r) => `"${r.name}",${r.total.toFixed(2)}`)
-    .join('\n');
-  const blob = new Blob([header + body], { type: 'text/csv' });
+function money(amount) {
+  return formatZAR(amount, { withSpace: false });
+}
+
+function csvCell(value) {
+  const s = String(value ?? '');
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename, tableRows) {
+  const bom = '\uFEFF';
+  const text = bom + tableRows.map((row) => row.map(csvCell).join(',')).join('\n');
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Crew_costs_${month}.csv`;
+  a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 }
 
-function money(amount) {
-  return formatZAR(amount, { withSpace: false });
+function monthsInRange(from, to) {
+  let start = from;
+  let end = to;
+  if (start > end) [start, end] = [end, start];
+  const out = [];
+  let [y, m] = start.split('-').map(Number);
+  const [ey, em] = end.split('-').map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
+function yearMonths(year) {
+  return monthsInRange(`${year}-01`, `${year}-12`);
 }
 
 export default function AccountsDashboard() {
@@ -47,7 +75,10 @@ export default function AccountsDashboard() {
   const [saving, setSaving] = useState(null);
   const [datePickerFor, setDatePickerFor] = useState(null);
   const [customDate, setCustomDate] = useState('');
-  const [exportMonthOpen, setExportMonthOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportMode, setExportMode] = useState('month'); // month | year | range
+  const [rangeFrom, setRangeFrom] = useState(`${format(new Date(), 'yyyy')}-01`);
+  const [rangeTo, setRangeTo] = useState(format(new Date(), 'yyyy-MM'));
 
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
@@ -59,8 +90,17 @@ export default function AccountsDashboard() {
   const availableMonths = useMemo(() => {
     const months = new Set();
     shoots.forEach((s) => { if (s.date) months.add(s.date.substring(0, 7)); });
-    return [...months].sort().reverse();
-  }, [shoots]);
+    months.add(filterMonth);
+    return [...months].sort();
+  }, [shoots, filterMonth]);
+
+  const monthBounds = useMemo(() => {
+    if (!availableMonths.length) {
+      const y = format(new Date(), 'yyyy');
+      return { min: `${y}-01`, max: `${y}-12` };
+    }
+    return { min: availableMonths[0], max: availableMonths[availableMonths.length - 1] };
+  }, [availableMonths]);
 
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
@@ -161,14 +201,14 @@ export default function AccountsDashboard() {
     );
   }
 
-  const monthSummaryRows = useMemo(() => {
-    const monthShoots = shoots.filter((s) => s.date?.startsWith(filterMonth));
+  const operatorCostsForMonth = useCallback((monthKey) => {
+    const monthShoots = shoots.filter((s) => s.date?.startsWith(monthKey));
     return remoteUsers.map((op) => {
       const opShoots = monthShoots.filter((s) => s.assigned_operators?.includes(op.email));
-      const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === filterMonth);
+      const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === monthKey);
       const { total } = operatorAssignedCost(opShoots, opRecords, rates);
       const monthRec = paymentRecords.find((r) =>
-        r.operator_email === op.email && r.period_month === filterMonth && !r.shoot_id
+        r.operator_email === op.email && r.period_month === monthKey && !r.shoot_id
       );
       return {
         email: op.email,
@@ -180,7 +220,12 @@ export default function AccountsDashboard() {
         shoots: opShoots.length,
       };
     }).filter((op) => op.shoots > 0).sort((a, b) => b.total - a.total);
-  }, [remoteUsers, shoots, paymentRecords, filterMonth, rates]);
+  }, [remoteUsers, shoots, paymentRecords, rates]);
+
+  const monthSummaryRows = useMemo(
+    () => operatorCostsForMonth(filterMonth),
+    [operatorCostsForMonth, filterMonth]
+  );
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
   const paidCount = monthSummaryRows.filter((r) => r.paid).length;
@@ -212,6 +257,85 @@ export default function AccountsDashboard() {
   }, [shoots, remoteUsers, paymentRecords, filterMonth, rates]);
 
   const yearTotal = yearChartData.reduce((s, d) => s + d.total, 0);
+
+  const exportMonths = useMemo(() => {
+    const year = filterMonth.slice(0, 4);
+    if (exportMode === 'month') return [filterMonth];
+    if (exportMode === 'year') return yearMonths(year);
+    return monthsInRange(rangeFrom || `${year}-01`, rangeTo || filterMonth);
+  }, [exportMode, filterMonth, rangeFrom, rangeTo]);
+
+  const exportPreview = useMemo(() => {
+    let total = 0;
+    let operators = 0;
+    exportMonths.forEach((monthKey) => {
+      const rows = operatorCostsForMonth(monthKey);
+      operators += rows.length;
+      total += rows.reduce((s, r) => s + r.total, 0);
+    });
+    return { months: exportMonths.length, total, operators };
+  }, [exportMonths, operatorCostsForMonth]);
+
+  const openExport = () => {
+    const year = filterMonth.slice(0, 4);
+    setExportMode('month');
+    setRangeFrom(`${year}-01`);
+    setRangeTo(filterMonth);
+    setExportOpen(true);
+  };
+
+  const handleDownloadExport = () => {
+    const monthKeys = exportMonths;
+    const detail = [['Month', 'Operator', 'Amount (ZAR)', 'Paid']];
+    const monthTotals = [['Month', 'Month total (ZAR)']];
+    const byOperator = new Map();
+    let grand = 0;
+
+    monthKeys.forEach((monthKey) => {
+      const rows = operatorCostsForMonth(monthKey);
+      const monthLabel = format(new Date(`${monthKey}-01`), 'MMMM yyyy');
+      let monthTotal = 0;
+      rows.forEach((r) => {
+        detail.push([monthLabel, r.name, r.total.toFixed(2), r.paid ? 'Yes' : 'No']);
+        monthTotal += r.total;
+        const prev = byOperator.get(r.name) || { total: 0, email: r.email };
+        byOperator.set(r.name, { total: prev.total + r.total, email: r.email });
+      });
+      monthTotals.push([monthLabel, monthTotal.toFixed(2)]);
+      grand += monthTotal;
+    });
+
+    const operatorTotals = [['Operator', 'Period total (ZAR)']];
+    [...byOperator.entries()]
+      .sort((a, b) => b[1].total - a[1].total)
+      .forEach(([name, info]) => {
+        operatorTotals.push([name, info.total.toFixed(2)]);
+      });
+
+    const table = [
+      ...detail,
+      [],
+      ...monthTotals,
+      [],
+      ...operatorTotals,
+      [],
+      ['Grand total', grand.toFixed(2)],
+    ];
+
+    const first = monthKeys[0] || filterMonth;
+    const last = monthKeys[monthKeys.length - 1] || first;
+    const fullYear = monthKeys.length === 12
+      && first.endsWith('-01')
+      && last.endsWith('-12')
+      && first.slice(0, 4) === last.slice(0, 4);
+    const filename = monthKeys.length <= 1
+      ? `Crew_costs_${first}.csv`
+      : fullYear
+        ? `Crew_costs_${first.slice(0, 4)}.csv`
+        : `Crew_costs_${first}_to_${last}.csv`;
+    downloadCsv(filename, table);
+    setExportOpen(false);
+  };
 
   const handleTogglePaid = (row) => {
     if (!row.paid) {
@@ -280,45 +404,10 @@ export default function AccountsDashboard() {
             <Button onClick={refresh} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-100 h-9 w-9" title="Refresh data">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <div className="relative">
-              <Button
-                onClick={() => exportCSV(monthSummaryRows, filterMonth)}
-                className="bg-green-700 hover:bg-green-600 gap-2 text-sm rounded-r-none"
-              >
-                <Download className="h-4 w-4" />
-                Export {format(new Date(`${filterMonth}-01`), 'MMM yyyy')}
-              </Button>
-              <Button
-                onClick={() => setExportMonthOpen(!exportMonthOpen)}
-                className="bg-green-700 hover:bg-green-600 text-sm px-2 rounded-l-none border-l border-green-600"
-              >
-                <ChevronDown className={`h-4 w-4 transition-transform ${exportMonthOpen ? 'rotate-180' : ''}`} />
-              </Button>
-              {exportMonthOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 bg-slate-800 border border-slate-800 rounded-lg shadow-xl z-20 py-1 max-h-60 overflow-y-auto">
-                  {availableMonths.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => {
-                        const monthShoots = shoots.filter((s) => s.date?.startsWith(m));
-                        const rows = remoteUsers.map((op) => {
-                          const opShoots = monthShoots.filter((s2) => s2.assigned_operators?.includes(op.email));
-                          const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === m);
-                          const { total } = operatorAssignedCost(opShoots, opRecords, rates);
-                          return { name: op.full_name || op.email, total, shoots: opShoots.length };
-                        }).filter((op) => op.shoots > 0);
-                        setFilterMonth(m);
-                        setExportMonthOpen(false);
-                        exportCSV(rows, m);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-700 transition-colors ${m === filterMonth ? 'text-emerald-400 font-medium' : 'text-slate-400'}`}
-                    >
-                      {format(new Date(`${m}-01`), 'MMMM yyyy')}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Button onClick={openExport} className="bg-green-700 hover:bg-green-600 gap-2 text-sm">
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
           </div>
         </div>
 
@@ -474,6 +563,114 @@ export default function AccountsDashboard() {
         )}
       </div>
 
+      {exportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-slate-100 font-semibold text-base">Export earnings</h3>
+                <p className="text-slate-400 text-sm mt-1">
+                  Download a CSV of operator totals for one month, the whole year, or a range of months.
+                </p>
+              </div>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-100" onClick={() => setExportOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <label className={`flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer ${exportMode === 'month' ? 'border-blue-700 bg-blue-950/30' : 'border-slate-800 hover:border-slate-700'}`}>
+                <input
+                  type="radio"
+                  name="export-mode"
+                  className="mt-1 accent-blue-500"
+                  checked={exportMode === 'month'}
+                  onChange={() => setExportMode('month')}
+                />
+                <span>
+                  <span className="block text-sm text-slate-100">This month</span>
+                  <span className="block text-xs text-slate-500">{format(new Date(`${filterMonth}-01`), 'MMMM yyyy')}</span>
+                </span>
+              </label>
+              <label className={`flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer ${exportMode === 'year' ? 'border-blue-700 bg-blue-950/30' : 'border-slate-800 hover:border-slate-700'}`}>
+                <input
+                  type="radio"
+                  name="export-mode"
+                  className="mt-1 accent-blue-500"
+                  checked={exportMode === 'year'}
+                  onChange={() => setExportMode('year')}
+                />
+                <span>
+                  <span className="block text-sm text-slate-100">This year</span>
+                  <span className="block text-xs text-slate-500">January – December {filterMonth.slice(0, 4)}</span>
+                </span>
+              </label>
+              <label className={`flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer ${exportMode === 'range' ? 'border-blue-700 bg-blue-950/30' : 'border-slate-800 hover:border-slate-700'}`}>
+                <input
+                  type="radio"
+                  name="export-mode"
+                  className="mt-1 accent-blue-500"
+                  checked={exportMode === 'range'}
+                  onChange={() => setExportMode('range')}
+                />
+                <span className="flex-1">
+                  <span className="block text-sm text-slate-100">Choose months</span>
+                  <span className="block text-xs text-slate-500 mb-2">Any from–to range</span>
+                  <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div>
+                      <p className="text-[11px] text-slate-500 mb-1">From</p>
+                      <input
+                        type="month"
+                        value={rangeFrom}
+                        min={monthBounds.min}
+                        max={monthBounds.max}
+                        onChange={(e) => {
+                          setExportMode('range');
+                          setRangeFrom(e.target.value);
+                        }}
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-slate-500 mb-1">To</p>
+                      <input
+                        type="month"
+                        value={rangeTo}
+                        min={monthBounds.min}
+                        max={monthBounds.max}
+                        onChange={(e) => {
+                          setExportMode('range');
+                          setRangeTo(e.target.value);
+                        }}
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </span>
+              </label>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              {exportPreview.months} month{exportPreview.months === 1 ? '' : 's'} · {money(exportPreview.total)}
+              {exportPreview.operators ? ` · ${exportPreview.operators} operator row${exportPreview.operators === 1 ? '' : 's'}` : ''}
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDownloadExport}
+                disabled={!exportMonths.length}
+                className="flex-1 bg-green-700 hover:bg-green-600 gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download CSV
+              </Button>
+              <Button variant="ghost" className="text-slate-400 hover:text-slate-100" onClick={() => setExportOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {datePickerFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
