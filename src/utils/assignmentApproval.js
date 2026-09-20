@@ -75,31 +75,44 @@ export function isShootAvailableForAutoAssign(shoot) {
   );
 }
 
+/** First assigned email, or first pending email if nobody is assigned yet. */
+export function getShootClaimEmail(shoot) {
+  const assigned = (shoot?.assigned_operators || []).map(normalizeEmail).filter(Boolean);
+  if (assigned[0]) return assigned[0];
+  const pending = (shoot?.pending_operators || []).map(normalizeEmail).filter(Boolean);
+  return pending[0] || '';
+}
+
+/** Replace any current claim with a single assigned operator. */
+export function exclusiveAssignFields(email, extra = {}) {
+  const e = normalizeEmail(email);
+  return {
+    assigned_operators: e ? [e] : [],
+    pending_operators: [],
+    ...extra,
+  };
+}
+
+/** Replace any current claim with a single pending operator. */
+export function exclusivePendingFields(email, extra = {}) {
+  const e = normalizeEmail(email);
+  return {
+    assigned_operators: [],
+    pending_operators: e ? [e] : [],
+    ...extra,
+  };
+}
+
 /**
- * True when another remote operator already claimed this shoot
- * (assigned or pending). Admin assignees do not count as a claim.
- * `currentEmail` is excluded so the claiming operator can still cancel/unassign.
+ * True when someone else already claimed this shoot (assigned or pending).
+ * Admin, operator, and operator/standby claims all count as taken.
+ * `currentEmail` is excluded so the claiming person can still cancel/unassign.
  */
-export function isClaimedByOtherOperator(shoot, currentEmail, allUsers = []) {
+export function isClaimedByOtherOperator(shoot, currentEmail) {
   if (!shoot) return false;
   const me = normalizeEmail(currentEmail);
-
-  const isRemoteClaimEmail = (email) => {
-    const e = normalizeEmail(email);
-    if (!e || (me && e === me)) return false;
-    const u = (allUsers || []).find((x) => normalizeEmail(x.email) === e);
-    // Missing user record → treat as a remote claim (safer lock)
-    if (!u) return true;
-    return u.role !== 'admin';
-  };
-
-  const takenAssigned = (shoot.assigned_operators || []).some(isRemoteClaimEmail);
-  const takenPending = (shoot.pending_operators || []).some((email) => {
-    const e = normalizeEmail(email);
-    return !!e && (!me || e !== me);
-  });
-
-  return takenAssigned || takenPending;
+  const claim = getShootClaimEmail(shoot);
+  return !!claim && claim !== me;
 }
 
 /** Remote operators may self-assign only when the shoot is not claimed by someone else. */
@@ -256,10 +269,7 @@ export function findPairedShootForUnassign(shoot, allShoots, autoAssignTeams, wi
  * Build field updates to approve a pending operator onto a shoot.
  */
 export function approvePendingFields(shoot, email) {
-  return {
-    assigned_operators: addEmail(shoot.assigned_operators, email),
-    pending_operators: removeEmail(shoot.pending_operators, email),
-  };
+  return exclusiveAssignFields(email);
 }
 
 /**

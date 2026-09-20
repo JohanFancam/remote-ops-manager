@@ -391,9 +391,7 @@ export default function Accounts() {
   };
 
   const handleApprove = async (shoot, email) => {
-    const newPending = (shoot.pending_operators || []).filter(e => e !== email);
-    const newAssigned = [...(shoot.assigned_operators || []), email];
-    await base44.entities.Shoot.update(shoot.id, { pending_operators: newPending, assigned_operators: newAssigned });
+    await base44.entities.Shoot.update(shoot.id, { pending_operators: [], assigned_operators: [email] });
 
     // If this is a paired shoot, also approve the partner (where auto_assigned_for includes email)
     const autoAssignWindowMinutes = (() => {
@@ -410,8 +408,8 @@ export default function Accounts() {
     );
     if (partner) {
       await base44.entities.Shoot.update(partner.id, {
-        pending_operators: (partner.pending_operators || []).filter(e => e !== email),
-        assigned_operators: [...(partner.assigned_operators || []), email],
+        pending_operators: [],
+        assigned_operators: [email],
       });
     }
     refresh();

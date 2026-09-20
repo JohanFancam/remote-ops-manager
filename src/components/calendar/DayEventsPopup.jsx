@@ -74,7 +74,7 @@ export default function DayEventsPopup({
                 const isPending = shoot.pending_operators?.includes(user?.email);
                 const isPast = (shoot.date || dateStr) < todayStr;
                 const shouldGrey = isPast || isCompleted || isCancelled;
-                const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
+                const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
                 const showMinus = isAssigned || isPending;
                 const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);

@@ -44,15 +44,14 @@ export default function AssignOperatorModal({
     })
     .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
 
-  // Currently assigned operators (including Operator / Standby)
   const assignedRemoteUsers = (shoot.assigned_operators || [])
+    .slice(0, 1)
     .map(email => {
       const u = userMap.get(email.toLowerCase()) || allUsers.find(x => x.email === email);
-      const role = u?.role;
-      if (role === 'admin' || role === 'accounts') return null;
-      return { email, full_name: u?.full_name || email, role };
+      return { email, full_name: u?.full_name || email, role: u?.role };
     })
     .filter(Boolean);
+  const hasAssignee = assignedRemoteUsers.length > 0;
 
   // Pending remote operators
   const pendingRemoteUsers = (shoot.pending_operators || [])
@@ -89,7 +88,7 @@ export default function AssignOperatorModal({
           {/* Currently assigned */}
           {assignedRemoteUsers.length > 0 && (
             <div>
-              <p className="text-xs text-slate-400 font-medium mb-2">Assigned Operators</p>
+              <p className="text-xs text-slate-400 font-medium mb-2">Assigned Operator</p>
               <div className="space-y-1">
                 {assignedRemoteUsers.map(u => (
                   <div key={u.email} className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
@@ -148,7 +147,9 @@ export default function AssignOperatorModal({
 
           {/* Assign new */}
           <div>
-            <label className="text-xs text-slate-400 mb-1.5 block font-medium">Assign Operator</label>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium">
+              {hasAssignee ? 'Replace Operator' : 'Assign Operator'}
+            </label>
             <select
               value={selectedEmail}
               onChange={e => setSelectedEmail(e.target.value)}
@@ -162,7 +163,10 @@ export default function AssignOperatorModal({
               ))}
             </select>
             {assignableUsers.length === 0 && (
-              <p className="text-xs text-slate-500 mt-1">All operators are already assigned.</p>
+              <p className="text-xs text-slate-500 mt-1">No other operators available.</p>
+            )}
+            {hasAssignee && assignableUsers.length > 0 && (
+              <p className="text-xs text-slate-500 mt-1">Assigning someone else replaces the current operator.</p>
             )}
           </div>
         </div>
@@ -173,7 +177,7 @@ export default function AssignOperatorModal({
             disabled={!selectedEmail}
             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
           >
-            Assign
+            {hasAssignee ? 'Replace' : 'Assign'}
           </Button>
           <Button variant="outline" onClick={onClose} className="border-slate-800 text-slate-400 hover:bg-slate-800">
             Done

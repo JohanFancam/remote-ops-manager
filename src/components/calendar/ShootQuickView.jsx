@@ -106,7 +106,7 @@ export default function ShootQuickView({
   const assignedNames = (shoot.assigned_operators || [])
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
     .filter(Boolean);
-  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
   const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
@@ -225,7 +225,7 @@ export default function ShootQuickView({
           )}
 
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operators</p>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operator</p>
             <p className="text-sm text-slate-200">
               {assignedNames.length
                 ? assignedNames.join(', ')
@@ -293,15 +293,17 @@ export default function ShootQuickView({
                   Edit Settings
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => onAssignOperators?.(shoot)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
-              >
-                <Users className="h-3.5 w-3.5" />
-                Operators
-                {pendingEmails.length > 0 ? ` (${pendingEmails.length})` : ''}
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onAssignOperators?.(shoot)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Operator
+                  {pendingEmails.length > 0 ? ` (${pendingEmails.length})` : ''}
+                </button>
+              )}
               {isAdmin && (
                 <button
                   type="button"

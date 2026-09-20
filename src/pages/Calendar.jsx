@@ -17,7 +17,8 @@ import CSVImportModal from '../components/shoots/CSVImportModal';
 import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator } from '../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
+import { standbyColorForEmail, uniqueStandbyPeople, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
@@ -201,7 +202,7 @@ function ShootCalendarEntry({
   const entryOutlineClass = myStandbyCoverageClass || myAssignedShootClass || pendingShootClass;
 
   // Remotes cannot self-assign when another remote already claimed (assigned or pending)
-  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email);
   const takenByOther = !isAdmin && !isAssigned && !isPending && claimedByOther;
 
   const dotColor = isCancelled
@@ -242,17 +243,9 @@ function ShootCalendarEntry({
     const raw = appSettings?.find(s => s.key === 'auto_assign_window_hours')?.value;
     return (raw ? Number(raw) : 2) * 60;
   })();
-  const isLinkedTeam = (s) => autoAssignTeams.some(t =>
-    (s.client || s.title || '').toLowerCase().includes(t.toLowerCase())
-  );
   const userEligibleForAutoAssign = !isAdmin && user && (
     autoAssignUsers.length === 0 || autoAssignUsers.includes(user.email)
   );
-  const getShootGameMinutes = (s) => {
-    const t = s.game_time || '19:00';
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
 
   const handleSelfAssign = async (e) => {
     e.stopPropagation();
@@ -283,64 +276,50 @@ function ShootCalendarEntry({
         });
       }
     } else if (isAdmin) {
-      // Admin self-assign: no limit check, auto-pair linked shoot
-      await onUpdate(shoot.id, {
-        assigned_operators: addEmail(shoot.assigned_operators, email),
-        pending_operators: removeEmail(shoot.pending_operators, email),
-      });
+      if (claimedByOther) {
+        const current = getShootClaimEmail(shoot);
+        const currentName = getDisplayName(allUsers.find((u) => normalizeEmail(u.email) === current), current);
+        if (!window.confirm(`${currentName} is already on this shoot. Take it over?`)) return;
+      }
+      await onUpdate(shoot.id, exclusiveAssignFields(email));
       await createShootTimeEntry(shoot, email, user.full_name || email, `Shoot: ${shoot.title}`);
       const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
       if (partner) {
-        await onUpdate(partner.id, {
-          assigned_operators: addEmail(partner.assigned_operators, email),
-          pending_operators: removeEmail(partner.pending_operators, email),
+        await onUpdate(partner.id, exclusiveAssignFields(email, {
           auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-        });
+        }));
       }
     } else if (claimedByOther) {
-      // Another remote already claimed — remotes cannot overwrite
       return;
     } else {
-      // Remote user self-assign
       const preCount = getPreApproved(email);
       const withinLimit = preCount < AUTO_APPROVE_LIMIT;
 
       if (withinLimit) {
-        // Approved: add to assigned + pre_approved, remove from pending
-        await onUpdate(shoot.id, {
-          assigned_operators: addEmail(shoot.assigned_operators, email),
-          pending_operators: removeEmail(shoot.pending_operators, email),
+        await onUpdate(shoot.id, exclusiveAssignFields(email, {
           pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
-        });
+        }));
       } else if (!hasEmail(shoot.pending_operators, email)) {
-        // Over limit: pending only — NOT added to pre_approved_operators
-        await onUpdate(shoot.id, {
-          pending_operators: addEmail(shoot.pending_operators, email),
-          assigned_operators: removeEmail(shoot.assigned_operators, email),
+        await onUpdate(shoot.id, exclusivePendingFields(email, {
           pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
-        });
+        }));
       }
 
-      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
       if (userEligibleForAutoAssign) {
         const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
         if (partner) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {
-            await onUpdate(partner.id, {
-              assigned_operators: addEmail(partner.assigned_operators, email),
-              pending_operators: removeEmail(partner.pending_operators, email),
+            await onUpdate(partner.id, exclusiveAssignFields(email, {
               pre_approved_operators: addEmail(partner.pre_approved_operators, email),
               auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-            });
+            }));
           } else {
-            await onUpdate(partner.id, {
-              pending_operators: addEmail(partner.pending_operators, email),
-              assigned_operators: removeEmail(partner.assigned_operators, email),
+            await onUpdate(partner.id, exclusivePendingFields(email, {
               pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
               auto_assigned_for: removeEmail(partner.auto_assigned_for, email),
-            });
+            }));
           }
         }
       }
@@ -382,7 +361,9 @@ function ShootCalendarEntry({
               ? hasPending
                 ? 'Pending approval — unavailable'
                 : 'Taken by another operator'
-              : 'Assign yourself'
+              : (isAdmin && claimedByOther)
+                ? 'Take over this shoot'
+                : 'Assign yourself'
       }
       aria-label={showMinus ? 'Unassign yourself' : 'Assign yourself'}
     >
@@ -452,7 +433,7 @@ function ShootCalendarEntry({
         isCancelled
           ? 'border-red-600/60 ring-1 ring-red-600/30'
           : entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')
-      }`}
+      } ${standbyCoverage ? `border-l-2 ${standbyColorForEmail(standbyCoverage.admin_email).accent}` : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -1006,19 +987,21 @@ export default function Calendar() {
   };
 
   const handleAssignOperators = (shoot) => {
+    if (!isAdmin) return;
     setAssignOperatorsModal(shoot);
   };
 
   const handleConfirmAssignOperator = async (email) => {
-    if (!assignOperatorsModal?.id || !email) return;
-    const shoot = assignOperatorsModal;
+    if (!assignOperatorsModal?.id || !email || !isAdmin) return;
+    const shoot = shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal;
     if (hasEmail(shoot.assigned_operators, email)) return;
+    const current = getShootClaimEmail(shoot);
+    if (current && current !== normalizeEmail(email)) {
+      const currentName = getDisplayName(allUsers.find((u) => normalizeEmail(u.email) === current), current);
+      if (!window.confirm(`Replace ${currentName} on this shoot?`)) return;
+    }
 
-    // Admin assignment: add to assigned + remove from pending (no limit check)
-    await handleShootUpdate(shoot.id, {
-      assigned_operators: addEmail(shoot.assigned_operators, email),
-      pending_operators: removeEmail(shoot.pending_operators, email),
-    });
+    await handleShootUpdate(shoot.id, exclusiveAssignFields(email));
 
     // Admin auto-pair: find linked paired shoot and assign without limit check
     const autoAssignTeamsCfg = (() => {
@@ -1032,14 +1015,12 @@ export default function Calendar() {
 
     const partner = findPairedShoot(shoot, shoots, autoAssignTeamsCfg, autoAssignWindowCfg, email);
     if (partner) {
-      await handleShootUpdate(partner.id, {
-        assigned_operators: addEmail(partner.assigned_operators, email),
-        pending_operators: removeEmail(partner.pending_operators, email),
+      await handleShootUpdate(partner.id, exclusiveAssignFields(email, {
         auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-      });
+      }));
     }
 
-    const updated = { ...shoot, assigned_operators: addEmail(shoot.assigned_operators, email), pending_operators: removeEmail(shoot.pending_operators, email) };
+    const updated = { ...shoot, ...exclusiveAssignFields(email) };
     setAssignOperatorsModal(updated);
   };
 
@@ -1163,44 +1144,36 @@ export default function Calendar() {
         pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
       });
     } else if (isAdmin) {
-      // Admin: no limit, auto-pair linked shoot
-      await handleShootUpdate(shoot.id, {
-        assigned_operators: addEmail(shoot.assigned_operators, email),
-        pending_operators: removeEmail(shoot.pending_operators, email),
-      });
+      if (isClaimedByOtherOperator(shoot, email)) {
+        const current = getShootClaimEmail(shoot);
+        const currentName = getDisplayName(allUsers.find((u) => normalizeEmail(u.email) === current), current);
+        if (!window.confirm(`${currentName} is already on this shoot. Take it over?`)) return;
+      }
+      await handleShootUpdate(shoot.id, exclusiveAssignFields(email));
       await createShootTimeEntry(shoot, email, user.full_name || email, `Shoot: ${shoot.title}`);
       const partner = findPairedShoot(shoot, shoots, cmAutoTeams, cmWindowMins, email);
       if (partner) {
-        await handleShootUpdate(partner.id, {
-          assigned_operators: addEmail(partner.assigned_operators, email),
-          pending_operators: removeEmail(partner.pending_operators, email),
+        await handleShootUpdate(partner.id, exclusiveAssignFields(email, {
           auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-        });
+        }));
       }
-    } else if (isClaimedByOtherOperator(shoot, email, allUsers)) {
-      // Another remote already claimed — remotes cannot overwrite
+    } else if (isClaimedByOtherOperator(shoot, email)) {
       return;
     } else {
-      // Remote user
       const freshShoots = queryClient.getQueryData(['shoots']) || shoots;
       const preCount = getPreApprovedCount(freshShoots, email, shoot.id, todayStrLocal);
       const withinLimit = preCount < AUTO_APPROVE_LIMIT;
 
       if (withinLimit) {
-        await handleShootUpdate(shoot.id, {
-          assigned_operators: addEmail(shoot.assigned_operators, email),
-          pending_operators: removeEmail(shoot.pending_operators, email),
+        await handleShootUpdate(shoot.id, exclusiveAssignFields(email, {
           pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
-        });
+        }));
       } else if (!hasEmail(shoot.pending_operators, email)) {
-        await handleShootUpdate(shoot.id, {
-          pending_operators: addEmail(shoot.pending_operators, email),
-          assigned_operators: removeEmail(shoot.assigned_operators, email),
+        await handleShootUpdate(shoot.id, exclusivePendingFields(email, {
           pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
-        });
+        }));
       }
 
-      // Auto-pair: use shared helper which prioritizes linked+linked pairs first
       const autoAssignTeamsCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_teams')?.value; return raw ? JSON.parse(raw) : ['Reds', 'Red Sox', 'Rangers']; })();
       const autoAssignUsersCM = (() => { const raw = appSettings.find(s => s.key === 'auto_assign_users')?.value; return raw ? JSON.parse(raw) : []; })();
       const userEligibleCM = autoAssignUsersCM.length === 0 || autoAssignUsersCM.includes(email);
@@ -1210,19 +1183,15 @@ export default function Calendar() {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {
-            await handleShootUpdate(partner.id, {
-              assigned_operators: addEmail(partner.assigned_operators, email),
-              pending_operators: removeEmail(partner.pending_operators, email),
+            await handleShootUpdate(partner.id, exclusiveAssignFields(email, {
               pre_approved_operators: addEmail(partner.pre_approved_operators, email),
               auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-            });
+            }));
           } else {
-            await handleShootUpdate(partner.id, {
-              pending_operators: addEmail(partner.pending_operators, email),
-              assigned_operators: removeEmail(partner.assigned_operators, email),
+            await handleShootUpdate(partner.id, exclusivePendingFields(email, {
               pre_approved_operators: removeEmail(partner.pre_approved_operators, email),
               auto_assigned_for: removeEmail(partner.auto_assigned_for, email),
-            });
+            }));
           }
         }
       }
@@ -1352,6 +1321,7 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
             const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
             const coveredStandbyLabel = coveredStandbyShoots
               .map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim())
@@ -1365,10 +1335,9 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950
-                  ${isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'}
-                  ${greyOutDay ? 'opacity-55' : ''}
-                `}
+                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 border-l-2 ${
+                  primaryStandby ? standbyColor.accent : 'border-l-transparent'
+                } ${isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'} ${greyOutDay ? 'opacity-55' : ''}`}
               >
                 <div className="flex items-center justify-between gap-0.5 mb-0.5 shrink-0 px-0.5">
                   <button
@@ -1394,11 +1363,7 @@ export default function Calendar() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleStandbyDay(day); }}
                       className={`inline-flex items-center rounded-full border px-1.5 py-px text-[9px] font-semibold leading-none transition-colors ${
-                        myStandby
-                          ? 'border-blue-500/40 bg-blue-600/15 text-blue-300'
-                          : otherStandby
-                          ? 'border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/20'
-                          : 'border-slate-700 text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                        primaryStandby ? standbyColor.button : EMPTY_STANDBY_COLOR.button
                       }`}
                       title={
                         (myStandby
@@ -1426,17 +1391,13 @@ export default function Calendar() {
                 {primaryStandby && (
                    <div className="mb-0.5 px-0.5 shrink-0">
                      <span
-                       className={`text-[9px] rounded px-1 py-px truncate max-w-full inline-block ${
-                         primaryStandby.admin_email === user?.email
-                           ? 'bg-blue-950/40 text-blue-400'
-                           : 'bg-emerald-950/40 text-green-300'
-                       }`}
+                       className={`text-[9px] rounded border px-1 py-px truncate max-w-full inline-block ${standbyColor.chip}`}
                        title={coveredStandbyLabel ? `Covering ${coveredStandbyLabel}` : 'No shoots in this 18:00–06:00 window'}
                      >
                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                      </span>
                      {coveredStandbyShoots.length > 0 && (
-                       <p className="text-[9px] leading-tight text-slate-400 truncate mt-px" title={coveredStandbyLabel}>
+                       <p className={`text-[9px] leading-tight truncate mt-px ${standbyColor.text}`} title={coveredStandbyLabel}>
                          {coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}
                        </p>
                      )}
@@ -1487,6 +1448,7 @@ export default function Calendar() {
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
+            const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
             const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
             const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
@@ -1501,7 +1463,7 @@ export default function Calendar() {
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
                     <p className="text-xs text-slate-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
                     {primaryStandby && (
-                      <p className="text-[11px] text-blue-300/80 mt-1">
+                      <p className={`text-[11px] mt-1 ${standbyColor.text}`}>
                         Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                         {coveredStandbyShoots.length > 0
                           ? ` · ${coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}`
@@ -1511,11 +1473,7 @@ export default function Calendar() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryStandby && (
-                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-                         primaryStandby.admin_email === user?.email
-                           ? 'bg-blue-950/40 border-blue-800 text-blue-400'
-                           : 'bg-emerald-950/40 border-emerald-800 text-green-300'
-                       }`}>
+                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${standbyColor.chip}`}>
                          <ShieldCheck className="h-3 w-3" /> Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                        </span>
                      )}
@@ -1533,12 +1491,8 @@ export default function Calendar() {
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleStandbyDay(day)}
-                         className={`h-8 rounded-md border-slate-800 bg-slate-800/70 text-xs ${
-                           myStandby
-                             ? 'text-blue-400 hover:bg-blue-950/40 hover:text-blue-200'
-                             : otherStandby
-                             ? 'text-green-300 hover:bg-emerald-950/40 hover:text-green-200'
-                             : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                         className={`h-8 rounded-md border text-xs ${
+                           primaryStandby ? standbyColor.button : EMPTY_STANDBY_COLOR.button
                          }`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
@@ -1654,11 +1608,12 @@ export default function Calendar() {
                 { label: 'My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
                 { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'My Standby Coverage', color: 'bg-blue-600' },
-                { label: 'Standby Assigned To Someone Else', color: 'bg-green-500' },
-                { label: 'Remote: My Assigned Shoot', color: 'bg-purple-500' },
                 { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
                 { label: 'Operator Unavailable', color: 'bg-red-950/400' },
+                ...uniqueStandbyPeople(standbyDays).map((person) => ({
+                  label: `Standby: ${person.name}`,
+                  color: person.color.dot,
+                })),
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />

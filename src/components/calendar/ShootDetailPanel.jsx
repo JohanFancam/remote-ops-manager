@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
-import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator } from '../../utils/assignmentApproval';
+import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '../../utils/assignmentApproval';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -135,7 +135,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   const endTime = schedule ? minutesToTime(timeToMinutes(schedule.game) + 300) : null;
 
   // One remote claim per shoot: assigned OR pending by someone else blocks self-assign
-  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const claimedByOther = isClaimedByOtherOperator(shoot, user?.email);
   const shootFull = !isAdmin && claimedByOther && !isApproved && !isPending;
 
   const preCount = !isAdmin && user ? getApprovedCount(user.email) : 0;
@@ -169,46 +169,32 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
         });
       }
     } else if (isAdmin) {
-      // Admin: update only the selected shoot — no auto-pairing
-      await onUpdate(shoot.id, {
-        assigned_operators: addEmail(shoot.assigned_operators, email),
-        pending_operators: removeEmail(shoot.pending_operators, email),
-      });
+      await onUpdate(shoot.id, exclusiveAssignFields(email));
       await createShootTimeEntry(shoot, email, user.full_name, 'manual', `Shoot: ${shoot.title}`);
     } else if (claimedByOther) {
       return;
     } else {
       if (withinLimit && !hasEmail(shoot.assigned_operators, email)) {
-        // Approved
-        await onUpdate(shoot.id, {
-          assigned_operators: addEmail(shoot.assigned_operators, email),
-          pending_operators: removeEmail(shoot.pending_operators, email),
+        await onUpdate(shoot.id, exclusiveAssignFields(email, {
           pre_approved_operators: addEmail(shoot.pre_approved_operators, email),
-        });
+        }));
       } else if (!withinLimit && !hasEmail(shoot.pending_operators, email)) {
-        // Over limit → pending (no auto-pair when over limit)
-        await onUpdate(shoot.id, {
-          pending_operators: addEmail(shoot.pending_operators, email),
-          assigned_operators: removeEmail(shoot.assigned_operators, email),
+        await onUpdate(shoot.id, exclusivePendingFields(email, {
           pre_approved_operators: removeEmail(shoot.pre_approved_operators, email),
-        });
-        return; // do not auto-pair when over limit
+        }));
+        return;
       }
 
-      // Auto-pair only if within limit: findPairedShoot already ensures partner is fully available
       if (userEligibleForAutoAssign && withinLimit) {
         const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
         if (partner) {
           const countAfterMain = preCount + 1;
           if (countAfterMain < AUTO_APPROVE_LIMIT) {
-            await onUpdate(partner.id, {
-              assigned_operators: addEmail(partner.assigned_operators, email),
-              pending_operators: removeEmail(partner.pending_operators, email),
+            await onUpdate(partner.id, exclusiveAssignFields(email, {
               pre_approved_operators: addEmail(partner.pre_approved_operators, email),
               auto_assigned_for: addEmail(partner.auto_assigned_for, email),
-            });
+            }));
           }
-          // If partner would push over limit, skip it — do not assign pending to an already-available shoot
         }
       }
     }
