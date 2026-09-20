@@ -7,6 +7,7 @@ import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
+import DeploySettings from '../components/settings/DeploySettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -479,6 +480,8 @@ export default function Settings() {
           <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
         )}
 
+        {isAdmin && <DeploySettings />}
+
         {/* App Version / Refresh Reminder — Admin only */}
         {isAdmin && (
           <Card className="bg-slate-900 border-slate-800 mb-6">
@@ -488,7 +491,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 mb-1">Use this after deploying changes to remind all logged-in users to refresh their browser.</p>
+              <p className="text-xs text-slate-500 mb-1">After a deploy finishes, use this to remind everyone to refresh their browser.</p>
               <AppVersionBump appSettings={appSettings} queryClient={queryClient} />
             </CardContent>
           </Card>

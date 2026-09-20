@@ -41,7 +41,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Settings",
-    body: "Configure pay rates, notification thresholds, Slack message templates, WhatsApp reminders, and manage team members. Admins can also control tutorial visibility here."
+    body: "Configure pay rates, notification thresholds, Slack message templates, WhatsApp reminders, and manage team members. Admins can deploy a new update from Settings → Deploy with one click, then remind the team to refresh."
   },
 ];
 

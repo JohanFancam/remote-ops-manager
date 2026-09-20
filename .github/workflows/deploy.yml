@@ -1,14 +1,21 @@
 name: Deploy
 
-# Pushing to a deploy branch updates the live server. Run manually from the
-# Actions tab with "Run workflow" when you need to redeploy the same commit.
+# Pushing to a deploy branch updates the live server when SSH secrets exist.
+# Otherwise deploy from Settings → Deploy on the live site, or run this
+# workflow from the Actions tab (Run workflow) and pick a branch.
 on:
   push:
     branches:
       - main
       - cursor/modern-standalone-a34f
       - cursor/standby-highlight-top-notifications-a34f
+      - cursor/one-click-deploy-a34f
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Git branch to deploy on the live server'
+        required: true
+        default: 'cursor/one-click-deploy-a34f'
 
 concurrency:
   group: deploy-production
@@ -43,7 +50,7 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.DEPLOY_PATH || '/home/ubuntu/remote-ops-manager' }}
-            BRANCH="${{ github.ref_name }}"
+            BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
             git fetch origin "$BRANCH"
             git checkout -B "$BRANCH" "origin/$BRANCH"
-            ./deploy.sh
+            ./deploy.sh "$BRANCH"

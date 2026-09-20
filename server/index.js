@@ -53,6 +53,7 @@ import {
   parseFileContents,
   countBrokenShootReferences,
 } from './entityImport.js';
+import { getDeploySnapshot, startDeploy, readDeployLog } from './deploy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
@@ -537,6 +538,31 @@ app.post('/api/google/sync', authMiddleware, requireAdmin, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Google Calendar sync failed:', err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/deploy/status', authMiddleware, requireAdmin, (_req, res) => {
+  try {
+    res.json(getDeploySnapshot());
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/deploy/log', authMiddleware, requireAdmin, (_req, res) => {
+  res.json({ log: readDeployLog() });
+});
+
+app.post('/api/deploy', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const branch = String(req.body?.branch || '').trim();
+    const status = startDeploy({
+      branch,
+      triggeredBy: req.user?.email || '',
+    });
+    res.json({ ok: true, status });
+  } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
