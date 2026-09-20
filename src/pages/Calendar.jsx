@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Upload, Plus, Minus, X, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, Settings2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -25,7 +25,6 @@ import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
 import {
   SHOOT_STATUS_DOTS,
-  formatStatusLabel,
   normalizeShootStatus,
 } from '../utils/shootStatus';
 
@@ -162,18 +161,9 @@ function ShootCalendarEntry({
   compact = false,
   onSelect,
   onUpdate,
-  onDuplicate,
-  onRigCheckToggle,
-  onRigCheckCancel,
   onContextMenu,
-  onOpenSettings,
   onQuickView,
-  onApprovePending,
-  onDeclinePending,
   getStandbyCoverageForShoot,
-  operatorAvailabilityForDay = [],
-  rigCheckMessageCopied = false,
-  rigCheckMessageShootIds = [],
   queryClient,
 }) {
   // Grey out past, completed, and cancelled shoots
@@ -190,7 +180,6 @@ function ShootCalendarEntry({
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
-  const isOtherStandbyCoverage = !!standbyCoverage && !isMyStandbyCoverage;
 
   // Cleaner highlighting:
   // - Admin/standby users only see a standby outline for THEIR OWN standby coverage.
@@ -210,32 +199,6 @@ function ShootCalendarEntry({
     : '';
 
   const entryOutlineClass = myStandbyCoverageClass || myAssignedShootClass || pendingShootClass;
-
-  const rigCheckDone = !!shoot.rig_check_completed;
-  const isInMessageQueue = rigCheckMessageShootIds.includes(shoot.id);
-  const gearIsGreen = rigCheckDone || (isInMessageQueue && rigCheckMessageCopied);
-
-  const rigCheckUsersRaw = appSettings?.find(s => s.key === 'rig_check_users')?.value;
-  const rigCheckUsers = rigCheckUsersRaw ? JSON.parse(rigCheckUsersRaw) : [];
-  const isPermittedRigChecker = user?.email && rigCheckUsers.includes(user.email);
-
-  // Standby/admin: only for their own standby coverage; permitted users: any shoot on same day
-  const canCheckStandbyRig = !isPast && (
-    (!!standbyCoverage && (isAdmin || isStandby) && isMyStandbyCoverage) ||
-    isPermittedRigChecker
-  );
-
-  const handleRigCheckToggle = async (e) => {
-    e.stopPropagation();
-    if (!canCheckStandbyRig) return;
-    await onRigCheckToggle?.(shoot, standbyCoverage || null);
-  };
-
-  const handleRigCheckCancel = async (e) => {
-    e.stopPropagation();
-    if (!canCheckStandbyRig || !rigCheckDone) return;
-    await onRigCheckCancel?.(shoot);
-  };
 
   // Remotes cannot self-assign when another remote already claimed (assigned or pending)
   const claimedByOther = isClaimedByOtherOperator(shoot, user?.email, allUsers);
@@ -259,12 +222,6 @@ function ShootCalendarEntry({
     .join(', ');
 
   const assignmentLabel = assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
-  const unavailableNames = operatorAvailabilityForDay
-    .filter(e => e.type === 'unavailable')
-    .map(e => {
-      const unavailableUser = allUsers.find(u => u.email === e.operator_email);
-      return getDisplayName(unavailableUser, e.operator_email, e.operator_name);
-    });
 
   // Count pre-approved slots using shared helper (reads live cache to avoid stale counts)
   const getPreApproved = (email) => {
@@ -444,7 +401,6 @@ function ShootCalendarEntry({
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             if (onQuickView) onQuickView(shoot);
-            else if (onOpenSettings) onOpenSettings(shoot);
             else onSelect?.(shoot, day);
           }
         }}
@@ -452,7 +408,6 @@ function ShootCalendarEntry({
           e.preventDefault();
           e.stopPropagation();
           if (onQuickView) onQuickView(shoot);
-          else if (onOpenSettings) onOpenSettings(shoot);
           else onContextMenu?.(e, shoot);
         }}
         className={`group w-full text-left rounded px-0.5 py-px transition-colors hover:bg-slate-800/90 ${
@@ -468,7 +423,6 @@ function ShootCalendarEntry({
               <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
             ) : null}
             {titleText}
-            {standbyCoverage ? <span className="ml-1 text-blue-300">· SB</span> : null}
           </p>
           <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
@@ -494,7 +448,7 @@ function ShootCalendarEntry({
         if (onQuickView) onQuickView(shoot);
         else onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors px-3 py-2.5 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${
+      className={`w-full text-left rounded-lg border transition-colors px-3 py-2 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${
         isCancelled
           ? 'border-red-600/60 ring-1 ring-red-600/30'
           : entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')
@@ -503,107 +457,16 @@ function ShootCalendarEntry({
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
-                {titleText}
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {shoot.game_time ? <span className="font-mono tabular-nums">{shoot.game_time}</span> : 'Schedule TBC'}
-              </p>
-              {standbyCoverage && (
-                <p className="text-[11px] text-blue-300 mt-0.5">
-                  Standby: {standbyCoverage.admin_name?.split(' ')[0] || standbyCoverage.admin_email}
-                </p>
-              )}
-              <p className={`text-xs ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'} break-words whitespace-normal mt-0.5`}>
-                {assignmentLabel}
-                {hasPending && assignedNames ? ` · Pending Approval (${shoot.pending_operators.length})` : ''}
-              </p>
-              {isAdmin && hasPending && (
-                <div className="mt-1.5 space-y-1" onClick={(e) => e.stopPropagation()}>
-                  {(shoot.pending_operators || []).map((email) => {
-                    const pendingUser = allUsers.find((u) => u.email === email);
-                    const name = getDisplayName(pendingUser, email);
-                    return (
-                      <div key={email} className="flex items-center justify-between gap-2 rounded-md border border-amber-800/40 bg-amber-950/25 px-2 py-1">
-                        <span className="min-w-0 truncate text-[11px] text-amber-200">{name}</span>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => onApprovePending?.(shoot, email)}
-                            className="inline-flex h-6 items-center gap-0.5 rounded border border-emerald-700/50 bg-emerald-950/40 px-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-900/50"
-                            title={`Approve ${name}`}
-                          >
-                            <Check className="h-3 w-3" /> Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onDeclinePending?.(shoot, email)}
-                            className="inline-flex h-6 items-center gap-0.5 rounded border border-red-700/40 bg-red-950/30 px-1.5 text-[10px] font-medium text-red-300 hover:bg-red-950/50"
-                            title={`Decline ${name}`}
-                          >
-                            <X className="h-3 w-3" /> Decline
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {isAdmin && unavailableNames.length > 0 && (
-                <p className="text-[11px] text-red-400 break-words whitespace-normal mt-0.5">
-                  Unavailable: {unavailableNames.slice(0, 3).join(', ')}{unavailableNames.length > 3 ? ` +${unavailableNames.length - 3}` : ''}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1">
-                {quickAssignButton}
-                {onOpenSettings && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenSettings(shoot)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-slate-100 transition-colors"
-                    title="Open shoot settings"
-                    aria-label="Open shoot settings"
-                  >
-                    <Settings2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {canCheckStandbyRig && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleRigCheckToggle}
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${gearIsGreen ? 'border-green-500/50 bg-green-500/15 text-green-300 hover:bg-green-500/25' : 'border-yellow-500/45 bg-yellow-500/10 text-amber-400 hover:bg-yellow-500/20'}`}
-                      title={rigCheckDone ? 'Rig checked' : 'Mark rig checked and create Slack message'}
-                    >
-                      <Wrench className="h-3.5 w-3.5" />
-                    </button>
-                    {rigCheckDone && (
-                      <button
-                        type="button"
-                        onClick={handleRigCheckCancel}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-950/40 text-red-400 transition-colors hover:bg-red-950/60"
-                        title="Cancel / undo rig check"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${
-                status === 'completed' ? 'bg-gray-500/15 text-slate-400 border-gray-500/25' :
-                status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/25' :
-                status === 'postponed' ? 'bg-amber-500/15 text-amber-300 border-amber-500/25' :
-                'bg-blue-600/15 text-blue-400 border-blue-500/25'
-              }`}>
-                {formatStatusLabel(status)}
-              </span>
-            </div>
-          </div>
+          <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
+            {shoot.game_time ? <span className="font-mono tabular-nums text-slate-400 font-medium mr-1.5">{shoot.game_time}</span> : null}
+            {titleText}
+          </p>
+          <p className={`text-xs mt-0.5 ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'}`}>
+            {assignmentLabel}
+          </p>
+        </div>
+        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          {quickAssignButton}
         </div>
       </div>
     </div>
@@ -1132,11 +995,13 @@ export default function Calendar() {
     setForm({ ...emptyForm, ...shoot });
     setEditingShootForm(shoot);
     setSelectedShoot(null);
+    setQuickViewShoot(null);
   };
 
   const handleDeleteShoot = async (id) => {
     await base44.entities.Shoot.delete(id);
     setSelectedShoot(null);
+    setQuickViewShoot(null);
     refresh();
   };
 
@@ -1380,6 +1245,8 @@ export default function Calendar() {
       ...copy
     } = shoot;
     setSelectedShoot(null);
+    setQuickViewShoot(null);
+    setContextMenu(null);
     const newTitle = `${shoot.title || 'Shoot'} Copy`;
     setForm({
       ...emptyForm,
@@ -1391,7 +1258,7 @@ export default function Calendar() {
       phase_status: {},
     });
     setEditingShoot(null);
-    setEditingShootForm({ ...copy, title: newTitle, phase_status: {} });
+    setEditingShootForm({});
   };
 
 
@@ -1443,26 +1310,12 @@ export default function Calendar() {
       todayStr={todayStr}
       compact={compact}
       onUpdate={handleShootUpdate}
-      onDuplicate={duplicateShoot}
-      onRigCheckToggle={handleRigCheckToggle}
-      onRigCheckCancel={handleRigCheckCancel}
       onContextMenu={handleContextMenu}
       onQuickView={(s) => {
         setQuickViewShoot(s);
         setDayPopup(null);
       }}
-      onOpenSettings={(s) => {
-        setSelectedShoot(s);
-        setSelectedDate(new Date(s.date + 'T12:00:00'));
-        setDayPopup(null);
-        setQuickViewShoot(null);
-      }}
-      onApprovePending={handleApprovePending}
-      onDeclinePending={handleDeclinePending}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
-      operatorAvailabilityForDay={getUnavailableForDay(day)}
-      rigCheckMessageCopied={rigCheckCopied}
-      rigCheckMessageShootIds={rigCheckMessageShootIds}
       queryClient={queryClient}
     />
   );
@@ -1556,7 +1409,7 @@ export default function Calendar() {
                         + (coveredStandbyLabel ? ` · covering ${coveredStandbyLabel}` : '')
                       }
                     >
-                      Standby
+                      {otherStandby ? 'Swap' : 'Standby'}
                     </button>
                   )}
                   {isOperator && !isPast && (
@@ -1572,14 +1425,21 @@ export default function Calendar() {
                 </div>
                 {primaryStandby && (
                    <div className="mb-0.5 px-0.5 shrink-0">
-                     <span className={`text-[9px] rounded px-1 py-px truncate max-w-full inline-block ${
-                       primaryStandby.admin_email === user?.email
-                         ? 'bg-blue-950/40 text-blue-400'
-                         : 'bg-emerald-950/40 text-green-300'
-                     }`}>
-                       {primaryStandby.admin_name?.split(' ')[0] || primaryStandby.admin_email}
-                       {coveredStandbyShoots.length ? ` · ${coveredStandbyShoots.length} shoot${coveredStandbyShoots.length === 1 ? '' : 's'}` : ''}
+                     <span
+                       className={`text-[9px] rounded px-1 py-px truncate max-w-full inline-block ${
+                         primaryStandby.admin_email === user?.email
+                           ? 'bg-blue-950/40 text-blue-400'
+                           : 'bg-emerald-950/40 text-green-300'
+                       }`}
+                       title={coveredStandbyLabel ? `Covering ${coveredStandbyLabel}` : 'No shoots in this 18:00–06:00 window'}
+                     >
+                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                      </span>
+                     {coveredStandbyShoots.length > 0 && (
+                       <p className="text-[9px] leading-tight text-slate-400 truncate mt-px" title={coveredStandbyLabel}>
+                         {coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}
+                       </p>
+                     )}
                    </div>
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
@@ -1624,7 +1484,6 @@ export default function Calendar() {
         <div className="space-y-3">
           {weekDays.map(day => {
             const dayShoots = getShootsForDay(day);
-            const dayStandby = getStandbyForDay(day);
             const primaryStandby = getPrimaryStandbyForDay(day);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
@@ -1641,9 +1500,12 @@ export default function Calendar() {
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
                     <p className="text-xs text-slate-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
-                    {primaryStandby && coveredStandbyShoots.length > 0 && (
+                    {primaryStandby && (
                       <p className="text-[11px] text-blue-300/80 mt-1">
-                        Standby covering: {coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}
+                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                        {coveredStandbyShoots.length > 0
+                          ? ` · ${coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}`
+                          : ' · no shoots in 18:00–06:00 window'}
                       </p>
                     )}
                   </div>
@@ -1654,8 +1516,7 @@ export default function Calendar() {
                            ? 'bg-blue-950/40 border-blue-800 text-blue-400'
                            : 'bg-emerald-950/40 border-emerald-800 text-green-300'
                        }`}>
-                         <ShieldCheck className="h-3 w-3" /> {primaryStandby.admin_name || primaryStandby.admin_email}
-                         {coveredStandbyShoots.length ? ` · ${coveredStandbyShoots.length} shoot${coveredStandbyShoots.length === 1 ? '' : 's'}` : ''}
+                         <ShieldCheck className="h-3 w-3" /> Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                        </span>
                      )}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
@@ -1681,7 +1542,7 @@ export default function Calendar() {
                          }`}
                        >
                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                         {myStandby ? 'Remove My Standby' : otherStandby ? 'Swap Standby To Me' : 'Assign Me Standby'}
+                         {myStandby ? 'Standby' : otherStandby ? 'Swap' : 'Standby'}
                        </Button>
                      )}
                     {isOperator && !isPast && (
@@ -1879,26 +1740,39 @@ export default function Calendar() {
         }}
       />
 
-      {quickViewShoot && (
-        <ShootQuickView
-          shoot={shoots.find((s) => s.id === quickViewShoot.id) || quickViewShoot}
-          user={user}
-          isAdmin={isAdmin}
-          allUsers={allUsers}
-          rigSettings={rigSettings}
-          onClose={() => setQuickViewShoot(null)}
-          onToggleAssign={async (shoot) => {
-            await handleContextMenuAssignSelf(shoot);
-          }}
-          onApprovePending={handleApprovePending}
-          onDeclinePending={handleDeclinePending}
-          onOpenSettings={(shoot) => {
-            setSelectedShoot(shoot);
-            setSelectedDate(new Date(shoot.date + 'T12:00:00'));
-            setQuickViewShoot(null);
-          }}
-        />
-      )}
+      {quickViewShoot && (() => {
+        const liveQuick = shoots.find((s) => s.id === quickViewShoot.id) || quickViewShoot;
+        const coverage = getStandbyCoverageForShoot(liveQuick);
+        const isMyCoverage = coverage?.admin_email === user?.email;
+        const rigCheckUsersRaw = appSettings.find((s) => s.key === 'rig_check_users')?.value;
+        const rigCheckUsers = rigCheckUsersRaw ? JSON.parse(rigCheckUsersRaw) : [];
+        const isPermittedRigChecker = user?.email && rigCheckUsers.includes(user.email);
+        const canCheckRig = !((liveQuick.date || '') < todayStr) && (
+          (!!coverage && (isAdmin || isStandby) && isMyCoverage) || isPermittedRigChecker
+        );
+        return (
+          <ShootQuickView
+            shoot={liveQuick}
+            user={user}
+            isAdmin={isAdmin}
+            isStandby={isStandby}
+            allUsers={allUsers}
+            rigSettings={rigSettings}
+            canCheckRig={canCheckRig}
+            onClose={() => setQuickViewShoot(null)}
+            onUpdate={handleShootUpdate}
+            onApprovePending={handleApprovePending}
+            onDeclinePending={handleDeclinePending}
+            onEdit={startEdit}
+            onDuplicate={duplicateShoot}
+            onDelete={handleDeleteShoot}
+            onAssignOperators={(shoot) => {
+              handleAssignOperators(shoot);
+            }}
+            onRigCheckToggle={() => handleRigCheckToggle(liveQuick, coverage || null)}
+          />
+        );
+      })()}
 
       {contextMenu && (
         <CalendarContextMenu
@@ -1942,7 +1816,7 @@ export default function Calendar() {
 
       {editingShootForm && (
         <ShootEditPanel
-          shoot={editingShootForm}
+          shoot={editingShoot}
           form={form}
           setForm={setForm}
           onSave={handleAddShoot}
@@ -1961,13 +1835,13 @@ export default function Calendar() {
 
       {assignOperatorsModal && (
         <AssignOperatorModal
-          shoot={assignOperatorsModal}
+          shoot={shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal}
           allUsers={allUsers}
           pendingUsers={pendingUsers}
           onConfirm={handleConfirmAssignOperator}
           onUnassign={handleUnassignOperator}
-          onApprove={(email) => handleApprovePending(assignOperatorsModal, email)}
-          onDecline={(email) => handleDeclinePending(assignOperatorsModal, email)}
+          onApprove={(email) => handleApprovePending(shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal, email)}
+          onDecline={(email) => handleDeclinePending(shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal, email)}
           onClose={() => setAssignOperatorsModal(null)}
         />
       )}
