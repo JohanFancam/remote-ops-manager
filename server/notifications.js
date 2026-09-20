@@ -59,6 +59,7 @@ export async function createNotifications({
   url = '/Calendar',
   excludeEmails = [],
   createdByName = '',
+  extras = {},
 }) {
   const key = String(notificationKey || '').slice(0, 240);
   if (!key) return { created: 0, pushed: 0 };
@@ -82,6 +83,7 @@ export async function createNotifications({
     dismissed_by: excluded,
     created_by_name: createdByName || '',
     url,
+    ...extras,
   };
 
   if (targetRole) {
@@ -169,18 +171,33 @@ export async function handleShootChange(previous, next, user = null) {
   if (dateChanged || timeChanged) {
     const targets = uniqueEmails([
       ...prevAssigned, ...nextAssigned, ...prevPending, ...nextPending,
+      ...roleAdminEmails(),
     ]).filter((e) => e !== actor);
-    const parts = [];
-    if (dateChanged) parts.push(`date ${previous.date || '—'} → ${next.date || '—'}`);
-    if (timeChanged) parts.push(`time ${shootTime(previous) || '—'} → ${shootTime(next) || '—'}`);
+    const previousDate = previous.date || '';
+    const previousTime = shootTime(previous);
+    const nextDate = next.date || '';
+    const nextTime = shootTime(next);
+    const lines = [
+      `${title} schedule changed (South Africa time).`,
+      `Was: ${previousDate || '—'} ${previousTime || ''}`.trim(),
+      `Now: ${nextDate || '—'} ${nextTime || ''}`.trim(),
+    ];
     await createNotifications({
       notificationKey: `schedule:${next.id}:${stamp}`,
       type: 'schedule_change',
-      title: 'Shoot schedule updated',
-      message: `${title}: ${parts.join(', ')}`,
+      title: 'Time / date changed',
+      message: lines.join('\n'),
       shoot: next,
       targetEmails: targets,
+      excludeEmails: [actor],
+      createdByName: user?.full_name || user?.email || '',
       url: '/Calendar',
+      extras: {
+        previous_date: previousDate,
+        previous_time: previousTime,
+        new_date: nextDate,
+        new_time: nextTime,
+      },
     });
   }
 

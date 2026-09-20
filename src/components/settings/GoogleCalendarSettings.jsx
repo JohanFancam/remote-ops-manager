@@ -120,8 +120,9 @@ export default function GoogleCalendarSettings() {
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
         <p className="text-xs text-slate-500">
-          Pull title, date, and time from Google into the app calendar format. Assignments, rates, and phases stay in the app.
-          Use Sync after Google changes (also available on the Calendar page).
+          Connect the Google Calendar you actually edit. Sync pulls title, date, and start time only — stored and shown in
+          South Africa time (SAST). Card layout, assignments, rates, and phases stay in the app. There is no official free
+          ESPN API; unofficial ESPN feeds are unsupported and would fight this timezone, so Google is the source of truth.
         </p>
 
         {status?.redirectUri && (

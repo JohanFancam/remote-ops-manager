@@ -33,7 +33,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Top notifications",
-    body: "Alerts drop in from the top of the screen and stay there until you clear them. That includes assignment updates and when someone selects or swaps a standby day."
+    body: "New alerts pop in from the top with a sound. If you miss one, open Notifications above your name in the left sidebar and clear it there. Time changes show the original date/time and the new one in South Africa time."
   },
   {
     title: "Online Now",
@@ -64,7 +64,7 @@ const REMOTE_STEPS = [
   },
   {
     title: "Top notifications",
-    body: "Shoot alerts drop in from the top of the screen and stay there until you clear them. You'll get notified when a shoot setup time is approaching (the admin controls how many hours in advance)."
+    body: "New alerts pop in from the top with a sound. Missed ones stay in Notifications above your name so you can clear them there. Time or date changes show what it was and what it changed to (South Africa time)."
   },
   {
     title: "Earnings",

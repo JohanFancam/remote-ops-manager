@@ -16,6 +16,10 @@
     "created_at": { "type": "string" },
     "expires_at": { "type": "string" },
     "created_by_name": { "type": "string" },
+    "previous_date": { "type": "string" },
+    "previous_time": { "type": "string" },
+    "new_date": { "type": "string" },
+    "new_time": { "type": "string" },
     "url": { "type": "string" }
   }
 }

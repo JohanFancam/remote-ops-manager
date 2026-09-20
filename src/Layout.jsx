@@ -11,7 +11,11 @@ import {
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
-import ShootNotifications from './components/dashboard/ShootNotifications';
+import {
+  NotificationProvider,
+  NotificationPopups,
+  NotificationInbox,
+} from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
 import { registerServiceWorker } from './lib/pushNotifications';
@@ -106,6 +110,12 @@ function LayoutContent({ children, currentPageName }) {
   const handleLogout = () => base44.auth.logout();
 
   return (
+    <NotificationProvider
+      shoots={shoots}
+      user={user}
+      notifyHours={notifyHours}
+      enabled={!!user && !isAccounts}
+    >
     <div className="min-h-screen flex">
       <TooltipProvider delayDuration={200}>
         <aside
@@ -184,6 +194,11 @@ function LayoutContent({ children, currentPageName }) {
           )}
 
           <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
+            {user && !isAccounts && (
+              <div className={cn(collapsed ? "mb-2" : "mb-3")}>
+                <NotificationInbox collapsed={collapsed} />
+              </div>
+            )}
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-blue-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
@@ -243,12 +258,15 @@ function LayoutContent({ children, currentPageName }) {
           </div>
           <span className="rom-brand text-sm text-slate-50">Remote Ops</span>
         </div>
+        {user && !isAccounts && (
+          <div className="ml-auto">
+            <NotificationInbox drop="down" />
+          </div>
+        )}
       </div>
 
       <RefreshReminder />
-      {user && !isAccounts && (
-        <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
-      )}
+      {user && !isAccounts && <NotificationPopups />}
       {user && !isAccounts && <ShootCompleteReminder user={user} />}
       {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
@@ -276,6 +294,7 @@ function LayoutContent({ children, currentPageName }) {
         )}
       </main>
     </div>
+    </NotificationProvider>
   );
 }
 

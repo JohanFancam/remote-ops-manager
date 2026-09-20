@@ -491,7 +491,7 @@ export default function Calendar() {
       await queryClient.invalidateQueries({ queryKey: ['shoots'] });
       await queryClient.invalidateQueries({ queryKey: ['googleStatus'] });
       toast.success(
-        `Google sync: ${result.created} new · ${result.updated} updated · ${result.cancelled} cancelled`
+        `Google sync (SAST): ${result.created} new · ${result.updated} updated · ${result.cancelled} cancelled`
       );
     } catch (err) {
       toast.error(err.message || 'Google sync failed');
@@ -1515,7 +1515,9 @@ export default function Calendar() {
                     variant="outline"
                     className="border-slate-700 text-slate-200 hover:bg-slate-800"
                     size="sm"
-                    title={googleStatus.lastSyncAt ? `Last sync ${new Date(googleStatus.lastSyncAt).toLocaleString('en-ZA')}` : 'Pull title, date, and time from Google'}
+                    title={googleStatus.lastSyncAt
+                      ? `Last sync ${new Date(googleStatus.lastSyncAt).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })} SAST`
+                      : 'Pull title, date, and time from Google (South Africa time)'}
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${googleSyncing ? 'animate-spin' : ''}`} />
                     {googleSyncing ? 'Syncing…' : 'Sync Google'}
