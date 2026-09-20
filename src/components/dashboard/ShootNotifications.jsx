@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, Calendar, CheckCheck, AlertTriangle, Bell } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { cn } from '@/lib/utils';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+const NotificationCtx = createContext(null);
 
 function getSetupTime(shoot) {
   if (!shoot.game_time) return null;
@@ -54,6 +57,28 @@ function userCanSeeNotification(notification, user) {
   return false;
 }
 
+function playNotificationSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(1175, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.07, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.4);
+    ctx.resume?.();
+  } catch {
+    // Autoplay can be blocked until the user interacts with the page.
+  }
+}
+
 const urgencyStyles = {
   urgent: 'border-red-500/70 bg-red-950/95',
   today: 'border-yellow-500/70 bg-yellow-950/95',
@@ -68,7 +93,97 @@ const urgencyLabel = {
   change: 'Update',
 };
 
-export default function ShootNotifications({ shoots = [], user, notifyHours = 5 }) {
+function scheduleLines(notification) {
+  if (!notification) return null;
+  const fromDate = notification.previous_date;
+  const fromTime = notification.previous_time;
+  const toDate = notification.new_date || notification.shoot_date;
+  const toTime = notification.new_time || notification.shoot_time;
+  if (!fromDate && !fromTime && notification.type !== 'schedule_change') return null;
+  if (notification.type !== 'schedule_change' && !fromDate && !fromTime) return null;
+  return {
+    was: `${fromDate ? formatDateZA(fromDate) : '—'} · ${fromTime ? formatTimeZA(fromTime) : '—'} SAST`,
+    now: `${toDate ? formatDateZA(toDate) : '—'} · ${toTime ? formatTimeZA(toTime) : '—'} SAST`,
+  };
+}
+
+function NotificationBody({ item }) {
+  if (item.kind === 'stored') {
+    const notification = item.notification;
+    const heading = notification.type === 'schedule_change'
+      ? (notification.shoot_title || notification.title || 'Shoot updated')
+      : (notification.title || notification.shoot_title || 'Notification');
+    const change = scheduleLines(notification);
+
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
+          {notification.type === 'standby' ? (
+            <Bell className="h-3.5 w-3.5 text-orange-200" />
+          ) : (
+            <AlertTriangle className="h-3.5 w-3.5 text-orange-200" />
+          )}
+          <span className="text-[11px] font-medium uppercase tracking-wide text-orange-200">
+            {notification.type === 'standby'
+              ? 'Standby'
+              : notification.type === 'schedule_change'
+                ? 'Time change'
+                : urgencyLabel.change}
+          </span>
+        </div>
+
+        <p className="text-sm font-semibold text-slate-50 truncate">{heading}</p>
+
+        {change ? (
+          <div className="mt-1.5 rounded-md bg-black/20 px-2 py-1.5 text-xs leading-relaxed text-slate-100">
+            <p><span className="text-slate-400">Was</span> {change.was}</p>
+            <p><span className="text-slate-400">Now</span> {change.now}</p>
+          </div>
+        ) : notification.message ? (
+          <p className="mt-1 whitespace-pre-wrap text-xs text-slate-200 leading-relaxed">
+            {notification.message}
+          </p>
+        ) : null}
+
+        {!change && (notification.shoot_date || notification.shoot_time) && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-300">
+            <Calendar className="h-3 w-3" />
+            {notification.shoot_date ? <span>{formatDateZA(notification.shoot_date)}</span> : null}
+            {notification.shoot_time && <span>· {formatTimeZA(notification.shoot_time)} SAST</span>}
+          </div>
+        )}
+
+        {notification.created_by_name && (
+          <p className="text-[11px] text-slate-400 mt-1">
+            Changed by {notification.created_by_name}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-200">
+          {urgencyLabel[item.urgency]}
+        </span>
+      </div>
+      <p className="text-sm font-semibold text-slate-50 truncate">{item.shoot.title}</p>
+      <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-200">
+        <Calendar className="h-3 w-3" />
+        <span>{formatDateZA(item.shoot.date)}</span>
+        {item.shoot.game_time && <span>· {formatTimeZA(item.shoot.game_time)} SAST</span>}
+      </div>
+      <p className="text-xs text-slate-200 mt-0.5">
+        Setup: {format(item.setupTime, 'HH:mm')}
+        {item.urgency === 'urgent' && ` (in ${Math.round(item.hoursUntilSetup * 10) / 10}h)`}
+      </p>
+    </div>
+  );
+}
+
+function useNotificationState(shoots, user, notifyHours) {
   const [storedNotifications, setStoredNotifications] = useState([]);
   const [dismissedReminders, setDismissedReminders] = useState(() => {
     try {
@@ -77,6 +192,8 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       return [];
     }
   });
+  const announcedRef = useRef(new Set());
+  const primedRef = useRef(false);
 
   const refreshStoredNotifications = async () => {
     if (!user?.email) return;
@@ -102,8 +219,8 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       unsubscribe = base44.entities.ShootNotification.subscribe(() => {
         refreshStoredNotifications();
       });
-    } catch (error) {
-      // Some Base44 projects do not support subscribe on newly-created entities immediately.
+    } catch {
+      // subscribe is optional
     }
 
     return () => unsubscribe?.();
@@ -159,6 +276,21 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
   }));
 
   const active = [...activeStored, ...activeReminders];
+  const activeKey = active.map((item) => item.key).join('|');
+
+  useEffect(() => {
+    const keys = activeKey ? activeKey.split('|') : [];
+    if (!primedRef.current) {
+      keys.forEach((key) => announcedRef.current.add(key));
+      primedRef.current = true;
+      return;
+    }
+    const fresh = keys.filter((key) => !announcedRef.current.has(key));
+    if (fresh.length > 0) {
+      playNotificationSound();
+      fresh.forEach((key) => announcedRef.current.add(key));
+    }
+  }, [activeKey]);
 
   const dismissReminder = (key) => {
     const next = [...dismissedReminders, key];
@@ -201,15 +333,36 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
     }
   };
 
-  if (active.length === 0) return null;
+  return { active, dismiss, dismissAll };
+}
+
+export function NotificationProvider({ shoots = [], user, notifyHours = 5, enabled = true, children }) {
+  const value = useNotificationState(enabled ? shoots : [], enabled ? user : null, notifyHours);
+  return (
+    <NotificationCtx.Provider value={value}>
+      {children}
+    </NotificationCtx.Provider>
+  );
+}
+
+export function useNotifications() {
+  return useContext(NotificationCtx);
+}
+
+export function NotificationPopups() {
+  const ctx = useNotifications();
+  if (!ctx) return null;
+  const { active, dismiss, dismissAll } = ctx;
+  const popups = active.slice(0, 3);
+  if (popups.length === 0) return null;
 
   return (
     <div
       className="fixed inset-x-0 top-0 z-[70] pointer-events-none px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-3"
       role="region"
-      aria-label="Notifications"
+      aria-label="Notification popups"
     >
-      <div className="mx-auto w-full max-w-xl space-y-2 pointer-events-auto max-h-[min(50vh,28rem)] overflow-y-auto">
+      <div className="mx-auto w-full max-w-xl space-y-2 pointer-events-auto">
         {active.length > 1 && (
           <div className="flex justify-end">
             <button
@@ -222,112 +375,130 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
           </div>
         )}
 
-        {active.map((item) => {
-          if (item.kind === 'stored') {
-            const notification = item.notification;
-            const heading = notification.title || notification.shoot_title || 'Notification';
-
-            return (
-              <div
-                key={item.key}
-                className={`rounded-xl border px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur-md ${urgencyStyles.change}`}
+        {popups.map((item) => (
+          <div
+            key={item.key}
+            className={cn(
+              'rounded-xl border px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur-md',
+              urgencyStyles[item.urgency] || urgencyStyles.change
+            )}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <NotificationBody item={item} />
+              <button
+                type="button"
+                onClick={() => dismiss(item)}
+                className="text-slate-300 hover:text-white flex-shrink-0 rounded-md p-0.5"
+                aria-label="Clear notification"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      {notification.type === 'standby' ? (
-                        <Bell className="h-3.5 w-3.5 text-orange-200" />
-                      ) : (
-                        <AlertTriangle className="h-3.5 w-3.5 text-orange-200" />
-                      )}
-                      <span className="text-[11px] font-medium uppercase tracking-wide text-orange-200">
-                        {notification.type === 'standby' ? 'Standby' : urgencyLabel.change}
-                      </span>
-                    </div>
-
-                    <p className="text-sm font-semibold text-slate-50 truncate">{heading}</p>
-
-                    {notification.message && (
-                      <p className="mt-1 whitespace-pre-wrap text-xs text-slate-200 leading-relaxed">
-                        {notification.message}
-                      </p>
-                    )}
-
-                    {(notification.shoot_date || notification.shoot_time) && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-300">
-                        <Calendar className="h-3 w-3" />
-                        {notification.shoot_date ? (
-                          <span>
-                            {format(new Date(notification.shoot_date + 'T12:00:00'), 'EEE, MMM d')}
-                          </span>
-                        ) : null}
-                        {notification.shoot_time && <span>· Game {notification.shoot_time}</span>}
-                      </div>
-                    )}
-
-                    {notification.created_by_name && (
-                      <p className="text-[11px] text-slate-400 mt-1">
-                        Changed by {notification.created_by_name}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => dismiss(item)}
-                    className="text-slate-300 hover:text-white flex-shrink-0 rounded-md p-0.5"
-                    aria-label="Clear notification"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div
-              key={item.key}
-              className={`rounded-xl border px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur-md ${urgencyStyles[item.urgency]}`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[11px] font-medium uppercase tracking-wide text-slate-200">
-                      {urgencyLabel[item.urgency]}
-                    </span>
-                  </div>
-
-                  <p className="text-sm font-semibold text-slate-50 truncate">
-                    {item.shoot.title}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-200">
-                    <Calendar className="h-3 w-3" />
-                    <span>{format(new Date(item.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
-                    {item.shoot.game_time && <span>· Game {item.shoot.game_time}</span>}
-                  </div>
-
-                  <p className="text-xs text-slate-200 mt-0.5">
-                    Setup: {format(item.setupTime, 'HH:mm')}
-                    {item.urgency === 'urgent' &&
-                      ` (in ${Math.round(item.hoursUntilSetup * 10) / 10}h)`}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => dismiss(item)}
-                  className="text-slate-300 hover:text-white flex-shrink-0 rounded-md p-0.5"
-                  aria-label="Clear notification"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          );
-        })}
+          </div>
+        ))}
+
+        {active.length > 3 && (
+          <p className="text-center text-[11px] text-slate-400">
+            +{active.length - 3} more in the sidebar inbox
+          </p>
+        )}
       </div>
     </div>
+  );
+}
+
+export function NotificationInbox({ collapsed = false, className = '', drop = 'up' }) {
+  const ctx = useNotifications();
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  if (!ctx) return null;
+  const { active, dismiss, dismissAll } = ctx;
+  const count = active.length;
+
+  return (
+    <div className={cn('relative', className)} ref={panelRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'relative w-full flex items-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors',
+          collapsed ? 'justify-center px-2 py-2' : 'justify-between px-3 py-2'
+        )}
+        title="Notifications"
+        aria-label="Notifications"
+      >
+        <span className={cn('flex items-center gap-2 text-sm', collapsed && 'justify-center')}>
+          <Bell className="h-4 w-4" />
+          {!collapsed && <span>Notifications</span>}
+        </span>
+        {count > 0 && (
+          <span className={cn(
+            'bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[1.15rem] h-[1.15rem] px-1 flex items-center justify-center',
+            collapsed && 'absolute -top-0.5 -right-0.5'
+          )}>
+            {count > 9 ? '9+' : count}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className={cn(
+          'absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[16rem]',
+          drop === 'down' ? 'top-full right-0 mt-1' : 'bottom-full left-0 right-0 mb-1'
+        )}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+            <span className="text-xs font-semibold text-slate-100">Notifications</span>
+            {active.length > 0 && (
+              <button
+                type="button"
+                onClick={dismissAll}
+                className="text-[11px] text-slate-400 hover:text-slate-100 flex items-center gap-1"
+              >
+                <CheckCheck className="h-3.5 w-3.5" /> Clear all
+              </button>
+            )}
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {active.length === 0 ? (
+              <p className="p-4 text-center text-xs text-slate-500">No unread notifications</p>
+            ) : (
+              active.map((item) => (
+                <div key={item.key} className="border-b border-slate-800 last:border-0 px-3 py-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <NotificationBody item={item} />
+                    <button
+                      type="button"
+                      onClick={() => dismiss(item)}
+                      className="text-slate-500 hover:text-slate-200 flex-shrink-0"
+                      aria-label="Clear notification"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** @deprecated Use NotificationProvider + NotificationPopups + NotificationInbox */
+export default function ShootNotifications(props) {
+  return (
+    <NotificationProvider {...props}>
+      <NotificationPopups />
+    </NotificationProvider>
   );
 }

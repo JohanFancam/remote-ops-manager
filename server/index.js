@@ -34,6 +34,7 @@ import {
   listGoogleCalendars,
   saveGoogleSettings,
   getGoogleSettings,
+  saveOAuthClient,
 } from './googleCalendar.js';
 import {
   getVapidPublicKey,
@@ -457,8 +458,27 @@ app.post('/api/import/entities', authMiddleware, requireAdmin, importUpload.arra
   }
 });
 
-app.get('/api/google/status', authMiddleware, (_req, res) => {
-  res.json(getGoogleStatus());
+app.get('/api/google/status', authMiddleware, (req, res) => {
+  const suggestedRedirectUri = `${frontendBaseUrl(req)}/api/google/callback`;
+  res.json({ ...getGoogleStatus(), suggestedRedirectUri });
+});
+
+app.patch('/api/google/oauth', authMiddleware, requireAdmin, (req, res) => {
+  const clientId = String(req.body?.clientId || '').trim();
+  const clientSecret = String(req.body?.clientSecret || '').trim();
+  const redirectUri = String(req.body?.redirectUri || '').trim();
+  if (!clientId) {
+    return res.status(400).json({ error: 'Client ID is required' });
+  }
+  if (!getGoogleStatus().hasSecret && !clientSecret) {
+    return res.status(400).json({ error: 'Client secret is required the first time' });
+  }
+  if (!redirectUri || !/^https?:\/\/\S+\/api\/google\/callback$/.test(redirectUri)) {
+    return res.status(400).json({ error: 'Redirect URI must end with /api/google/callback' });
+  }
+  saveOAuthClient({ clientId, clientSecret, redirectUri });
+  const suggestedRedirectUri = `${frontendBaseUrl(req)}/api/google/callback`;
+  res.json({ ok: true, ...getGoogleStatus(), suggestedRedirectUri });
 });
 
 app.get('/api/google/auth-url', authMiddleware, requireAdmin, (_req, res) => {

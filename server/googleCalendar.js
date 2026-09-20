@@ -7,6 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { listEntities, createEntity, updateEntity } from './entities.js';
+import { handleShootChange } from './notifications.js';
+
+const ZA_TZ = 'Africa/Johannesburg';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +31,11 @@ function settingsPath() {
   return path.join(path.dirname(dbPath), 'google-calendar-settings.json');
 }
 
+function clientConfigPath() {
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'data', 'remote-ops.db');
+  return path.join(path.dirname(dbPath), 'google-oauth-client.json');
+}
+
 function readJson(file, fallback = null) {
   try {
     if (!fs.existsSync(file)) return fallback;
@@ -42,10 +50,28 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
+export function getSavedOAuthClient() {
+  return readJson(clientConfigPath(), {}) || {};
+}
+
+export function saveOAuthClient(patch = {}) {
+  const prev = getSavedOAuthClient();
+  const nextSecret = String(patch.clientSecret || '').trim();
+  const next = {
+    clientId: patch.clientId !== undefined ? String(patch.clientId || '').trim() : (prev.clientId || ''),
+    clientSecret: nextSecret || prev.clientSecret || '',
+    redirectUri: patch.redirectUri !== undefined ? String(patch.redirectUri || '').trim() : (prev.redirectUri || ''),
+  };
+  writeJson(clientConfigPath(), next);
+  return next;
+}
+
 export function getGoogleConfig() {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '';
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  const saved = getSavedOAuthClient();
+  const clientId = process.env.GOOGLE_CLIENT_ID || saved.clientId || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || saved.clientSecret || '';
   const redirectUri = process.env.GOOGLE_REDIRECT_URI
+    || saved.redirectUri
     || `http://localhost:${process.env.PORT || 3001}/api/google/callback`;
   return { clientId, clientSecret, redirectUri, configured: !!(clientId && clientSecret) };
 }
@@ -84,7 +110,7 @@ export function isGoogleConnected() {
 function createOAuthClient() {
   const { clientId, clientSecret, redirectUri, configured } = getGoogleConfig();
   if (!configured) {
-    const err = new Error('Google Calendar is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+    const err = new Error('Google Calendar is not configured. Save the Client ID and Client Secret in Settings first.');
     err.status = 503;
     throw err;
   }
@@ -122,6 +148,8 @@ export function getGoogleStatus() {
     connected: isGoogleConnected(),
     calendarId: settings.calendarId || 'primary',
     redirectUri: cfg.redirectUri,
+    clientId: cfg.clientId || '',
+    hasSecret: !!cfg.clientSecret,
     lastSyncAt: settings.lastSyncAt || null,
     lastSyncStats: settings.lastSyncStats || null,
   };
@@ -144,29 +172,40 @@ async function getAuthedClient() {
   return client;
 }
 
-/** Convert Google event start → { date: yyyy-MM-dd, game_time: HH:mm|'' } */
+function normalizeTitle(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findTitleDateMatch(shoots, title, date) {
+  const wanted = normalizeTitle(title);
+  if (!wanted || !date) return null;
+  return (shoots || []).find((shoot) => (
+    !shoot.google_event_id
+    && shoot.date === date
+    && normalizeTitle(shoot.title) === wanted
+  )) || null;
+}
+
+/** Convert Google event start → { date: yyyy-MM-dd, game_time: HH:mm|'' } in SAST. */
 export function mapEventTimes(event) {
   const start = event.start || {};
   if (start.date && !start.dateTime) {
-    // All-day event
     return { date: start.date, game_time: '' };
   }
   if (start.dateTime) {
     const d = new Date(start.dateTime);
-    // Use Africa/Johannesburg for display consistency with the app
-    const parts = new Intl.DateTimeFormat('en-ZA', {
-      timeZone: 'Africa/Johannesburg',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    if (Number.isNaN(d.getTime())) return null;
+    const date = new Intl.DateTimeFormat('en-CA', { timeZone: ZA_TZ }).format(d);
+    const timeParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: ZA_TZ,
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).formatToParts(d);
-    const get = (type) => parts.find((p) => p.type === type)?.value || '';
-    const date = `${get('year')}-${get('month')}-${get('day')}`;
-    const game_time = `${get('hour')}:${get('minute')}`;
-    return { date, game_time };
+    let hour = timeParts.find((p) => p.type === 'hour')?.value || '00';
+    const minute = timeParts.find((p) => p.type === 'minute')?.value || '00';
+    if (hour === '24') hour = '00';
+    return { date, game_time: `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}` };
   }
   return null;
 }
@@ -194,6 +233,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       calendarId,
       timeMin: min.toISOString(),
       timeMax: max.toISOString(),
+      timeZone: ZA_TZ,
       singleEvents: true,
       orderBy: 'startTime',
       maxResults: 250,
@@ -213,6 +253,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   const seen = new Set();
   let created = 0;
   let updated = 0;
+  let unchanged = 0;
   let skipped = 0;
   const syncedAt = new Date().toISOString();
 
@@ -227,24 +268,42 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     const title = (event.summary || 'Untitled event').trim();
     seen.add(event.id);
 
-    const existing = byGoogleId.get(event.id);
+    const existing = byGoogleId.get(event.id) || findTitleDateMatch(existingShoots, title, times.date);
     if (existing) {
+      const existingTime = existing.game_time || existing.start_time || '';
+      const restore = existing.status === 'cancelled' && existing.google_sync_cancelled;
+      const changed = (
+        existing.title !== title
+        || existing.date !== times.date
+        || existingTime !== times.game_time
+        || restore
+        || existing.google_event_id !== event.id
+      );
       const patch = {
-        title,
-        date: times.date,
-        game_time: times.game_time,
-        start_time: times.game_time || existing.start_time || '',
+        google_event_id: event.id,
         google_calendar_id: calendarId,
         last_synced_at: syncedAt,
         source: 'google_calendar',
       };
-      // If Google restored an event we previously marked cancelled via sync, reopen it
-      if (existing.status === 'cancelled' && existing.google_sync_cancelled) {
+      if (existing.title !== title) patch.title = title;
+      if (existing.date !== times.date) patch.date = times.date;
+      if (existingTime !== times.game_time) {
+        patch.game_time = times.game_time;
+        patch.start_time = times.game_time || existing.start_time || '';
+      }
+      if (restore) {
         patch.status = 'upcoming';
         patch.google_sync_cancelled = false;
       }
-      updateEntity('Shoot', existing.id, patch);
-      updated += 1;
+      const next = updateEntity('Shoot', existing.id, patch);
+      if (changed && next) {
+        updated += 1;
+        handleShootChange(existing, next, user).catch((err) => {
+          console.warn('Google sync notification failed:', err.message);
+        });
+      } else {
+        unchanged += 1;
+      }
     } else {
       createEntity('Shoot', {
         title,
@@ -279,25 +338,32 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     if (seen.has(shoot.google_event_id)) continue;
     if ((shoot.date || '') < todayStr) continue;
     if (shoot.status === 'cancelled') continue;
-    updateEntity('Shoot', shoot.id, {
+    const next = updateEntity('Shoot', shoot.id, {
       status: 'cancelled',
       google_sync_cancelled: true,
       last_synced_at: syncedAt,
     });
     cancelled += 1;
+    if (next) {
+      handleShootChange(shoot, next, user).catch((err) => {
+        console.warn('Google cancel notification failed:', err.message);
+      });
+    }
   }
 
-  saveGoogleSettings({ lastSyncAt: syncedAt, lastSyncStats: { created, updated, cancelled, skipped } });
+  saveGoogleSettings({ lastSyncAt: syncedAt, lastSyncStats: { created, updated, unchanged, cancelled, skipped } });
 
   return {
     ok: true,
     calendarId,
     created,
     updated,
+    unchanged,
     cancelled,
     skipped,
     fetched: events.length,
     syncedAt,
+    timeZone: ZA_TZ,
   };
 }
 

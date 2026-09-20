@@ -255,6 +255,12 @@ export const api = {
         body: JSON.stringify({ calendarId }),
       });
     },
+    saveOAuth({ clientId, clientSecret, redirectUri }) {
+      return request('/api/google/oauth', {
+        method: 'PATCH',
+        body: JSON.stringify({ clientId, clientSecret, redirectUri }),
+      });
+    },
     sync() {
       return request('/api/google/sync', { method: 'POST' });
     },
