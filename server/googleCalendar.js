@@ -31,6 +31,11 @@ function settingsPath() {
   return path.join(path.dirname(dbPath), 'google-calendar-settings.json');
 }
 
+function clientConfigPath() {
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'data', 'remote-ops.db');
+  return path.join(path.dirname(dbPath), 'google-oauth-client.json');
+}
+
 function readJson(file, fallback = null) {
   try {
     if (!fs.existsSync(file)) return fallback;
@@ -45,10 +50,28 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
+export function getSavedOAuthClient() {
+  return readJson(clientConfigPath(), {}) || {};
+}
+
+export function saveOAuthClient(patch = {}) {
+  const prev = getSavedOAuthClient();
+  const nextSecret = String(patch.clientSecret || '').trim();
+  const next = {
+    clientId: patch.clientId !== undefined ? String(patch.clientId || '').trim() : (prev.clientId || ''),
+    clientSecret: nextSecret || prev.clientSecret || '',
+    redirectUri: patch.redirectUri !== undefined ? String(patch.redirectUri || '').trim() : (prev.redirectUri || ''),
+  };
+  writeJson(clientConfigPath(), next);
+  return next;
+}
+
 export function getGoogleConfig() {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '';
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  const saved = getSavedOAuthClient();
+  const clientId = process.env.GOOGLE_CLIENT_ID || saved.clientId || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || saved.clientSecret || '';
   const redirectUri = process.env.GOOGLE_REDIRECT_URI
+    || saved.redirectUri
     || `http://localhost:${process.env.PORT || 3001}/api/google/callback`;
   return { clientId, clientSecret, redirectUri, configured: !!(clientId && clientSecret) };
 }
@@ -87,7 +110,7 @@ export function isGoogleConnected() {
 function createOAuthClient() {
   const { clientId, clientSecret, redirectUri, configured } = getGoogleConfig();
   if (!configured) {
-    const err = new Error('Google Calendar is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+    const err = new Error('Google Calendar is not configured. Save the Client ID and Client Secret in Settings first.');
     err.status = 503;
     throw err;
   }
@@ -125,6 +148,8 @@ export function getGoogleStatus() {
     connected: isGoogleConnected(),
     calendarId: settings.calendarId || 'primary',
     redirectUri: cfg.redirectUri,
+    clientId: cfg.clientId || '',
+    hasSecret: !!cfg.clientSecret,
     lastSyncAt: settings.lastSyncAt || null,
     lastSyncStats: settings.lastSyncStats || null,
   };
