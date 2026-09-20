@@ -25,8 +25,72 @@ function shootTime(shoot) {
 }
 
 function assignedOf(shoot) {
-  return uniqueEmails(shoot?.assigned_operators || shoot?.assigned_operators || []);
+  return uniqueEmails(shoot?.assigned_operators || []);
 }
+
+function userNameFor(email) {
+  const match = listUsers().find((u) => normEmail(u.email) === normEmail(email));
+  return match?.full_name || email || 'Operator';
+}
+
+function operatorNames(shoot) {
+  const emails = assignedOf(shoot);
+  if (!emails.length) return 'unassigned';
+  return emails.map(userNameFor).join(', ');
+}
+
+function phaseValue(shoot, key) {
+  const phase = shoot?.phase_status;
+  if (!phase || typeof phase !== 'object') return '';
+  return phase[key] || '';
+}
+
+function phaseJustStarted(previous, next, key) {
+  return !phaseValue(previous, key) && !!phaseValue(next, key);
+}
+
+function addDaysYmd(ymd, days) {
+  const [year, month, day] = String(ymd || '').split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const dt = new Date(Date.UTC(year, month - 1, day + days));
+  const yyyy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function civilMinutes(ymd, hm) {
+  const [year, month, day] = String(ymd || '').split('-').map(Number);
+  const mins = parseHm(hm);
+  if (!year || !month || !day || mins == null) return null;
+  return Date.UTC(year, month - 1, day) / 60000 + mins;
+}
+
+function shootCivilMinutes(shoot) {
+  if (!shoot?.date) return null;
+  return civilMinutes(shoot.date, shoot.game_time || shoot.start_time || '12:00');
+}
+
+function coveringStandbyEmails(shoot) {
+  const shootMins = shootCivilMinutes(shoot);
+  if (shootMins == null) return [];
+  return uniqueEmails(
+    listEntities('StandbyDay', '-date', 2000)
+      .filter((standby) => {
+        const startDate = standby.start_date || standby.date;
+        if (!startDate) return false;
+        const startTime = standby.start_time || '18:00';
+        const endTime = standby.end_time || '06:00';
+        const endDate = standby.end_date || addDaysYmd(startDate, 1);
+        const startMins = civilMinutes(startDate, startTime);
+        const endMins = civilMinutes(endDate, endTime);
+        if (startMins == null || endMins == null) return false;
+        return shootMins >= startMins && shootMins <= endMins;
+      })
+      .map((standby) => standby.admin_email)
+  );
+}
+
 
 function pendingOf(shoot) {
   return uniqueEmails(shoot?.pending_operators || shoot?.pending_operators || []);
@@ -100,7 +164,7 @@ export async function createNotifications({
 
   for (const email of emails) {
     if (excluded.includes(email)) continue;
-    const emailKey = emails.length > 1 ? `${key}:${email}` : key;
+    const emailKey = (targetRole || emails.length > 1) ? `${key}:${email}` : key;
     if (hasNotificationKey(emailKey)) continue;
     createEntity('ShootNotification', {
       ...base,
@@ -262,6 +326,24 @@ export async function handleShootChange(previous, next, user = null) {
       });
     }
   }
+
+  if (phaseJustStarted(previous, next, 'pre_shoot_started')) {
+    const actorName = user?.full_name || userNameFor(actor) || operatorNames(next);
+    const covering = coveringStandbyEmails(next);
+    const coveringNonAdmin = covering.filter((email) => !roleAdminEmails().includes(email));
+    await createNotifications({
+      notificationKey: `pre_shoot_started:${next.id}:${stamp}`,
+      type: 'pre_shoot_started',
+      title: 'Pre-shoot started',
+      message: `${actorName} started pre-shoot for ${title} on ${next.date || ''} ${shootTime(next)}`.trim(),
+      shoot: next,
+      targetEmails: coveringNonAdmin,
+      targetRole: 'admin',
+      excludeEmails: [actor],
+      createdByName: actorName,
+      url: '/Notifications',
+    });
+  }
 }
 
 export async function handleAvailabilityChange(previous, next, user = null, eventType = 'update') {
@@ -412,7 +494,6 @@ export async function runReminderPass() {
   for (const shoot of shoots) {
     if (shoot.date !== today) continue;
     const assignees = assignedOf(shoot);
-    if (!assignees.length) continue;
 
     for (const email of assignees) {
       const dayKey = `day_of:${shoot.id}:${email}:${today}`;
@@ -435,12 +516,18 @@ export async function runReminderPass() {
     const setupOffset = Number(shoot.setup_offset ?? -150);
     const setupMins = gameMins + setupOffset;
     const hoursUntilSetup = (setupMins - nowMins) / 60;
+    const alreadyStarted = !!(
+      phaseValue(shoot, 'setup_complete')
+      || phaseValue(shoot, 'pre_shoot_started')
+      || phaseValue(shoot, 'game_started')
+    );
+    const operators = operatorNames(shoot);
 
-    if (hoursUntilSetup > 0 && hoursUntilSetup <= notifyHours) {
+    if (!alreadyStarted && hoursUntilSetup > 0 && hoursUntilSetup <= notifyHours) {
+      const mins = Math.max(1, Math.round(hoursUntilSetup * 60));
       for (const email of assignees) {
         const soonKey = `starting_soon:${shoot.id}:${email}:${today}`;
         if (hasNotificationKey(soonKey)) continue;
-        const mins = Math.max(1, Math.round(hoursUntilSetup * 60));
         const result = await createNotifications({
           notificationKey: soonKey,
           type: 'starting_soon',
@@ -449,6 +536,42 @@ export async function runReminderPass() {
           shoot,
           targetEmails: [email],
           url: '/Calendar',
+        });
+        created += result.created;
+      }
+
+      const adminKey = `needs_start:${shoot.id}:${today}`;
+      if (!hasNotificationKey(adminKey)) {
+        const covering = coveringStandbyEmails(shoot);
+        const coveringNonAdmin = covering.filter((email) => !roleAdminEmails().includes(email));
+        const result = await createNotifications({
+          notificationKey: adminKey,
+          type: 'needs_start',
+          title: 'Shoot needs to start',
+          message: `${shootTitle(shoot)} setup is in about ${mins} minutes (${shootTime(shoot) || 'TBC'}). Operator: ${operators}.`,
+          shoot,
+          targetEmails: coveringNonAdmin,
+          targetRole: 'admin',
+          url: '/Notifications',
+        });
+        created += result.created;
+      }
+    }
+
+    if (!alreadyStarted && nowMins >= setupMins) {
+      const overdueKey = `start_overdue:${shoot.id}:${today}`;
+      if (!hasNotificationKey(overdueKey)) {
+        const covering = coveringStandbyEmails(shoot);
+        const coveringNonAdmin = covering.filter((email) => !roleAdminEmails().includes(email));
+        const result = await createNotifications({
+          notificationKey: overdueKey,
+          type: 'start_overdue',
+          title: 'Shoot needs to start',
+          message: `${shootTitle(shoot)} setup time has passed (${shootTime(shoot) || 'TBC'}) and the operator has not started. Operator: ${operators}.`,
+          shoot,
+          targetEmails: coveringNonAdmin,
+          targetRole: 'admin',
+          url: '/Notifications',
         });
         created += result.created;
       }

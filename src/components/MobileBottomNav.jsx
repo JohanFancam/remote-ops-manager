@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut } from 'lucide-react';
+  Wrench, Settings, LogOut, Bell } from 'lucide-react';
 import { useApp } from './AppContext';
 import { cn } from '@/lib/utils';
 import { base44 } from '@/api/base44Client';
@@ -30,6 +30,7 @@ const allAdminMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Rigs', icon: Wrench, path: '/Rigs' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
   { label: 'Pending/Approve', icon: DollarSign, path: '/Accounts' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
@@ -38,6 +39,7 @@ const allAdminMenuItems = [
 const allRemoteMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -45,6 +47,7 @@ const allRemoteMenuItems = [
 const allStandbyMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];

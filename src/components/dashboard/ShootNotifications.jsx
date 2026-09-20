@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Calendar, CheckCheck, AlertTriangle, Bell } from 'lucide-react';
 import { format } from 'date-fns';
@@ -93,6 +94,36 @@ const urgencyLabel = {
   change: 'Update',
 };
 
+function storedTypeLabel(type) {
+  switch (type) {
+    case 'standby':
+      return 'Standby';
+    case 'schedule_change':
+      return 'Time change';
+    case 'needs_start':
+    case 'start_overdue':
+      return 'Needs to start';
+    case 'starting_soon':
+      return 'Starting soon';
+    case 'pre_shoot_started':
+      return 'Pre-shoot started';
+    case 'cancelled':
+      return 'Cancelled';
+    case 'assigned':
+    case 'approved':
+    case 'unassigned':
+    case 'operator_action':
+      return 'Assignment';
+    case 'availability':
+    case 'availability_digest':
+      return 'Availability';
+    case 'day_of':
+      return 'Shoot today';
+    default:
+      return urgencyLabel.change;
+  }
+}
+
 function scheduleLines(notification) {
   if (!notification) return null;
   const fromDate = notification.previous_date;
@@ -124,11 +155,7 @@ function NotificationBody({ item }) {
             <AlertTriangle className="h-3.5 w-3.5 text-orange-200" />
           )}
           <span className="text-[11px] font-medium uppercase tracking-wide text-orange-200">
-            {notification.type === 'standby'
-              ? 'Standby'
-              : notification.type === 'schedule_change'
-                ? 'Time change'
-                : urgencyLabel.change}
+            {storedTypeLabel(notification.type)}
           </span>
         </div>
 
@@ -399,7 +426,7 @@ export function NotificationPopups() {
 
         {active.length > 3 && (
           <p className="text-center text-[11px] text-slate-400">
-            +{active.length - 3} more in the sidebar inbox
+            +{active.length - 3} more in Notifications
           </p>
         )}
       </div>
@@ -452,8 +479,8 @@ export function NotificationInbox({ collapsed = false, className = '', drop = 'u
 
       {open && (
         <div className={cn(
-          'absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[16rem]',
-          drop === 'down' ? 'top-full right-0 mt-1' : 'bottom-full left-0 right-0 mb-1'
+          'absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[18rem]',
+          drop === 'down' ? 'top-full right-0 mt-1' : 'bottom-full left-0 mb-1 w-[18rem]'
         )}>
           <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
             <span className="text-xs font-semibold text-slate-100">Notifications</span>
@@ -488,6 +515,13 @@ export function NotificationInbox({ collapsed = false, className = '', drop = 'u
               ))
             )}
           </div>
+          <Link
+            to="/Notifications"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-center text-[11px] text-blue-300 hover:text-blue-100 border-t border-slate-800"
+          >
+            Open notification log
+          </Link>
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp,
+  Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp, Bell,
 } from 'lucide-react';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
@@ -80,6 +80,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
+    { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
     { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
@@ -88,6 +89,7 @@ function LayoutContent({ children, currentPageName }) {
   const remoteNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
@@ -96,6 +98,7 @@ function LayoutContent({ children, currentPageName }) {
   const standbyNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
