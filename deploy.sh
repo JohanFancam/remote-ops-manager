@@ -31,7 +31,20 @@ fi
 pm2 save
 
 echo "==> Health check"
-sleep 3
-curl -fsS "http://127.0.0.1:${PORT:-3001}/api/health" && echo
+HEALTH_URL="http://127.0.0.1:${PORT:-3001}/api/health"
+ok=0
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if curl -fsS "$HEALTH_URL"; then
+    echo
+    ok=1
+    break
+  fi
+  sleep 1
+done
+if [ "$ok" -ne 1 ]; then
+  echo "Health check failed after 15s: $HEALTH_URL" >&2
+  pm2 logs "$PM2_NAME" --nostream --lines 40 >&2 || true
+  exit 1
+fi
 
 echo "==> Deploy complete"

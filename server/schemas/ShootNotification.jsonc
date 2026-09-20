@@ -15,6 +15,7 @@
     "dismissed_by": { "type": "array", "items": { "type": "string" } },
     "created_at": { "type": "string" },
     "expires_at": { "type": "string" },
+    "created_by_name": { "type": "string" },
     "url": { "type": "string" }
   }
 }

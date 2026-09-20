@@ -32,8 +32,8 @@ const ADMIN_STEPS = [
     body: "Define rig configurations per team. Each team can have camera settings (HD, Wide, Attention), sound settings, and shoot plan notes. These auto-populate the countdown cards."
   },
   {
-    title: "Notifications Bell",
-    body: "The bell icon in the sidebar shows real-time notifications — phase updates from operators, assignment requests, and online/offline status changes."
+    title: "Top notifications",
+    body: "Alerts drop in from the top of the screen and stay there until you clear them. That includes assignment updates and when someone selects or swaps a standby day."
   },
   {
     title: "Online Now",
@@ -63,8 +63,8 @@ const REMOTE_STEPS = [
     body: "The banner at the top shows which admin is on standby contact for today. If you have any issues, this is your contact person."
   },
   {
-    title: "Notifications Bell",
-    body: "The bell icon shows upcoming shoot alerts. You'll get notified when a shoot setup time is approaching (the admin controls how many hours in advance)."
+    title: "Top notifications",
+    body: "Shoot alerts drop in from the top of the screen and stay there until you clear them. You'll get notified when a shoot setup time is approaching (the admin controls how many hours in advance)."
   },
   {
     title: "Earnings",

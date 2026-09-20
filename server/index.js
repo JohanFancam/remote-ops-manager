@@ -43,6 +43,7 @@ import {
 import {
   handleShootChange,
   handleAvailabilityChange,
+  handleStandbyChange,
   runReminderPass,
 } from './notifications.js';
 import {
@@ -291,6 +292,11 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
         console.warn('Availability notification failed:', err.message);
       });
     }
+    if (type === 'StandbyDay') {
+      handleStandbyChange(null, created, req.user, 'create').catch((err) => {
+        console.warn('Standby notification failed:', err.message);
+      });
+    }
     res.status(201).json(created);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -321,6 +327,11 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     if (type === 'OperatorAvailability' && previous) {
       handleAvailabilityChange(previous, updated, req.user, 'update').catch((err) => {
         console.warn('Availability notification failed:', err.message);
+      });
+    }
+    if (type === 'StandbyDay' && previous) {
+      handleStandbyChange(previous, updated, req.user, 'update').catch((err) => {
+        console.warn('Standby notification failed:', err.message);
       });
     }
 

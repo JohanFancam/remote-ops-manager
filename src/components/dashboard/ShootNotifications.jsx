@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Bell, X, Calendar, CheckCheck, AlertTriangle } from 'lucide-react';
+import { X, Calendar, CheckCheck, AlertTriangle, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
@@ -54,8 +54,21 @@ function userCanSeeNotification(notification, user) {
   return false;
 }
 
+const urgencyStyles = {
+  urgent: 'border-red-500/70 bg-red-950/95',
+  today: 'border-yellow-500/70 bg-yellow-950/95',
+  tomorrow: 'border-blue-500/70 bg-blue-950/95',
+  change: 'border-orange-500/70 bg-orange-950/95',
+};
+
+const urgencyLabel = {
+  urgent: 'Setup soon',
+  today: 'Today',
+  tomorrow: 'Tomorrow',
+  change: 'Update',
+};
+
 export default function ShootNotifications({ shoots = [], user, notifyHours = 5 }) {
-  const [open, setOpen] = useState(false);
   const [storedNotifications, setStoredNotifications] = useState([]);
   const [dismissedReminders, setDismissedReminders] = useState(() => {
     try {
@@ -64,8 +77,6 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       return [];
     }
   });
-
-  const panelRef = useRef(null);
 
   const refreshStoredNotifications = async () => {
     if (!user?.email) return;
@@ -93,22 +104,10 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       });
     } catch (error) {
       // Some Base44 projects do not support subscribe on newly-created entities immediately.
-      // The manual load above still works when the app opens.
     }
 
     return () => unsubscribe?.();
   }, [user?.email, user?.role, user?.standby]);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
 
   const now = new Date();
 
@@ -160,7 +159,6 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
   }));
 
   const active = [...activeStored, ...activeReminders];
-  const count = active.length;
 
   const dismissReminder = (key) => {
     const next = [...dismissedReminders, key];
@@ -201,165 +199,135 @@ export default function ShootNotifications({ shoots = [], user, notifyHours = 5 
       setDismissedReminders(next);
       localStorage.setItem('dismissed_notifs', JSON.stringify(next));
     }
-
-    setOpen(false);
   };
 
-  const urgencyStyles = {
-    urgent: 'border-red-700/60 bg-red-950/30',
-    today: 'border-yellow-700/60 bg-yellow-950/20',
-    tomorrow: 'border-blue-800 bg-blue-950/40',
-    change: 'border-orange-700/60 bg-orange-950/20',
-  };
-
-  const urgencyLabel = {
-    urgent: '🔴 Setup soon!',
-    today: '🟡 Today',
-    tomorrow: '🔵 Tomorrow',
-    change: '🟠 Shoot update',
-  };
+  if (active.length === 0) return null;
 
   return (
-    <div className="relative w-full" ref={panelRef}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="relative w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
-      >
-        <span className="flex items-center gap-2 text-sm">
-          <Bell className="h-4 w-4" /> Notifications
-        </span>
-
-        {count > 0 && (
-          <span className="bg-red-950/400 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-            {count > 9 ? '9+' : count}
-          </span>
+    <div
+      className="fixed inset-x-0 top-0 z-[70] pointer-events-none px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-3"
+      role="region"
+      aria-label="Notifications"
+    >
+      <div className="mx-auto w-full max-w-xl space-y-2 pointer-events-auto max-h-[min(50vh,28rem)] overflow-y-auto">
+        {active.length > 1 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={dismissAll}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/90 px-2.5 py-1 text-[11px] text-slate-300 hover:text-white"
+            >
+              <CheckCheck className="h-3.5 w-3.5" /> Clear all
+            </button>
+          </div>
         )}
-      </button>
 
-      {open && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 bg-slate-800 border border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-            <span className="text-sm font-semibold text-slate-100">Shoot Notifications</span>
+        {active.map((item) => {
+          if (item.kind === 'stored') {
+            const notification = item.notification;
+            const heading = notification.title || notification.shoot_title || 'Notification';
 
-            {active.length > 0 && (
-              <button
-                onClick={dismissAll}
-                className="text-xs text-slate-500 hover:text-slate-100 flex items-center gap-1"
+            return (
+              <div
+                key={item.key}
+                className={`rounded-xl border px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur-md ${urgencyStyles.change}`}
               >
-                <CheckCheck className="h-3.5 w-3.5" /> Clear all
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-80 overflow-y-auto">
-            {active.length === 0 ? (
-              <div className="p-6 text-center">
-                <Bell className="h-8 w-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-slate-500">No new notifications</p>
-              </div>
-            ) : (
-              active.map((item) => {
-                if (item.kind === 'stored') {
-                  const notification = item.notification;
-
-                  return (
-                    <div
-                      key={item.key}
-                      className={`mx-3 my-2 rounded-lg border p-3 ${urgencyStyles.change}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <AlertTriangle className="h-3.5 w-3.5 text-orange-300" />
-                            <span className="text-xs font-medium text-orange-200">
-                              {urgencyLabel.change}
-                            </span>
-                          </div>
-
-                          <p className="text-sm font-semibold text-slate-100 truncate">
-                            {notification.shoot_title || 'Shoot updated'}
-                          </p>
-
-                          {notification.message && (
-                            <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-400 font-sans leading-relaxed">
-                              {notification.message}
-                            </pre>
-                          )}
-
-                          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
-                            <Calendar className="h-3 w-3" />
-                            {notification.shoot_date ? (
-                              <span>
-                                {format(new Date(notification.shoot_date + 'T12:00:00'), 'EEE, MMM d')}
-                              </span>
-                            ) : (
-                              <span>No date</span>
-                            )}
-                            {notification.shoot_time && <span>· Game {notification.shoot_time}</span>}
-                          </div>
-
-                          {notification.created_by_name && (
-                            <p className="text-[11px] text-slate-500 mt-1">
-                              Changed by {notification.created_by_name}
-                            </p>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={() => dismiss(item)}
-                          className="text-gray-600 hover:text-slate-400 flex-shrink-0"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {notification.type === 'standby' ? (
+                        <Bell className="h-3.5 w-3.5 text-orange-200" />
+                      ) : (
+                        <AlertTriangle className="h-3.5 w-3.5 text-orange-200" />
+                      )}
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-orange-200">
+                        {notification.type === 'standby' ? 'Standby' : urgencyLabel.change}
+                      </span>
                     </div>
-                  );
-                }
 
-                return (
-                  <div
-                    key={item.key}
-                    className={`mx-3 my-2 rounded-lg border p-3 ${urgencyStyles[item.urgency]}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs font-medium text-slate-400">
-                            {urgencyLabel[item.urgency]}
+                    <p className="text-sm font-semibold text-slate-50 truncate">{heading}</p>
+
+                    {notification.message && (
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-slate-200 leading-relaxed">
+                        {notification.message}
+                      </p>
+                    )}
+
+                    {(notification.shoot_date || notification.shoot_time) && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-300">
+                        <Calendar className="h-3 w-3" />
+                        {notification.shoot_date ? (
+                          <span>
+                            {format(new Date(notification.shoot_date + 'T12:00:00'), 'EEE, MMM d')}
                           </span>
-                        </div>
-
-                        <p className="text-sm font-semibold text-slate-100 truncate">
-                          {item.shoot.title}
-                        </p>
-
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(item.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
-                          {item.shoot.game_time && <span>· Game {item.shoot.game_time}</span>}
-                        </div>
-
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          Setup: {format(item.setupTime, 'HH:mm')}
-                          {item.urgency === 'urgent' &&
-                            ` (in ${Math.round(item.hoursUntilSetup * 10) / 10}h)`}
-                        </p>
+                        ) : null}
+                        {notification.shoot_time && <span>· Game {notification.shoot_time}</span>}
                       </div>
+                    )}
 
-                      <button
-                        onClick={() => dismiss(item)}
-                        className="text-gray-600 hover:text-slate-400 flex-shrink-0"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {notification.created_by_name && (
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Changed by {notification.created_by_name}
+                      </p>
+                    )}
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
+
+                  <button
+                    type="button"
+                    onClick={() => dismiss(item)}
+                    className="text-slate-300 hover:text-white flex-shrink-0 rounded-md p-0.5"
+                    aria-label="Clear notification"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={item.key}
+              className={`rounded-xl border px-3 py-2.5 shadow-2xl shadow-black/40 backdrop-blur-md ${urgencyStyles[item.urgency]}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-slate-200">
+                      {urgencyLabel[item.urgency]}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-semibold text-slate-50 truncate">
+                    {item.shoot.title}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-200">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(item.shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
+                    {item.shoot.game_time && <span>· Game {item.shoot.game_time}</span>}
+                  </div>
+
+                  <p className="text-xs text-slate-200 mt-0.5">
+                    Setup: {format(item.setupTime, 'HH:mm')}
+                    {item.urgency === 'urgent' &&
+                      ` (in ${Math.round(item.hoursUntilSetup * 10) / 10}h)`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => dismiss(item)}
+                  className="text-slate-300 hover:text-white flex-shrink-0 rounded-md p-0.5"
+                  aria-label="Clear notification"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

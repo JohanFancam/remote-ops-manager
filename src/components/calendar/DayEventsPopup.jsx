@@ -6,6 +6,7 @@ import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
+import { standbyColorForEmail } from '@/components/utils/standbyColors';
 
 /**
  * Google Calendar–style “N more” day list popup.
@@ -21,6 +22,7 @@ export default function DayEventsPopup({
   onClose,
   onToggleAssign,
   onSelectShoot,
+  getStandbyCoverageForShoot,
 }) {
   if (!open || !day) return null;
 
@@ -89,6 +91,10 @@ export default function DayEventsPopup({
                     : claimedByOther
                       ? 'Taken'
                       : '';
+                const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
+                const standbyColor = standbyCoverage
+                  ? standbyColorForEmail(standbyCoverage.admin_email)
+                  : null;
 
                 return (
                   <li key={shoot.id}>
@@ -97,7 +103,9 @@ export default function DayEventsPopup({
                         isAssigned ? 'bg-slate-800/40' : ''
                       } ${shouldGrey ? 'opacity-55' : ''} ${
                         isCancelled ? 'ring-1 ring-inset ring-red-600/40 bg-red-950/20' : ''
-                      } ${claimedByOther && !shouldGrey ? 'opacity-70' : ''}`}
+                      } ${claimedByOther && !shouldGrey ? 'opacity-70' : ''} ${
+                        standbyColor ? `border-l-2 ${standbyColor.accent}` : ''
+                      }`}
                     >
                       <button
                         type="button"
@@ -110,7 +118,12 @@ export default function DayEventsPopup({
                             {shoot.game_time ? (
                               <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
                             ) : null}
-                            {shortenTitle(shoot.title) || 'Untitled'}
+                            <span
+                              className={standbyColor ? `${standbyColor.highlight} rounded-sm px-1` : undefined}
+                              title={standbyCoverage ? `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}` : undefined}
+                            >
+                              {shortenTitle(shoot.title) || 'Untitled'}
+                            </span>
                             {(isCancelled || isPostponed || isCompleted) && (
                               <span className={`ml-1.5 text-[11px] font-medium ${
                                 isCancelled ? 'text-red-400' :

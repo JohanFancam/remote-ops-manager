@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - cursor/modern-standalone-a34f
+      - cursor/standby-highlight-top-notifications-a34f
   workflow_dispatch:
 
 concurrency:
@@ -42,4 +43,7 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.DEPLOY_PATH || '/home/ubuntu/remote-ops-manager' }}
+            BRANCH="${{ github.ref_name }}"
+            git fetch origin "$BRANCH"
+            git checkout -B "$BRANCH" "origin/$BRANCH"
             ./deploy.sh

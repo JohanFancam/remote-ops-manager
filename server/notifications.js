@@ -38,6 +38,12 @@ function adminEmails() {
     .map((u) => normEmail(u.email));
 }
 
+function roleAdminEmails() {
+  return listUsers()
+    .filter((u) => !u.inactive && u.role === 'admin')
+    .map((u) => normEmail(u.email));
+}
+
 function hasNotificationKey(notificationKey) {
   return filterEntities('ShootNotification', { notification_key: notificationKey }).length > 0;
 }
@@ -51,6 +57,8 @@ export async function createNotifications({
   targetEmails = [],
   targetRole = '',
   url = '/Calendar',
+  excludeEmails = [],
+  createdByName = '',
 }) {
   const key = String(notificationKey || '').slice(0, 240);
   if (!key) return { created: 0, pushed: 0 };
@@ -58,6 +66,7 @@ export async function createNotifications({
   const now = new Date();
   const expiresAt = new Date(now.getTime() + FIVE_DAYS_MS).toISOString();
   const emails = uniqueEmails(targetEmails);
+  const excluded = uniqueEmails(excludeEmails);
   let created = 0;
 
   const base = {
@@ -70,7 +79,8 @@ export async function createNotifications({
     shoot_time: shoot ? shootTime(shoot) : '',
     created_at: now.toISOString(),
     expires_at: expiresAt,
-    dismissed_by: [],
+    dismissed_by: excluded,
+    created_by_name: createdByName || '',
     url,
   };
 
@@ -87,6 +97,7 @@ export async function createNotifications({
   }
 
   for (const email of emails) {
+    if (excluded.includes(email)) continue;
     const emailKey = emails.length > 1 ? `${key}:${email}` : key;
     if (hasNotificationKey(emailKey)) continue;
     createEntity('ShootNotification', {
@@ -98,9 +109,14 @@ export async function createNotifications({
     created += 1;
   }
 
-  const pushTargets = targetRole === 'admin_standby'
-    ? uniqueEmails([...emails, ...adminEmails()])
-    : emails;
+  const roleTargets = targetRole === 'admin_standby'
+    ? adminEmails()
+    : targetRole === 'admin'
+      ? roleAdminEmails()
+      : [];
+
+  const pushTargets = uniqueEmails([...emails, ...roleTargets])
+    .filter((email) => !excluded.includes(email));
 
   const pushResult = await sendPushToEmails(pushTargets, {
     title: title || 'Remote Ops',
@@ -267,6 +283,67 @@ export async function handleAvailabilityChange(previous, next, user = null, even
       url: '/OperatorAvailability',
     });
   }
+}
+
+function standbyDateLabel(record) {
+  const start = record?.start_date || record?.date || '';
+  const end = record?.end_date || start;
+  if (!start) return '';
+  if (!end || end === start) return start;
+  return `${start} → ${end}`;
+}
+
+export async function handleStandbyChange(previous, next, user = null, eventType = 'update') {
+  const record = next || previous;
+  if (!record) return;
+
+  const actor = normEmail(user?.email);
+  const actorName = user?.full_name || user?.email || record.admin_name || record.admin_email || 'Someone';
+  const stamp = record.updated_date || record.created_date || new Date().toISOString();
+  const range = standbyDateLabel(next || previous);
+
+  if (eventType === 'create' && next) {
+    await createNotifications({
+      notificationKey: `standby_select:${next.id}:${stamp}`,
+      type: 'standby',
+      title: 'Standby day selected',
+      message: `${actorName} selected standby for ${range || 'a day'} (18:00–06:00).`,
+      targetEmails: [],
+      targetRole: 'admin',
+      excludeEmails: [actor],
+      createdByName: actorName,
+      url: '/Calendar',
+    });
+    return;
+  }
+
+  if (eventType !== 'update' || !previous || !next) return;
+
+  const prevEmail = normEmail(previous.admin_email);
+  const nextEmail = normEmail(next.admin_email);
+  const prevRange = standbyDateLabel(previous);
+  const emailChanged = prevEmail && nextEmail && prevEmail !== nextEmail;
+  const dateChanged = prevRange !== range;
+
+  if (!emailChanged && !dateChanged) return;
+
+  const previousName = previous.admin_name || previous.admin_email || 'another person';
+  const nextName = next.admin_name || next.admin_email || actorName;
+  const message = emailChanged
+    ? `${actorName} swapped standby on ${range || prevRange || 'a day'} from ${previousName} to ${nextName}.`
+    : `${actorName} selected standby for ${range || 'a day'} (18:00–06:00).`;
+
+  await createNotifications({
+    notificationKey: `standby_${emailChanged ? 'swap' : 'select'}:${next.id}:${stamp}`,
+    type: 'standby',
+    title: emailChanged ? 'Standby swapped' : 'Standby day selected',
+    message,
+    targetEmails: [],
+    targetRole: 'admin',
+    excludeEmails: [actor],
+    createdByName: actorName,
+    url: '/Calendar',
+  });
 }
 
 function todayInTz(timeZone = TZ) {
