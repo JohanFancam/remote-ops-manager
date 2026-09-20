@@ -127,7 +127,7 @@ export default function DeploySettings() {
               <Button
                 onClick={() => setConfirming(true)}
                 disabled={!data?.canDeploy || !branch || running}
-                className="bg-blue-600 hover:bg-blue-500 gap-2"
+                className="bg-blue-600 hover:bg-blue-500 gap-2 disabled:opacity-40 disabled:pointer-events-none"
               >
                 <Rocket className="h-4 w-4" />
                 {running ? 'Deploy in progress' : 'Deploy this update'}
