@@ -46,9 +46,16 @@ function notificationTypeLabel(type) {
     case 'availability':
     case 'availability_digest':
       return 'Availability';
+    case 'day_of':
+      return 'Shoot today';
     default:
       return 'Update';
   }
+}
+
+function historyDedupeKey(notification) {
+  const key = String(notification.notification_key || notification.id || '');
+  return key.replace(/:[^:]+@[^:]+$/, '') || notification.id;
 }
 
 function matchesFilter(type, filter) {
@@ -152,6 +159,7 @@ export default function Notifications() {
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const seen = new Set();
     return (records || [])
       .filter((notification) => userCanSeeHistory(notification, user))
       .filter((notification) => matchesFilter(notification.type, filter))
@@ -165,7 +173,13 @@ export default function Notifications() {
           notificationTypeLabel(notification.type),
         ].some((value) => String(value || '').toLowerCase().includes(q));
       })
-      .sort((a, b) => String(createdStamp(b)).localeCompare(String(createdStamp(a))));
+      .sort((a, b) => String(createdStamp(b)).localeCompare(String(createdStamp(a))))
+      .filter((notification) => {
+        const key = historyDedupeKey(notification);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }, [records, user, filter, search]);
 
   const groups = useMemo(() => {

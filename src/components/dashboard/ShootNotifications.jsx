@@ -117,6 +117,8 @@ function storedTypeLabel(type) {
     case 'availability':
     case 'availability_digest':
       return 'Availability';
+    case 'day_of':
+      return 'Shoot today';
     default:
       return urgencyLabel.change;
   }
@@ -477,29 +479,20 @@ export function NotificationInbox({ collapsed = false, className = '', drop = 'u
 
       {open && (
         <div className={cn(
-          'absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[16rem]',
-          drop === 'down' ? 'top-full right-0 mt-1' : 'bottom-full left-0 right-0 mb-1'
+          'absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[18rem]',
+          drop === 'down' ? 'top-full right-0 mt-1' : 'bottom-full left-0 mb-1 w-[18rem]'
         )}>
           <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
             <span className="text-xs font-semibold text-slate-100">Notifications</span>
-            <div className="flex items-center gap-2">
-              <Link
-                to="/Notifications"
-                onClick={() => setOpen(false)}
-                className="text-[11px] text-blue-300 hover:text-blue-100"
+            {active.length > 0 && (
+              <button
+                type="button"
+                onClick={dismissAll}
+                className="text-[11px] text-slate-400 hover:text-slate-100 flex items-center gap-1"
               >
-                Open log
-              </Link>
-              {active.length > 0 && (
-                <button
-                  type="button"
-                  onClick={dismissAll}
-                  className="text-[11px] text-slate-400 hover:text-slate-100 flex items-center gap-1"
-                >
-                  <CheckCheck className="h-3.5 w-3.5" /> Clear all
-                </button>
-              )}
-            </div>
+                <CheckCheck className="h-3.5 w-3.5" /> Clear all
+              </button>
+            )}
           </div>
           <div className="max-h-72 overflow-y-auto">
             {active.length === 0 ? (
@@ -522,6 +515,13 @@ export function NotificationInbox({ collapsed = false, className = '', drop = 'u
               ))
             )}
           </div>
+          <Link
+            to="/Notifications"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-center text-[11px] text-blue-300 hover:text-blue-100 border-t border-slate-800"
+          >
+            Open notification log
+          </Link>
         </div>
       )}
     </div>
