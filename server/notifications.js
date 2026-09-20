@@ -164,7 +164,7 @@ export async function createNotifications({
 
   for (const email of emails) {
     if (excluded.includes(email)) continue;
-    const emailKey = emails.length > 1 ? `${key}:${email}` : key;
+    const emailKey = (targetRole || emails.length > 1) ? `${key}:${email}` : key;
     if (hasNotificationKey(emailKey)) continue;
     createEntity('ShootNotification', {
       ...base,
