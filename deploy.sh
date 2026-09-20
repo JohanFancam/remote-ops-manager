@@ -10,6 +10,17 @@ BUILD_MEMORY="${BUILD_MEMORY:-768}"
 
 cd "$APP_DIR"
 
+SAFE_BRANCH_RE='^(main|cursor/[a-z0-9][a-z0-9./_-]*)$'
+if [ -n "${1:-}" ]; then
+  if [[ ! "$1" =~ $SAFE_BRANCH_RE ]]; then
+    echo "Refusing to deploy unsafe branch name: $1" >&2
+    exit 1
+  fi
+  echo "==> Switching to $1"
+  git fetch origin "$1"
+  git checkout -B "$1" "origin/$1"
+fi
+
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 echo "==> Deploying $PM2_NAME from $BRANCH in $APP_DIR"
 

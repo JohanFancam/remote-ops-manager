@@ -274,6 +274,20 @@ export const api = {
       return request('/api/import/entities', { method: 'POST', body: form });
     },
   },
+  deploy: {
+    status() {
+      return request('/api/deploy/status');
+    },
+    log() {
+      return request('/api/deploy/log');
+    },
+    start(branch) {
+      return request('/api/deploy', {
+        method: 'POST',
+        body: JSON.stringify({ branch }),
+      });
+    },
+  },
   push: {
     vapidPublicKey() {
       return request('/api/push/vapid-public-key');
