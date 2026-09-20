@@ -73,6 +73,20 @@ export function getEntity(entityType, id) {
   return row ? rowToEntity(row) : null;
 }
 
+function normalizeEmailList(arr) {
+  return [...new Set((arr || []).map((e) => String(e || '').trim().toLowerCase()).filter(Boolean))];
+}
+
+/** A shoot may have only one assigned operator or one pending claim, never both. */
+function clampShootOperators(data) {
+  if (!data || typeof data !== 'object') return data;
+  if (!('assigned_operators' in data) && !('pending_operators' in data)) return data;
+  const assigned = normalizeEmailList(data.assigned_operators).slice(0, 1);
+  let pending = normalizeEmailList(data.pending_operators).slice(0, 1);
+  if (assigned.length) pending = [];
+  return { ...data, assigned_operators: assigned, pending_operators: pending };
+}
+
 export function createEntity(entityType, data = {}, user = null) {
   assertKnownType(entityType);
 
@@ -84,7 +98,8 @@ export function createEntity(entityType, data = {}, user = null) {
 
   const id = newId();
   const ts = nowIso();
-  const { id: _ignore, created_date, updated_date, created_by_id, ...payload } = data;
+  const { id: _ignore, created_date, updated_date, created_by_id, ...rawPayload } = data;
+  const payload = entityType === 'Shoot' ? clampShootOperators(rawPayload) : rawPayload;
   db.prepare(`
     INSERT INTO entities (id, entity_type, data, created_date, updated_date, created_by_id)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -108,7 +123,8 @@ export function updateEntity(entityType, id, data = {}) {
   if (!existing) return null;
 
   const { id: _i, created_date, updated_date, created_by_id, ...rest } = existing;
-  const nextData = { ...rest, ...data };
+  const merged = { ...rest, ...data };
+  const nextData = entityType === 'Shoot' ? clampShootOperators(merged) : merged;
   delete nextData.id;
   delete nextData.created_date;
   delete nextData.updated_date;

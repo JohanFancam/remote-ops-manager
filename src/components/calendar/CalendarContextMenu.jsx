@@ -5,7 +5,7 @@ import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 export default function CalendarContextMenu({
-  shoot, isAdmin, isStandby, userEmail, allUsers = [],
+  shoot, isAdmin, userEmail,
   onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
@@ -21,7 +21,7 @@ export default function CalendarContextMenu({
 
   const isAssigned = shoot?.assigned_operators?.includes(userEmail);
   const isPending = shoot?.pending_operators?.includes(userEmail);
-  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, userEmail, allUsers);
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, userEmail);
 
   const selfAssignItem = isAssigned || isPending
     ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-amber-400' }
@@ -47,16 +47,12 @@ export default function CalendarContextMenu({
       {
         label: (shoot?.pending_operators || []).length > 0
           ? `Review Pending (${shoot.pending_operators.length})`
-          : 'Assign Operators',
+          : 'Assign Operator',
         icon: UserPlus,
         action: () => { onAssignOperators(shoot); onClose(); },
         color: 'text-purple-400',
       },
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
-    ] : []),
-
-    ...(isStandby && !isAdmin ? [
-      { label: 'Assign Operators', icon: UserPlus, action: () => { onAssignOperators(shoot); onClose(); }, color: 'text-purple-400', divider: true },
     ] : []),
   ];
 
