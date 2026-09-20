@@ -181,7 +181,7 @@ function ShootCalendarEntry({
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
   const standbyColor = standbyCoverage ? standbyColorForEmail(standbyCoverage.admin_email) : null;
   const coveredTitleClass = standbyColor
-    ? `${standbyColor.highlight} rounded px-0.5`
+    ? `${standbyColor.highlight} rounded-sm px-1`
     : '';
   const coveredTitleTitle = standbyCoverage
     ? `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`

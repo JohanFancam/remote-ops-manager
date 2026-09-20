@@ -119,7 +119,7 @@ export default function DayEventsPopup({
                               <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
                             ) : null}
                             <span
-                              className={standbyColor ? `${standbyColor.highlight} rounded px-0.5` : undefined}
+                              className={standbyColor ? `${standbyColor.highlight} rounded-sm px-1` : undefined}
                               title={standbyCoverage ? `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}` : undefined}
                             >
                               {shortenTitle(shoot.title) || 'Untitled'}
