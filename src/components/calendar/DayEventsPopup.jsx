@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, Minus, X } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { getDisplayName } from '@/components/utils/nameUtils';
 import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
@@ -78,6 +79,16 @@ export default function DayEventsPopup({
                 const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
+                const assignedNames = (shoot.assigned_operators || [])
+                  .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
+                  .filter(Boolean);
+                const operatorLabel = assignedNames.length
+                  ? assignedNames.join(', ')
+                  : (shoot.pending_operators || []).length
+                    ? 'Pending approval'
+                    : claimedByOther
+                      ? 'Taken'
+                      : '';
 
                 return (
                   <li key={shoot.id}>
@@ -91,22 +102,27 @@ export default function DayEventsPopup({
                       <button
                         type="button"
                         onClick={() => onSelectShoot?.(shoot)}
-                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        className="flex min-w-0 flex-1 items-start gap-2 text-left"
                       >
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-                        <span className="min-w-0 flex-1 truncate text-[13px] text-slate-100">
-                          {shoot.game_time ? (
-                            <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
+                        <span className={`mt-1.5 h-4 w-0.5 shrink-0 rounded-full ${dot}`} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] text-slate-100">
+                            {shoot.game_time ? (
+                              <span className="mr-1.5 tabular-nums text-slate-400">{shoot.game_time}</span>
+                            ) : null}
+                            {shortenTitle(shoot.title) || 'Untitled'}
+                            {(isCancelled || isPostponed || isCompleted) && (
+                              <span className={`ml-1.5 text-[11px] font-medium ${
+                                isCancelled ? 'text-red-400' :
+                                isPostponed ? 'text-amber-300' : 'text-slate-400'
+                              }`}>
+                                · {formatStatusLabel(status)}
+                              </span>
+                            )}
+                          </span>
+                          {operatorLabel ? (
+                            <span className="mt-0.5 block truncate text-[11px] text-slate-400">{operatorLabel}</span>
                           ) : null}
-                          {shortenTitle(shoot.title) || 'Untitled'}
-                          {(isCancelled || isPostponed || isCompleted) && (
-                            <span className={`ml-1.5 text-[11px] font-medium ${
-                              isCancelled ? 'text-red-400' :
-                              isPostponed ? 'text-amber-300' : 'text-slate-400'
-                            }`}>
-                              · {formatStatusLabel(status)}
-                            </span>
-                          )}
                         </span>
                       </button>
                       <button

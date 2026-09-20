@@ -1,29 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { X, Plus, Minus, Settings2, MapPin, Users, Clock, Check } from 'lucide-react';
+import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
-import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { getSchedule, shortenTitle } from '@/components/utils/scheduleUtils';
+import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 function findMatchingRig(shoot, rigSettings = []) {
-  if (!shoot) return null;
-  const client = (shoot.client || '').toLowerCase().trim();
-  const title = (shoot.title || '').toLowerCase().trim();
-  return (
-    rigSettings.find((r) => {
-      const team = (r.team || '').toLowerCase().trim();
-      if (!team) return false;
-      return (
-        team === client ||
-        team === title ||
-        client.includes(team) ||
-        title.includes(team) ||
-        team.includes(client) ||
-        team.includes(title)
-      );
-    }) || null
-  );
+  return matchRig(shoot, rigSettings);
 }
 
 export function getShootRigLabel(shoot, rigSettings = []) {
@@ -51,21 +36,56 @@ export function shootDotClass(shoot, rigSettings = [], { past = false } = {}) {
   return 'bg-blue-500';
 }
 
+function timezoneLabel() {
+  const offset = -new Date().getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const abs = Math.abs(offset);
+  const hours = String(Math.floor(abs / 60)).padStart(2, '0');
+  const minutes = abs % 60;
+  return `GMT${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
+}
+
+function PillButton({ active, children, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        active
+          ? 'border-orange-400/70 bg-orange-500 text-slate-950'
+          : 'border-slate-600 bg-slate-800/80 text-slate-200 hover:bg-slate-700'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 /**
- * Google Calendar–style event quick view: time, Fancam/Data, assign +/−, admin settings.
+ * Base44-style calendar entry popup: title, schedule, Data/Fancam, operators, actions.
  */
 export default function ShootQuickView({
   shoot,
   user,
   isAdmin = false,
+  isStandby = false,
   allUsers = [],
   rigSettings = [],
   onClose,
-  onToggleAssign,
+  onUpdate,
   onApprovePending,
   onDeclinePending,
-  onOpenSettings,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onAssignOperators,
+  onRigCheckToggle,
+  canCheckRig = false,
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busyRig, setBusyRig] = useState(false);
+
   if (!shoot) return null;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -74,21 +94,42 @@ export default function ShootQuickView({
   const isCancelled = status === 'cancelled';
   const isCompleted = status === 'completed';
   const shouldGrey = isPast || isCompleted || isCancelled;
-  const isAssigned = shoot.assigned_operators?.includes(user?.email);
-  const isPending = shoot.pending_operators?.includes(user?.email);
   const pendingEmails = shoot.pending_operators || [];
-  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
-  const showMinus = isAssigned || isPending;
-  const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
-    && (showMinus || isAdmin || !claimedByOther);
-  const rigLabel = getShootRigLabel(shoot, rigSettings);
-  const isFancam = /fancam/i.test(rigLabel);
+  const matchedRig = findMatchingRig(shoot, rigSettings);
+  const venue = resolveShootLocation(shoot, matchedRig);
+  const schedule = getSchedule(shoot, matchedRig);
+  const effectiveRig = shoot.rig_type_override || matchedRig?.rig_type || 'Data';
+  const isFancam = /fancam/i.test(effectiveRig);
   const dateLabel = shoot.date
     ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric' })
     : '';
   const assignedNames = (shoot.assigned_operators || [])
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
     .filter(Boolean);
+  const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email, allUsers);
+  const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
+  const showAttention = matchedRig?.attention_enabled === true;
+  const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
+  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
+
+  const scheduleRows = schedule ? [
+    { label: 'Setup', time: schedule.setup },
+    { label: 'Pre-Shoot', time: schedule.pre_shoot },
+    showAttention ? { label: 'Attention', time: schedule.attention } : null,
+    showSound ? { label: 'Sound Recording', time: schedule.sound } : null,
+    showSoundTrigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
+    { label: 'Game', time: schedule.game },
+  ].filter(Boolean) : [];
+
+  const setRigType = async (type) => {
+    if (!canToggleRig || shoot.rig_type_override === type) return;
+    setBusyRig(true);
+    try {
+      await onUpdate(shoot.id, { rig_type_override: type });
+    } finally {
+      setBusyRig(false);
+    }
+  };
 
   return (
     <div
@@ -106,14 +147,14 @@ export default function ShootQuickView({
           isCancelled
             ? 'border-red-600/50 bg-[#1e2433] opacity-90'
             : shouldGrey
-              ? 'border-slate-700/80 bg-[#1e2433] opacity-80'
+              ? 'border-slate-700/80 bg-[#1e2433] opacity-90'
               : 'border-slate-700/80 bg-[#1e2433]'
         }`}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+        <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
           <div className="flex min-w-0 items-start gap-3">
             <span
-              className={`mt-1.5 h-3.5 w-3.5 shrink-0 rounded-sm ${shootDotClass(shoot, rigSettings, { past: isPast })}`}
+              className={`mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full ${shootDotClass(shoot, rigSettings, { past: isPast })}`}
             />
             <div className="min-w-0">
               <h2 className="text-lg font-semibold leading-snug text-slate-50 break-words">
@@ -122,13 +163,7 @@ export default function ShootQuickView({
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
                 {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time)}` : ''}
-              </p>
-              <p className={`mt-1 text-xs font-medium capitalize ${
-                isCancelled ? 'text-red-400' :
-                status === 'postponed' ? 'text-amber-300' :
-                isCompleted ? 'text-slate-400' : 'text-blue-400'
-              }`}>
-                {formatStatusLabel(status)}
+                {` (${timezoneLabel()})`}
               </p>
             </div>
           </div>
@@ -142,48 +177,64 @@ export default function ShootQuickView({
           </button>
         </div>
 
-        <div className="space-y-3 px-4 py-4 text-sm">
-          <div className="flex items-center gap-3 text-slate-300">
-            <Clock className="h-4 w-4 shrink-0 text-slate-500" />
-            <span>
-              Game time <span className="font-mono text-slate-100">{shoot.game_time || 'TBA'}</span>
+        <div className="space-y-4 px-4 pb-4 pt-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className={`inline-flex rounded-full border px-2.5 py-0.5 font-semibold ${
+              isFancam
+                ? 'border-orange-500/40 bg-orange-500/15 text-orange-300'
+                : 'border-slate-600 bg-slate-800 text-slate-200'
+            }`}>
+              {isFancam ? 'Fancam' : 'Data'}
+            </span>
+            {venue && <span className="text-slate-300">{venue}</span>}
+            <span className={`ml-auto capitalize ${
+              isCancelled ? 'text-red-400' :
+              status === 'postponed' ? 'text-amber-300' :
+              isCompleted ? 'text-slate-400' : 'text-slate-400'
+            }`}>
+              {formatStatusLabel(status)}
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-slate-300">
-            <span
-              className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-[9px] font-bold text-slate-950 ${
-                isFancam ? 'bg-orange-500' : 'bg-slate-400'
-              }`}
-            >
-              {isFancam ? 'F' : 'D'}
-            </span>
-            <span>
-              Rig type{' '}
-              <span className={`font-medium ${isFancam ? 'text-orange-300' : 'text-slate-100'}`}>
-                {rigLabel}
-              </span>
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Rig:</span>
+            {['Data', 'Fancam'].map((type) => (
+              <PillButton
+                key={type}
+                active={shoot.rig_type_override === type || (!shoot.rig_type_override && effectiveRig === type)}
+                disabled={!canToggleRig || busyRig}
+                onClick={() => setRigType(type)}
+              >
+                {type}
+              </PillButton>
+            ))}
           </div>
 
-          {(shoot.location || shoot.client) && (
-            <div className="flex items-start gap-3 text-slate-300">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-              <span className="break-words">
-                {[shoot.client, shoot.location].filter(Boolean).join(' · ')}
-              </span>
+          {scheduleRows.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">Schedule</p>
+              <div className="space-y-1">
+                {scheduleRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between rounded-lg bg-slate-800/50 px-2.5 py-1.5">
+                    <span className="text-xs text-slate-400">{row.label}</span>
+                    <span className="font-mono text-xs text-slate-100">{row.time || '—'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <div className="flex items-start gap-3 text-slate-300">
-            <Users className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-            <span className="break-words">
+          <div>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operators</p>
+            <p className="text-sm text-slate-200">
               {assignedNames.length
                 ? assignedNames.join(', ')
-                : isPending
+                : pendingEmails.length
                   ? 'Pending approval'
-                  : 'Unassigned'}
-            </span>
+                  : claimedByOther
+                    ? 'Taken'
+                    : 'Unassigned'}
+            </p>
           </div>
 
           {isAdmin && pendingEmails.length > 0 && (
@@ -200,14 +251,14 @@ export default function ShootQuickView({
                         onClick={() => onApprovePending?.(shoot, email)}
                         className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-700/50 bg-emerald-950/40 px-2 text-xs font-medium text-emerald-300 hover:bg-emerald-900/50"
                       >
-                        <Check className="h-3 w-3" /> Approve
+                        Approve
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeclinePending?.(shoot, email)}
                         className="inline-flex h-7 items-center gap-1 rounded-md border border-red-700/40 bg-red-950/30 px-2 text-xs font-medium text-red-300 hover:bg-red-950/50"
                       >
-                        <X className="h-3 w-3" /> Decline
+                        Decline
                       </button>
                     </div>
                   </div>
@@ -215,43 +266,82 @@ export default function ShootQuickView({
               })}
             </div>
           )}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 px-4 py-3">
-          <button
-            type="button"
-            disabled={!canToggle}
-            onClick={() => onToggleAssign?.(shoot)}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-              showMinus
-                ? 'border-red-500/40 bg-red-950/35 text-red-300 hover:bg-red-950/55'
-                : claimedByOther
-                  ? 'border-slate-700 bg-slate-800/60 text-slate-500'
-                  : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
-            }`}
-            title={
-              claimedByOther && !showMinus
-                ? (pendingEmails.length > 0 ? 'Pending approval — unavailable' : 'Taken by another operator')
-                : undefined
-            }
-          >
-            {showMinus ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showMinus
-              ? (isPending ? 'Cancel pending' : 'Unassign me')
-              : claimedByOther
-                ? 'Unavailable'
-                : 'Assign me'}
-          </button>
-
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => onOpenSettings?.(shoot)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-200 hover:bg-slate-700"
-            >
-              <Settings2 className="h-4 w-4" />
-              Open settings
-            </button>
+          {(isAdmin || isStandby) && (
+            <div className="flex flex-wrap gap-2">
+              {canCheckRig && (
+                <button
+                  type="button"
+                  onClick={() => onRigCheckToggle?.(shoot)}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium ${
+                    shoot.rig_check_completed
+                      ? 'border-emerald-600/50 bg-emerald-950/40 text-emerald-300'
+                      : 'border-amber-500/40 bg-amber-500 text-slate-950'
+                  }`}
+                >
+                  <Wrench className="h-3.5 w-3.5" />
+                  {shoot.rig_check_completed ? 'Rig checked' : 'Mark Rig Checked'}
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onEdit?.(shoot)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Settings
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onAssignOperators?.(shoot)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Operators
+                {pendingEmails.length > 0 ? ` (${pendingEmails.length})` : ''}
+              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onDuplicate?.(shoot)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Duplicate
+                </button>
+              )}
+              {isAdmin && (
+                confirmDelete ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onDelete?.(shoot.id)}
+                      className="inline-flex h-9 items-center rounded-full bg-red-700 px-3 text-sm font-medium text-white hover:bg-red-600"
+                    >
+                      Confirm delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="inline-flex h-9 items-center rounded-full border border-slate-600 px-3 text-sm text-slate-300 hover:bg-slate-800"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-red-700/50 bg-red-950/30 px-3 text-sm font-medium text-red-300 hover:bg-red-950/50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </button>
+                )
+              )}
+            </div>
           )}
         </div>
       </div>
