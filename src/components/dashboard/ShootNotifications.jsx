@@ -110,7 +110,9 @@ function scheduleLines(notification) {
 function NotificationBody({ item }) {
   if (item.kind === 'stored') {
     const notification = item.notification;
-    const heading = notification.title || notification.shoot_title || 'Notification';
+    const heading = notification.type === 'schedule_change'
+      ? (notification.shoot_title || notification.title || 'Shoot updated')
+      : (notification.title || notification.shoot_title || 'Notification');
     const change = scheduleLines(notification);
 
     return (
