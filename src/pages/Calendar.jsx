@@ -1728,6 +1728,7 @@ export default function Calendar() {
           onEdit={(s) => { setQuickView(null); startEdit(s); }}
           onDuplicate={duplicateShoot}
           onAssignOperators={(s) => { setQuickView(null); handleAssignOperators(s); }}
+          onDelete={handleDeleteShoot}
           onBack={dayModal ? () => setQuickView(null) : undefined}
           onClose={() => setQuickView(null)}
         />
