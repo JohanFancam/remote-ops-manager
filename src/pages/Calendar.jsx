@@ -152,7 +152,6 @@ function ShootCalendarEntry({
   day,
   user,
   isAdmin,
-  isStandby,
   isOperator,
   allUsers,
   allShoots,
@@ -180,16 +179,13 @@ function ShootCalendarEntry({
   const hasPending = (shoot.pending_operators || []).length > 0;
   const fancam = isFancamOrMixed(shoot, rigSettings);
   const standbyCoverage = getStandbyCoverageForShoot?.(shoot);
-  const isMyStandbyCoverage = standbyCoverage?.admin_email === user?.email;
-
-  // Cleaner highlighting:
-  // - Admin/standby users only see a standby outline for THEIR OWN standby coverage.
-  // - Other people's standby coverage is still shown by the standby name on the day,
-  //   but it no longer outlines every affected shoot.
-  // - Any user, including admin/standby, sees their own assigned shoots outlined.
-  const myStandbyCoverageClass = (isAdmin || isStandby) && isMyStandbyCoverage
-    ? 'border-blue-500 ring-1 ring-blue-500/45 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+  const standbyColor = standbyCoverage ? standbyColorForEmail(standbyCoverage.admin_email) : null;
+  const coveredTitleClass = standbyColor
+    ? `${standbyColor.highlight} rounded px-0.5`
     : '';
+  const coveredTitleTitle = standbyCoverage
+    ? `Standby: ${standbyCoverage.admin_name || standbyCoverage.admin_email}`
+    : undefined;
 
   const myAssignedShootClass = isAssigned
     ? 'border-purple-500 ring-1 ring-purple-500/45 shadow-[0_0_0_1px_rgba(168,85,247,0.22)]'
@@ -199,7 +195,7 @@ function ShootCalendarEntry({
     ? 'border-yellow-500 ring-1 ring-yellow-500/45 shadow-[0_0_0_1px_rgba(234,179,8,0.22)]'
     : '';
 
-  const entryOutlineClass = myStandbyCoverageClass || myAssignedShootClass || pendingShootClass;
+  const entryOutlineClass = myAssignedShootClass || pendingShootClass;
 
   // Remotes cannot self-assign when another remote already claimed (assigned or pending)
   const claimedByOther = isClaimedByOtherOperator(shoot, user?.email);
@@ -395,7 +391,7 @@ function ShootCalendarEntry({
           shouldGrey ? 'opacity-50' : takenByOther ? 'opacity-40' : ''
         } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''} ${
           isCancelled ? 'ring-1 ring-red-600/50 bg-red-950/20' : ''
-        }`}
+        } ${standbyColor ? `border-l-2 ${standbyColor.accent} pl-1` : ''}`}
       >
         <div className="flex items-center gap-1 min-w-0">
           <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
@@ -403,7 +399,7 @@ function ShootCalendarEntry({
             {shoot.game_time ? (
               <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
             ) : null}
-            {titleText}
+            <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
           </p>
           <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
@@ -440,7 +436,7 @@ function ShootCalendarEntry({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
             {shoot.game_time ? <span className="font-mono tabular-nums text-slate-400 font-medium mr-1.5">{shoot.game_time}</span> : null}
-            {titleText}
+            <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
           </p>
           <p className={`text-xs mt-0.5 ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'}`}>
             {assignmentLabel}
@@ -634,22 +630,6 @@ export default function Calendar() {
   const getStandbyForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
-  };
-
-  const getShootsCoveredByStandbyDay = (day) => {
-    const dateStr = format(day, 'yyyy-MM-dd');
-    const nextStr = format(addDays(day, 1), 'yyyy-MM-dd');
-    const start = new Date(`${dateStr}T18:00:00`);
-    const end = new Date(`${nextStr}T06:00:00`);
-    return shoots
-      .filter((s) => {
-        if (!s?.date || normalizeShootStatus(s.status) === 'cancelled') return false;
-        const t = s.game_time || s.start_time || '12:00';
-        const dt = new Date(`${s.date}T00:00:00`);
-        dt.setMinutes(timeToMinutes(t));
-        return dt >= start && dt <= end;
-      })
-      .sort((a, b) => (a.game_time || '').localeCompare(b.game_time || ''));
   };
 
   const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;
@@ -1270,7 +1250,6 @@ export default function Calendar() {
       day={day}
       user={user}
       isAdmin={isAdmin}
-      isStandby={isStandby}
       isOperator={isOperator}
       allUsers={allUsers}
       allShoots={shoots}
@@ -1322,10 +1301,6 @@ export default function Calendar() {
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
-            const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
-            const coveredStandbyLabel = coveredStandbyShoots
-              .map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim())
-              .join(', ');
             const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
@@ -1366,12 +1341,11 @@ export default function Calendar() {
                         primaryStandby ? standbyColor.button : EMPTY_STANDBY_COLOR.button
                       }`}
                       title={
-                        (myStandby
+                        myStandby
                           ? 'Remove yourself from standby (18:00–06:00)'
                           : otherStandby
                             ? 'Swap this 18:00–06:00 standby session to yourself'
-                            : 'Assign yourself to standby 18:00–06:00')
-                        + (coveredStandbyLabel ? ` · covering ${coveredStandbyLabel}` : '')
+                            : 'Assign yourself to standby 18:00–06:00'
                       }
                     >
                       {otherStandby ? 'Swap' : 'Standby'}
@@ -1392,15 +1366,10 @@ export default function Calendar() {
                    <div className="mb-0.5 px-0.5 shrink-0">
                      <span
                        className={`text-[9px] rounded border px-1 py-px truncate max-w-full inline-block ${standbyColor.chip}`}
-                       title={coveredStandbyLabel ? `Covering ${coveredStandbyLabel}` : 'No shoots in this 18:00–06:00 window'}
+                       title="Covered shoots are highlighted in this colour"
                      >
                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
                      </span>
-                     {coveredStandbyShoots.length > 0 && (
-                       <p className={`text-[9px] leading-tight truncate mt-px ${standbyColor.text}`} title={coveredStandbyLabel}>
-                         {coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}
-                       </p>
-                     )}
                    </div>
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
@@ -1449,7 +1418,6 @@ export default function Calendar() {
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
-            const coveredStandbyShoots = getShootsCoveredByStandbyDay(day);
             const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
@@ -1465,9 +1433,6 @@ export default function Calendar() {
                     {primaryStandby && (
                       <p className={`text-[11px] mt-1 ${standbyColor.text}`}>
                         Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
-                        {coveredStandbyShoots.length > 0
-                          ? ` · ${coveredStandbyShoots.map((s) => `${s.game_time || ''} ${shortenTitle(s.title) || 'Shoot'}`.trim()).join(' · ')}`
-                          : ' · no shoots in 18:00–06:00 window'}
                       </p>
                     )}
                   </div>
@@ -1687,6 +1652,7 @@ export default function Calendar() {
         isAdmin={isAdmin}
         allUsers={allUsers}
         rigSettings={rigSettings}
+        getStandbyCoverageForShoot={getStandbyCoverageForShoot}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
         onSelectShoot={(shoot) => {

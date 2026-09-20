@@ -141,15 +141,6 @@ function LayoutContent({ children, currentPageName }) {
                 <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
-              {user && !isAccounts && (
-                <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
-              )}
-            </div>
-          )}
-
-          {collapsed && user && !isAccounts && (
-            <div className="px-2 pb-2">
-              <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
             </div>
           )}
 
@@ -255,6 +246,9 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
+      {user && !isAccounts && (
+        <ShootNotifications shoots={shoots} user={user} notifyHours={notifyHours} />
+      )}
       {user && !isAccounts && <ShootCompleteReminder user={user} />}
       {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
