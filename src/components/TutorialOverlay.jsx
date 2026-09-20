@@ -33,7 +33,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Top notifications",
-    body: "New alerts pop in from the top with a sound. If you miss one, open Notifications above your name in the left sidebar and clear it there. Time changes show the original date/time and the new one in South Africa time."
+    body: "New alerts pop in from the top with a sound. If you miss one, open Notifications above your name in the left sidebar and clear it there. The Notifications tab keeps a history you can look back on. Time changes show the original date/time and the new one in South Africa time."
   },
   {
     title: "Online Now",
@@ -56,7 +56,7 @@ const REMOTE_STEPS = [
   },
   {
     title: "Shoot Phases",
-    body: "Each shoot has phases: Setup, Pre-Shoot, Attention, and Sound. As you progress through each phase, mark it complete using the phase buttons on your shoot card. This notifies the admin in real-time."
+    body: "Each shoot has phases: Setup, Pre-Shoot, Attention, and Sound. As you progress through each phase, mark it complete using the phase buttons on your shoot card. Starting pre-shoot alerts the admin on standby, and the Notifications tab keeps a history of those alerts."
   },
   {
     title: "Standby Banner",
@@ -64,7 +64,7 @@ const REMOTE_STEPS = [
   },
   {
     title: "Top notifications",
-    body: "New alerts pop in from the top with a sound. Missed ones stay in Notifications above your name so you can clear them there. Time or date changes show what it was and what it changed to (South Africa time)."
+    body: "New alerts pop in from the top with a sound. Missed ones stay in Notifications above your name so you can clear them there. Open the Notifications tab to look back through the full history. Time or date changes show what it was and what it changed to (South Africa time)."
   },
   {
     title: "Earnings",
