@@ -249,10 +249,10 @@ export const api = {
     calendars() {
       return request('/api/google/calendars');
     },
-    saveSettings({ calendarId }) {
+    saveSettings({ calendarId, dataCalendarId, fancamCalendarId }) {
       return request('/api/google/settings', {
         method: 'PATCH',
-        body: JSON.stringify({ calendarId }),
+        body: JSON.stringify({ calendarId, dataCalendarId, fancamCalendarId }),
       });
     },
     saveOAuth({ clientId, clientSecret, redirectUri }) {

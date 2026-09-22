@@ -14,7 +14,8 @@ export default function GoogleCalendarSettings() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
   const [savingOauth, setSavingOauth] = useState(false);
-  const [calendarId, setCalendarId] = useState('primary');
+  const [dataCalendarId, setDataCalendarId] = useState('');
+  const [fancamCalendarId, setFancamCalendarId] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
   const [redirectUri, setRedirectUri] = useState('');
@@ -33,8 +34,10 @@ export default function GoogleCalendarSettings() {
   });
 
   useEffect(() => {
-    if (status?.calendarId) setCalendarId(status.calendarId);
-  }, [status?.calendarId]);
+    if (status?.dataCalendarId) setDataCalendarId(status.dataCalendarId);
+    else if (status?.calendarId) setDataCalendarId(status.calendarId);
+    if (status?.fancamCalendarId) setFancamCalendarId(status.fancamCalendarId);
+  }, [status?.dataCalendarId, status?.calendarId, status?.fancamCalendarId]);
 
   useEffect(() => {
     if (!status) return;
@@ -120,8 +123,8 @@ export default function GoogleCalendarSettings() {
     setSavingCalendar(true);
     setError('');
     try {
-      await base44.google.saveSettings({ calendarId });
-      setMessage('Calendar saved');
+      await base44.google.saveSettings({ dataCalendarId, fancamCalendarId });
+      setMessage('Data and Fancam calendars saved');
       queryClient.invalidateQueries({ queryKey: ['googleStatus'] });
     } catch (err) {
       setError(err.message || 'Could not save calendar');
@@ -136,7 +139,7 @@ export default function GoogleCalendarSettings() {
     try {
       const result = await base44.google.sync();
       setMessage(
-        `Synced: ${result.created} new, ${result.updated} updated, ${result.cancelled} cancelled (${result.fetched} events)`
+        `Synced Data + Fancam: ${result.created} new, ${result.updated} updated, ${result.cancelled} cancelled (${result.fetched} events). Google was not changed.`
       );
       queryClient.invalidateQueries({ queryKey: ['googleStatus'] });
       queryClient.invalidateQueries({ queryKey: ['shoots'] });
@@ -161,8 +164,8 @@ export default function GoogleCalendarSettings() {
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
         <p className="text-xs text-slate-500">
-          Connect the Google Calendar you actually edit. Sync pulls title, date, and start time only — stored and shown in
-          South Africa time (SAST). Card layout, assignments, rates, and phases stay in the app.
+          Connect Google once, then pick your Data and Fancam calendars. Sync pulls both at the same time into the app
+          calendar format (South Africa time). Edits in this app never write back to Google.
         </p>
 
         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2 text-xs text-slate-400">
@@ -279,37 +282,52 @@ export default function GoogleCalendarSettings() {
 
             {status?.connected && (
               <div className="space-y-3">
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="min-w-[220px] flex-1">
-                    <label className="text-xs text-slate-400 block mb-1">Calendar to sync</label>
-                    <Select value={calendarId} onValueChange={setCalendarId}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Data calendar</label>
+                    <Select value={dataCalendarId || undefined} onValueChange={setDataCalendarId}>
                       <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100">
-                        <SelectValue placeholder="Select calendar" />
+                        <SelectValue placeholder="Select Data calendar" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-900 border-slate-800 text-slate-100">
-                        {(calendars.length ? calendars : [{ id: calendarId || 'primary', summary: calendarId || 'primary' }]).map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
+                        {(calendars.length ? calendars : [{ id: dataCalendarId || 'primary', summary: dataCalendarId || 'primary' }]).map((c) => (
+                          <SelectItem key={`data-${c.id}`} value={c.id}>
                             {c.summary || c.id}{c.primary ? ' (primary)' : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button
-                    onClick={handleSaveCalendar}
-                    disabled={savingCalendar}
-                    variant="outline"
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800 gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {savingCalendar ? 'Saving…' : 'Save'}
-                  </Button>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Fancam calendar</label>
+                    <Select value={fancamCalendarId || undefined} onValueChange={setFancamCalendarId}>
+                      <SelectTrigger className="bg-slate-800 border-slate-800 text-slate-100">
+                        <SelectValue placeholder="Select Fancam calendar" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-slate-100">
+                        {(calendars.length ? calendars : [{ id: fancamCalendarId || 'primary', summary: fancamCalendarId || 'primary' }]).map((c) => (
+                          <SelectItem key={`fancam-${c.id}`} value={c.id}>
+                            {c.summary || c.id}{c.primary ? ' (primary)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                <Button
+                  onClick={handleSaveCalendar}
+                  disabled={savingCalendar || (!dataCalendarId && !fancamCalendarId)}
+                  variant="outline"
+                  className="border-slate-700 text-slate-300 hover:bg-slate-800 gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {savingCalendar ? 'Saving…' : 'Save calendars'}
+                </Button>
 
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={handleSync} disabled={syncing} className="bg-blue-600 hover:bg-blue-500 gap-2">
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing…' : 'Sync now'}
+                    {syncing ? 'Syncing…' : 'Sync Data + Fancam'}
                   </Button>
                   <Button
                     onClick={handleDisconnect}
@@ -321,6 +339,24 @@ export default function GoogleCalendarSettings() {
                     {disconnecting ? 'Disconnecting…' : 'Disconnect'}
                   </Button>
                 </div>
+
+                {(status?.lastSyncChanges || []).length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 mb-1.5">Last sync changes</p>
+                    <ul className="space-y-1 max-h-40 overflow-y-auto">
+                      {status.lastSyncChanges.slice(0, 20).map((item, index) => (
+                        <li key={`${item.title}-${item.date}-${index}`} className="text-xs text-slate-300">
+                          <span className="text-blue-300">{item.calendar || 'Google'}</span>
+                          {' · '}
+                          <span className="text-slate-400">{item.action}</span>
+                          {' · '}
+                          {item.title}
+                          {item.date ? ` · ${item.date}${item.time ? ` ${item.time}` : ''}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </>

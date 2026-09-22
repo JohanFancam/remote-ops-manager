@@ -25,7 +25,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Calendar",
-    body: "The Calendar shows all scheduled shoots. Click a date to view shoot details, assign operators, or create new shoots. Use the list view on mobile for a cleaner layout."
+    body: "The Calendar shows all scheduled shoots. Admins can sync Data and Fancam Google calendars here without changing Google. Operators mark Not available on a day. Standby colours highlight the covered games, not the whole day."
   },
   {
     title: "Rigs Page",

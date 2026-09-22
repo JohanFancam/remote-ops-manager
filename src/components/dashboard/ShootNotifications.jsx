@@ -119,6 +119,8 @@ function storedTypeLabel(type) {
       return 'Availability';
     case 'day_of':
       return 'Shoot today';
+    case 'google_sync':
+      return 'Google sync';
     default:
       return urgencyLabel.change;
   }
