@@ -23,17 +23,15 @@ Short version: create a Railway account with GitHub → deploy this repo → add
 
 ## Shipping updates (Lightsail / VPS)
 
-After this update is on the live server once, admins deploy later updates from
-**Settings → Deploy** (pick a `main` or `cursor/…` branch and click the button).
+SSH into the server and run `deploy.sh` with the branch to ship. There is no
+in-app Deploy button.
 
 `deploy.sh` pulls the branch, installs dependencies, rebuilds the frontend
 (with a memory cap so 1 GB hosts don't get OOM-killed), restarts PM2, and hits `/api/health`.
 
-First-time / emergency SSH:
-
 ```bash
 cd /home/ubuntu/remote-ops-manager
-./deploy.sh cursor/one-click-deploy-a34f
+./deploy.sh cursor/settings-autosync-no-deploy-a34f
 ```
 
 ### Automatic deploy on push

@@ -41,7 +41,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Settings",
-    body: "Configure pay rates, notification thresholds, Slack message templates, WhatsApp reminders, and manage team members. Admins can deploy a new update from Settings → Deploy with one click, then remind the team to refresh."
+    body: "Configure pay rates, Slack message templates, Google Calendar, and team members. Admin settings are grouped into categories and stay collapsed until you open one."
   },
 ];
 

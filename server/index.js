@@ -35,6 +35,7 @@ import {
   saveGoogleSettings,
   getGoogleSettings,
   saveOAuthClient,
+  maybeRunScheduledGoogleSync,
 } from './googleCalendar.js';
 import {
   getVapidPublicKey,
@@ -53,8 +54,6 @@ import {
   parseFileContents,
   countBrokenShootReferences,
 } from './entityImport.js';
-import { getDeploySnapshot, startDeploy, readDeployLog } from './deploy.js';
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -547,31 +546,6 @@ app.post('/api/google/sync', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/deploy/status', authMiddleware, requireAdmin, (_req, res) => {
-  try {
-    res.json(getDeploySnapshot());
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-app.get('/api/deploy/log', authMiddleware, requireAdmin, (_req, res) => {
-  res.json({ log: readDeployLog() });
-});
-
-app.post('/api/deploy', authMiddleware, requireAdmin, (req, res) => {
-  try {
-    const branch = String(req.body?.branch || '').trim();
-    const status = startDeploy({
-      branch,
-      triggeredBy: req.user?.email || '',
-    });
-    res.json({ ok: true, status });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
 app.get('/api/entities/:type/subscribe', authMiddleware, (req, res) => {
   const { type } = req.params;
   if (type !== 'User' && !ENTITY_TYPES.includes(type)) {
@@ -619,10 +593,13 @@ app.listen(PORT, () => {
   console.log(`Remote Ops API listening on http://localhost:${PORT}`);
   console.log(`Entity types: User, ${ENTITY_TYPES.join(', ')}`);
 
-  // Day-of / starting-soon reminders (every minute)
-  const runReminders = () => {
+  // Day-of reminders plus Google auto-sync (06:00 / 13:00 / 20:00 SAST)
+  const runBackgroundJobs = () => {
     runReminderPass().catch((err) => console.warn('Reminder pass failed:', err.message));
+    maybeRunScheduledGoogleSync().catch((err) => {
+      console.warn('Scheduled Google sync failed:', err.message);
+    });
   };
-  setTimeout(runReminders, 15_000);
-  setInterval(runReminders, 60_000);
+  setTimeout(runBackgroundJobs, 15_000);
+  setInterval(runBackgroundJobs, 60_000);
 });

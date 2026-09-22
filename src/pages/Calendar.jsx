@@ -1524,6 +1524,9 @@ export default function Calendar() {
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
             <p className="text-sm text-slate-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
+            {isAdmin && (
+              <p className="text-xs text-slate-500 mt-1">Google Data + Fancam auto-sync at 06:00, 13:00 and 20:00 SAST.</p>
+            )}
             {isAdmin && googleStatus?.lastSyncAt && (
               <div className="mt-1">
                 <p className="text-xs text-slate-500">

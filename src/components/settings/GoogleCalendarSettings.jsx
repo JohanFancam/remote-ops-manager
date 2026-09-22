@@ -167,6 +167,10 @@ export default function GoogleCalendarSettings() {
           Connect Google once, then pick your Data and Fancam calendars. Sync pulls both at the same time into the app
           calendar format (South Africa time). Edits in this app never write back to Google.
         </p>
+        <p className="text-xs text-slate-500">
+          After they are connected, both calendars auto-sync at{' '}
+          <span className="text-slate-300">06:00, 13:00 and 20:00 SAST</span> every day. You can still press Sync any time.
+        </p>
 
         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2 text-xs text-slate-400">
           <p className="text-slate-200 font-medium">Create the Google login (once)</p>
