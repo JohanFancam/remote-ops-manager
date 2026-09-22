@@ -1562,16 +1562,19 @@ export default function Calendar() {
                     size="sm"
                     title={googleStatus.lastSyncAt
                       ? `Last sync ${new Date(googleStatus.lastSyncAt).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })} SAST`
-                      : 'Pull title, date, and time from Google (South Africa time)'}
+                      : 'Pull Data and Fancam from Google (South Africa time). Google is not changed.'}
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${googleSyncing ? 'animate-spin' : ''}`} />
                     {googleSyncing ? 'Syncing…' : 'Sync calendars'}
                   </Button>
-                ) : googleStatus?.configured ? (
-                  <Button asChild variant="outline" className="border-slate-700 text-slate-400 hover:bg-slate-800" size="sm">
-                    <Link to="/Settings">Connect Google</Link>
+                ) : (
+                  <Button asChild variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800" size="sm">
+                    <Link to="/Settings">
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      {googleStatus?.configured ? 'Connect Google' : 'Set up Google sync'}
+                    </Link>
                   </Button>
-                ) : null}
+                )}
                 <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
                 </Button>
