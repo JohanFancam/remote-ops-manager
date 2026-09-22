@@ -7,13 +7,14 @@ import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
-import DeploySettings from '../components/settings/DeploySettings';
+import SettingsCategory from '../components/settings/SettingsCategory';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound
+  User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound,
+  CalendarDays, Database, Users
 } from 'lucide-react';
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 
@@ -356,36 +357,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* App Logo — Admin only */}
-        {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <Image className="h-5 w-5 text-blue-400" /> App Logo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-                  {logoUrl
-                    ? <img src={logoUrl} alt="App Logo" className="w-full h-full object-contain" />
-                    : <span className="text-2xl font-bold text-blue-400">R</span>
-                  }
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400 mb-2">Upload a custom logo (PNG, JPG, SVG recommended)</p>
-                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                  <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
-                    className="bg-blue-600 hover:bg-blue-600 gap-2">
-                    <Image className="h-4 w-4" />
-                    {logoUploading ? 'Uploading...' : 'Upload Logo'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Push / install — all roles */}
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
@@ -398,141 +369,208 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {isAdmin && <GoogleCalendarSettings />}
-
-        {/* Import Base44 exports — Admin only */}
-        {isAdmin && <DataImportSection />}
-
-        {/* Pay Rates — Admin only */}
         {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-emerald-400" /> Pay Rates (ZAR)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee. Operator / Standby users earn the standby session fee for each 18:00–06:00 coverage night.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Standard Shoot Rate (R)</label>
-                  <Input
-                    type="number"
-                    value={rateBaseInput}
-                    onChange={e => setRateBaseInput(e.target.value)}
-                    placeholder="1000"
-                    className="bg-slate-800 border-slate-800 text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Additional Shoot Rate (R)</label>
-                  <Input
-                    type="number"
-                    value={rateAdditionalInput}
-                    onChange={e => setRateAdditionalInput(e.target.value)}
-                    placeholder="250"
-                    className="bg-slate-800 border-slate-800 text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Postponed Shoot Fee (R)</label>
-                  <Input
-                    type="number"
-                    value={ratePostponedInput}
-                    onChange={e => setRatePostponedInput(e.target.value)}
-                    placeholder="250"
-                    className="bg-slate-800 border-slate-800 text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Operator / Standby Session (R)</label>
-                  <Input
-                    type="number"
-                    value={rateStandbyInput}
-                    onChange={e => setRateStandbyInput(e.target.value)}
-                    placeholder="500"
-                    className="bg-slate-800 border-slate-800 text-slate-100"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">One 18:00–06:00 standby session</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Admin Working Hours / Active Day</label>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={adminDayHoursInput}
-                    onChange={e => setAdminDayHoursInput(e.target.value)}
-                    placeholder="9.5"
-                    className="bg-slate-800 border-slate-800 text-slate-100"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">Hours counted per day with a shoot or standby (never doubled)</p>
-                </div>
-              </div>
-              <Button onClick={handleSaveRates} className="bg-green-700 hover:bg-green-600 gap-2">
-                <Save className="h-4 w-4" /> {ratesSaved ? '✓ Saved!' : 'Save Rates'}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="mb-3 mt-2">
+            <h2 className="text-sm font-semibold text-slate-300">Admin settings</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Grouped by topic and collapsed by default. Open a section to change it.</p>
+          </div>
         )}
 
-        {/* Message Templates — Admin only */}
         {isAdmin && (
-          <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
+          <SettingsCategory
+            title="Calendar"
+            description="Google Data + Fancam sync. Auto-syncs at 06:00, 13:00 and 20:00 SAST."
+            icon={CalendarDays}
+          >
+            <GoogleCalendarSettings />
+          </SettingsCategory>
         )}
 
-        {isAdmin && <DeploySettings />}
-
-        {/* App Version / Refresh Reminder — Admin only */}
         {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <RefreshCw className="h-5 w-5 text-orange-400" /> App Updates
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <p className="text-xs text-slate-500 mb-1">After a deploy finishes, use this to remind everyone to refresh their browser.</p>
-              <AppVersionBump appSettings={appSettings} queryClient={queryClient} />
-            </CardContent>
-          </Card>
+          <SettingsCategory
+            title="Data import"
+            description="Bring in Base44 CSV or JSON exports"
+            icon={Database}
+          >
+            <DataImportSection />
+          </SettingsCategory>
         )}
 
-        {/* Slack Messages — Admin only */}
         {isAdmin && (
-          <Card className="bg-slate-900 border-slate-800 mb-6">
-            <CardHeader className="border-b border-slate-800 pb-4">
-              <CardTitle className="text-slate-100 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-emerald-400" /> Phase Slack Messages
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <p className="text-xs text-slate-500">Use <code className="text-blue-400">{'{team}'}</code> to insert the team/client name dynamically.</p>
-              {SLACK_PHASES.map(phase => (
-                <div key={phase.key}>
-                  <label className="text-xs text-slate-400 block mb-1">{phase.label}</label>
-                  <Input
-                    placeholder={phase.placeholder}
-                    value={slackMsgs[phase.key] || ''}
-                    onChange={e => setSlackMsgs({ ...slackMsgs, [phase.key]: e.target.value })}
-                    className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm"
-                  />
+          <SettingsCategory
+            title="Pay rates"
+            description="Standard, additional, postponed, standby, and admin hours"
+            icon={DollarSign}
+          >
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-emerald-400" /> Pay Rates (ZAR)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <p className="text-xs text-slate-500">Additional shoots only apply when within 2 hours of a standard shoot on the same day. Cancelled shoots show as Cancelled with no pay. Postponed shoots pay the postponed fee. Operator / Standby users earn the standby session fee for each 18:00–06:00 coverage night.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Standard Shoot Rate (R)</label>
+                    <Input
+                      type="number"
+                      value={rateBaseInput}
+                      onChange={e => setRateBaseInput(e.target.value)}
+                      placeholder="1000"
+                      className="bg-slate-800 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Additional Shoot Rate (R)</label>
+                    <Input
+                      type="number"
+                      value={rateAdditionalInput}
+                      onChange={e => setRateAdditionalInput(e.target.value)}
+                      placeholder="250"
+                      className="bg-slate-800 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Postponed Shoot Fee (R)</label>
+                    <Input
+                      type="number"
+                      value={ratePostponedInput}
+                      onChange={e => setRatePostponedInput(e.target.value)}
+                      placeholder="250"
+                      className="bg-slate-800 border-slate-800 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Operator / Standby Session (R)</label>
+                    <Input
+                      type="number"
+                      value={rateStandbyInput}
+                      onChange={e => setRateStandbyInput(e.target.value)}
+                      placeholder="500"
+                      className="bg-slate-800 border-slate-800 text-slate-100"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">One 18:00–06:00 standby session</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Admin Working Hours / Active Day</label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={adminDayHoursInput}
+                      onChange={e => setAdminDayHoursInput(e.target.value)}
+                      placeholder="9.5"
+                      className="bg-slate-800 border-slate-800 text-slate-100"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Hours counted per day with a shoot or standby (never doubled)</p>
+                  </div>
                 </div>
-              ))}
-              <Button onClick={handleSaveSlackMessages} className="bg-green-700 hover:bg-green-600 gap-2">
-                <Save className="h-4 w-4" /> {slackSaved ? '✓ Saved!' : 'Save Messages'}
-              </Button>
-            </CardContent>
-          </Card>
+                <Button onClick={handleSaveRates} className="bg-green-700 hover:bg-green-600 gap-2">
+                  <Save className="h-4 w-4" /> {ratesSaved ? '✓ Saved!' : 'Save Rates'}
+                </Button>
+              </CardContent>
+            </Card>
+          </SettingsCategory>
         )}
 
-        {/* Auto-Assignment Rules — Admin only */}
         {isAdmin && (
-          <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
+          <SettingsCategory
+            title="Messages"
+            description="Rigs check, shoot summary, and phase Slack copy"
+            icon={MessageSquare}
+          >
+            <MessageTemplatesSection appSettings={appSettings} queryClient={queryClient} />
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-emerald-400" /> Phase Slack Messages
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <p className="text-xs text-slate-500">Use <code className="text-blue-400">{'{team}'}</code> to insert the team/client name dynamically.</p>
+                {SLACK_PHASES.map(phase => (
+                  <div key={phase.key}>
+                    <label className="text-xs text-slate-400 block mb-1">{phase.label}</label>
+                    <Input
+                      placeholder={phase.placeholder}
+                      value={slackMsgs[phase.key] || ''}
+                      onChange={e => setSlackMsgs({ ...slackMsgs, [phase.key]: e.target.value })}
+                      className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm"
+                    />
+                  </div>
+                ))}
+                <Button onClick={handleSaveSlackMessages} className="bg-green-700 hover:bg-green-600 gap-2">
+                  <Save className="h-4 w-4" /> {slackSaved ? '✓ Saved!' : 'Save Messages'}
+                </Button>
+              </CardContent>
+            </Card>
+          </SettingsCategory>
         )}
 
-        {/* Add / Manage Users — all admins */}
         {isAdmin && (
-          <ManageUsersSection queryClient={queryClient} />
+          <SettingsCategory
+            title="Team"
+            description="Users, roles, passwords, and auto-assignment"
+            icon={Users}
+          >
+            <ManageUsersSection queryClient={queryClient} />
+            <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
+          </SettingsCategory>
+        )}
+
+        {isAdmin && (
+          <SettingsCategory
+            title="Appearance"
+            description="App logo shown in the sidebar"
+            icon={Image}
+          >
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-blue-400" /> App Logo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
+                    {logoUrl
+                      ? <img src={logoUrl} alt="App Logo" className="w-full h-full object-contain" />
+                      : <span className="text-2xl font-bold text-blue-400">R</span>
+                    }
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-400 mb-2">Upload a custom logo (PNG, JPG, SVG recommended)</p>
+                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
+                      className="bg-blue-600 hover:bg-blue-600 gap-2">
+                      <Image className="h-4 w-4" />
+                      {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </SettingsCategory>
+        )}
+
+        {isAdmin && (
+          <SettingsCategory
+            title="App updates"
+            description="Remind the team to refresh after a server update"
+            icon={RefreshCw}
+          >
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-orange-400" /> App Updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-500 mb-1">After you ship an update on the server, use this to remind everyone to refresh their browser.</p>
+                <AppVersionBump appSettings={appSettings} queryClient={queryClient} />
+              </CardContent>
+            </Card>
+          </SettingsCategory>
         )}
 
 

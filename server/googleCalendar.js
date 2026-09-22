@@ -10,6 +10,9 @@ import { listEntities, createEntity, updateEntity } from './entities.js';
 import { handleShootChange, createNotifications } from './notifications.js';
 
 const ZA_TZ = 'Africa/Johannesburg';
+export const AUTO_SYNC_HOURS = [6, 13, 20];
+
+let scheduledSyncInFlight = false;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -87,6 +90,9 @@ export function getGoogleSettings() {
     lastSyncAt: saved.lastSyncAt || null,
     lastSyncStats: saved.lastSyncStats || null,
     lastSyncChanges: saved.lastSyncChanges || [],
+    lastAutoSyncSlot: saved.lastAutoSyncSlot || null,
+    autoSyncHours: AUTO_SYNC_HOURS,
+    autoSyncTimeZone: ZA_TZ,
   };
 }
 
@@ -182,8 +188,60 @@ export function getGoogleStatus() {
     lastSyncAt: settings.lastSyncAt || null,
     lastSyncStats: settings.lastSyncStats || null,
     lastSyncChanges: settings.lastSyncChanges || [],
+    lastAutoSyncSlot: settings.lastAutoSyncSlot || null,
+    autoSyncHours: AUTO_SYNC_HOURS,
+    autoSyncTimeZone: ZA_TZ,
     writeToGoogle: false,
   };
+}
+
+function sastDateHour(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZA_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    hour: Number(get('hour')),
+  };
+}
+
+export function currentAutoSyncSlot(now = new Date()) {
+  const { date, hour } = sastDateHour(now);
+  const dueHour = [...AUTO_SYNC_HOURS].reverse().find((h) => hour >= h);
+  if (dueHour === undefined) return null;
+  return `${date}-${String(dueHour).padStart(2, '0')}`;
+}
+
+/**
+ * Pull Data + Fancam three times a day (06:00, 13:00, 20:00 SAST).
+ * If the process was down during a slot, the next minute after it comes
+ * back will catch up once for that slot.
+ */
+export async function maybeRunScheduledGoogleSync() {
+  if (scheduledSyncInFlight) return null;
+  if (!isGoogleConnected()) return null;
+  if (!getConfiguredCalendars().length) return null;
+  const slot = currentAutoSyncSlot();
+  if (!slot) return null;
+  if (getGoogleSettings().lastAutoSyncSlot === slot) return null;
+
+  scheduledSyncInFlight = true;
+  try {
+    const result = await syncGoogleCalendar({ user: null });
+    saveGoogleSettings({ lastAutoSyncSlot: slot });
+    console.log(
+      `Scheduled Google sync ${slot}: ${result.created} new, ${result.updated} updated, ${result.cancelled} cancelled`
+    );
+    return result;
+  } finally {
+    scheduledSyncInFlight = false;
+  }
 }
 
 async function getAuthedClient() {

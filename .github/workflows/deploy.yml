@@ -1,8 +1,7 @@
 name: Deploy
 
 # Pushing to a deploy branch updates the live server when SSH secrets exist.
-# Otherwise deploy from Settings → Deploy on the live site, or run this
-# workflow from the Actions tab (Run workflow) and pick a branch.
+# Otherwise run this workflow from the Actions tab, or SSH and run ./deploy.sh.
 on:
   push:
     branches:
