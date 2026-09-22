@@ -14,6 +14,7 @@ const FILTERS = [
   { id: 'schedule', label: 'Time changes' },
   { id: 'standby', label: 'Standby' },
   { id: 'team', label: 'Team' },
+  { id: 'sync', label: 'Google sync' },
 ];
 
 const START_TYPES = new Set(['needs_start', 'start_overdue', 'starting_soon']);
@@ -48,6 +49,8 @@ function notificationTypeLabel(type) {
       return 'Availability';
     case 'day_of':
       return 'Shoot today';
+    case 'google_sync':
+      return 'Google sync';
     default:
       return 'Update';
   }
@@ -65,6 +68,7 @@ function matchesFilter(type, filter) {
   if (filter === 'schedule') return SCHEDULE_TYPES.has(type);
   if (filter === 'standby') return type === 'standby';
   if (filter === 'team') return TEAM_TYPES.has(type);
+  if (filter === 'sync') return type === 'google_sync';
   return true;
 }
 

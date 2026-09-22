@@ -524,11 +524,16 @@ app.get('/api/google/calendars', authMiddleware, requireAdmin, async (_req, res)
 });
 
 app.patch('/api/google/settings', authMiddleware, requireAdmin, (req, res) => {
-  const calendarId = String(req.body?.calendarId || '').trim();
-  if (!calendarId) {
-    return res.status(400).json({ error: 'calendarId required' });
+  const dataCalendarId = String(req.body?.dataCalendarId || req.body?.calendarId || '').trim();
+  const fancamCalendarId = String(req.body?.fancamCalendarId || '').trim();
+  if (!dataCalendarId && !fancamCalendarId) {
+    return res.status(400).json({ error: 'Choose at least one Google calendar' });
   }
-  const settings = saveGoogleSettings({ calendarId });
+  const settings = saveGoogleSettings({
+    dataCalendarId,
+    fancamCalendarId,
+    calendarId: dataCalendarId || fancamCalendarId,
+  });
   res.json({ ok: true, ...getGoogleStatus(), settings });
 });
 

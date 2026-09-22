@@ -197,11 +197,6 @@ function LayoutContent({ children, currentPageName }) {
           )}
 
           <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
-            {user && !isAccounts && (
-              <div className={cn(collapsed ? "mb-2" : "mb-3")}>
-                <NotificationInbox collapsed={collapsed} />
-              </div>
-            )}
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-blue-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}

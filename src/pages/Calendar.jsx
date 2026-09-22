@@ -400,6 +400,12 @@ function ShootCalendarEntry({
               <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
             ) : null}
             <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
+            {shoot.google_sync_flag === 'new' && (
+              <span className="ml-1 text-[9px] uppercase text-emerald-300">New</span>
+            )}
+            {shoot.google_sync_flag === 'updated' && (
+              <span className="ml-1 text-[9px] uppercase text-amber-300">Updated</span>
+            )}
           </p>
           <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
@@ -437,6 +443,12 @@ function ShootCalendarEntry({
           <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
             {shoot.game_time ? <span className="font-mono tabular-nums text-slate-400 font-medium mr-1.5">{shoot.game_time}</span> : null}
             <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
+            {shoot.google_sync_flag === 'new' && (
+              <span className="ml-1.5 text-[10px] uppercase tracking-wide text-emerald-300">New</span>
+            )}
+            {shoot.google_sync_flag === 'updated' && (
+              <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-300">Updated</span>
+            )}
           </p>
           <p className={`text-xs mt-0.5 ${hasPending && !assignedNames ? 'text-amber-400' : 'text-slate-400'}`}>
             {assignmentLabel}
@@ -491,7 +503,7 @@ export default function Calendar() {
       await queryClient.invalidateQueries({ queryKey: ['shoots'] });
       await queryClient.invalidateQueries({ queryKey: ['googleStatus'] });
       toast.success(
-        `Google sync (SAST): ${result.created} new · ${result.updated} updated · ${result.cancelled} cancelled`
+        `Data + Fancam sync: ${result.created} new · ${result.updated} updated · ${result.cancelled} cancelled. Google was not changed.`
       );
     } catch (err) {
       toast.error(err.message || 'Google sync failed');
@@ -1310,9 +1322,9 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 border-l-2 ${
-                  primaryStandby ? standbyColor.accent : 'border-l-transparent'
-                } ${isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'} ${greyOutDay ? 'opacity-55' : ''}`}
+                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 ${
+                  isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'
+                } ${greyOutDay ? 'opacity-55' : ''}`}
               >
                 <div className="flex items-center justify-between gap-0.5 mb-0.5 shrink-0 px-0.5">
                   <button
@@ -1355,10 +1367,15 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleUnavailableDay(day); }}
-                      className={`inline-flex items-center rounded-full border px-1 py-px text-[9px] transition-colors ${myUnavailable ? 'border-red-500/45 bg-red-950/40 text-red-400' : 'border-transparent text-slate-600 hover:text-slate-300 hover:bg-slate-800'}`}
+                      className={`inline-flex items-center rounded-full border px-1.5 py-px text-[9px] font-semibold leading-none transition-colors ${
+                        myUnavailable
+                          ? 'border-red-500/45 bg-red-950/40 text-red-300'
+                          : 'border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
                       title={myUnavailable ? exactCalendarUnavailable ? 'Remove your unavailable mark for this day' : 'You are marked unavailable from an availability range' : 'Mark yourself unavailable for this day'}
                     >
-                      <UserX className="h-2.5 w-2.5" />
+                      <UserX className="h-2.5 w-2.5 mr-0.5" />
+                      Out
                     </button>
                   )}
                 </div>
@@ -1469,11 +1486,15 @@ export default function Calendar() {
                          size="sm"
                          variant="outline"
                          onClick={() => handleToggleUnavailableDay(day)}
-                         className={`h-8 rounded-md border-slate-800 bg-slate-800/70 text-xs ${myUnavailable ? 'text-red-400 hover:bg-red-950/30 hover:text-red-200' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
+                         className={`h-8 rounded-md text-xs ${
+                           myUnavailable
+                             ? 'border-red-500/45 bg-red-950/30 text-red-300 hover:bg-red-950/50'
+                             : 'border-slate-600 bg-slate-800/70 text-slate-200 hover:bg-slate-800 hover:text-white'
+                         }`}
                          title={myUnavailable && !exactCalendarUnavailable ? 'You are marked unavailable from an availability range' : undefined}
                        >
                          <UserX className="h-3.5 w-3.5 mr-1" />
-                         {myUnavailable ? 'Remove Unavailable' : 'Mark Unavailable'}
+                         {myUnavailable ? 'Available' : 'Not available'}
                        </Button>
                      )}
                   </div>
@@ -1503,6 +1524,30 @@ export default function Calendar() {
           <div>
             <h1 className="text-3xl font-bold">Calendar</h1>
             <p className="text-sm text-slate-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
+            {isAdmin && googleStatus?.lastSyncAt && (
+              <div className="mt-1">
+                <p className="text-xs text-slate-500">
+                  Last Google sync:{' '}
+                  {new Date(googleStatus.lastSyncAt).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })} SAST
+                  {googleStatus.lastSyncStats
+                    ? ` · ${googleStatus.lastSyncStats.created || 0} new, ${googleStatus.lastSyncStats.updated || 0} updated, ${googleStatus.lastSyncStats.cancelled || 0} cancelled`
+                    : ''}
+                </p>
+                {(googleStatus.lastSyncChanges || []).length > 0 && (
+                  <details className="mt-1">
+                    <summary className="text-xs text-blue-300 cursor-pointer">What changed</summary>
+                    <ul className="mt-1 space-y-0.5 max-h-28 overflow-y-auto">
+                      {googleStatus.lastSyncChanges.slice(0, 12).map((item, index) => (
+                        <li key={`${item.title}-${index}`} className="text-[11px] text-slate-400">
+                          {item.calendar || 'Google'} · {item.action} · {item.title}
+                          {item.date ? ` · ${item.date}${item.time ? ` ${item.time}` : ''}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
@@ -1520,7 +1565,7 @@ export default function Calendar() {
                       : 'Pull title, date, and time from Google (South Africa time)'}
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${googleSyncing ? 'animate-spin' : ''}`} />
-                    {googleSyncing ? 'Syncing…' : 'Sync Google'}
+                    {googleSyncing ? 'Syncing…' : 'Sync calendars'}
                   </Button>
                 ) : googleStatus?.configured ? (
                   <Button asChild variant="outline" className="border-slate-700 text-slate-400 hover:bg-slate-800" size="sm">
