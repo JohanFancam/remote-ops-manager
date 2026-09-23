@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
+import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
   Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp, Bell,
@@ -34,7 +35,7 @@ function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics) {
 
 function LayoutContent({ children, currentPageName }) {
   const { user, isAdmin, isStandby, isAccounts, isAnalytics, isLoading } = useApp();
-  const queryClient = useQueryClient();
+  const { logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
   );
@@ -68,31 +69,6 @@ function LayoutContent({ children, currentPageName }) {
       navigate('/', { replace: true });
     }
   }, [isLoading, isAnalytics, currentPageName, navigate]);
-
-  useEffect(() => {
-    if (!user || isAccounts) return;
-    let unsubShoot;
-    let unsubNotes;
-    try {
-      unsubShoot = base44.entities.Shoot.subscribe(() => {
-        queryClient.invalidateQueries({ queryKey: ['shoots'] });
-      });
-    } catch {
-      // optional
-    }
-    try {
-      unsubNotes = base44.entities.ShootNotification.subscribe(() => {
-        queryClient.invalidateQueries({ queryKey: ['shoots'] });
-        queryClient.invalidateQueries({ queryKey: ['notificationHistory'] });
-      });
-    } catch {
-      // optional
-    }
-    return () => {
-      unsubShoot?.();
-      unsubNotes?.();
-    };
-  }, [user, isAccounts]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -160,7 +136,7 @@ function LayoutContent({ children, currentPageName }) {
           ? analyticsNav
           : remoteNav;
 
-  const handleLogout = () => base44.auth.logout();
+  const handleLogout = () => logout(true);
 
   return (
     <NotificationProvider
@@ -294,7 +270,7 @@ function LayoutContent({ children, currentPageName }) {
       </TooltipProvider>
 
       <div
-        className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-[color:var(--rom-line)] bg-[#080e1d]/92 backdrop-blur-xl flex items-center px-4"
+        className="md:hidden fixed top-0 left-0 right-0 z-[80] border-b border-[color:var(--rom-line)] bg-[#080e1d]/92 backdrop-blur-xl flex items-center px-4"
         style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-2.5">
@@ -311,7 +287,7 @@ function LayoutContent({ children, currentPageName }) {
             <Button
               variant="ghost"
               size="sm"
-              className="text-slate-300 hover:text-slate-50 hover:bg-white/5 gap-1.5"
+              className="min-h-10 text-slate-300 hover:text-slate-50 hover:bg-white/5 gap-1.5 px-3"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />

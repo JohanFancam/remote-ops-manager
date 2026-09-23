@@ -60,6 +60,7 @@
     font-family: var(--rom-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -71,6 +72,7 @@
       linear-gradient(180deg, #071028 0%, #050816 48%, #060a16 100%);
     background-attachment: fixed;
     overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -97,7 +99,7 @@
 
 @layer components {
   .rom-page {
-    @apply min-h-screen p-4 md:p-8 text-slate-100;
+    @apply min-h-screen p-3 sm:p-4 md:p-8 text-slate-100;
   }
 
   .rom-page-inner {
@@ -139,9 +141,15 @@
     border: 1px solid var(--rom-line);
     background: #070d1c;
     padding: 0.625rem 0.875rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: #f1f5f9;
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  @media (min-width: 768px) {
+    .rom-input {
+      font-size: 0.875rem;
+    }
   }
 
   .rom-input::placeholder {

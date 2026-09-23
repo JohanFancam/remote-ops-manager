@@ -1332,7 +1332,7 @@ export default function Calendar() {
     const monthEnd = endOfMonth(currentDate);
     const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startPadding = monthStart.getDay();
-    const monthGridClass = 'grid grid-cols-7 gap-px min-w-[980px] xl:min-w-0 bg-slate-800/80';
+    const monthGridClass = 'grid grid-cols-7 gap-px min-w-[560px] md:min-w-[980px] xl:min-w-0 bg-slate-800/80';
 
     return (
       <CardContent className="p-2 md:p-3">
@@ -1342,7 +1342,7 @@ export default function Calendar() {
           ))}
         </div>
         <div className={`${monthGridClass} rounded-b-lg overflow-hidden`}>
-          {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} className="bg-slate-950/40 min-h-[120px]" />)}
+          {Array(startPadding).fill(null).map((_, i) => <div key={`p${i}`} className="bg-slate-950/40 min-h-[72px] md:min-h-[120px]" />)}
           {calendarDays.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isPast = dateStr < todayStr;
@@ -1363,7 +1363,7 @@ export default function Calendar() {
               <div
                 key={day.toISOString()}
                 onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
-                className={`min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 ${
+                className={`min-h-[72px] md:min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 ${
                   isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'
                 } ${greyOutDay ? 'opacity-55' : ''}`}
               >
@@ -1563,7 +1563,7 @@ export default function Calendar() {
       <div className="w-full max-w-[1800px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Calendar</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Calendar</h1>
             <p className="text-sm text-slate-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
             {isAdmin && (
               <p className="text-xs text-slate-500 mt-1">Google Data + Fancam auto-sync at 06:00, 13:00 and 20:00 SAST.</p>

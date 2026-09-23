@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
   Wrench, Settings, LogOut, Bell } from 'lucide-react';
 import { useApp } from './AppContext';
+import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/base44Client';
 
 const adminNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -79,6 +79,7 @@ const allAnalyticsMenuItems = [
 export default function MobileBottomNav() {
   const location = useLocation();
   const { isAdmin, isStandby, isAccounts, isAnalytics, isLoading, user } = useApp();
+  const { logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoading) return null;
@@ -103,7 +104,7 @@ export default function MobileBottomNav() {
     <>
       {/* Full Menu Drawer */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[60] bg-[#080e1d] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="md:hidden fixed inset-0 z-[90] bg-[#080e1d] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center justify-end px-4 py-3 border-b border-[color:var(--rom-line)]">
             <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-slate-100 p-2">
               <X className="h-6 w-6" />
@@ -139,7 +140,7 @@ export default function MobileBottomNav() {
               </div>
             </div>
             <button
-              onClick={() => base44.auth.logout()}
+              onClick={() => logout(true)}
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-white/5 w-full"
             >
               <LogOut className="h-5 w-5" /> Sign Out
@@ -149,7 +150,7 @@ export default function MobileBottomNav() {
       )}
 
       {/* Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[color:var(--rom-line)] bg-[#080e1d]/95 backdrop-blur-xl flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] border-t border-[color:var(--rom-line)] bg-[#080e1d]/95 backdrop-blur-xl flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {leftItems.map(item => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (

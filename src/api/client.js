@@ -105,9 +105,9 @@ function createEntityApi(entityType) {
           } catch {
             // ignore
           }
-          if (!stopped) setTimeout(tick, 2000);
+          if (!stopped) setTimeout(tick, 5000);
         };
-        setTimeout(tick, 1500);
+        setTimeout(tick, 4000);
         return () => { stopped = true; };
       }
 
@@ -189,15 +189,11 @@ export const api = {
       });
     },
     async logout(redirectUrl) {
-      try {
-        await request('/api/auth/logout', { method: 'POST' });
-      } catch {
-        // ignore
-      }
+      request('/api/auth/logout', { method: 'POST' }).catch(() => {});
       setToken(null);
-      // Pass false to skip redirect (matches previous SDK usage patterns)
-      if (redirectUrl === false) return;
-      window.location.href = '/login';
+      if (redirectUrl !== false) {
+        window.location.href = typeof redirectUrl === 'string' ? redirectUrl : '/login';
+      }
     },
     redirectToLogin() {
       const next = encodeURIComponent(window.location.pathname + window.location.search);

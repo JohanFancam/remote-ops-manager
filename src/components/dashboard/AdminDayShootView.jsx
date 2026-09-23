@@ -99,10 +99,9 @@ export default function AdminDayShootView({
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => {
-    const gameDate = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings)).game || getPrimaryDateTime(shoot, rigSettings);
-    const isPast = isShootComplete(shoot) || gameDate < new Date();
+    const isComplete = isShootComplete(shoot);
     return (
-      <div key={shoot.id} className={isPast ? 'opacity-50 grayscale-[0.3]' : ''}>
+      <div key={shoot.id} className={isComplete ? 'opacity-50 grayscale-[0.3]' : ''}>
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}
@@ -129,7 +128,7 @@ export default function AdminDayShootView({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-500">
+          <div className="hidden rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-500 sm:block">
             {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
           </div>
         </div>

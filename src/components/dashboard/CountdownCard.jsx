@@ -63,7 +63,7 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       type="button"
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`inline-flex h-8 min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+      className={`inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
         done
           ? 'border-emerald-800 bg-emerald-950/40 text-green-300'
           : 'border-slate-800 bg-slate-800/70 text-gray-200 hover:border-blue-500/70 hover:bg-blue-950/40 hover:text-slate-100'
@@ -404,28 +404,19 @@ export default function CountdownCard({
 
       <div
         className={`relative rounded-xl border transition-all ${
-          isStatusCompleted || isStatusCancelled
+          isStatusCompleted
             ? 'border-slate-800 bg-slate-900 opacity-70'
-            : isStatusPostponed
-              ? 'border-amber-800/40 bg-slate-900/95 opacity-85'
-              : expanded
-                ? 'border-slate-800 bg-slate-900/95'
-                : 'border-slate-800 bg-slate-900/95'
+            : isStatusCancelled
+              ? 'border-slate-800 bg-slate-900 opacity-70'
+              : isStatusPostponed
+                ? 'border-amber-800/40 bg-slate-900/95 opacity-85'
+                : expanded
+                  ? 'border-slate-800 bg-slate-900/95'
+                  : 'border-slate-800 bg-slate-900/95'
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
-        {isAssigned && !isTerminalStatus && (
-          <button
-            type="button"
-            onClick={handleUnassignSelf}
-            className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-950/50 hover:text-red-300"
-            title="Unassign yourself"
-            aria-label="Unassign yourself"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-        <div className="px-4 py-4">
+        <div className="px-3 py-4 sm:px-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -457,7 +448,7 @@ export default function CountdownCard({
 
             <div className="flex flex-col items-center justify-center text-center">
               <div
-                className={`font-mono text-2xl font-bold tracking-tight ${
+                className={`font-mono text-xl font-bold tracking-tight sm:text-2xl ${
                   shoot.status === 'completed'
                     ? 'text-slate-400'
                     : targetIsPast
@@ -473,13 +464,26 @@ export default function CountdownCard({
             </div>
 
             <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
-              {livePhase ? (
-                <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
-              ) : (
-                <Badge className={`text-xs border ${statusColors[status] || statusColors.upcoming}`}>
-                  {formatStatusLabel(status)}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1.5">
+                {livePhase ? (
+                  <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
+                ) : (
+                  <Badge className={`text-xs border ${statusColors[status] || statusColors.upcoming}`}>
+                    {formatStatusLabel(status)}
+                  </Badge>
+                )}
+                {isAssigned && !isTerminalStatus && (
+                  <button
+                    type="button"
+                    onClick={handleUnassignSelf}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-950/50 hover:text-red-300"
+                    title="Unassign yourself"
+                    aria-label="Unassign yourself"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
 
               <button
                 onClick={() => setExpanded((v) => !v)}
@@ -506,7 +510,7 @@ export default function CountdownCard({
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
                 disabled={!canOpenShootComplete}
-                className={`inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                className={`inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
                   canOpenShootComplete
                     ? 'border-blue-500 bg-blue-600/80 text-white hover:bg-blue-600'
                     : 'border-slate-800 bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -517,7 +521,7 @@ export default function CountdownCard({
             )}
 
             {isStatusCompleted && (
-              <div className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2.5 text-xs font-medium text-slate-400">
+              <div className="inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2.5 text-xs font-medium text-slate-400">
                 ✓ Shoot Complete
               </div>
             )}
@@ -526,7 +530,7 @@ export default function CountdownCard({
               <button
                 type="button"
                 onClick={handleCopyReadyMessage}
-                className="inline-flex h-8 min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
+                className="inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
               >
                 {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
               </button>
