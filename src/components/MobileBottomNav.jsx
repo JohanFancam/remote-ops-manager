@@ -9,21 +9,29 @@ import { base44 } from '@/api/base44Client';
 const adminNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
-  { label: 'Reports', icon: BarChart2, path: '/Reports' },
-  { label: 'Pending/Approve', icon: DollarSign, path: '/Accounts' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
 const remoteNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
-  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
-// Operator / Standby keeps the operator pages and adds standby coverage
 const standbyNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
-  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
+const analyticsNavItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
 const allAdminMenuItems = [
@@ -61,19 +69,28 @@ const allAccountsMenuItems = [
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
+const allAnalyticsMenuItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isStandby, isAccounts, isLoading, user } = useApp();
+  const { isAdmin, isStandby, isAccounts, isAnalytics, isLoading, user } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoading) return null;
 
   const navItems = isAdmin ? adminNavItems
     : isAccounts ? accountsNavItems
+    : isAnalytics ? analyticsNavItems
     : isStandby ? standbyNavItems
     : remoteNavItems;
   const allMenuItems = isAdmin ? allAdminMenuItems
     : isAccounts ? allAccountsMenuItems
+    : isAnalytics ? allAnalyticsMenuItems
     : isStandby ? allStandbyMenuItems
     : allRemoteMenuItems;
 

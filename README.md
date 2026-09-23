@@ -70,6 +70,7 @@ First boot (or `npm run seed:demo`) seeds a full ops dataset modeled on a typica
 | Operator | `jordan.lee@example.com` | `operator123` |
 | Standby | `priya.nair@example.com` | `standby123` |
 | Accounts | `accounts@example.com` | `accounts123` |
+| Data Analytics | `analytics@example.com` | `analytics123` |
 
 ### Importing Base44 entity exports
 

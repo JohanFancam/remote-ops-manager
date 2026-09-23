@@ -105,9 +105,9 @@ function createEntityApi(entityType) {
           } catch {
             // ignore
           }
-          if (!stopped) setTimeout(tick, 5000);
+          if (!stopped) setTimeout(tick, 2000);
         };
-        setTimeout(tick, 5000);
+        setTimeout(tick, 1500);
         return () => { stopped = true; };
       }
 
@@ -149,6 +149,7 @@ const ENTITY_NAMES = [
   'Report',
   'Event',
   'ShootNotification',
+  'CalendarChangeRequest',
 ];
 
 const entities = Object.fromEntries(ENTITY_NAMES.map((name) => [name, createEntityApi(name)]));

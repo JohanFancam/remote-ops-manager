@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
-import { Bell, Calendar, Search, X } from 'lucide-react';
+import { Bell, Calendar, Search, X, Check } from 'lucide-react';
+import { applyCalendarChangeRequest, declineCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { cn } from '@/lib/utils';
 
 const FILTERS = [
@@ -15,6 +16,7 @@ const FILTERS = [
   { id: 'standby', label: 'Standby' },
   { id: 'team', label: 'Team' },
   { id: 'sync', label: 'Google sync' },
+  { id: 'requests', label: 'Requests' },
 ];
 
 const START_TYPES = new Set(['needs_start', 'start_overdue', 'starting_soon']);
@@ -51,6 +53,8 @@ function notificationTypeLabel(type) {
       return 'Shoot today';
     case 'google_sync':
       return 'Google sync';
+    case 'calendar_request':
+      return 'Calendar request';
     default:
       return 'Update';
   }
@@ -69,6 +73,7 @@ function matchesFilter(type, filter) {
   if (filter === 'standby') return type === 'standby';
   if (filter === 'team') return TEAM_TYPES.has(type);
   if (filter === 'sync') return type === 'google_sync';
+  if (filter === 'requests') return type === 'calendar_request';
   return true;
 }
 
@@ -138,16 +143,37 @@ function sastTimeLabel(iso) {
 }
 
 export default function Notifications() {
-  const { user } = useApp();
+  const { user, isAdmin } = useApp();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [busyRequest, setBusyRequest] = useState('');
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['notificationHistory'],
     queryFn: () => base44.entities.ShootNotification.list('-created_at', 2000),
     enabled: !!user?.email,
   });
+
+  const { data: changeRequests = [] } = useQuery({
+    queryKey: ['calendarChangeRequests'],
+    queryFn: () => base44.entities.CalendarChangeRequest.list('-created_date', 200),
+    enabled: !!user?.email && isAdmin,
+  });
+
+  const pendingRequests = (changeRequests || []).filter((item) => item.status === 'pending');
+
+  const handleRequest = async (request, approve) => {
+    setBusyRequest(request.id);
+    try {
+      if (approve) await applyCalendarChangeRequest(request);
+      else await declineCalendarChangeRequest(request);
+      queryClient.invalidateQueries({ queryKey: ['calendarChangeRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['shoots'] });
+    } finally {
+      setBusyRequest('');
+    }
+  };
 
   useEffect(() => {
     let unsubscribe;
@@ -225,6 +251,38 @@ export default function Notifications() {
             </button>
           )}
         </div>
+
+        {isAdmin && pendingRequests.length > 0 && (
+          <div className="mb-6 rounded-xl border border-blue-800/40 bg-slate-900 p-4">
+            <p className="text-sm font-semibold text-slate-100 mb-3">Pending calendar requests</p>
+            <div className="space-y-2">
+              {pendingRequests.map((request) => (
+                <div key={request.id} className="rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5">
+                  <p className="text-sm text-slate-100">{request.summary || `${request.action} ${request.shoot_title}`}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">From {request.requested_by_name || request.requested_by_email}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      disabled={busyRequest === request.id}
+                      onClick={() => handleRequest(request, true)}
+                      className="inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-500 px-2.5 py-1 text-xs text-white"
+                    >
+                      <Check className="h-3 w-3" /> Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyRequest === request.id}
+                      onClick={() => handleRequest(request, false)}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-6">
           {FILTERS.map((item) => (

@@ -10,10 +10,10 @@ import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
-import StandbyUserQuota from '../components/dashboard/StandbyUserQuota';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 export default function Dashboard() {
-  const { user, isAdmin, isStandby, isOperator } = useApp();
+  const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -106,6 +106,10 @@ export default function Dashboard() {
   const firstName =
     user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator');
 
+  if (isAnalytics) {
+    return <AnalyticsDashboard />;
+  }
+
   return (
     <div className="rom-page">
       <div className="rom-page-inner">
@@ -133,8 +137,6 @@ export default function Dashboard() {
             todayStr={todayStr}
           />
         </section>
-
-        {isStandby && <StandbyUserQuota user={user} shoots={shoots} />}
 
         <section className="mb-8 rom-enter-delay-2">
           <div className="mb-3 flex items-end justify-between gap-3">

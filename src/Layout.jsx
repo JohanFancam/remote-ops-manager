@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
 import {
@@ -14,7 +14,6 @@ import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder'
 import {
   NotificationProvider,
   NotificationPopups,
-  NotificationInbox,
 } from './components/dashboard/ShootNotifications';
 import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
@@ -25,15 +24,17 @@ import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSE_WIDTH = 1400;
 
-function roleLabel(isAdmin, isStandby, isAccounts) {
+function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics) {
   if (isAdmin) return 'Admin';
   if (isStandby) return 'Operator / Standby';
   if (isAccounts) return 'Accounts';
+  if (isAnalytics) return 'Data Analytics';
   return 'Remote Operator';
 }
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isStandby, isAccounts, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, isAnalytics, isLoading } = useApp();
+  const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
   );
@@ -58,6 +59,40 @@ function LayoutContent({ children, currentPageName }) {
       navigate('/AccountsDashboard', { replace: true });
     }
   }, [isLoading, isAccounts, currentPageName, navigate]);
+
+  useEffect(() => {
+    if (isLoading || !isAnalytics) return;
+    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings']);
+    const page = currentPageName || 'Dashboard';
+    if (!allowed.has(page)) {
+      navigate('/', { replace: true });
+    }
+  }, [isLoading, isAnalytics, currentPageName, navigate]);
+
+  useEffect(() => {
+    if (!user || isAccounts) return;
+    let unsubShoot;
+    let unsubNotes;
+    try {
+      unsubShoot = base44.entities.Shoot.subscribe(() => {
+        queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      });
+    } catch {
+      // optional
+    }
+    try {
+      unsubNotes = base44.entities.ShootNotification.subscribe(() => {
+        queryClient.invalidateQueries({ queryKey: ['shoots'] });
+        queryClient.invalidateQueries({ queryKey: ['notificationHistory'] });
+      });
+    } catch {
+      // optional
+    }
+    return () => {
+      unsubShoot?.();
+      unsubNotes?.();
+    };
+  }, [user, isAccounts]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -108,7 +143,22 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
-  const navItems = isAdmin ? adminNav : isStandby ? standbyNav : isAccounts ? accountsNav : remoteNav;
+  const analyticsNav = [
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
+    { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'Settings', icon: Settings, page: 'Settings' },
+  ];
+
+  const navItems = isAdmin
+    ? adminNav
+    : isStandby
+      ? standbyNav
+      : isAccounts
+        ? accountsNav
+        : isAnalytics
+          ? analyticsNav
+          : remoteNav;
 
   const handleLogout = () => base44.auth.logout();
 
@@ -151,7 +201,7 @@ function LayoutContent({ children, currentPageName }) {
             <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center gap-2 rounded-xl border border-[color:var(--rom-line)] bg-white/[0.03] px-2.5 py-2">
                 <span className="rom-live-dot" />
-                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts)}</span>
+                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
             </div>
@@ -256,9 +306,17 @@ function LayoutContent({ children, currentPageName }) {
           </div>
           <span className="rom-brand text-sm text-slate-50">Remote Ops</span>
         </div>
-        {user && !isAccounts && (
+        {user && (
           <div className="ml-auto">
-            <NotificationInbox drop="down" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-300 hover:text-slate-50 hover:bg-white/5 gap-1.5"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-xs">Sign out</span>
+            </Button>
           </div>
         )}
       </div>

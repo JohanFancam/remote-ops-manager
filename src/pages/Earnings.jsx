@@ -128,30 +128,34 @@ export default function Earnings() {
           </Button>
         </div>
 
-        <div className={`grid gap-3 mb-5 ${user?.role === 'standby' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
-          <Card className="bg-slate-900 border-slate-800">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Earned</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-900 border-slate-800">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-slate-100">{mainShoots.length}</p>
-              <p className="text-xs text-slate-400 mt-1">Main Shoots</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-900 border-slate-800">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
-              <p className="text-xs text-slate-400 mt-1">Additional</p>
-            </CardContent>
-          </Card>
+        <div className={`grid gap-3 mb-5 ${user?.role === 'standby' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
+          {user?.role === 'standby' && (
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-slate-100">{formatZAR(adjustedBreakdown.reduce((s, b) => s + b.amount, 0), { withSpace: false })}</p>
+                <p className="text-xs text-slate-400 mt-1">Shoot earnings · {mainShoots.length + additionalShoots.length} shoots</p>
+              </CardContent>
+            </Card>
+          )}
           {user?.role === 'standby' && (
             <Card className="bg-slate-900 border-blue-800/40">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-blue-300">{standbyPay.count}</p>
-                <p className="text-xs text-slate-400 mt-1">Standby · {formatZAR(standbyPay.total, { withSpace: false })}</p>
+                <p className="text-2xl font-bold text-blue-300">{formatZAR(standbyPay.total, { withSpace: false })}</p>
+                <p className="text-xs text-slate-400 mt-1">Standby · {standbyPay.count} session{standbyPay.count === 1 ? '' : 's'}</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
+              <p className="text-xs text-slate-400 mt-1">{user?.role === 'standby' ? 'Total shoots + standby' : 'Total Earned'}</p>
+            </CardContent>
+          </Card>
+          {user?.role !== 'standby' && (
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-slate-100">{mainShoots.length + additionalShoots.length}</p>
+                <p className="text-xs text-slate-400 mt-1">Shoots</p>
               </CardContent>
             </Card>
           )}

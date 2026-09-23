@@ -18,12 +18,13 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
-import { standbyColorForEmail, uniqueStandbyPeople, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
+import { standbyColorForEmail, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
+import { submitCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import {
   SHOOT_STATUS_DOTS,
   normalizeShootStatus,
@@ -463,7 +464,7 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isStandby, isOperator } = useApp();
+  const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -915,6 +916,20 @@ export default function Calendar() {
       last_changed_by_email: user?.email || '',
       last_changed_by_name: user?.full_name || user?.email || '',
     };
+    if (isAnalytics) {
+      await submitCalendarChangeRequest({
+        user,
+        action: editingShoot ? 'update' : 'create',
+        shoot: editingShoot,
+        payload,
+        summary: editingShoot ? `Update ${form.title}` : `Add ${form.title}`,
+      });
+      toast.success('Request sent to admins');
+      setForm(emptyForm);
+      setEditingShootForm(null);
+      setEditingShoot(null);
+      return;
+    }
 
     // FIX: If a completed shoot is changed back to upcoming/etc,
     // remove the completed phase marker so it appears in the upcoming banner again.
@@ -937,6 +952,18 @@ export default function Calendar() {
   };
 
   const handleShootUpdate = async (id, data) => {
+    if (isAnalytics) {
+      const existing = shoots.find((s) => s.id === id);
+      await submitCalendarChangeRequest({
+        user,
+        action: 'update',
+        shoot: existing,
+        payload: data,
+        summary: `Update ${existing?.title || 'shoot'}`,
+      });
+      toast.success('Request sent to admins');
+      return;
+    }
     // If admin is reverting status away from completed, clear the shoot_complete phase marker
     const payload = {
       ...data,
@@ -972,6 +999,20 @@ export default function Calendar() {
   };
 
   const handleDeleteShoot = async (id) => {
+    if (isAnalytics) {
+      const existing = shoots.find((s) => s.id === id);
+      await submitCalendarChangeRequest({
+        user,
+        action: 'delete',
+        shoot: existing,
+        payload: {},
+        summary: `Delete ${existing?.title || 'shoot'}`,
+      });
+      toast.success('Delete request sent to admins');
+      setSelectedShoot(null);
+      setQuickViewShoot(null);
+      return;
+    }
     await base44.entities.Shoot.delete(id);
     setSelectedShoot(null);
     setQuickViewShoot(null);
@@ -1586,6 +1627,11 @@ export default function Calendar() {
                 </Button>
               </>
             )}
+            {isAnalytics && (
+              <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Request shoot
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1623,15 +1669,10 @@ export default function Calendar() {
                 { label: 'Completed', color: 'bg-gray-600' },
                 { label: 'Cancelled', color: 'bg-red-600' },
                 { label: 'Postponed', color: 'bg-amber-500' },
+                { label: 'Fancam', color: 'bg-orange-500' },
+                { label: 'Data', color: 'bg-sky-500' },
+                { label: 'Pending', color: 'bg-yellow-400' },
                 { label: 'My Assigned Shoot', color: 'bg-purple-500' },
-                { label: 'Fancam / Data+Fancam', color: 'bg-orange-500' },
-                { label: 'Pending Approval', color: 'bg-yellow-400' },
-                { label: 'Remote: My Pending Shoot', color: 'bg-yellow-400' },
-                { label: 'Operator Unavailable', color: 'bg-red-950/400' },
-                ...uniqueStandbyPeople(standbyDays).map((person) => ({
-                  label: `Standby: ${person.name}`,
-                  color: person.color.dot,
-                })),
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
@@ -1730,6 +1771,7 @@ export default function Calendar() {
             user={user}
             isAdmin={isAdmin}
             isStandby={isStandby}
+            isAnalytics={isAnalytics}
             allUsers={allUsers}
             rigSettings={rigSettings}
             canCheckRig={canCheckRig}

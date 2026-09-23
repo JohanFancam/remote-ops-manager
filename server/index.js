@@ -600,6 +600,6 @@ app.listen(PORT, () => {
       console.warn('Scheduled Google sync failed:', err.message);
     });
   };
-  setTimeout(runBackgroundJobs, 15_000);
-  setInterval(runBackgroundJobs, 60_000);
+  setTimeout(runBackgroundJobs, 8_000);
+  setInterval(runBackgroundJobs, 15_000);
 });
