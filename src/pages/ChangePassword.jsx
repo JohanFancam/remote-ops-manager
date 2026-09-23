@@ -1,7 +1,7 @@
 import React from 'react';
-import { Wifi } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import ChangePasswordForm from '@/components/auth/ChangePasswordForm';
+import BrandMark from '@/components/brand/BrandMark';
 
 export default function ChangePassword() {
   const { user, logout } = useAuth();
@@ -15,12 +15,10 @@ export default function ChangePassword() {
 
       <div className="rom-panel relative w-full max-w-[420px] rom-enter p-7 md:p-8">
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="rom-mark h-9 w-9">
-            <Wifi className="w-4 h-4" />
-          </div>
+          <BrandMark className="h-9 w-9" />
           <div>
             <p className="rom-brand text-slate-50">Remote Ops</p>
-            <p className="text-xs text-slate-500">Signal desk</p>
+            <p className="text-xs text-slate-500">Operations portal</p>
           </div>
         </div>
 

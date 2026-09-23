@@ -5,6 +5,7 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfWe
 import { shortenTitle } from '../utils/scheduleUtils';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
+import { compareLiveDataFirst, isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
 
 const ARCHIVE_KEY = 'rigscheck_archived';
 function getArchived() {
@@ -31,13 +32,13 @@ function getShootsForOperationalDay(shoots, dateStr) {
     s.date === dateStr &&
     s.status !== 'cancelled' &&
     (!s.game_time || s.game_time >= '06:00')
-  ).sort((a, b) => (a.game_time || '06:00').localeCompare(b.game_time || '06:00'));
+  ).sort((a, b) => compareLiveDataFirst(a, b, () => (a.game_time || '06:00').localeCompare(b.game_time || '06:00')));
 
   const nextDayEarly = shoots.filter(s =>
     s.date === nextDateStr &&
     s.status !== 'cancelled' &&
     s.game_time && s.game_time < '06:00'
-  ).sort((a, b) => a.game_time.localeCompare(b.game_time));
+  ).sort((a, b) => compareLiveDataFirst(a, b, () => a.game_time.localeCompare(b.game_time)));
 
   return [...sameDay, ...nextDayEarly];
 }
@@ -275,9 +276,12 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                           className="w-3.5 h-3.5 rounded accent-orange-500 flex-shrink-0 mt-0.5"
                         />
                         <div className={`flex-1 min-w-0 ${checked[s.id] ? 'opacity-50' : ''}`}>
-                          <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-slate-500' : 'text-slate-100'}`}>
-                            {shortenTitle(s.title)}
-                          </p>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-slate-500' : 'text-slate-100'}`}>
+                              {shortenTitle(s.title)}
+                            </p>
+                            {isLiveData(s) ? <LiveDataBadge className="shrink-0" /> : null}
+                          </div>
                           {s.location && (
                             <p className={`text-xs truncate mt-0.5 ${checked[s.id] ? 'text-gray-600' : 'text-slate-500'}`}>{s.location}</p>
                           )}

@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SHOOT_STATUSES, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
+import { LiveDataToggle } from '@/components/shoots/LiveDataControls';
 
-export const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '' };
+export const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '', live_data: false };
 
 export default function ShootFormPanel({ form, setForm, editingShoot, onSave, onClose }) {
   const statusValue = normalizeShootStatus(form.status);
@@ -41,6 +42,10 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
                 ))}
               </SelectContent>
             </Select>
+            <LiveDataToggle
+              checked={!!form.live_data}
+              onChange={(next) => setForm({ ...form, live_data: next })}
+            />
             <Input placeholder="Notes / Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
           </div>
 

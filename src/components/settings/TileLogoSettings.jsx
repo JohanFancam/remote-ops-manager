@@ -49,7 +49,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm text-slate-200">Show team marks on dashboard tiles</p>
-            <p className="text-xs text-slate-500 mt-0.5">One-tone watermarks behind assigned and standby cards.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Two-tone logos in the bottom corners of assigned and standby cards.</p>
           </div>
           <Switch
             checked={enabled}

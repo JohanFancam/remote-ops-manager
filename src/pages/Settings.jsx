@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
+import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
@@ -9,6 +10,7 @@ import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
 import TileLogoSettings from '../components/settings/TileLogoSettings';
 import SettingsCategory from '../components/settings/SettingsCategory';
+import { resolveAppLogoUrl } from '../components/brand/BrandMark';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,6 +181,7 @@ function ChangePasswordCard() {
 
 export default function Settings() {
   const { user, isAdmin } = useApp();
+  const { refreshPublicSettings } = useAuth();
   const queryClient = useQueryClient();
 
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -316,6 +319,7 @@ export default function Settings() {
     setLogoUploading(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     await upsertSetting(logoSetting, 'app_logo_url', file_url, 'Custom app logo');
+    await refreshPublicSettings();
     setLogoUploading(false);
   };
 
@@ -325,6 +329,7 @@ export default function Settings() {
     setBgUploading(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     await upsertSetting(loginBgSetting, 'login_background_url', file_url, 'Sign-in page background image');
+    await refreshPublicSettings();
     setBgUploading(false);
     if (e.target) e.target.value = '';
   };
@@ -333,6 +338,14 @@ export default function Settings() {
     if (!loginBgSetting) return;
     await base44.entities.AppSettings.update(loginBgSetting.id, { value: '' });
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    await refreshPublicSettings();
+  };
+
+  const handleClearLogo = async () => {
+    if (!logoSetting) return;
+    await base44.entities.AppSettings.update(logoSetting.id, { value: '' });
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    await refreshPublicSettings();
   };
 
   return (
@@ -558,19 +571,26 @@ export default function Settings() {
               <CardContent className="pt-4">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-                    {logoUrl
-                      ? <img src={logoUrl} alt="App Logo" className="w-full h-full object-contain" />
-                      : <span className="text-2xl font-bold text-blue-400">R</span>
-                    }
+                    <img src={resolveAppLogoUrl(logoUrl)} alt="App Logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400 mb-2">Upload a custom logo (PNG, JPG, SVG recommended)</p>
+                    <p className="text-sm text-slate-400 mb-2">
+                      Shown on sign-in, in the sidebar, and when someone installs the app. Leave empty to use the default ROM mark.
+                    </p>
                     <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                    <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
-                      className="bg-blue-600 hover:bg-blue-600 gap-2">
-                      <Image className="h-4 w-4" />
-                      {logoUploading ? 'Uploading...' : 'Upload Logo'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
+                        className="bg-blue-600 hover:bg-blue-600 gap-2">
+                        <Image className="h-4 w-4" />
+                        {logoUploading ? 'Uploading...' : logoUrl ? 'Replace logo' : 'Upload logo'}
+                      </Button>
+                      {logoUrl && (
+                        <Button size="sm" variant="outline" onClick={handleClearLogo}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                          Use default
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

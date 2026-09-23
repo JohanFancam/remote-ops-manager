@@ -110,6 +110,18 @@ export const AuthProvider = ({ children }) => {
     api.auth.redirectToLogin();
   };
 
+  const refreshPublicSettings = useCallback(async () => {
+    try {
+      const publicSettings = await fetch('/api/public-settings').then(async (res) => {
+        if (!res.ok) throw new Error('Failed to load public settings');
+        return res.json();
+      });
+      setAppPublicSettings(publicSettings);
+    } catch (error) {
+      console.error('Public settings refresh failed:', error);
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -125,6 +137,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         navigateToLogin,
         checkAppState,
+        refreshPublicSettings,
       }}
     >
       {children}

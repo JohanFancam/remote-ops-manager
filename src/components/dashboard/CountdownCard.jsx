@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus, shouldGreyCompletedShoot } from '@/utils/shootStatus';
 import TeamLogoBackdrop from './TeamLogoBackdrop';
+import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import { readTileLogoSettings } from '@/utils/teamLogos';
 
 const statusColors = SHOOT_STATUS_COLORS;
 
@@ -433,7 +435,7 @@ export default function CountdownCard({
         onContextMenu={onContextMenu}
       >
         <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
-        <div className="relative z-[1] px-3 py-4 sm:px-4">
+        <div className={`relative z-[1] px-3 py-4 sm:px-4 ${readTileLogoSettings(appSettings).enabled ? 'pb-14' : ''}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -441,6 +443,7 @@ export default function CountdownCard({
                   {shortenTitle(shoot.title)}
                 </span>
                 {rigLabel && <span className="text-xs font-medium text-blue-400">{rigLabel}</span>}
+                {isLiveData(shoot) && !isAdmin ? <LiveDataBadge /> : null}
               </div>
 
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -482,6 +485,23 @@ export default function CountdownCard({
 
             <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
               <div className="flex items-center gap-1.5">
+                {isAdmin && onUpdate && !isTerminalStatus && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onUpdate(shoot.id, { live_data: !isLiveData(shoot) });
+                    }}
+                    className={`inline-flex h-7 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                      isLiveData(shoot)
+                        ? 'border-sky-500/50 bg-sky-500/20 text-sky-200'
+                        : 'border-slate-700 bg-slate-900/90 text-slate-400 hover:border-sky-500/40 hover:text-sky-200'
+                    }`}
+                    title={isLiveData(shoot) ? 'Turn off Live Data priority' : 'Mark as Live Data — priority for repairs'}
+                  >
+                    Live Data
+                  </button>
+                )}
                 {livePhase ? (
                   <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
                 ) : (

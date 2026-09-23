@@ -1,29 +1,26 @@
 import React, { useState } from 'react';
 import { readTileLogoSettings, resolveTeamMarks } from '@/utils/teamLogos';
 
-function Watermark({ mark, side, sizePercent }) {
+function CornerMark({ mark, side, sizePercent }) {
   const [failed, setFailed] = useState(false);
   if (!mark) return null;
-  const position = side === 'left'
-    ? 'left-[-8%] bottom-[-18%]'
-    : 'right-[-8%] bottom-[-18%]';
-  const origin = side === 'left' ? 'left bottom' : 'right bottom';
+  const position = side === 'left' ? 'left-2.5 bottom-2.5' : 'right-2.5 bottom-2.5';
+  const px = Math.round(40 * (sizePercent / 100));
   const showImage = mark.url && !failed;
   return (
     <div
-      className={`pointer-events-none absolute ${position} h-[145%] w-[58%] max-w-none`}
-      style={{ transform: `scale(${sizePercent / 100})`, transformOrigin: origin }}
+      className={`pointer-events-none absolute ${position} z-[1]`}
+      style={{ width: px, height: px }}
     >
       {showImage ? (
         <img
           src={mark.url}
           alt=""
-          className="h-full w-full object-contain opacity-[0.16] select-none"
-          style={{ filter: 'grayscale(1) brightness(0) invert(1)' }}
+          className="h-full w-full object-contain select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
           onError={() => setFailed(true)}
         />
       ) : (
-        <span className="flex h-full w-full items-end justify-center text-[9.5rem] font-black leading-none text-white/[0.12] select-none">
+        <span className="flex h-full w-full items-center justify-center rounded-md bg-slate-800/80 text-sm font-black text-white/80 select-none">
           {mark.monogram}
         </span>
       )}
@@ -40,8 +37,8 @@ export default function TeamLogoBackdrop({ title, sport, appSettings = [] }) {
   const right = marks.length > 1 ? marks[1] : null;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden>
-      <Watermark mark={left} side="left" sizePercent={sizePercent} />
-      {right ? <Watermark mark={right} side="right" sizePercent={sizePercent} /> : null}
+      <CornerMark mark={left} side="left" sizePercent={sizePercent} />
+      {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} /> : null}
     </div>
   );
 }
