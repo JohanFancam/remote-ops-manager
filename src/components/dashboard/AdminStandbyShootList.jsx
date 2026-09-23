@@ -59,7 +59,6 @@ export default function AdminStandbyShootList({
 
   const myStandbyWindows = useMemo(() => {
     return standbyDays
-      .filter((sd) => !userEmail || sd.admin_email === userEmail)
       .map((sd) => {
         const startDate = sd.start_date || sd.date;
         const endDate = sd.end_date || startDate;
@@ -72,7 +71,7 @@ export default function AdminStandbyShootList({
       })
       .filter(Boolean)
       .sort((a, b) => a.startDt - b.startDt);
-  }, [standbyDays, userEmail]);
+  }, [standbyDays]);
 
   const allStandbyShoots = useMemo(() => {
     const seen = new Map();
@@ -113,18 +112,35 @@ export default function AdminStandbyShootList({
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const renderCard = (shoot) => (
-    <CountdownCard
-      key={shoot.id}
-      shoot={shoot}
-      isAdmin={isAdmin}
-      rigSettings={rigSettings}
-      onUpdate={onUpdate}
-      userEmail={userEmail}
-      allUsers={allUsers}
-      showReadyMessage={false}
-    />
-  );
+  const coveringStandby = (shoot) => {
+    const shootDt = getShootDateTime(shoot, rigSettings);
+    return myStandbyWindows.find((w) => shootDt >= w.startDt && shootDt <= w.endDt) || null;
+  };
+
+  const renderCard = (shoot) => {
+    const cover = coveringStandby(shoot);
+    const coverName = cover
+      ? (allUsers.find((u) => u.email === cover.admin_email)?.full_name || cover.admin_name || cover.admin_email)
+      : '';
+    return (
+      <div key={shoot.id}>
+        {coverName ? (
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+            Standby: {coverName}
+          </p>
+        ) : null}
+        <CountdownCard
+          shoot={shoot}
+          isAdmin={isAdmin}
+          rigSettings={rigSettings}
+          onUpdate={onUpdate}
+          userEmail={userEmail}
+          allUsers={allUsers}
+          showReadyMessage={false}
+        />
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -176,7 +192,7 @@ export default function AdminStandbyShootList({
       {viewMode !== 'month' && (
         <>
           {allStandbyShoots.length === 0 ? (
-            <div className="py-6 text-center text-sm italic text-slate-500">No upcoming shoots during your standby coverage.</div>
+            <div className="py-6 text-center text-sm italic text-slate-500">No upcoming shoots during standby coverage.</div>
           ) : (
             <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
           )}

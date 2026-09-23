@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from 'lucid
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
 import { matchRig } from '../utils/rigUtils';
+import { shouldGreyCompletedShoot } from '@/utils/shootStatus';
 
 function getPrimaryDateTime(shoot, rigSettings = []) {
   const phaseDates = getScheduleDateTimes(shoot, matchRig(shoot, rigSettings));
@@ -99,9 +100,9 @@ export default function AdminDayShootView({
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
   const renderCard = (shoot) => {
-    const isComplete = isShootComplete(shoot);
+    const isGrey = shouldGreyCompletedShoot(shoot, todayStr);
     return (
-      <div key={shoot.id} className={isComplete ? 'opacity-50 grayscale-[0.3]' : ''}>
+      <div key={shoot.id} className={isGrey ? 'opacity-50 grayscale-[0.3]' : ''}>
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}

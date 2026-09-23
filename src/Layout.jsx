@@ -16,7 +16,6 @@ import {
   NotificationProvider,
   NotificationPopups,
 } from './components/dashboard/ShootNotifications';
-import TutorialOverlay, { TutorialReopenButton } from './components/TutorialOverlay';
 import RefreshReminder from './components/RefreshReminder';
 import { registerServiceWorker } from './lib/pushNotifications';
 import { Button } from "@/components/ui/button";
@@ -83,8 +82,6 @@ function LayoutContent({ children, currentPageName }) {
 
   const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
 
-  const tutorialAdminEnabled = appSettings.find(s => s.key === 'tutorial_admin')?.value !== 'false';
-  const tutorialRemoteEnabled = appSettings.find(s => s.key === 'tutorial_remote')?.value !== 'false';
   const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
 
   const adminNav = [
@@ -213,15 +210,6 @@ function LayoutContent({ children, currentPageName }) {
             })}
           </nav>
 
-          {!collapsed && !isAccounts && (
-            <div className="px-2.5 pb-1">
-              <TutorialReopenButton
-                isAdmin={isAdmin}
-                tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled}
-              />
-            </div>
-          )}
-
           <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-blue-400/20">
@@ -301,13 +289,6 @@ function LayoutContent({ children, currentPageName }) {
       {user && !isAccounts && <NotificationPopups />}
       {user && !isAccounts && <ShootCompleteReminder user={user} />}
       {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
-
-      {!isLoading && user && !isAccounts && (
-        <TutorialOverlay
-          isAdmin={isAdmin}
-          tutorialEnabled={isAdmin ? tutorialAdminEnabled : tutorialRemoteEnabled}
-        />
-      )}
 
       <MobileBottomNav />
 

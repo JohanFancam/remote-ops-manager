@@ -4,7 +4,8 @@ import { addDays, format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Wrench, Clock, AlertCircle } from 'lucide-react';
+import { Camera, Wrench, Clock, AlertCircle, Users } from 'lucide-react';
+import { standbyColorForEmail } from '@/components/utils/standbyColors';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { formatTimeZA, normalizeShootStatus } from '@/utils/shootStatus';
 import { getShootRigLabel } from '@/components/calendar/ShootQuickView';
@@ -118,6 +119,27 @@ export default function AnalyticsDashboard() {
     return map;
   }, [standbyDays, shoots, users]);
 
+  const crew = useMemo(() => {
+    const list = [...users].filter((u) => u.role !== 'accounts');
+    const admins = list.filter((u) => u.role === 'admin');
+    const operators = list.filter((u) => u.role === 'user' || u.role === 'standby');
+    return { admins, operators };
+  }, [users]);
+
+  const upcomingCoverage = useMemo(() => {
+    return (standbyDays || [])
+      .filter((sd) => (sd.start_date || sd.date || '') >= format(today, 'yyyy-MM-dd'))
+      .sort((a, b) => String(a.start_date || a.date).localeCompare(String(b.start_date || b.date)))
+      .slice(0, 12)
+      .map((sd) => ({
+        ...sd,
+        name: getDisplayName(users.find((u) => u.email === sd.admin_email), sd.admin_email),
+        covered: shoots.filter((shoot) => (
+          normalizeShootStatus(shoot.status) !== 'cancelled' && coverageForShoot(shoot, [sd])
+        )),
+      }));
+  }, [standbyDays, shoots, users, today]);
+
   const firstName = user?.full_name?.split(' ')[0] || 'Analytics';
 
   return (
@@ -127,14 +149,82 @@ export default function AnalyticsDashboard() {
           <p className="rom-kicker mb-2">Data Analytics</p>
           <h1 className="rom-title">Welcome, {firstName}</h1>
           <p className="rom-subtitle">
-            Operator photo assignments, rig reports, and standby coverage — four days at a time.
+            Photography overview, crew, rig reports, and standby coverage — four days at a time.
             Calendar edits go to admins first.
           </p>
         </header>
 
         <section className="mb-8">
           <h2 className="rom-section-title mb-3 flex items-center gap-2">
-            <Camera className="h-4 w-4 text-blue-400" /> Who is shooting what
+            <Users className="h-4 w-4 text-blue-400" /> Crew and standby
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Admins</p>
+              {crew.admins.length === 0 ? (
+                <p className="text-xs text-slate-500">No admins.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {crew.admins.map((person) => (
+                    <li key={person.email} className="text-sm text-slate-100">
+                      {getDisplayName(person, person.email)}
+                      {person.standby ? <span className="ml-2 text-xs text-sky-300">Standby capable</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Operators / Standby</p>
+              {crew.operators.length === 0 ? (
+                <p className="text-xs text-slate-500">No operators.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {crew.operators.map((person) => (
+                    <li key={person.email} className="text-sm text-slate-100">
+                      {getDisplayName(person, person.email)}
+                      <span className="ml-2 text-xs text-slate-500">
+                        {person.role === 'standby' ? 'Operator / Standby' : 'Remote Operator'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {upcomingCoverage.length === 0 ? (
+              <p className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-6 text-center text-xs text-slate-500">
+                No upcoming standby coverage.
+              </p>
+            ) : upcomingCoverage.map((session) => {
+              const color = standbyColorForEmail(session.admin_email);
+              return (
+                <div key={session.id || `${session.start_date}-${session.admin_email}`} className={`rounded-xl border border-slate-800 bg-slate-900 p-3 border-l-2 ${color.accent}`}>
+                  <p className={`text-sm font-semibold ${color.text}`}>{session.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {session.start_date || session.date} · {session.start_time || '18:00'}–{session.end_time || '06:00'}
+                  </p>
+                  {session.covered.length === 0 ? (
+                    <p className="mt-2 text-xs text-slate-500">No covered shoots yet.</p>
+                  ) : (
+                    <ul className="mt-2 space-y-1">
+                      {session.covered.slice(0, 8).map((shoot) => (
+                        <li key={shoot.id} className="text-xs text-slate-300">
+                          {shoot.date} · {formatTimeZA(shoot.game_time || shoot.start_time || '')} · {shoot.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="rom-section-title mb-3 flex items-center gap-2">
+            <Camera className="h-4 w-4 text-blue-400" /> Photography overview
           </h2>
           <DayWindow
             startDate={shootWindow}

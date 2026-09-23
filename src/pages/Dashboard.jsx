@@ -98,11 +98,6 @@ export default function Dashboard() {
     return visibleShoots.filter((s) => s.assigned_operators?.includes(user?.email));
   }, [visibleShoots, user?.email]);
 
-  const myStandbyDays = useMemo(() => {
-    if ((!isAdmin && !isStandby) || !user?.email) return [];
-    return standbyDays.filter((sd) => sd.admin_email === user.email);
-  }, [standbyDays, isAdmin, isStandby, user?.email]);
-
   const firstName =
     user?.full_name?.split(' ')[0] || (isAdmin ? 'Admin' : isStandby ? 'Standby' : 'Operator');
 
@@ -161,7 +156,7 @@ export default function Dashboard() {
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <h2 className="rom-section-title">Standby Coverage Shoots</h2>
-              <p className="hidden text-xs text-slate-500 sm:block">18:00 – 06:00 standby windows.</p>
+              <p className="hidden text-xs text-slate-500 sm:block">Every standby person and the games they cover (18:00–06:00).</p>
             </div>
             <div className="rom-panel">
               <AdminStandbyShootList
@@ -169,7 +164,7 @@ export default function Dashboard() {
                 allUsers={allUsers}
                 userEmail={user?.email}
                 rigSettings={rigSettings}
-                standbyDays={myStandbyDays}
+                standbyDays={standbyDays}
                 onUpdate={handleShootUpdate}
                 isAdmin={isAdmin}
               />

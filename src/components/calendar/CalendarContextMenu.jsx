@@ -5,7 +5,7 @@ import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 
 export default function CalendarContextMenu({
-  shoot, isAdmin, userEmail,
+  shoot, isAdmin, isAnalytics = false, userEmail,
   onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onClose
@@ -39,7 +39,7 @@ export default function CalendarContextMenu({
 
   const items = [
     { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
-    selfAssignItem,
+    ...(!isAnalytics ? [selfAssignItem] : []),
 
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100', divider: true },
