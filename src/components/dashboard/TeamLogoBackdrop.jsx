@@ -14,11 +14,11 @@ function Watermark({ mark, side }) {
         <img
           src={mark.url}
           alt=""
-          className="h-full w-full object-contain opacity-[0.16] select-none"
+          className="h-full w-full object-contain opacity-[0.22] select-none"
           onError={() => setFailed(true)}
         />
       ) : (
-        <span className="flex h-full w-full items-end justify-center text-[9.5rem] font-black leading-none text-white/[0.07] select-none">
+        <span className="flex h-full w-full items-end justify-center text-[9.5rem] font-black leading-none text-white/[0.12] select-none">
           {mark.monogram}
         </span>
       )}
