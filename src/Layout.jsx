@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MobileBottomNav from './components/MobileBottomNav';
 import { createPageUrl } from './utils';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AppProvider, useApp } from './components/AppContext';
+import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
   Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp, Bell,
@@ -34,7 +35,7 @@ function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics) {
 
 function LayoutContent({ children, currentPageName }) {
   const { user, isAdmin, isStandby, isAccounts, isAnalytics, isLoading } = useApp();
-  const queryClient = useQueryClient();
+  const { logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
   );
@@ -68,31 +69,6 @@ function LayoutContent({ children, currentPageName }) {
       navigate('/', { replace: true });
     }
   }, [isLoading, isAnalytics, currentPageName, navigate]);
-
-  useEffect(() => {
-    if (!user || isAccounts) return;
-    let unsubShoot;
-    let unsubNotes;
-    try {
-      unsubShoot = base44.entities.Shoot.subscribe(() => {
-        queryClient.invalidateQueries({ queryKey: ['shoots'] });
-      });
-    } catch {
-      // optional
-    }
-    try {
-      unsubNotes = base44.entities.ShootNotification.subscribe(() => {
-        queryClient.invalidateQueries({ queryKey: ['shoots'] });
-        queryClient.invalidateQueries({ queryKey: ['notificationHistory'] });
-      });
-    } catch {
-      // optional
-    }
-    return () => {
-      unsubShoot?.();
-      unsubNotes?.();
-    };
-  }, [user, isAccounts]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -160,7 +136,7 @@ function LayoutContent({ children, currentPageName }) {
           ? analyticsNav
           : remoteNav;
 
-  const handleLogout = () => base44.auth.logout();
+  const handleLogout = () => logout(true);
 
   return (
     <NotificationProvider

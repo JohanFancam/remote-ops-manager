@@ -134,7 +134,7 @@ export default function ShootQuickView({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -144,7 +144,7 @@ export default function ShootQuickView({
         aria-modal="true"
         aria-label={shoot.title || 'Shoot details'}
         onClick={(e) => e.stopPropagation()}
-        className={`relative z-10 w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl shadow-black/50 ${
+        className={`relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl shadow-black/50 ${
           isCancelled
             ? 'border-red-600/50 bg-[#1e2433] opacity-90'
             : shouldGrey

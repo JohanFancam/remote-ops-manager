@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 const AppContext = createContext(null);
 
@@ -11,10 +11,8 @@ const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
 export { OFFLINE_THRESHOLD };
 
 export function AppProvider({ children }) {
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  const { user, isLoadingAuth } = useAuth();
+  const isLoading = isLoadingAuth;
 
   const presenceIdRef = useRef(null);
 

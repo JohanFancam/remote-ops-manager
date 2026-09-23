@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
   Wrench, Settings, LogOut, Bell } from 'lucide-react';
 import { useApp } from './AppContext';
+import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/base44Client';
 
 const adminNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -79,6 +79,7 @@ const allAnalyticsMenuItems = [
 export default function MobileBottomNav() {
   const location = useLocation();
   const { isAdmin, isStandby, isAccounts, isAnalytics, isLoading, user } = useApp();
+  const { logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (isLoading) return null;
@@ -139,7 +140,7 @@ export default function MobileBottomNav() {
               </div>
             </div>
             <button
-              onClick={() => base44.auth.logout()}
+              onClick={() => logout(true)}
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-white/5 w-full"
             >
               <LogOut className="h-5 w-5" /> Sign Out

@@ -260,18 +260,8 @@ function useNotificationState(shoots, user, notifyHours) {
       // subscribe is optional
     }
 
-    let shootUnsub;
-    try {
-      shootUnsub = base44.entities.Shoot.subscribe(() => {
-        refreshStoredNotifications();
-      });
-    } catch {
-      // subscribe is optional
-    }
-
     return () => {
       unsubscribe?.();
-      shootUnsub?.();
     };
   }, [user?.email, user?.role, user?.standby]);
 
@@ -405,7 +395,7 @@ export function NotificationPopups() {
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[70] pointer-events-none px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-3"
+      className="fixed inset-x-0 top-0 z-[70] pointer-events-none px-3 pt-[calc(3.75rem+env(safe-area-inset-top))] md:pt-3"
       role="region"
       aria-label="Notification popups"
     >
