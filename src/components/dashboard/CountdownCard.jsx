@@ -255,7 +255,12 @@ export default function CountdownCard({
     setReadyCopied(true);
     setTimeout(() => setReadyCopied(false), 2500);
     try {
-      window.open('slack://open', '_blank', 'noopener');
+      const link = document.createElement('a');
+      link.href = 'slack://open';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     } catch {
       // No Slack app registered — message is already on the clipboard.
     }
