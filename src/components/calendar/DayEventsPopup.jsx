@@ -17,6 +17,7 @@ export default function DayEventsPopup({
   shoots = [],
   user,
   isAdmin = false,
+  isAnalytics = false,
   allUsers = [],
   rigSettings = [],
   onClose,
@@ -76,9 +77,9 @@ export default function DayEventsPopup({
                 const isPending = shoot.pending_operators?.includes(user?.email);
                 const isPast = (shoot.date || dateStr) < todayStr;
                 const shouldGrey = isPast || isCompleted || isCancelled;
-                const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
+                const claimedByOther = !isAnalytics && !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
                 const showMinus = isAssigned || isPending;
-                const canToggle = !isPast && !isCancelled && !isCompleted && !!user?.email
+                const canToggle = !isAnalytics && !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
                 const assignedNames = (shoot.assigned_operators || [])
@@ -103,7 +104,7 @@ export default function DayEventsPopup({
                         isAssigned ? 'bg-slate-800/40' : ''
                       } ${shouldGrey ? 'opacity-55' : ''} ${
                         isCancelled ? 'ring-1 ring-inset ring-red-600/40 bg-red-950/20' : ''
-                      } ${claimedByOther && !shouldGrey ? 'opacity-70' : ''} ${
+                      } ${!isAnalytics && claimedByOther && !shouldGrey ? 'opacity-70' : ''} ${
                         standbyColor ? `border-l-2 ${standbyColor.accent}` : ''
                       }`}
                     >
@@ -138,6 +139,7 @@ export default function DayEventsPopup({
                           ) : null}
                         </span>
                       </button>
+                      {!isAnalytics && (
                       <button
                         type="button"
                         disabled={!canToggle}
@@ -165,6 +167,7 @@ export default function DayEventsPopup({
                       >
                         {showMinus ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                       </button>
+                      )}
                     </div>
                   </li>
                 );

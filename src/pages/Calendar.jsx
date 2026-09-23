@@ -154,6 +154,7 @@ function ShootCalendarEntry({
   user,
   isAdmin,
   isOperator,
+  isAnalytics = false,
   allUsers,
   allShoots,
   rigSettings,
@@ -200,7 +201,7 @@ function ShootCalendarEntry({
 
   // Remotes cannot self-assign when another remote already claimed (assigned or pending)
   const claimedByOther = isClaimedByOtherOperator(shoot, user?.email);
-  const takenByOther = !isAdmin && !isAssigned && !isPending && claimedByOther;
+  const takenByOther = !isAnalytics && !isAdmin && !isAssigned && !isPending && claimedByOther;
 
   const dotColor = isCancelled
     ? 'bg-red-600'
@@ -325,7 +326,7 @@ function ShootCalendarEntry({
 
   const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
   const showMinus = isAssigned || isPending;
-  const canQuickAssign = !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
+  const canQuickAssign = !isAnalytics && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
 
   const quickAssignButton = (
     <button
@@ -389,7 +390,7 @@ function ShootCalendarEntry({
           else onContextMenu?.(e, shoot);
         }}
         className={`group w-full text-left rounded px-0.5 py-px transition-colors hover:bg-slate-800/90 ${
-          shouldGrey ? 'opacity-50' : takenByOther ? 'opacity-40' : ''
+          shouldGrey ? 'opacity-50' : !isAnalytics && takenByOther ? 'opacity-40' : ''
         } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''} ${
           isCancelled ? 'ring-1 ring-red-600/50 bg-red-950/20' : ''
         } ${standbyColor ? `border-l-2 ${standbyColor.accent} pl-1` : ''}`}
@@ -408,9 +409,11 @@ function ShootCalendarEntry({
               <span className="ml-1 text-[9px] uppercase text-amber-300">Updated</span>
             )}
           </p>
-          <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {quickAssignButton}
-          </div>
+          {!isAnalytics && (
+            <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {quickAssignButton}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -432,7 +435,7 @@ function ShootCalendarEntry({
         if (onQuickView) onQuickView(shoot);
         else onContextMenu?.(e, shoot);
       }}
-      className={`w-full text-left rounded-lg border transition-colors px-3 py-2 ${shouldGrey ? 'opacity-55 bg-slate-900' : takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${
+      className={`w-full text-left rounded-lg border transition-colors px-3 py-2 ${shouldGrey ? 'opacity-55 bg-slate-900' : !isAnalytics && takenByOther ? 'opacity-40 bg-slate-900' : 'bg-slate-900 hover:bg-slate-800/90'} ${
         isCancelled
           ? 'border-red-600/60 ring-1 ring-red-600/30'
           : entryOutlineClass || (shouldGrey ? 'border-slate-800' : 'border-slate-800 hover:border-slate-800')
@@ -455,9 +458,11 @@ function ShootCalendarEntry({
             {assignmentLabel}
           </p>
         </div>
-        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          {quickAssignButton}
-        </div>
+        {!isAnalytics && (
+          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {quickAssignButton}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1304,6 +1309,7 @@ export default function Calendar() {
       user={user}
       isAdmin={isAdmin}
       isOperator={isOperator}
+      isAnalytics={isAnalytics}
       allUsers={allUsers}
       allShoots={shoots}
       rigSettings={rigSettings}
@@ -1472,7 +1478,8 @@ export default function Calendar() {
         <div className="space-y-3">
           {weekDays.map(day => {
             const dayShoots = getShootsForDay(day);
-            const primaryStandby = getPrimaryStandbyForDay(day);
+            const dayStandbyPeople = getStandbyForDay(day);
+            const primaryStandby = dayStandbyPeople[0] || null;
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
@@ -1488,18 +1495,24 @@ export default function Calendar() {
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
                     <p className="text-xs text-slate-500">{dayShoots.length} shoot{dayShoots.length === 1 ? '' : 's'} scheduled{isAdmin && dayUnavailable.length > 0 ? ` · ${dayUnavailable.length} unavailable` : ''}</p>
-                    {primaryStandby && (
-                      <p className={`text-[11px] mt-1 ${standbyColor.text}`}>
-                        Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                    {dayStandbyPeople.length > 0 && (
+                      <p className="text-[11px] mt-1 text-slate-400">
+                        Standby:{' '}
+                        {dayStandbyPeople.map((person, index) => (
+                          <span key={person.id || person.admin_email} className={standbyColorForEmail(person.admin_email).text}>
+                            {index > 0 ? ' · ' : ''}
+                            {person.admin_name || person.admin_email}
+                          </span>
+                        ))}
                       </p>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {primaryStandby && (
-                       <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${standbyColor.chip}`}>
-                         <ShieldCheck className="h-3 w-3" /> Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
+                    {dayStandbyPeople.map((person) => (
+                       <span key={person.id || person.admin_email} className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${standbyColorForEmail(person.admin_email).chip}`}>
+                         <ShieldCheck className="h-3 w-3" /> {person.admin_name || person.admin_email}
                        </span>
-                     )}
+                     ))}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
                       return (
@@ -1744,6 +1757,7 @@ export default function Calendar() {
         shoots={dayPopup ? getShootsForDay(dayPopup) : []}
         user={user}
         isAdmin={isAdmin}
+        isAnalytics={isAnalytics}
         allUsers={allUsers}
         rigSettings={rigSettings}
         getStandbyCoverageForShoot={getStandbyCoverageForShoot}
@@ -1794,6 +1808,7 @@ export default function Calendar() {
         <CalendarContextMenu
           shoot={contextMenu.shoot}
           isAdmin={isAdmin}
+          isAnalytics={isAnalytics}
           isStandby={isStandby}
           userEmail={user?.email}
           allUsers={allUsers}

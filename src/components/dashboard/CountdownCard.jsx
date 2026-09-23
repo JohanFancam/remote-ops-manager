@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Copy, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Check, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { matchRig } from '../utils/rigUtils';
@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
+import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus, shouldGreyCompletedShoot } from '@/utils/shootStatus';
 
 const statusColors = SHOOT_STATUS_COLORS;
 
@@ -140,6 +140,8 @@ export default function CountdownCard({
   const isStatusCancelled = status === 'cancelled';
   const isStatusPostponed = status === 'postponed';
   const isTerminalStatus = isStatusCompleted || isStatusCancelled || isStatusPostponed;
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const isGreyCompleted = shouldGreyCompletedShoot(shoot, todayStr);
 
   const canOpenShootComplete =
     canMarkPhases && !isTerminalStatus;
@@ -244,9 +246,19 @@ export default function CountdownCard({
   };
 
   const handleCopyReadyMessage = async () => {
-    await navigator.clipboard.writeText(buildReadyMessage());
+    const text = buildReadyMessage();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard can be blocked; still try to open Slack.
+    }
     setReadyCopied(true);
-    setTimeout(() => setReadyCopied(false), 2000);
+    setTimeout(() => setReadyCopied(false), 2500);
+    try {
+      window.open('slack://open', '_blank', 'noopener');
+    } catch {
+      // No Slack app registered — message is already on the clipboard.
+    }
   };
 
 
@@ -404,15 +416,13 @@ export default function CountdownCard({
 
       <div
         className={`relative rounded-xl border transition-all ${
-          isStatusCompleted
+          isGreyCompleted
             ? 'border-slate-800 bg-slate-900 opacity-70'
             : isStatusCancelled
               ? 'border-slate-800 bg-slate-900 opacity-70'
               : isStatusPostponed
                 ? 'border-amber-800/40 bg-slate-900/95 opacity-85'
-                : expanded
-                  ? 'border-slate-800 bg-slate-900/95'
-                  : 'border-slate-800 bg-slate-900/95'
+                : 'border-slate-800 bg-slate-900/95'
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
@@ -532,7 +542,9 @@ export default function CountdownCard({
                 onClick={handleCopyReadyMessage}
                 className="inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
               >
-                {readyCopied ? <><Check className="mr-1 h-3.5 w-3.5" />Copied</> : <><Copy className="mr-1 h-3.5 w-3.5" />Ready Message</>}
+                {readyCopied
+                  ? <><Check className="mr-1 h-3.5 w-3.5" />Copied — paste in Slack</>
+                  : <><MessageSquare className="mr-1 h-3.5 w-3.5" />Send in Slack</>}
               </button>
             )}
           </div>

@@ -37,6 +37,25 @@ export async function submitCalendarChangeRequest({
   return request;
 }
 
+async function notifyRequester(request, approved) {
+  if (!request?.requested_by_email) return;
+  const title = request.shoot_title || 'Calendar change';
+  await base44.entities.ShootNotification.create({
+    type: 'calendar_request',
+    title: approved ? 'Calendar request approved' : 'Calendar request declined',
+    message: approved
+      ? `Your request to ${request.action} “${title}” was approved.`
+      : `Your request to ${request.action} “${title}” was declined.`,
+    shoot_id: request.shoot_id || '',
+    shoot_title: title,
+    target_user_email: request.requested_by_email,
+    created_by_name: 'Admin',
+    created_at: new Date().toISOString(),
+    url: '/Calendar',
+    request_id: request.id,
+  });
+}
+
 export async function applyCalendarChangeRequest(request) {
   const action = request.action;
   const payload = request.payload || {};
@@ -51,6 +70,7 @@ export async function applyCalendarChangeRequest(request) {
     status: 'approved',
     reviewed_at: new Date().toISOString(),
   });
+  await notifyRequester(request, true);
 }
 
 export async function declineCalendarChangeRequest(request) {
@@ -58,4 +78,5 @@ export async function declineCalendarChangeRequest(request) {
     status: 'rejected',
     reviewed_at: new Date().toISOString(),
   });
+  await notifyRequester(request, false);
 }

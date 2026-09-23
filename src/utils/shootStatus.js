@@ -83,3 +83,11 @@ export function formatDateTimeZA(dateStr, timeStr) {
   if (!timeStr) return datePart;
   return `${datePart}, ${formatTimeZA(timeStr)}`;
 }
+
+/** Assigned tiles grey only the day after a completed game. */
+export function shouldGreyCompletedShoot(shoot, todayStr) {
+  if (normalizeShootStatus(shoot?.status) !== 'completed') return false;
+  const date = shoot?.date || '';
+  if (!date || !todayStr) return false;
+  return date < todayStr;
+}

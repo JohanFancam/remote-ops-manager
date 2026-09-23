@@ -37,6 +37,13 @@ function isExpired(notification) {
   return Date.now() - created.getTime() > FIVE_DAYS_MS;
 }
 
+const ANALYTICS_NOTIFICATION_TYPES = new Set([
+  'calendar_request',
+  'google_sync',
+  'schedule_change',
+  'cancelled',
+]);
+
 function userCanSeeNotification(notification, user) {
   const email = (user?.email || '').toLowerCase();
   if (!email) return false;
@@ -45,6 +52,14 @@ function userCanSeeNotification(notification, user) {
   if (dismissedBy.map((e) => String(e).toLowerCase()).includes(email)) return false;
 
   const targetEmail = (notification.target_user_email || '').toLowerCase();
+
+  if (user?.role === 'analytics') {
+    if (!ANALYTICS_NOTIFICATION_TYPES.has(notification.type)) return false;
+    if (notification.type === 'calendar_request') return targetEmail === email;
+    if (targetEmail && targetEmail !== email) return false;
+    return true;
+  }
+
   if (targetEmail && targetEmail === email) return true;
 
   if (notification.target_role === 'admin_standby') {

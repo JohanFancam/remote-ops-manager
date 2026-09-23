@@ -12,6 +12,18 @@ import { handleShootChange, createNotifications } from './notifications.js';
 const ZA_TZ = 'Africa/Johannesburg';
 export const AUTO_SYNC_HOURS = [6, 13, 20];
 
+function sastYmd(date) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZA_TZ }).format(date);
+}
+
+function addCalendarDays(ymd, days) {
+  const [year, month, day] = String(ymd || '').split('-').map(Number);
+  if (!year || !month || !day) return ymd;
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
 let scheduledSyncInFlight = false;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -336,8 +348,13 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   }
 
   const now = new Date();
-  const min = timeMin || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const max = timeMax || new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000);
+  const todayYmd = sastYmd(now);
+  const windowStartYmd = timeMin ? sastYmd(new Date(timeMin)) : addCalendarDays(todayYmd, -30);
+  const windowEndYmd = timeMax ? sastYmd(new Date(timeMax)) : addCalendarDays(todayYmd, 180);
+  // Fetch a padded SAST-day window so games on the first/last day are not
+  // missing from Google's list and then treated as deleted.
+  const min = new Date(`${addCalendarDays(windowStartYmd, -2)}T00:00:00+02:00`);
+  const max = new Date(`${addCalendarDays(windowEndYmd, 2)}T23:59:59.999+02:00`);
 
   const fetched = [];
   for (const source of sources) {
@@ -458,8 +475,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   }
 
   let cancelled = 0;
-  const windowStart = min.toLocaleDateString('en-CA', { timeZone: ZA_TZ });
-  const windowEnd = max.toLocaleDateString('en-CA', { timeZone: ZA_TZ });
+  const windowStart = windowStartYmd;
+  const windowEnd = windowEndYmd;
   const claimedEventIds = new Set();
   const claimedCalKeys = new Set();
   const latestShoots = listEntities('Shoot', '-date', 5000);
@@ -494,7 +511,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     const inWindow = (shoot.date || '') >= windowStart && (shoot.date || '') <= windowEnd;
     const shootCalendarId = shoot.google_calendar_id || '';
     const fromSyncedCalendar = !shootCalendarId || syncedCalendarIds.has(shootCalendarId);
-    if (eventId && fromSyncedCalendar && inWindow && !seen.has(eventId)) {
+    const isPast = (shoot.date || '') < todayYmd;
+    if (eventId && fromSyncedCalendar && inWindow && !isPast && !seen.has(eventId)) {
       removeShoot(shoot, 'deleted');
       continue;
     }

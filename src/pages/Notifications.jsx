@@ -77,12 +77,26 @@ function matchesFilter(type, filter) {
   return true;
 }
 
+const ANALYTICS_NOTIFICATION_TYPES = new Set([
+  'calendar_request',
+  'google_sync',
+  'schedule_change',
+  'cancelled',
+]);
+
 function userCanSeeHistory(notification, user) {
   const email = (user?.email || '').toLowerCase();
   if (!email) return false;
   if (user?.role === 'admin') return true;
 
   const targetEmail = (notification.target_user_email || '').toLowerCase();
+  if (user?.role === 'analytics') {
+    if (!ANALYTICS_NOTIFICATION_TYPES.has(notification.type)) return false;
+    if (notification.type === 'calendar_request') return targetEmail === email;
+    if (targetEmail && targetEmail !== email) return false;
+    return true;
+  }
+
   if (targetEmail && targetEmail === email) return true;
 
   if (notification.target_role === 'admin_standby') {
@@ -143,7 +157,10 @@ function sastTimeLabel(iso) {
 }
 
 export default function Notifications() {
-  const { user, isAdmin } = useApp();
+  const { user, isAdmin, isAnalytics } = useApp();
+  const visibleFilters = isAnalytics
+    ? FILTERS.filter((item) => ['all', 'requests', 'sync', 'schedule'].includes(item.id))
+    : FILTERS;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -228,7 +245,9 @@ export default function Notifications() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Notifications</h1>
           <p className="text-slate-400 text-sm mt-1">
-            History of shoot start alerts, pre-shoot updates, and other desk messages (South Africa time).
+            {isAnalytics
+              ? 'Approved requests and calendar updates (South Africa time).'
+              : 'History of shoot start alerts, pre-shoot updates, and other desk messages (South Africa time).'}
           </p>
         </div>
 
@@ -285,7 +304,7 @@ export default function Notifications() {
         )}
 
         <div className="flex flex-wrap gap-2 mb-6">
-          {FILTERS.map((item) => (
+          {visibleFilters.map((item) => (
             <button
               key={item.id}
               type="button"
