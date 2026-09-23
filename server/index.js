@@ -88,15 +88,53 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'remote-ops-api' });
 });
 
+function settingValue(key) {
+  const settings = listEntities('AppSettings', null, 500);
+  const row = settings.find((item) => item.key === key);
+  return String(row?.value || '').trim();
+}
+
+function buildWebManifest() {
+  const customLogo = settingValue('app_logo_url');
+  const icon = customLogo || '/rom-logo.png';
+  return {
+    name: 'Remote Ops Manager',
+    short_name: 'Remote Ops',
+    description: 'Portal for remote operators, standby, and scheduling',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#050816',
+    theme_color: '#050816',
+    icons: [
+      { src: icon, sizes: 'any', type: 'image/png', purpose: 'any' },
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+    ],
+  };
+}
+
 app.get('/api/public-settings', (_req, res) => {
   res.json({
     id: 'remote-ops-manager',
     public_settings: {
       app_name: 'Remote Ops Manager',
       auth_required: true,
+      login_background_url: settingValue('login_background_url'),
+      app_logo_url: settingValue('app_logo_url'),
     },
   });
 });
+
+function sendManifest(_req, res) {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(buildWebManifest());
+}
+
+app.get('/api/manifest.json', sendManifest);
+app.get('/manifest.json', sendManifest);
 
 app.post('/api/auth/login', (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();

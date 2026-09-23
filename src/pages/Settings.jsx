@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
+import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
+import TileLogoSettings from '../components/settings/TileLogoSettings';
 import SettingsCategory from '../components/settings/SettingsCategory';
+import { resolveAppLogoUrl } from '../components/brand/BrandMark';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,6 +181,7 @@ function ChangePasswordCard() {
 
 export default function Settings() {
   const { user, isAdmin } = useApp();
+  const { refreshPublicSettings } = useAuth();
   const queryClient = useQueryClient();
 
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -192,6 +196,8 @@ export default function Settings() {
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef();
+  const [bgUploading, setBgUploading] = useState(false);
+  const bgInputRef = useRef();
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -238,6 +244,8 @@ export default function Settings() {
 
   const logoSetting = appSettings.find(s => s.key === 'app_logo_url');
   const logoUrl = logoSetting?.value;
+  const loginBgSetting = appSettings.find(s => s.key === 'login_background_url');
+  const loginBgUrl = loginBgSetting?.value;
 
   useEffect(() => {
     if (!appSettings.length) return;
@@ -296,18 +304,48 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
+  const upsertSetting = async (existing, key, value, description) => {
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value });
+    } else {
+      await base44.entities.AppSettings.create({ key, value, description });
+    }
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setLogoUploading(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    if (logoSetting) {
-      await base44.entities.AppSettings.update(logoSetting.id, { value: file_url });
-    } else {
-      await base44.entities.AppSettings.create({ key: 'app_logo_url', value: file_url, description: 'Custom app logo' });
-    }
+    await upsertSetting(logoSetting, 'app_logo_url', file_url, 'Custom app logo');
+    await refreshPublicSettings();
     setLogoUploading(false);
+  };
+
+  const handleLoginBackgroundUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await upsertSetting(loginBgSetting, 'login_background_url', file_url, 'Sign-in page background image');
+    await refreshPublicSettings();
+    setBgUploading(false);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleClearLoginBackground = async () => {
+    if (!loginBgSetting) return;
+    await base44.entities.AppSettings.update(loginBgSetting.id, { value: '' });
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    await refreshPublicSettings();
+  };
+
+  const handleClearLogo = async () => {
+    if (!logoSetting) return;
+    await base44.entities.AppSettings.update(logoSetting.id, { value: '' });
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    await refreshPublicSettings();
   };
 
   return (
@@ -521,7 +559,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App logo shown in the sidebar"
+            description="App logo, sign-in background, and tile marks"
             icon={Image}
           >
             <Card className="bg-slate-900 border-slate-800">
@@ -533,23 +571,65 @@ export default function Settings() {
               <CardContent className="pt-4">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-                    {logoUrl
-                      ? <img src={logoUrl} alt="App Logo" className="w-full h-full object-contain" />
-                      : <span className="text-2xl font-bold text-blue-400">R</span>
-                    }
+                    <img src={resolveAppLogoUrl(logoUrl)} alt="App Logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-400 mb-2">Upload a custom logo (PNG, JPG, SVG recommended)</p>
+                    <p className="text-sm text-slate-400 mb-2">
+                      Shown on sign-in, in the sidebar, and when someone installs the app. Leave empty to use the default ROM mark.
+                    </p>
                     <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                    <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
-                      className="bg-blue-600 hover:bg-blue-600 gap-2">
-                      <Image className="h-4 w-4" />
-                      {logoUploading ? 'Uploading...' : 'Upload Logo'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
+                        className="bg-blue-600 hover:bg-blue-600 gap-2">
+                        <Image className="h-4 w-4" />
+                        {logoUploading ? 'Uploading...' : logoUrl ? 'Replace logo' : 'Upload logo'}
+                      </Button>
+                      {logoUrl && (
+                        <Button size="sm" variant="outline" onClick={handleClearLogo}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                          Use default
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+            <Card className="bg-slate-900 border-slate-800 mt-4">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-blue-400" /> Sign-in background
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-4 flex-wrap">
+                  <div className="w-40 h-24 bg-slate-800 rounded-xl overflow-hidden border border-slate-800 bg-cover bg-center"
+                    style={loginBgUrl ? { backgroundImage: `url("${loginBgUrl}")` } : undefined}>
+                    {!loginBgUrl && <div className="h-full w-full flex items-center justify-center text-xs text-slate-500">No image</div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-400 mb-2">
+                      Shown behind the sign-in and create-account screens. A dark overlay keeps the form readable. Wide photos work best.
+                    </p>
+                    <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleLoginBackgroundUpload} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => bgInputRef.current?.click()} disabled={bgUploading}
+                        className="bg-blue-600 hover:bg-blue-600 gap-2">
+                        <Image className="h-4 w-4" />
+                        {bgUploading ? 'Uploading...' : loginBgUrl ? 'Replace image' : 'Upload image'}
+                      </Button>
+                      {loginBgUrl && (
+                        <Button size="sm" variant="outline" onClick={handleClearLoginBackground}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <TileLogoSettings appSettings={appSettings} />
           </SettingsCategory>
         )}
 

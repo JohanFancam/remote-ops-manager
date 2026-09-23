@@ -6,6 +6,7 @@ import { getSchedule } from '@/components/utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
+import { isLiveData, LiveDataBadge, LiveDataToggle } from '@/components/shoots/LiveDataControls';
 
 function findMatchingRig(shoot, rigSettings = []) {
   return matchRig(shoot, rigSettings);
@@ -188,6 +189,7 @@ export default function ShootQuickView({
               {isFancam ? 'Fancam' : 'Data'}
             </span>
             {venue && <span className="text-slate-300">{venue}</span>}
+            {isLiveData(shoot) ? <LiveDataBadge /> : null}
             <span className={`ml-auto capitalize ${
               isCancelled ? 'text-red-400' :
               status === 'postponed' ? 'text-amber-300' :
@@ -223,6 +225,13 @@ export default function ShootQuickView({
                 ))}
               </div>
             </div>
+          )}
+
+          {(isAdmin || isAnalytics) && onUpdate && (
+            <LiveDataToggle
+              checked={isLiveData(shoot)}
+              onChange={(next) => onUpdate(shoot.id, { live_data: next })}
+            />
           )}
 
           <div>

@@ -1,6 +1,6 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v3';
-const SHELL = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
+const CACHE = 'rom-shell-v4';
+const SHELL = ['/', '/index.html', '/rom-logo.png', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -79,8 +79,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Remote Ops', {
       body: data.body || '',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/rom-logo.png',
+      badge: '/rom-logo.png',
       data: { url: data.url || '/Calendar' },
       tag: data.type || 'rom-notification',
       renotify: true,

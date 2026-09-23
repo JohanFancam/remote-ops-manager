@@ -156,6 +156,11 @@
     "google_sync_cancelled": {
       "type": "boolean",
       "description": "True when cancelled because the Google event disappeared"
+    },
+    "live_data": {
+      "type": "boolean",
+      "default": false,
+      "description": "Live Data times get first priority when issues need repair"
     }
   },
   "required": [

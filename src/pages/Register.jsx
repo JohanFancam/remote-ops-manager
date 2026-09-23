@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Wifi } from 'lucide-react';
+import AuthBackdrop from '@/components/auth/AuthBackdrop';
+import BrandMark from '@/components/brand/BrandMark';
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth();
@@ -33,18 +34,14 @@ export default function Register() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="rom-ambient absolute -top-20 right-0 h-[24rem] w-[24rem] rounded-full bg-blue-500/15 blur-3xl" />
-      </div>
+      <AuthBackdrop />
 
       <div className="rom-panel relative w-full max-w-[420px] rom-enter p-7 md:p-8">
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="rom-mark h-9 w-9">
-            <Wifi className="w-4 h-4" />
-          </div>
+          <BrandMark className="h-9 w-9" />
           <div>
             <p className="rom-brand text-slate-50">Remote Ops</p>
-            <p className="text-xs text-slate-500">Signal desk</p>
+            <p className="text-xs text-slate-500">Operations portal</p>
           </div>
         </div>
 

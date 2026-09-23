@@ -167,6 +167,7 @@ export default function Dashboard() {
                 standbyDays={standbyDays}
                 onUpdate={handleShootUpdate}
                 isAdmin={isAdmin}
+                appSettings={appSettings}
               />
             </div>
           </section>

@@ -8,8 +8,9 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, Wifi, RefreshCw, DollarSign, TrendingUp, Bell,
+  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell,
 } from 'lucide-react';
+import BrandMark from './components/brand/BrandMark';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
 import {
@@ -153,18 +154,13 @@ function LayoutContent({ children, currentPageName }) {
         >
           <div className={cn(collapsed ? "p-3" : "px-4 pt-5 pb-4")}>
             <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
-              <div className="rom-mark h-9 w-9 flex-shrink-0">
-                {logoUrl
-                  ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                  : <Wifi className="h-4 w-4" />
-                }
-              </div>
+              <BrandMark className="h-9 w-9" logoUrl={logoUrl} />
               {!collapsed && (
                 <div className="min-w-0">
                   <p className="rom-brand text-[15px] text-slate-50 leading-tight whitespace-nowrap">
                     Remote Ops
                   </p>
-                  <p className="text-[11px] text-slate-500 tracking-wide whitespace-nowrap">Signal desk</p>
+                  <p className="text-[11px] text-slate-500 tracking-wide whitespace-nowrap">Operations portal</p>
                 </div>
               )}
             </div>
@@ -262,12 +258,7 @@ function LayoutContent({ children, currentPageName }) {
         style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-2.5">
-          <div className="rom-mark h-7 w-7">
-            {logoUrl
-              ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
-              : <Wifi className="h-3.5 w-3.5" />
-            }
-          </div>
+          <BrandMark className="h-7 w-7" logoUrl={logoUrl} />
           <span className="rom-brand text-sm text-slate-50">Remote Ops</span>
         </div>
         {user && (
