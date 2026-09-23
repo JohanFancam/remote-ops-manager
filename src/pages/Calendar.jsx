@@ -1577,7 +1577,11 @@ export default function Calendar() {
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Calendar</h1>
-            <p className="text-sm text-slate-500 mt-1">Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.</p>
+            <p className="text-sm text-slate-500 mt-1">
+              {isAnalytics
+                ? 'View the full calendar and standby coverage. Request edits from a shoot — assignments stay with operators.'
+                : 'Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.'}
+            </p>
             {isAdmin && (
               <p className="text-xs text-slate-500 mt-1">Google Data + Fancam auto-sync at 06:00, 13:00 and 20:00 SAST.</p>
             )}
