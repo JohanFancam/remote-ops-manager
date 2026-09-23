@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
-import { getSchedule, shortenTitle } from '@/components/utils/scheduleUtils';
+import { getSchedule } from '@/components/utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
@@ -70,6 +70,7 @@ export default function ShootQuickView({
   user,
   isAdmin = false,
   isStandby = false,
+  isAnalytics = false,
   allUsers = [],
   rigSettings = [],
   onClose,
@@ -158,7 +159,7 @@ export default function ShootQuickView({
             />
             <div className="min-w-0">
               <h2 className="text-lg font-semibold leading-snug text-slate-50 break-words">
-                {shortenTitle(shoot.title) || 'Untitled shoot'}
+                {shoot.title || 'Untitled shoot'}
               </h2>
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
@@ -267,7 +268,7 @@ export default function ShootQuickView({
             </div>
           )}
 
-          {(isAdmin || isStandby) && (
+          {(isAdmin || isStandby || isAnalytics) && (
             <div className="flex flex-wrap gap-2">
               {canCheckRig && (
                 <button
@@ -283,14 +284,14 @@ export default function ShootQuickView({
                   {shoot.rig_check_completed ? 'Rig checked' : 'Mark Rig Checked'}
                 </button>
               )}
-              {isAdmin && (
+              {(isAdmin || isAnalytics) && (
                 <button
                   type="button"
                   onClick={() => onEdit?.(shoot)}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-600 bg-slate-800/80 px-3 text-sm font-medium text-slate-100 hover:bg-slate-700"
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  Edit Settings
+                  {isAnalytics ? 'Request edit' : 'Edit Settings'}
                 </button>
               )}
               {isAdmin && (
@@ -314,7 +315,7 @@ export default function ShootQuickView({
                   Duplicate
                 </button>
               )}
-              {isAdmin && (
+              {(isAdmin || isAnalytics) && (
                 confirmDelete ? (
                   <div className="flex items-center gap-1.5">
                     <button

@@ -13,12 +13,14 @@ const ROLE_OPTIONS = [
   { value: 'accounts', label: 'Accounts' },
   { value: 'user', label: 'Remote Operator' },
   { value: 'standby', label: 'Operator / Standby' },
+  { value: 'analytics', label: 'Data Analytics' },
 ];
 
 const roleBadgeClass = {
   admin: 'bg-blue-600/20 text-blue-400 border-blue-800',
   standby: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
   accounts: 'bg-green-500/20 text-emerald-400 border-green-500/30',
+  analytics: 'bg-cyan-500/20 text-cyan-300 border-cyan-800',
   user: 'bg-slate-700 text-slate-400 border-slate-700',
 };
 const roleLabel = {
@@ -26,6 +28,7 @@ const roleLabel = {
   accounts: 'Accounts',
   user: 'Remote Operator',
   standby: 'Operator / Standby',
+  analytics: 'Data Analytics',
 };
 
 async function copyText(text) {

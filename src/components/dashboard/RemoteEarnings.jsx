@@ -134,24 +134,28 @@ export default function RemoteEarnings({ user }) {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
-            <p className="text-xs text-slate-400">Total Earned</p>
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
-            <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-slate-100">{mainShoots.length}</p>
-            <p className="text-xs text-slate-400">Main Shoots</p>
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
-            <p className="text-2xl font-bold text-amber-400">{additionalShoots.length}</p>
-            <p className="text-xs text-slate-400">Additional</p>
-          </div>
+        <div className={`grid gap-4 mb-4 ${user?.role === 'standby' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
+          {user?.role === 'standby' && (
+            <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
+              <p className="text-2xl font-bold text-slate-100">{formatZAR(adjustedBreakdown.reduce((s, b) => s + b.amount, 0), { withSpace: false })}</p>
+              <p className="text-xs text-slate-400">Shoot earnings</p>
+            </div>
+          )}
           {user?.role === 'standby' && (
             <div className="rounded-lg border border-blue-800/40 bg-blue-950/30 p-3 text-center">
-              <p className="text-2xl font-bold text-blue-300">{standbyPay.count}</p>
-              <p className="text-xs text-slate-400">Standby · {formatZAR(standbyPay.total, { withSpace: false })}</p>
+              <p className="text-2xl font-bold text-blue-300">{formatZAR(standbyPay.total, { withSpace: false })}</p>
+              <p className="text-xs text-slate-400">Standby · {standbyPay.count}</p>
+            </div>
+          )}
+          <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
+            <p className="text-xs text-slate-400">{user?.role === 'standby' ? 'Total shoots + standby' : 'Total Earned'}</p>
+          </div>
+          {user?.role !== 'standby' && (
+            <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
+              <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-slate-100">{mainShoots.length + additionalShoots.length}</p>
+              <p className="text-xs text-slate-400">Shoots</p>
             </div>
           )}
         </div>

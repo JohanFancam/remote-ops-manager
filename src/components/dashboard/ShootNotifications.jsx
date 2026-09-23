@@ -81,10 +81,10 @@ function playNotificationSound() {
 }
 
 const urgencyStyles = {
-  urgent: 'border-red-500/70 bg-red-950/95',
-  today: 'border-yellow-500/70 bg-yellow-950/95',
-  tomorrow: 'border-blue-500/70 bg-blue-950/95',
-  change: 'border-orange-500/70 bg-orange-950/95',
+  urgent: 'border-blue-500/40 bg-[#080e1d]/95',
+  today: 'border-[color:var(--rom-line)] bg-[#080e1d]/95',
+  tomorrow: 'border-[color:var(--rom-line)] bg-[#080e1d]/95',
+  change: 'border-blue-500/30 bg-[#080e1d]/95',
 };
 
 const urgencyLabel = {
@@ -121,6 +121,8 @@ function storedTypeLabel(type) {
       return 'Shoot today';
     case 'google_sync':
       return 'Google sync';
+    case 'calendar_request':
+      return 'Calendar request';
     default:
       return urgencyLabel.change;
   }
@@ -152,11 +154,11 @@ function NotificationBody({ item }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1">
           {notification.type === 'standby' ? (
-            <Bell className="h-3.5 w-3.5 text-orange-200" />
+            <Bell className="h-3.5 w-3.5 text-blue-300" />
           ) : (
-            <AlertTriangle className="h-3.5 w-3.5 text-orange-200" />
+            <AlertTriangle className="h-3.5 w-3.5 text-blue-300" />
           )}
-          <span className="text-[11px] font-medium uppercase tracking-wide text-orange-200">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-blue-300">
             {storedTypeLabel(notification.type)}
           </span>
         </div>
@@ -223,6 +225,12 @@ function useNotificationState(shoots, user, notifyHours) {
   });
   const announcedRef = useRef(new Set());
   const primedRef = useRef(false);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(tick);
+  }, []);
 
   const refreshStoredNotifications = async () => {
     if (!user?.email) return;
@@ -252,10 +260,20 @@ function useNotificationState(shoots, user, notifyHours) {
       // subscribe is optional
     }
 
-    return () => unsubscribe?.();
-  }, [user?.email, user?.role, user?.standby]);
+    let shootUnsub;
+    try {
+      shootUnsub = base44.entities.Shoot.subscribe(() => {
+        refreshStoredNotifications();
+      });
+    } catch {
+      // subscribe is optional
+    }
 
-  const now = new Date();
+    return () => {
+      unsubscribe?.();
+      shootUnsub?.();
+    };
+  }, [user?.email, user?.role, user?.standby]);
 
   const myAssigned = useMemo(() => {
     return shoots.filter((shoot) =>

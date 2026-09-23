@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
-import { listEntities, createEntity, updateEntity } from './entities.js';
+import { listEntities, createEntity, updateEntity, deleteEntity } from './entities.js';
 import { handleShootChange, createNotifications } from './notifications.js';
 
 const ZA_TZ = 'Africa/Johannesburg';
@@ -265,13 +265,14 @@ function normalizeTitle(value) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function findTitleDateMatch(shoots, title, date) {
+function findTitleDateMatch(shoots, title, date, calendarId = '') {
   const wanted = normalizeTitle(title);
   if (!wanted || !date) return null;
   return (shoots || []).find((shoot) => (
     !shoot.google_event_id
     && shoot.date === date
     && normalizeTitle(shoot.title) === wanted
+    && (!shoot.google_calendar_id || !calendarId || shoot.google_calendar_id === calendarId)
   )) || null;
 }
 
@@ -373,8 +374,9 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     const title = (event.summary || 'Untitled event').trim();
     seen.add(event.id);
 
-    const existing = byGoogleId.get(event.id) || findTitleDateMatch(existingShoots, title, times.date);
+    const existing = byGoogleId.get(event.id) || findTitleDateMatch(existingShoots, title, times.date, source.id);
     if (existing) {
+      byGoogleId.set(event.id, existing);
       const existingTime = existing.game_time || existing.start_time || '';
       const restore = existing.status === 'cancelled' && existing.google_sync_cancelled;
       const timeChanged = existingTime !== times.game_time;
@@ -456,36 +458,71 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   }
 
   let cancelled = 0;
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
-  for (const shoot of existingShoots) {
-    if (!shoot.google_event_id) continue;
-    if (seen.has(shoot.google_event_id)) continue;
-    if ((shoot.date || '') < todayStr) continue;
-    if (shoot.status === 'cancelled') continue;
-    const shootCalendarId = shoot.google_calendar_id || '';
-    if (shootCalendarId && !syncedCalendarIds.has(shootCalendarId)) continue;
-    const next = updateEntity('Shoot', shoot.id, {
-      status: 'cancelled',
-      google_sync_cancelled: true,
-      google_sync_flag: 'cancelled',
-      last_synced_at: syncedAt,
-    });
+  const windowStart = min.toLocaleDateString('en-CA', { timeZone: ZA_TZ });
+  const windowEnd = max.toLocaleDateString('en-CA', { timeZone: ZA_TZ });
+  const claimedEventIds = new Set();
+  const claimedCalKeys = new Set();
+  const latestShoots = listEntities('Shoot', '-date', 5000);
+
+  const removeShoot = (shoot, action = 'deleted') => {
+    deleteEntity('Shoot', shoot.id);
     cancelled += 1;
     changes.push({
-      action: 'cancelled',
+      action,
       title: shoot.title,
       date: shoot.date,
       time: shoot.game_time || shoot.start_time || '',
       calendar: shoot.google_calendar_label || '',
     });
-    if (next) {
-      handleShootChange(shoot, next, user).catch((err) => {
-        console.warn('Google cancel notification failed:', err.message);
-      });
+    createNotifications({
+      notificationKey: `google_sync_delete:${shoot.id}:${syncedAt}`,
+      type: 'google_sync',
+      title: 'Shoot removed from calendar',
+      message: `${shoot.google_calendar_label || 'Google'}: ${shoot.title} is no longer on Google and was removed from the app.`,
+      shoot,
+      targetEmails: [],
+      targetRole: 'admin',
+      createdByName: user?.full_name || user?.email || 'Google sync',
+      url: '/Calendar',
+    }).catch((err) => {
+      console.warn('Google delete notification failed:', err.message);
+    });
+  };
+
+  for (const shoot of latestShoots) {
+    const eventId = shoot.google_event_id;
+    const inWindow = (shoot.date || '') >= windowStart && (shoot.date || '') <= windowEnd;
+    const shootCalendarId = shoot.google_calendar_id || '';
+    const fromSyncedCalendar = !shootCalendarId || syncedCalendarIds.has(shootCalendarId);
+    if (eventId && fromSyncedCalendar && inWindow && !seen.has(eventId)) {
+      removeShoot(shoot, 'deleted');
+      continue;
+    }
+    if (eventId && seen.has(eventId)) {
+      if (claimedEventIds.has(eventId)) {
+        removeShoot(shoot, 'duplicate');
+        continue;
+      }
+      claimedEventIds.add(eventId);
+      if (shootCalendarId && shoot.date) {
+        claimedCalKeys.add(`${shootCalendarId}|${shoot.date}|${normalizeTitle(shoot.title)}`);
+      }
     }
   }
 
-  const stats = { created, updated, unchanged, cancelled, skipped };
+  for (const shoot of listEntities('Shoot', '-date', 5000)) {
+    const eventId = shoot.google_event_id;
+    if (eventId && seen.has(eventId)) continue;
+    const shootCalendarId = shoot.google_calendar_id || '';
+    const calKey = shootCalendarId && shoot.date
+      ? `${shootCalendarId}|${shoot.date}|${normalizeTitle(shoot.title)}`
+      : '';
+    if (calKey && claimedCalKeys.has(calKey)) {
+      removeShoot(shoot, 'duplicate');
+    }
+  }
+
+  const stats = { created, updated, unchanged, cancelled, skipped, deleted: cancelled };
   saveGoogleSettings({
     lastSyncAt: syncedAt,
     lastSyncStats: stats,
@@ -495,7 +532,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   if (created || updated || cancelled) {
     const labels = sources.map((source) => source.label).join(' + ');
     const lines = [
-      `${labels}: ${created} new, ${updated} updated, ${cancelled} cancelled.`,
+      `${labels}: ${created} new, ${updated} updated, ${cancelled} removed.`,
       ...changes.slice(0, 8).map((item) => {
         if (item.action === 'updated' || item.action === 'restored') {
           return `${item.calendar}: ${item.title} — ${item.previousDate || ''} ${item.previousTime || ''} → ${item.date} ${item.time}`.trim();

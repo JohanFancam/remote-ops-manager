@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Phone, Copy, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
+import { matchRig } from '../utils/rigUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { removeEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
@@ -85,15 +86,13 @@ function formatCameraValue(cam) {
   return `${shutter} · ${aperture} · ISO ${iso}`;
 }
 
-function RigConfigRow({ label, value, accent = false }) {
+function RigConfigRow({ label, value }) {
   if (!value) return null;
 
   return (
-    <div className={`flex items-center justify-between rounded-md px-3 py-2 text-xs ${
-      accent ? 'bg-emerald-950/30 text-emerald-300' : 'bg-slate-800/70'
-    }`}>
-      <span className={accent ? 'text-emerald-300' : 'text-slate-400'}>{label}</span>
-      <span className={`font-mono ${accent ? 'text-emerald-200' : 'text-gray-100'}`}>{value}</span>
+    <div className="flex items-center justify-between rounded-md px-3 py-2 text-xs bg-slate-800/70">
+      <span className="text-slate-400">{label}</span>
+      <span className="font-mono text-gray-100">{value}</span>
     </div>
   );
 }
@@ -125,19 +124,7 @@ export default function CountdownCard({
     return () => clearInterval(iv);
   }, []);
 
-  const matchedRig = useMemo(() => {
-    const client = (shoot.client || '').toLowerCase().trim();
-    const title = (shoot.title || '').toLowerCase().trim();
-    return rigSettings.find((r) => {
-      const team = (r.team || '').toLowerCase().trim();
-      if (!team) return false;
-      return (
-        team === client || team === title ||
-        client.includes(team) || title.includes(team) ||
-        team.includes(client) || team.includes(title)
-      );
-    }) || null;
-  }, [rigSettings, shoot.client, shoot.title]);
+  const matchedRig = useMemo(() => matchRig(shoot, rigSettings), [rigSettings, shoot]);
 
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound_enabled === true;
@@ -228,9 +215,6 @@ export default function CountdownCard({
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
   const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
   const rigLabel = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || null;
-  const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type || 'Data';
-  const highlightData = effectiveRigType === 'Data' || effectiveRigType === 'Data/Fancam';
-  const highlightFancam = effectiveRigType === 'Fancam' || effectiveRigType === 'Data/Fancam';
   const shootTypeLabel = (() => {
     const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
     const parts = [baseType];
@@ -601,17 +585,17 @@ export default function CountdownCard({
               </div>
 
               <div className="mt-3 space-y-2">
-                {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} accent={highlightData} />}
-                {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} accent={highlightData} />}
-                {fancamDayHdValue && <RigConfigRow label="Outdoor Day HD" value={fancamDayHdValue} accent={highlightFancam} />}
-                {fancamDayWideValue && <RigConfigRow label="Outdoor Day Wide" value={fancamDayWideValue} accent={highlightFancam} />}
-                {fancamNightHdValue && <RigConfigRow label="Outdoor Night HD" value={fancamNightHdValue} accent={highlightFancam} />}
-                {fancamNightWideValue && <RigConfigRow label="Outdoor Night Wide" value={fancamNightWideValue} accent={highlightFancam} />}
+                {dataHdValue && <RigConfigRow label="Data HD" value={dataHdValue} />}
+                {dataWideValue && <RigConfigRow label="Data Wide" value={dataWideValue} />}
+                {fancamDayHdValue && <RigConfigRow label="Outdoor Day HD" value={fancamDayHdValue} />}
+                {fancamDayWideValue && <RigConfigRow label="Outdoor Day Wide" value={fancamDayWideValue} />}
+                {fancamNightHdValue && <RigConfigRow label="Outdoor Night HD" value={fancamNightHdValue} />}
+                {fancamNightWideValue && <RigConfigRow label="Outdoor Night Wide" value={fancamNightWideValue} />}
                 {indoorHdValue && <RigConfigRow label="Indoor HD" value={indoorHdValue} />}
                 {indoorWideValue && <RigConfigRow label="Indoor Wide" value={indoorWideValue} />}
-                {attentionValue && <RigConfigRow label="Attention" value={attentionValue} accent={showAttention || highlightData || highlightFancam} />}
-                {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} accent={showSound || highlightData || highlightFancam} />}
-                {soundTriggerValue && <RigConfigRow label="Sound Trigger" value={soundTriggerValue} accent={showSoundTrigger} />}
+                {attentionValue && <RigConfigRow label="Attention" value={attentionValue} />}
+                {soundValue && <RigConfigRow label="Sound Recording" value={soundValue} />}
+                {soundTriggerValue && <RigConfigRow label="Sound Trigger" value={soundTriggerValue} />}
               </div>
             </div>
 

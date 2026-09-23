@@ -117,4 +117,5 @@ export const ENTITY_TYPES = [
   'Event',
   'ShootNotification',
   'PushSubscription',
+  'CalendarChangeRequest',
 ];
