@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus, shouldGreyCompletedShoot } from '@/utils/shootStatus';
+import TeamLogoBackdrop from './TeamLogoBackdrop';
 
 const statusColors = SHOOT_STATUS_COLORS;
 
@@ -420,7 +421,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`relative rounded-xl border transition-all ${
+        className={`relative overflow-hidden rounded-xl border transition-all ${
           isGreyCompleted
             ? 'border-slate-800 bg-slate-900 opacity-70'
             : isStatusCancelled
@@ -431,7 +432,8 @@ export default function CountdownCard({
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
-        <div className="px-3 py-4 sm:px-4">
+        <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} />
+        <div className="relative z-[1] px-3 py-4 sm:px-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -556,7 +558,7 @@ export default function CountdownCard({
         </div>
 
         {expanded && (
-          <div className="space-y-4 border-t border-slate-800 px-4 py-4">
+          <div className="relative z-[1] space-y-4 border-t border-slate-800 px-4 py-4">
             {isAdmin && onUpdate && (
               <div>
                 <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>

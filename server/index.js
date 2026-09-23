@@ -89,11 +89,18 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/public-settings', (_req, res) => {
+  const settings = listEntities('AppSettings', null, 500);
+  const settingValue = (key) => {
+    const row = settings.find((item) => item.key === key);
+    return String(row?.value || '').trim();
+  };
   res.json({
     id: 'remote-ops-manager',
     public_settings: {
       app_name: 'Remote Ops Manager',
       auth_required: true,
+      login_background_url: settingValue('login_background_url'),
+      app_logo_url: settingValue('app_logo_url'),
     },
   });
 });

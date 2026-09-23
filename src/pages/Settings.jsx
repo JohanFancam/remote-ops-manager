@@ -192,6 +192,8 @@ export default function Settings() {
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef();
+  const [bgUploading, setBgUploading] = useState(false);
+  const bgInputRef = useRef();
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -238,6 +240,8 @@ export default function Settings() {
 
   const logoSetting = appSettings.find(s => s.key === 'app_logo_url');
   const logoUrl = logoSetting?.value;
+  const loginBgSetting = appSettings.find(s => s.key === 'login_background_url');
+  const loginBgUrl = loginBgSetting?.value;
 
   useEffect(() => {
     if (!appSettings.length) return;
@@ -296,17 +300,37 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
+  const upsertSetting = async (existing, key, value, description) => {
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value });
+    } else {
+      await base44.entities.AppSettings.create({ key, value, description });
+    }
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setLogoUploading(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    if (logoSetting) {
-      await base44.entities.AppSettings.update(logoSetting.id, { value: file_url });
-    } else {
-      await base44.entities.AppSettings.create({ key: 'app_logo_url', value: file_url, description: 'Custom app logo' });
-    }
+    await upsertSetting(logoSetting, 'app_logo_url', file_url, 'Custom app logo');
     setLogoUploading(false);
+  };
+
+  const handleLoginBackgroundUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await upsertSetting(loginBgSetting, 'login_background_url', file_url, 'Sign-in page background image');
+    setBgUploading(false);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleClearLoginBackground = async () => {
+    if (!loginBgSetting) return;
+    await base44.entities.AppSettings.update(loginBgSetting.id, { value: '' });
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
@@ -521,7 +545,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App logo shown in the sidebar"
+            description="App logo and the sign-in background"
             icon={Image}
           >
             <Card className="bg-slate-900 border-slate-800">
@@ -546,6 +570,40 @@ export default function Settings() {
                       <Image className="h-4 w-4" />
                       {logoUploading ? 'Uploading...' : 'Upload Logo'}
                     </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900 border-slate-800 mt-4">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-blue-400" /> Sign-in background
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-4 flex-wrap">
+                  <div className="w-40 h-24 bg-slate-800 rounded-xl overflow-hidden border border-slate-800 bg-cover bg-center"
+                    style={loginBgUrl ? { backgroundImage: `url("${loginBgUrl}")` } : undefined}>
+                    {!loginBgUrl && <div className="h-full w-full flex items-center justify-center text-xs text-slate-500">No image</div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-400 mb-2">
+                      Shown behind the sign-in and create-account screens. A dark overlay keeps the form readable. Wide photos work best.
+                    </p>
+                    <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleLoginBackgroundUpload} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => bgInputRef.current?.click()} disabled={bgUploading}
+                        className="bg-blue-600 hover:bg-blue-600 gap-2">
+                        <Image className="h-4 w-4" />
+                        {bgUploading ? 'Uploading...' : loginBgUrl ? 'Replace image' : 'Upload image'}
+                      </Button>
+                      {loginBgUrl && (
+                        <Button size="sm" variant="outline" onClick={handleClearLoginBackground}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
