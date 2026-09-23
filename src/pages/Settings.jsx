@@ -7,6 +7,7 @@ import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
+import TileLogoSettings from '../components/settings/TileLogoSettings';
 import SettingsCategory from '../components/settings/SettingsCategory';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -545,7 +546,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App logo and the sign-in background"
+            description="App logo, sign-in background, and tile marks"
             icon={Image}
           >
             <Card className="bg-slate-900 border-slate-800">
@@ -608,6 +609,7 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+            <TileLogoSettings appSettings={appSettings} />
           </SettingsCategory>
         )}
 

@@ -432,7 +432,7 @@ export default function CountdownCard({
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
-        <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} />
+        <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
         <div className="relative z-[1] px-3 py-4 sm:px-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">

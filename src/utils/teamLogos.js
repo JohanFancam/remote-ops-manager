@@ -157,6 +157,16 @@ function monogramFor(name) {
   return (words[words.length - 1] || short || '?').slice(0, 1).toUpperCase();
 }
 
+export function readTileLogoSettings(appSettings = []) {
+  const get = (key) => appSettings.find((item) => item.key === key)?.value;
+  const enabledRaw = String(get('tile_logos_enabled') ?? 'true').toLowerCase();
+  const size = Number(get('tile_logos_size'));
+  return {
+    enabled: enabledRaw !== 'false' && enabledRaw !== '0',
+    sizePercent: Number.isFinite(size) ? Math.min(160, Math.max(60, size)) : 100,
+  };
+}
+
 export function resolveTeamMarks(title, sport = '') {
   const names = parseMatchupTeams(title);
   const league = inferLeague(names, sport);

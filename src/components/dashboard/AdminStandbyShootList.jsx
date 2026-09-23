@@ -49,7 +49,8 @@ export default function AdminStandbyShootList({
   rigSettings = [],
   standbyDays = [],
   onUpdate,
-  isAdmin = false
+  isAdmin = false,
+  appSettings = [],
 }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [viewMode, setViewMode] = useState('tile');
@@ -137,6 +138,7 @@ export default function AdminStandbyShootList({
           userEmail={userEmail}
           allUsers={allUsers}
           showReadyMessage={false}
+          appSettings={appSettings}
         />
       </div>
     );
