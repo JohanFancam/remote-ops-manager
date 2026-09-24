@@ -139,7 +139,12 @@ export function userMustChangePassword(userOrRow) {
 
 export function issueNewPassword(userRow) {
   const password = generatePassword();
-  updateUser(userRow.id, { password, must_change_password: true });
+  updateUser(userRow.id, {
+    password,
+    must_change_password: true,
+    awaiting_first_login: true,
+    login_issued_at: nowIso(),
+  });
   return issuedEntry(userRow, password, 'reset');
 }
 
@@ -156,7 +161,7 @@ export function createLoginWithGeneratedPassword({
     full_name,
     role,
     standby: role === 'standby' || !!standby,
-    extra: { must_change_password: true },
+    extra: { must_change_password: true, awaiting_first_login: true, login_issued_at: nowIso() },
   });
   return issuedEntry(user, password, 'new');
 }

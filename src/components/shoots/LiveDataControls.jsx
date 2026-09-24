@@ -1,14 +1,22 @@
 import React from 'react';
 import { Switch } from '@/components/ui/switch';
+import { matchRig } from '@/components/utils/rigUtils';
 
-export function isLiveData(shoot) {
-  const value = shoot?.live_data;
+function flagOn(value) {
   return value === true || value === 1 || String(value).toLowerCase() === 'true';
 }
 
-export function compareLiveDataFirst(a, b, fallback = () => 0) {
-  const da = isLiveData(a) ? 0 : 1;
-  const db = isLiveData(b) ? 0 : 1;
+export function isLiveData(shoot, rigOrSettings) {
+  if (flagOn(shoot?.live_data)) return true;
+  const rig = Array.isArray(rigOrSettings)
+    ? matchRig(shoot, rigOrSettings)
+    : (rigOrSettings || null);
+  return flagOn(rig?.live_data);
+}
+
+export function compareLiveDataFirst(a, b, fallback = () => 0, rigSettings = []) {
+  const da = isLiveData(a, rigSettings) ? 0 : 1;
+  const db = isLiveData(b, rigSettings) ? 0 : 1;
   if (da !== db) return da - db;
   return fallback();
 }
@@ -21,12 +29,16 @@ export function LiveDataBadge({ className = '' }) {
   );
 }
 
-export function LiveDataToggle({ checked, onChange, disabled = false }) {
+export function LiveDataToggle({ checked, onChange, disabled = false, compact = false }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2">
+    <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+      checked ? 'border-sky-500/40 bg-sky-500/10' : 'border-slate-800 bg-slate-800/40'
+    }`}>
       <div>
         <p className="text-sm text-slate-100">Live Data</p>
-        <p className="text-[11px] text-slate-500">These times get first priority when issues need repair.</p>
+        {!compact && (
+          <p className="text-[11px] text-slate-500">This team’s times get first priority when issues need repair.</p>
+        )}
       </div>
       <Switch
         checked={!!checked}

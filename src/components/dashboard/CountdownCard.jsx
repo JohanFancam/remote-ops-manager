@@ -443,7 +443,7 @@ export default function CountdownCard({
                   {shortenTitle(shoot.title)}
                 </span>
                 {rigLabel && <span className="text-xs font-medium text-blue-400">{rigLabel}</span>}
-                {isLiveData(shoot) && !isAdmin ? <LiveDataBadge /> : null}
+                {isLiveData(shoot, matchedRig) ? <LiveDataBadge /> : null}
               </div>
 
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -485,23 +485,6 @@ export default function CountdownCard({
 
             <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
               <div className="flex items-center gap-1.5">
-                {isAdmin && onUpdate && !isTerminalStatus && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onUpdate(shoot.id, { live_data: !isLiveData(shoot) });
-                    }}
-                    className={`inline-flex h-7 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                      isLiveData(shoot)
-                        ? 'border-sky-500/50 bg-sky-500/20 text-sky-200'
-                        : 'border-slate-700 bg-slate-900/90 text-slate-400 hover:border-sky-500/40 hover:text-sky-200'
-                    }`}
-                    title={isLiveData(shoot) ? 'Turn off Live Data priority' : 'Mark as Live Data — priority for repairs'}
-                  >
-                    Live Data
-                  </button>
-                )}
                 {livePhase ? (
                   <Badge className={`text-xs border ${livePhase.color}`}>{livePhase.label}</Badge>
                 ) : (

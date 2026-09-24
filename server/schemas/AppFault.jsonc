@@ -1,0 +1,29 @@
+{
+  "name": "AppFault",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short fault summary"
+    },
+    "notes": {
+      "type": "string",
+      "description": "What went wrong and where"
+    },
+    "page": {
+      "type": "string",
+      "description": "Screen the person was on"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "resolved"],
+      "default": "open"
+    },
+    "reported_by_email": { "type": "string" },
+    "reported_by_name": { "type": "string" },
+    "reported_by_role": { "type": "string" },
+    "created_at": { "type": "string" },
+    "resolved_at": { "type": "string" },
+    "resolved_by_email": { "type": "string" }
+  }
+}

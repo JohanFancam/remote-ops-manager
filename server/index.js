@@ -24,7 +24,7 @@ import {
 } from './entities.js';
 import { subscribeEntity } from './events.js';
 import { seedIfEmpty } from './seed.js';
-import { publicUser, ENTITY_TYPES } from './db.js';
+import { publicUser, ENTITY_TYPES, parseJson, nowIso } from './db.js';
 import {
   getGoogleStatus,
   getAuthUrl,
@@ -46,6 +46,7 @@ import {
   handleShootChange,
   handleAvailabilityChange,
   handleStandbyChange,
+  notifyAppFault,
   runReminderPass,
 } from './notifications.js';
 import {
@@ -156,7 +157,13 @@ app.post('/api/auth/login', (req, res) => {
   if (row.inactive) {
     return res.status(403).json({ error: 'Account is inactive' });
   }
-  const user = publicUser(row);
+  const extra = parseJson(row.data, {});
+  const now = nowIso();
+  const user = updateUser(row.id, {
+    last_login_at: now,
+    first_login_at: extra.first_login_at || now,
+    awaiting_first_login: false,
+  }) || publicUser(row);
   const token = signToken(user);
   res.json({ token, user });
 });
@@ -181,12 +188,14 @@ app.post('/api/auth/register', (req, res) => {
   const role = pending?.role || 'user';
   const name = full_name || pending?.full_name || '';
 
+  const now = nowIso();
   const user = createUser({
     email,
     password,
     full_name: name,
     role,
     standby: role === 'standby',
+    extra: { last_login_at: now, first_login_at: now, awaiting_first_login: false },
   });
   if (pending?.id) {
     updateEntity('PendingUser', pending.id, { invited: true });
@@ -307,10 +316,17 @@ app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
   res.json({ file_url });
 });
 
+function canReadAppFaults(user) {
+  return user?.role === 'admin';
+}
+
 app.get('/api/entities/:type', authMiddleware, (req, res) => {
   try {
     const { type } = req.params;
     const { sort, limit } = req.query;
+    if (type === 'AppFault' && !canReadAppFaults(req.user)) {
+      return res.json([]);
+    }
     res.json(listEntities(type, sort, limit));
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -323,6 +339,9 @@ app.post('/api/entities/:type/filter', authMiddleware, (req, res) => {
     const filter = req.body?.filter || req.body || {};
     const sort = req.body?.sort || req.query.sort;
     const limit = req.body?.limit || req.query.limit;
+    if (type === 'AppFault' && !canReadAppFaults(req.user)) {
+      return res.json([]);
+    }
     res.json(filterEntities(type, filter, sort, limit));
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -332,7 +351,20 @@ app.post('/api/entities/:type/filter', authMiddleware, (req, res) => {
 app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
-    const created = createEntity(type, req.body || {}, req.user);
+    const payload = { ...(req.body || {}) };
+    if (type === 'AppFault') {
+      payload.reported_by_email = req.user?.email || payload.reported_by_email || '';
+      payload.reported_by_name = req.user?.full_name || payload.reported_by_name || payload.reported_by_email;
+      payload.reported_by_role = req.user?.role || payload.reported_by_role || '';
+      payload.status = payload.status || 'open';
+      payload.created_at = payload.created_at || nowIso();
+    }
+    const created = createEntity(type, payload, req.user);
+    if (type === 'AppFault') {
+      notifyAppFault(created, req.user).catch((err) => {
+        console.warn('App fault notification failed:', err.message);
+      });
+    }
     if (type === 'OperatorAvailability') {
       handleAvailabilityChange(null, created, req.user, 'create').catch((err) => {
         console.warn('Availability notification failed:', err.message);
@@ -362,6 +394,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
       delete patch.password_hash;
       delete patch.must_change_password;
     }
+    if (type === 'AppFault' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
     const updated = updateEntity(type, id, patch);
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
@@ -390,6 +425,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
 app.delete('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
+    if (type === 'AppFault' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
     const previous = getEntity(type, id);
     const ok = deleteEntity(type, id);
     if (!ok) return res.status(404).json({ error: 'Not found' });

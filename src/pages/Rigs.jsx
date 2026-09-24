@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
+import { LiveDataBadge } from '@/components/shoots/LiveDataControls';
 
 export default function Rigs() {
   const { isAdmin } = useApp();
@@ -40,6 +41,13 @@ export default function Rigs() {
     await base44.entities.RigSetting.delete(id);
     setConfirmDeleteId(null);
     if (sidePanelRig?.id === id) setSidePanelRig(null);
+    refresh();
+  };
+
+  const handleLiveDataToggle = async (rig, event) => {
+    event.stopPropagation();
+    if (!isAdmin) return;
+    await base44.entities.RigSetting.update(rig.id, { live_data: !rig.live_data });
     refresh();
   };
 
@@ -102,9 +110,12 @@ export default function Rigs() {
                     <p className="font-bold text-slate-100 text-base leading-tight truncate">{rig.team}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{rig.sport} · {rig.venue_type}</p>
                   </div>
-                  {rig.rig_type && (
-                    <Badge className="bg-blue-600/20 text-blue-400 border-blue-800 text-xs flex-shrink-0">{rig.rig_type}</Badge>
-                  )}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {rig.rig_type && (
+                      <Badge className="bg-blue-600/20 text-blue-400 border-blue-800 text-xs">{rig.rig_type}</Badge>
+                    )}
+                    {rig.live_data ? <LiveDataBadge /> : null}
+                  </div>
                 </div>
 
                 {/* Section badges */}
@@ -116,6 +127,19 @@ export default function Rigs() {
                   {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 text-xs">Attention</Badge>}
                   {rig.sound_enabled && <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 text-xs">Sound</Badge>}
                   {rig.sound_trigger_enabled && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">Sound Trigger</Badge>}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(event) => handleLiveDataToggle(rig, event)}
+                      className={`text-xs rounded-full border px-2 py-0.5 font-semibold uppercase tracking-wide ${
+                        rig.live_data
+                          ? 'border-sky-500/50 bg-sky-500/20 text-sky-200'
+                          : 'border-slate-700 text-slate-500 hover:border-sky-500/40 hover:text-sky-200'
+                      }`}
+                    >
+                      {rig.live_data ? 'Live Data on' : 'Live Data off'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Remote rigs */}

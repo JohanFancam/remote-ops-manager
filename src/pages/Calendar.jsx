@@ -40,7 +40,7 @@ const statusColors = {
   cancelled: 'bg-red-600',
 };
 
-const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '', live_data: false };
+const emptyForm = { title: '', client: '', date: '', game_time: '', status: 'upcoming', description: '' };
 
 // Fuzzy rig match: shoot client/title contains team name OR team name contains shoot client/title keyword
 const findMatchingRig = (shoot, rigSettings) => {

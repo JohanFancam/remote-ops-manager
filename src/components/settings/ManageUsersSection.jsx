@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useApp } from '@/components/AppContext';
+import { useApp, OFFLINE_THRESHOLD } from '@/components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -278,7 +278,53 @@ function AddUserForm({ onClose, onAdded, onIssued }) {
   );
 }
 
-function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup }) {
+function formatLastSeen(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
+
+function SignInStatus({ pu, presence }) {
+  const lastSeenMs = presence?.last_seen ? new Date(presence.last_seen).getTime() : 0;
+  const live = lastSeenMs > 0 && Date.now() - lastSeenMs < OFFLINE_THRESHOLD;
+  const lastLogin = pu.last_login_at || (lastSeenMs ? presence.last_seen : '');
+  const awaiting = !!pu.awaiting_first_login && !live;
+
+  if (pu.inactive) return null;
+  if (live) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        Live
+      </span>
+    );
+  }
+  if (awaiting || !lastLogin) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300/90">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        Not signed in
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+      Signed in {formatLastSeen(lastLogin)} SAST
+    </span>
+  );
+}
+
+function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup, presence }) {
   const [editing, setEditing] = useState(false);
 
   // Split full_name into first/last on open
@@ -462,6 +508,7 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup })
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-medium text-slate-100 truncate">{displayName}</p>
                 {pu.inactive && <span className="text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full">Not in use</span>}
+                <SignInStatus pu={pu} presence={presence} />
               </div>
               <p className="text-xs text-slate-400 truncate">{pu.email}</p>
             </div>
@@ -531,6 +578,9 @@ function mergeCrew(pendingUsers = [], users = []) {
       full_name: u.full_name || '',
       role: u.role || 'user',
       inactive: !!u.inactive,
+      last_login_at: u.last_login_at || '',
+      first_login_at: u.first_login_at || '',
+      awaiting_first_login: !!u.awaiting_first_login,
     });
   });
   pendingUsers.forEach((pu) => {
@@ -544,6 +594,9 @@ function mergeCrew(pendingUsers = [], users = []) {
       full_name: pu.full_name || existing?.full_name || '',
       role: existing?.role || pu.role || 'user',
       inactive: existing?.inactive ?? !!pu.inactive,
+      last_login_at: existing?.last_login_at || '',
+      first_login_at: existing?.first_login_at || '',
+      awaiting_first_login: !!existing?.awaiting_first_login,
     });
   });
   return Array.from(map.values()).sort((a, b) =>
@@ -584,6 +637,18 @@ export default function ManageUsersSection() {
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
   });
+
+  const { data: presenceRecords = [] } = useQuery({
+    queryKey: ['userPresence'],
+    queryFn: () => base44.entities.UserPresence.list(),
+    refetchInterval: 30_000,
+  });
+
+  const presenceByEmail = Object.fromEntries(
+    presenceRecords
+      .filter((item) => item.user_email)
+      .map((item) => [String(item.user_email).toLowerCase(), item])
+  );
 
   const crew = mergeCrew(pendingUsers, loginUsers);
   const issuedLookup = Object.fromEntries(
@@ -639,6 +704,9 @@ export default function ManageUsersSection() {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
+        <p className="text-xs text-slate-500 mb-4">
+          Live (green) means they are in the app now. Not signed in means they have not used the login you sent yet.
+        </p>
         {issuedResult?.issued?.length > 0 && (
           <IssuedPasswords
             issued={issuedResult.issued}
@@ -698,6 +766,7 @@ export default function ManageUsersSection() {
               currentEmail={currentEmail}
               onIssued={mergeIssued}
               issuedLookup={issuedLookup}
+              presence={presenceByEmail[pu.email]}
             />
           ))}
         </div>

@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell,
+  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
@@ -63,7 +63,7 @@ function LayoutContent({ children, currentPageName }) {
 
   useEffect(() => {
     if (isLoading || !isAnalytics) return;
-    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings']);
+    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings', 'AppFaults']);
     const page = currentPageName || 'Dashboard';
     if (!allowed.has(page)) {
       navigate('/', { replace: true });
@@ -91,6 +91,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
+    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
@@ -99,6 +100,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
@@ -108,12 +110,14 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
   const accountsNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'AccountsDashboard' },
+    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -121,6 +125,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 

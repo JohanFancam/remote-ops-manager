@@ -195,6 +195,25 @@ export async function createNotifications({
   return { created, pushed: pushResult.sent };
 }
 
+export async function notifyAppFault(fault, user = null) {
+  if (!fault?.id) return { created: 0, pushed: 0 };
+  const reporter = userNameFor(fault.reported_by_email || user?.email);
+  const summary = String(fault.title || fault.notes || 'App fault').slice(0, 120);
+  return createNotifications({
+    notificationKey: `app_fault:${fault.id}`,
+    type: 'app_fault',
+    title: 'App fault logged',
+    message: `${reporter} logged: ${summary}`,
+    targetRole: 'admin',
+    url: '/AppFaults',
+    createdByName: reporter,
+    extras: {
+      fault_id: fault.id,
+      reported_by_email: fault.reported_by_email || user?.email || '',
+    },
+  });
+}
+
 export async function handleShootChange(previous, next, user = null) {
   if (!next?.id) return;
   const actor = normEmail(user?.email);
