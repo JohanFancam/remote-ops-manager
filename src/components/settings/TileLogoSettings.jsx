@@ -41,8 +41,11 @@ export default function TileLogoSettings({ appSettings = [] }) {
   const stored = readTileLogoSettings(appSettings);
   const fileRef = useRef(null);
   const [enabled, setEnabled] = useState(stored.enabled);
+  const [mobileEnabled, setMobileEnabled] = useState(stored.mobileEnabled);
   const [size, setSize] = useState(stored.sizePercent);
   const [opacity, setOpacity] = useState(stored.opacityPercent);
+  const [mobileSize, setMobileSize] = useState(stored.mobileSizePercent);
+  const [mobileOpacity, setMobileOpacity] = useState(stored.mobileOpacityPercent);
   const [overrides, setOverrides] = useState(stored.overrides);
   const [teamName, setTeamName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,20 +54,35 @@ export default function TileLogoSettings({ appSettings = [] }) {
 
   useEffect(() => {
     setEnabled(stored.enabled);
+    setMobileEnabled(stored.mobileEnabled);
     setSize(stored.sizePercent);
     setOpacity(stored.opacityPercent);
-  }, [stored.enabled, stored.sizePercent, stored.opacityPercent]);
+    setMobileSize(stored.mobileSizePercent);
+    setMobileOpacity(stored.mobileOpacityPercent);
+  }, [stored.enabled, stored.mobileEnabled, stored.sizePercent, stored.opacityPercent, stored.mobileSizePercent, stored.mobileOpacityPercent]);
 
   useEffect(() => {
     setOverrides(stored.overrides);
   }, [overridesRaw]);
 
-  const persistLook = async (nextEnabled, nextSize, nextOpacity) => {
+  const persistLook = async (next) => {
+    const look = {
+      enabled,
+      mobileEnabled,
+      size,
+      opacity,
+      mobileSize,
+      mobileOpacity,
+      ...next,
+    };
     setSaving(true);
     try {
-      await upsertSetting(appSettings, 'tile_logos_enabled', nextEnabled ? 'true' : 'false', 'Show team marks on dashboard tiles');
-      await upsertSetting(appSettings, 'tile_logos_size', String(nextSize), 'Dashboard tile logo size percent');
-      await upsertSetting(appSettings, 'tile_logos_opacity', String(nextOpacity), 'Dashboard tile logo opacity percent');
+      await upsertSetting(appSettings, 'tile_logos_enabled', look.enabled ? 'true' : 'false', 'Show team marks on dashboard tiles');
+      await upsertSetting(appSettings, 'tile_logos_mobile', look.mobileEnabled ? 'true' : 'false', 'Show team marks on mobile dashboard tiles');
+      await upsertSetting(appSettings, 'tile_logos_size', String(look.size), 'Dashboard tile logo size percent');
+      await upsertSetting(appSettings, 'tile_logos_opacity', String(look.opacity), 'Dashboard tile logo opacity percent');
+      await upsertSetting(appSettings, 'tile_logos_mobile_size', String(look.mobileSize), 'Mobile dashboard tile logo size percent');
+      await upsertSetting(appSettings, 'tile_logos_mobile_opacity', String(look.mobileOpacity), 'Mobile dashboard tile logo opacity percent');
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } finally {
       setSaving(false);
@@ -134,7 +152,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
           <div>
             <p className="text-sm text-slate-200">Show team marks on dashboard tiles</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              White one-tone logos in the bottom corners of dashboard tiles on desktop. Hidden on phones.
+              White one-tone logos stay in the bottom corners of the main tile. They do not move when rig settings expand.
             </p>
           </div>
           <Switch
@@ -142,7 +160,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
             disabled={saving}
             onCheckedChange={(next) => {
               setEnabled(next);
-              persistLook(next, size, opacity);
+              persistLook({ enabled: next });
             }}
             className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-700"
           />
@@ -150,7 +168,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
 
         <div className={enabled ? '' : 'opacity-40 pointer-events-none'}>
           <div className="flex items-center justify-between gap-3 mb-2">
-            <label htmlFor="tile-logo-size" className="text-sm text-slate-200">Size</label>
+            <label htmlFor="tile-logo-size" className="text-sm text-slate-200">Desktop size</label>
             <span className="text-xs font-mono text-slate-400">{size}%</span>
           </div>
           <input
@@ -162,9 +180,9 @@ export default function TileLogoSettings({ appSettings = [] }) {
             value={size}
             disabled={!enabled || saving}
             onChange={(e) => setSize(Number(e.target.value))}
-            onMouseUp={(e) => persistLook(enabled, Number(e.currentTarget.value), opacity)}
-            onTouchEnd={(e) => persistLook(enabled, Number(e.currentTarget.value), opacity)}
-            onKeyUp={(e) => persistLook(enabled, Number(e.currentTarget.value), opacity)}
+            onMouseUp={(e) => persistLook({ size: Number(e.currentTarget.value) })}
+            onTouchEnd={(e) => persistLook({ size: Number(e.currentTarget.value) })}
+            onKeyUp={(e) => persistLook({ size: Number(e.currentTarget.value) })}
             className="w-full accent-blue-500"
           />
           <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wider text-slate-600">
@@ -175,7 +193,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
 
         <div className={enabled ? '' : 'opacity-40 pointer-events-none'}>
           <div className="flex items-center justify-between gap-3 mb-2">
-            <label htmlFor="tile-logo-opacity" className="text-sm text-slate-200">Opacity</label>
+            <label htmlFor="tile-logo-opacity" className="text-sm text-slate-200">Desktop opacity</label>
             <span className="text-xs font-mono text-slate-400">{opacity}%</span>
           </div>
           <input
@@ -187,14 +205,74 @@ export default function TileLogoSettings({ appSettings = [] }) {
             value={opacity}
             disabled={!enabled || saving}
             onChange={(e) => setOpacity(Number(e.target.value))}
-            onMouseUp={(e) => persistLook(enabled, size, Number(e.currentTarget.value))}
-            onTouchEnd={(e) => persistLook(enabled, size, Number(e.currentTarget.value))}
-            onKeyUp={(e) => persistLook(enabled, size, Number(e.currentTarget.value))}
+            onMouseUp={(e) => persistLook({ opacity: Number(e.currentTarget.value) })}
+            onTouchEnd={(e) => persistLook({ opacity: Number(e.currentTarget.value) })}
+            onKeyUp={(e) => persistLook({ opacity: Number(e.currentTarget.value) })}
             className="w-full accent-blue-500"
           />
           <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wider text-slate-600">
             <span>Soft</span>
             <span>Solid</span>
+          </div>
+        </div>
+
+        <div className={enabled ? 'pt-2 border-t border-slate-800 space-y-4' : 'pt-2 border-t border-slate-800 space-y-4 opacity-40 pointer-events-none'}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-slate-200">Show on mobile</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Off by default so phone tiles stay compact. Turn on to pin the same corner marks on small screens.
+              </p>
+            </div>
+            <Switch
+              checked={mobileEnabled}
+              disabled={!enabled || saving}
+              onCheckedChange={(next) => {
+                setMobileEnabled(next);
+                persistLook({ mobileEnabled: next });
+              }}
+              className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-700"
+            />
+          </div>
+          <div className={mobileEnabled ? '' : 'opacity-40 pointer-events-none'}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <label htmlFor="tile-logo-mobile-size" className="text-sm text-slate-200">Mobile size</label>
+              <span className="text-xs font-mono text-slate-400">{mobileSize}%</span>
+            </div>
+            <input
+              id="tile-logo-mobile-size"
+              type="range"
+              min="40"
+              max="140"
+              step="5"
+              value={mobileSize}
+              disabled={!enabled || !mobileEnabled || saving}
+              onChange={(e) => setMobileSize(Number(e.target.value))}
+              onMouseUp={(e) => persistLook({ mobileSize: Number(e.currentTarget.value) })}
+              onTouchEnd={(e) => persistLook({ mobileSize: Number(e.currentTarget.value) })}
+              onKeyUp={(e) => persistLook({ mobileSize: Number(e.currentTarget.value) })}
+              className="w-full accent-blue-500"
+            />
+          </div>
+          <div className={mobileEnabled ? '' : 'opacity-40 pointer-events-none'}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <label htmlFor="tile-logo-mobile-opacity" className="text-sm text-slate-200">Mobile opacity</label>
+              <span className="text-xs font-mono text-slate-400">{mobileOpacity}%</span>
+            </div>
+            <input
+              id="tile-logo-mobile-opacity"
+              type="range"
+              min="10"
+              max="100"
+              step="5"
+              value={mobileOpacity}
+              disabled={!enabled || !mobileEnabled || saving}
+              onChange={(e) => setMobileOpacity(Number(e.target.value))}
+              onMouseUp={(e) => persistLook({ mobileOpacity: Number(e.currentTarget.value) })}
+              onTouchEnd={(e) => persistLook({ mobileOpacity: Number(e.currentTarget.value) })}
+              onKeyUp={(e) => persistLook({ mobileOpacity: Number(e.currentTarget.value) })}
+              className="w-full accent-blue-500"
+            />
           </div>
         </div>
 

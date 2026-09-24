@@ -396,6 +396,8 @@ export default function CountdownCard({
   const indoorWideValue = matchedRig?.indoor_enabled && matchedRig?.indoor_wide_enabled !== false && matchedRig?.indoor_wide ? formatCameraValue(matchedRig.indoor_wide) : null;
   const soundValue = showSound ? 'Enabled' : null;
   const soundTriggerValue = showSoundTrigger ? (phaseDates.sound_trigger ? format(phaseDates.sound_trigger, 'HH:mm') : '+10 min') : null;
+  const tileLogos = readTileLogoSettings(appSettings);
+  const logoPadClass = !tileLogos.enabled ? '' : (tileLogos.mobileEnabled ? 'pb-14' : 'lg:pb-14');
 
   return (
     <>
@@ -434,8 +436,9 @@ export default function CountdownCard({
         } hover:border-slate-700`}
         onContextMenu={onContextMenu}
       >
-        <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
-        <div className={`relative z-[1] px-3 py-4 sm:px-4 ${readTileLogoSettings(appSettings).enabled ? 'lg:pb-14' : ''}`}>
+        <div className="relative">
+          <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
+          <div className={`relative z-[1] px-3 py-4 sm:px-4 ${logoPadClass}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -559,9 +562,10 @@ export default function CountdownCard({
             )}
           </div>
         </div>
+        </div>
 
         {expanded && (
-          <div className="relative z-[1] space-y-4 border-t border-slate-800 px-4 py-4">
+          <div className="relative z-[2] space-y-4 border-t border-slate-800 bg-slate-900 px-4 py-4">
             {isAdmin && onUpdate && (
               <div>
                 <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>
