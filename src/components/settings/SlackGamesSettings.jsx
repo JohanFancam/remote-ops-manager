@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { MessageSquare, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import SlackPasteFailSafe from './SlackPasteFailSafe';
+import SlackSyncToggle from '../calendar/SlackSyncToggle';
 
 export default function SlackGamesSettings({ canEdit = true }) {
   const queryClient = useQueryClient();
@@ -68,10 +69,15 @@ export default function SlackGamesSettings({ canEdit = true }) {
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         <p className="text-sm text-slate-400">
-          Google Calendar stays the source of truth. If it is down, Sync from Slack reads the Gameday Bot
-          post (GAMEDAY SCHEDULE, Scheduled Start SAST / Local). Games marked “not for capture” are skipped.
-          This never deletes shoots.
+          Google Calendar stays the source of truth. Slack sync is off until you turn it on. Then Sync from Slack
+          reads the Gameday Bot post. Games marked “not for capture” are skipped. This never deletes shoots.
         </p>
+        <div className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
+          <SlackSyncToggle enabled={!!status?.enabled} />
+          <p className="text-[11px] text-slate-500 mt-1">
+            Off by default. When on, Calendar shows Sync from Slack.
+          </p>
+        </div>
         {canEdit ? (
           <>
             <div>
@@ -101,16 +107,16 @@ export default function SlackGamesSettings({ canEdit = true }) {
                 <Save className="h-4 w-4" />
                 {saving ? 'Saving…' : 'Save Slack channel'}
               </Button>
-              <Button onClick={handleSync} disabled={syncing || !status?.configured} className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-blue-600 hover:bg-blue-500 gap-2">
                 <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                 {syncing ? 'Syncing…' : 'Sync from Slack'}
               </Button>
             </div>
           </>
         ) : (
-          <Button onClick={handleSync} disabled={syncing || !status?.configured} className="bg-blue-600 hover:bg-blue-500 gap-2">
+          <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-blue-600 hover:bg-blue-500 gap-2">
             <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : status?.configured ? 'Sync from Slack' : 'Slack channel not connected'}
+            {syncing ? 'Syncing…' : status?.enabled ? (status?.configured ? 'Sync from Slack' : 'Slack channel not connected') : 'Slack sync is off'}
           </Button>
         )}
         <p className="text-xs text-slate-500">

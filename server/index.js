@@ -602,17 +602,24 @@ app.get('/api/slack/status', authMiddleware, requireAdminOrAnalytics, (_req, res
   res.json(getSlackGamesSettings());
 });
 
-app.patch('/api/slack/settings', authMiddleware, requireAdmin, (req, res) => {
+app.patch('/api/slack/settings', authMiddleware, requireAdminOrAnalytics, (req, res) => {
+  const isAdmin = req.user?.role === 'admin';
+  const enabled = req.body?.enabled;
   const settings = saveSlackGamesSettings({
-    botToken: req.body?.botToken,
-    channelId: req.body?.channelId,
+    botToken: isAdmin ? req.body?.botToken : undefined,
+    channelId: isAdmin ? req.body?.channelId : undefined,
+    enabled: typeof enabled === 'boolean' ? enabled : undefined,
   });
   res.json({ ok: true, ...settings });
 });
 
 app.post('/api/slack/preview', authMiddleware, requireAdminOrAnalytics, async (req, res) => {
   try {
-    const text = String(req.body?.text || '').trim() || await fetchLatestSlackGamesMessage();
+    const pasted = String(req.body?.text || '').trim();
+    if (!pasted && !getSlackGamesSettings().enabled) {
+      return res.status(400).json({ error: 'Slack calendar sync is turned off. Enable it on Calendar or in Settings first.' });
+    }
+    const text = pasted || await fetchLatestSlackGamesMessage();
     const result = applySlackGames({
       text,
       fallbackDate: todaySastYmd(),
@@ -627,7 +634,11 @@ app.post('/api/slack/preview', authMiddleware, requireAdminOrAnalytics, async (r
 
 app.post('/api/slack/sync', authMiddleware, requireAdminOrAnalytics, async (req, res) => {
   try {
-    const text = String(req.body?.text || '').trim() || await fetchLatestSlackGamesMessage();
+    const pasted = String(req.body?.text || '').trim();
+    if (!pasted && !getSlackGamesSettings().enabled) {
+      return res.status(400).json({ error: 'Slack calendar sync is turned off. Enable it on Calendar or in Settings first.' });
+    }
+    const text = pasted || await fetchLatestSlackGamesMessage();
     const result = applySlackGames({
       text,
       fallbackDate: todaySastYmd(),

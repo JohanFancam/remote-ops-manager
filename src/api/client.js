@@ -266,10 +266,10 @@ export const api = {
     status() {
       return request('/api/slack/status');
     },
-    saveSettings({ botToken, channelId }) {
+    saveSettings({ botToken, channelId, enabled } = {}) {
       return request('/api/slack/settings', {
         method: 'PATCH',
-        body: JSON.stringify({ botToken, channelId }),
+        body: JSON.stringify({ botToken, channelId, enabled }),
       });
     },
     preview({ text } = {}) {

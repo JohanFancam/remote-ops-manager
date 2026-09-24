@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import SlackSyncToggle from '../components/calendar/SlackSyncToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -528,6 +529,10 @@ export default function Calendar() {
 
   const handleSlackSync = async () => {
     if (!canSyncCalendar || slackSyncing) return;
+    if (!slackStatus?.enabled) {
+      toast.error('Turn on Slack sync first.');
+      return;
+    }
     if (!slackStatus?.configured) {
       toast.error('Connect the Gameday Slack channel in Settings → Calendar first.');
       return;
@@ -1667,19 +1672,24 @@ export default function Calendar() {
                     </Link>
                   </Button>
                 )}
-                <Button
-                  onClick={handleSlackSync}
-                  disabled={slackSyncing || googleSyncing}
-                  variant="outline"
-                  className="border-slate-700 text-slate-200 hover:bg-slate-800"
-                  size="sm"
-                  title={slackStatus?.configured
-                    ? 'Pull the latest Gameday Bot schedule from Slack. Paste a single game in Settings if you only need one update.'
-                    : 'Connect the Gameday Slack channel in Settings first.'}
-                >
-                  <MessageSquare className={`h-4 w-4 mr-1 ${slackSyncing ? 'animate-pulse' : ''}`} />
-                  {slackSyncing ? 'Slack sync…' : 'Sync from Slack'}
-                </Button>
+                <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900/70 px-2 py-1">
+                  <SlackSyncToggle enabled={!!slackStatus?.enabled} compact />
+                </div>
+                {slackStatus?.enabled && (
+                  <Button
+                    onClick={handleSlackSync}
+                    disabled={slackSyncing || googleSyncing}
+                    variant="outline"
+                    className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                    size="sm"
+                    title={slackStatus?.configured
+                      ? 'Pull the latest Gameday Bot schedule from Slack. Paste a single game in Settings if you only need one update.'
+                      : 'Connect the Gameday Slack channel in Settings first.'}
+                  >
+                    <MessageSquare className={`h-4 w-4 mr-1 ${slackSyncing ? 'animate-pulse' : ''}`} />
+                    {slackSyncing ? 'Slack sync…' : 'Sync from Slack'}
+                  </Button>
+                )}
               </>
             )}
             {isAdmin && (

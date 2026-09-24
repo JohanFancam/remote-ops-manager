@@ -34,10 +34,16 @@ function upsertSetting(key, value, description) {
   return createEntity('AppSettings', { key, value, description });
 }
 
+function slackSyncEnabled() {
+  const raw = settingValue('slack_sync_enabled').toLowerCase();
+  return raw === 'true' || raw === '1';
+}
+
 export function getSlackGamesSettings() {
   const token = settingValue('slack_bot_token');
   const channelId = settingValue('slack_games_channel_id');
   return {
+    enabled: slackSyncEnabled(),
     configured: Boolean(token && channelId),
     hasToken: Boolean(token),
     channelId,
@@ -46,7 +52,7 @@ export function getSlackGamesSettings() {
   };
 }
 
-export function saveSlackGamesSettings({ botToken, channelId } = {}) {
+export function saveSlackGamesSettings({ botToken, channelId, enabled } = {}) {
   if (botToken === 'clear') {
     upsertSetting('slack_bot_token', '', 'Slack bot token for games-list sync');
   } else if (botToken) {
@@ -54,6 +60,9 @@ export function saveSlackGamesSettings({ botToken, channelId } = {}) {
   }
   if (channelId !== undefined) {
     upsertSetting('slack_games_channel_id', String(channelId || '').trim(), 'Slack channel for the daily games list');
+  }
+  if (enabled !== undefined) {
+    upsertSetting('slack_sync_enabled', enabled ? 'true' : 'false', 'Allow Slack Gameday sync on the calendar');
   }
   return getSlackGamesSettings();
 }
