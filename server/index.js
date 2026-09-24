@@ -54,6 +54,13 @@ import {
   parseFileContents,
   countBrokenShootReferences,
 } from './entityImport.js';
+import {
+  getSlackGamesSettings,
+  saveSlackGamesSettings,
+  fetchLatestSlackGamesMessage,
+  applySlackGames,
+  todaySastYmd,
+} from './slackCalendar.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -226,7 +233,7 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
-  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts'];
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics'];
   let role = String(req.body?.role || 'user');
   if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -428,6 +435,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireAdminOrAnalytics(req, res, next) {
+  if (req.user?.role !== 'admin' && req.user?.role !== 'analytics') {
+    return res.status(403).json({ error: 'Admin or Data Analytics only' });
+  }
+  next();
+}
+
 function frontendBaseUrl(req) {
   const fromEnv = process.env.FRONTEND_URL || process.env.APP_URL || '';
   if (fromEnv) return fromEnv.replace(/\/$/, '');
@@ -574,12 +588,66 @@ app.patch('/api/google/settings', authMiddleware, requireAdmin, (req, res) => {
   res.json({ ok: true, ...getGoogleStatus(), settings });
 });
 
-app.post('/api/google/sync', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/google/sync', authMiddleware, requireAdminOrAnalytics, async (req, res) => {
   try {
     const result = await syncGoogleCalendar({ user: req.user });
     res.json(result);
   } catch (err) {
     console.error('Google Calendar sync failed:', err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/slack/status', authMiddleware, requireAdminOrAnalytics, (_req, res) => {
+  res.json(getSlackGamesSettings());
+});
+
+app.patch('/api/slack/settings', authMiddleware, requireAdminOrAnalytics, (req, res) => {
+  const isAdmin = req.user?.role === 'admin';
+  const enabled = req.body?.enabled;
+  const settings = saveSlackGamesSettings({
+    botToken: isAdmin ? req.body?.botToken : undefined,
+    channelId: isAdmin ? req.body?.channelId : undefined,
+    enabled: typeof enabled === 'boolean' ? enabled : undefined,
+  });
+  res.json({ ok: true, ...settings });
+});
+
+app.post('/api/slack/preview', authMiddleware, requireAdminOrAnalytics, async (req, res) => {
+  try {
+    const pasted = String(req.body?.text || '').trim();
+    if (!pasted && !getSlackGamesSettings().enabled) {
+      return res.status(400).json({ error: 'Slack calendar sync is turned off. Enable it on Calendar or in Settings first.' });
+    }
+    const text = pasted || await fetchLatestSlackGamesMessage();
+    const result = applySlackGames({
+      text,
+      fallbackDate: todaySastYmd(),
+      user: req.user,
+      confirm: false,
+    });
+    res.json({ ok: true, text, ...result });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/slack/sync', authMiddleware, requireAdminOrAnalytics, async (req, res) => {
+  try {
+    const pasted = String(req.body?.text || '').trim();
+    if (!pasted && !getSlackGamesSettings().enabled) {
+      return res.status(400).json({ error: 'Slack calendar sync is turned off. Enable it on Calendar or in Settings first.' });
+    }
+    const text = pasted || await fetchLatestSlackGamesMessage();
+    const result = applySlackGames({
+      text,
+      fallbackDate: todaySastYmd(),
+      user: req.user,
+      confirm: true,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Slack games sync failed:', err);
     res.status(err.status || 500).json({ error: err.message });
   }
 });

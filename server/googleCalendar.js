@@ -12,7 +12,7 @@ import { handleShootChange, createNotifications } from './notifications.js';
 const ZA_TZ = 'Africa/Johannesburg';
 export const AUTO_SYNC_HOURS = [6, 13, 20];
 
-function sastYmd(date) {
+export function sastYmd(date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: ZA_TZ }).format(date);
 }
 

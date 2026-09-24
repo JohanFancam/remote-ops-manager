@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
+import SlackGamesSettings from '../components/settings/SlackGamesSettings';
+import AnalyticsGoogleSync from '../components/settings/AnalyticsGoogleSync';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
 import TileLogoSettings from '../components/settings/TileLogoSettings';
@@ -180,7 +182,7 @@ function ChangePasswordCard() {
 }
 
 export default function Settings() {
-  const { user, isAdmin } = useApp();
+  const { user, isAdmin, isAnalytics } = useApp();
   const { refreshPublicSettings } = useAuth();
   const queryClient = useQueryClient();
 
@@ -349,10 +351,10 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Settings</h1>
+        <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+          <h1 className="text-2xl md:text-3xl font-bold">Settings</h1>
           <Button onClick={() => window.location.reload()} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800 gap-2">
             <RefreshCw className="h-4 w-4" /> Refresh App
           </Button>
@@ -417,10 +419,23 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Calendar"
-            description="Google Data + Fancam sync. Auto-syncs at 06:00, 13:00 and 20:00 SAST."
+            description="Google Data + Fancam sync. Slack Gameday is a fail-safe. Auto-syncs at 06:00, 13:00 and 20:00 SAST."
             icon={CalendarDays}
           >
             <GoogleCalendarSettings />
+            <SlackGamesSettings canEdit />
+          </SettingsCategory>
+        )}
+
+        {isAnalytics && (
+          <SettingsCategory
+            title="Calendar sync"
+            description="Pull Google or the Gameday Slack channel the same way admins do. Paste is a fail-safe."
+            icon={CalendarDays}
+            defaultOpen
+          >
+            <AnalyticsGoogleSync />
+            <SlackGamesSettings canEdit={false} />
           </SettingsCategory>
         )}
 
@@ -548,7 +563,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Team"
-            description="Users, roles, passwords, and auto-assignment"
+            description="Users, roles, welcome login messages, and auto-assignment"
             icon={Users}
           >
             <ManageUsersSection queryClient={queryClient} />

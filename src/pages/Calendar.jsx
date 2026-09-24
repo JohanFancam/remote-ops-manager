@@ -4,9 +4,10 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import SlackSyncToggle from '../components/calendar/SlackSyncToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
@@ -488,6 +489,8 @@ export default function Calendar() {
   const [dayPopup, setDayPopup] = useState(null); // Date | null
   const [quickViewShoot, setQuickViewShoot] = useState(null); // shoot | null
   const [googleSyncing, setGoogleSyncing] = useState(false);
+  const [slackSyncing, setSlackSyncing] = useState(false);
+  const canSyncCalendar = isAdmin || isAnalytics;
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -498,11 +501,17 @@ export default function Calendar() {
   const { data: googleStatus } = useQuery({
     queryKey: ['googleStatus'],
     queryFn: () => base44.google.status(),
-    enabled: !!isAdmin,
+    enabled: !!canSyncCalendar,
+  });
+
+  const { data: slackStatus } = useQuery({
+    queryKey: ['slackStatus'],
+    queryFn: () => base44.slack.status(),
+    enabled: !!canSyncCalendar,
   });
 
   const handleGoogleSync = async () => {
-    if (!isAdmin || googleSyncing) return;
+    if (!canSyncCalendar || googleSyncing) return;
     setGoogleSyncing(true);
     try {
       const result = await base44.google.sync();
@@ -515,6 +524,31 @@ export default function Calendar() {
       toast.error(err.message || 'Google sync failed');
     } finally {
       setGoogleSyncing(false);
+    }
+  };
+
+  const handleSlackSync = async () => {
+    if (!canSyncCalendar || slackSyncing) return;
+    if (!slackStatus?.enabled) {
+      toast.error('Turn on Slack sync first.');
+      return;
+    }
+    if (!slackStatus?.configured) {
+      toast.error('Connect the Gameday Slack channel in Settings → Calendar first.');
+      return;
+    }
+    setSlackSyncing(true);
+    try {
+      const result = await base44.slack.sync();
+      await queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      await queryClient.invalidateQueries({ queryKey: ['slackStatus'] });
+      toast.success(
+        `Slack Gameday: ${result.created} new · ${result.updated} updated${result.skipped ? ` · ${result.skipped} not marked for capture` : ''}. Assignments kept.`
+      );
+    } catch (err) {
+      toast.error(err.message || 'Slack sync failed');
+    } finally {
+      setSlackSyncing(false);
     }
   };
 
@@ -1572,7 +1606,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5 overflow-x-hidden">
       <div className="w-full max-w-[1800px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
@@ -1582,10 +1616,10 @@ export default function Calendar() {
                 ? 'View the full calendar and standby coverage. Request edits from a shoot — assignments stay with operators.'
                 : 'Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.'}
             </p>
-            {isAdmin && (
-              <p className="text-xs text-slate-500 mt-1">Google Data + Fancam auto-sync at 06:00, 13:00 and 20:00 SAST.</p>
+            {canSyncCalendar && (
+              <p className="text-xs text-slate-500 mt-1">Google Data + Fancam auto-sync at 06:00, 13:00 and 20:00 SAST. Slack is a fail-safe if Google is down.</p>
             )}
-            {isAdmin && googleStatus?.lastSyncAt && (
+            {canSyncCalendar && googleStatus?.lastSyncAt && (
               <div className="mt-1">
                 <p className="text-xs text-slate-500">
                   Last Google sync:{' '}
@@ -1612,7 +1646,7 @@ export default function Calendar() {
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-            {isAdmin && (
+            {canSyncCalendar && (
               <>
                 {googleStatus?.connected ? (
                   <Button
@@ -1632,10 +1666,34 @@ export default function Calendar() {
                   <Button asChild variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800" size="sm">
                     <Link to="/Settings">
                       <RefreshCw className="h-4 w-4 mr-1" />
-                      {googleStatus?.configured ? 'Connect Google' : 'Set up Google sync'}
+                      {isAdmin
+                        ? (googleStatus?.configured ? 'Connect Google' : 'Set up Google sync')
+                        : 'Google not connected'}
                     </Link>
                   </Button>
                 )}
+                <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900/70 px-2 py-1">
+                  <SlackSyncToggle enabled={!!slackStatus?.enabled} compact />
+                </div>
+                {slackStatus?.enabled && (
+                  <Button
+                    onClick={handleSlackSync}
+                    disabled={slackSyncing || googleSyncing}
+                    variant="outline"
+                    className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                    size="sm"
+                    title={slackStatus?.configured
+                      ? 'Pull the latest Gameday Bot schedule from Slack. Paste a single game in Settings if you only need one update.'
+                      : 'Connect the Gameday Slack channel in Settings first.'}
+                  >
+                    <MessageSquare className={`h-4 w-4 mr-1 ${slackSyncing ? 'animate-pulse' : ''}`} />
+                    {slackSyncing ? 'Slack sync…' : 'Sync from Slack'}
+                  </Button>
+                )}
+              </>
+            )}
+            {isAdmin && (
+              <>
                 <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
                 </Button>

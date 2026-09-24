@@ -99,7 +99,7 @@
 
 @layer components {
   .rom-page {
-    @apply min-h-screen p-3 sm:p-4 md:p-8 text-slate-100;
+    @apply min-h-screen overflow-x-hidden p-3 sm:p-4 md:p-8 text-slate-100;
   }
 
   .rom-page-inner {
@@ -112,7 +112,7 @@
 
   .rom-title {
     font-family: var(--rom-display);
-    @apply text-3xl md:text-4xl font-semibold tracking-tight text-slate-50;
+    @apply text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-50;
   }
 
   .rom-subtitle {

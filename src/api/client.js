@@ -203,10 +203,10 @@ export const api = {
     setToken,
   },
   users: {
-    inviteUser(email, role = 'user') {
+    inviteUser(email, role = 'user', full_name = '') {
       return request('/api/users/invite', {
         method: 'POST',
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ email, role, full_name }),
       });
     },
     resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {
@@ -260,6 +260,29 @@ export const api = {
     },
     sync() {
       return request('/api/google/sync', { method: 'POST' });
+    },
+  },
+  slack: {
+    status() {
+      return request('/api/slack/status');
+    },
+    saveSettings({ botToken, channelId, enabled } = {}) {
+      return request('/api/slack/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ botToken, channelId, enabled }),
+      });
+    },
+    preview({ text } = {}) {
+      return request('/api/slack/preview', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
+    },
+    sync({ text } = {}) {
+      return request('/api/slack/sync', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
     },
   },
   dataImport: {
