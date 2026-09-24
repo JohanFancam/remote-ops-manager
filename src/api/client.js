@@ -203,10 +203,10 @@ export const api = {
     setToken,
   },
   users: {
-    inviteUser(email, role = 'user') {
+    inviteUser(email, role = 'user', full_name = '') {
       return request('/api/users/invite', {
         method: 'POST',
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ email, role, full_name }),
       });
     },
     resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {

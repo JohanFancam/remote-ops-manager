@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Edit2, Save, X, Send, Trash2, KeyRound, Copy, Download, Check } from 'lucide-react';
+import { Users, UserPlus, Edit2, Save, X, Send, Trash2, KeyRound, Copy, Download, Check, MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
+import { appOrigin, buildWelcomeMessage, buildWelcomeList } from '@/utils/welcomeMessage';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
@@ -81,7 +83,7 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
 
   const markCopied = (key) => {
     setCopied(key);
-    setTimeout(() => setCopied((current) => (current === key ? '' : current)), 1500);
+    setTimeout(() => setCopied((current) => (current === key ? '' : current)), 1800);
   };
 
   const handleCopyAll = async () => {
@@ -94,14 +96,26 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
     markCopied(item.email);
   };
 
+  const handleCopyWelcome = async (item) => {
+    await copyText(buildWelcomeMessage(item, appOrigin()));
+    markCopied(`welcome:${item.email}`);
+    toast.success(`Welcome message copied for ${item.full_name || item.email}`);
+  };
+
+  const handleCopyAllWelcomes = async () => {
+    await copyText(buildWelcomeList(issued, appOrigin()));
+    markCopied('welcomes');
+    toast.success('Welcome messages copied');
+  };
+
   return (
     <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-amber-200">Copy these passwords now</p>
+          <p className="text-sm font-medium text-amber-200">Copy login details now</p>
           <p className="text-xs text-amber-200/70 mt-1">
-            They are stored hashed and cannot be shown again after you leave this page.
-            Each person will be asked to choose their own password the next time they sign in.
+            Passwords are stored hashed and cannot be shown again after you leave this page.
+            Copy welcome copies a message with their username, temp password, app link, and basic instructions.
           </p>
         </div>
         <Button size="sm" variant="ghost" className="h-7 text-slate-400 hover:text-slate-100" onClick={onDismiss}>
@@ -114,7 +128,7 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
             <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-800">
               <th className="px-3 py-2 font-medium">Email</th>
               <th className="px-3 py-2 font-medium">Password</th>
-              <th className="px-3 py-2 font-medium w-16" />
+              <th className="px-3 py-2 font-medium w-24" />
             </tr>
           </thead>
           <tbody>
@@ -126,15 +140,26 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
                 </td>
                 <td className="px-3 py-2 font-mono text-amber-100 tracking-wide align-top">{item.password}</td>
                 <td className="px-3 py-2 align-top">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-slate-400 hover:text-slate-100"
-                    onClick={() => handleCopyOne(item)}
-                    title="Copy"
-                  >
-                    {copied === item.email ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-slate-400 hover:text-slate-100"
+                      onClick={() => handleCopyOne(item)}
+                      title="Copy email and password"
+                    >
+                      {copied === item.email ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-slate-400 hover:text-blue-300"
+                      onClick={() => handleCopyWelcome(item)}
+                      title="Copy welcome message"
+                    >
+                      {copied === `welcome:${item.email}` ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -145,6 +170,14 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
         <Button size="sm" className="bg-amber-600 hover:bg-amber-500 text-slate-950 h-8 gap-1.5 text-xs" onClick={handleCopyAll}>
           {copied === 'all' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied === 'all' ? 'Copied list' : 'Copy all'}
+        </Button>
+        <Button
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-500 h-8 gap-1.5 text-xs"
+          onClick={handleCopyAllWelcomes}
+        >
+          {copied === 'welcomes' ? <Check className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+          {copied === 'welcomes' ? 'Copied welcomes' : 'Copy welcome messages'}
         </Button>
         <Button
           size="sm"
@@ -164,7 +197,7 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
   );
 }
 
-function AddUserForm({ onClose, onAdded }) {
+function AddUserForm({ onClose, onAdded, onIssued }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -178,12 +211,29 @@ function AddUserForm({ onClose, onAdded }) {
     setError('');
     setSaving(true);
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
-    await base44.entities.PendingUser.create({ full_name, email: email.trim().toLowerCase(), role, invited: true });
-    await base44.users.inviteUser(email.trim().toLowerCase(), role);
-    setSaving(false);
-    setDone(true);
-    onAdded();
-    setTimeout(() => { setDone(false); onClose(); }, 1500);
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      await base44.entities.PendingUser.create({ full_name, email: cleanEmail, role, invited: true });
+      await base44.users.inviteUser(cleanEmail, role, full_name);
+      const result = await base44.users.resetPasswords({
+        emails: [cleanEmail],
+        allowCreate: true,
+        createFrom: { [cleanEmail]: { full_name, role } },
+      });
+      if (result.issued?.length) {
+        onIssued?.(result);
+        const welcome = buildWelcomeMessage(result.issued[0], appOrigin());
+        await copyText(welcome);
+        toast.success('User added. Welcome message copied — send it to them now.');
+      }
+      setDone(true);
+      onAdded();
+      setTimeout(() => { setDone(false); onClose(); }, 800);
+    } catch (err) {
+      setError(err.message || 'Could not add user');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -218,7 +268,7 @@ function AddUserForm({ onClose, onAdded }) {
         <Button size="sm" onClick={handleAdd} disabled={saving || done}
           className="bg-blue-600 hover:bg-blue-600 gap-2 text-xs h-8">
           <Send className="h-3.5 w-3.5" />
-          {done ? '✓ Added & invited!' : saving ? 'Saving...' : 'Add & Send Invite'}
+          {done ? '✓ Added — welcome copied' : saving ? 'Creating login…' : 'Add user & copy welcome'}
         </Button>
         <Button size="sm" variant="ghost" className="text-slate-400 hover:text-slate-100 h-8" onClick={onClose}>
           <X className="h-3.5 w-3.5" />
@@ -228,7 +278,7 @@ function AddUserForm({ onClose, onAdded }) {
   );
 }
 
-function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
+function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup }) {
   const [editing, setEditing] = useState(false);
 
   // Split full_name into first/last on open
@@ -245,8 +295,12 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [copyingWelcome, setCopyingWelcome] = useState(false);
+  const [welcomeCopied, setWelcomeCopied] = useState(false);
   const [resetError, setResetError] = useState('');
   const isSelf = currentEmail && String(pu.email || '').toLowerCase() === currentEmail;
+  const emailKey = String(pu.email || '').trim().toLowerCase();
+  const cachedIssued = issuedLookup?.[emailKey];
 
   const openEdit = () => {
     const { first, last } = splitName(pu.full_name);
@@ -293,26 +347,62 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
     onRefresh();
   };
 
+  const issueLogin = async () => {
+    const email = String(pu.email || '').trim().toLowerCase();
+    const result = await base44.users.resetPasswords({
+      emails: [email],
+      includeSelf: isSelf,
+      allowCreate: true,
+      createFrom: {
+        [email]: { full_name: pu.full_name || '', role: pu.role || 'user', inactive: !!pu.inactive },
+      },
+    });
+    if (result.issued?.length) onIssued(result);
+    return result;
+  };
+
   const handleResetPassword = async () => {
     if (pu.inactive) return;
     setResetError('');
     setResetting(true);
     try {
-      const email = String(pu.email || '').trim().toLowerCase();
-      const result = await base44.users.resetPasswords({
-        emails: [email],
-        includeSelf: isSelf,
-        allowCreate: true,
-        createFrom: {
-          [email]: { full_name: pu.full_name || '', role: pu.role || 'user', inactive: !!pu.inactive },
-        },
-      });
-      if (result.issued?.length) onIssued(result);
-      else setResetError(result.skipped?.[0]?.reason === 'inactive' ? 'Marked not in use — no login.' : 'No login to reset.');
+      const result = await issueLogin();
+      if (!result.issued?.length) {
+        setResetError(result.skipped?.[0]?.reason === 'inactive' ? 'Marked not in use — no login.' : 'No login to reset.');
+      }
     } catch (err) {
       setResetError(err.message || 'Could not reset password');
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleCopyWelcome = async () => {
+    if (pu.inactive) return;
+    setResetError('');
+    setCopyingWelcome(true);
+    try {
+      let item = cachedIssued;
+      if (!item?.password) {
+        const result = await issueLogin();
+        item = result.issued?.[0];
+        if (!item) {
+          setResetError(result.skipped?.[0]?.reason === 'inactive' ? 'Marked not in use — no login.' : 'Could not create a login.');
+          return;
+        }
+      }
+      await copyText(buildWelcomeMessage({
+        ...item,
+        full_name: item.full_name || pu.full_name || '',
+        email: item.email || pu.email,
+      }, appOrigin()));
+      setWelcomeCopied(true);
+      setTimeout(() => setWelcomeCopied(false), 1800);
+      toast.success(`Welcome message copied for ${pu.full_name || pu.email}`);
+    } catch (err) {
+      setResetError(err.message || 'Could not copy welcome message');
+    } finally {
+      setCopyingWelcome(false);
     }
   };
 
@@ -381,16 +471,30 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail }) {
               {roleLabel[pu.role] || pu.role}
             </Badge>
             {!pu.inactive && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-slate-500 hover:text-amber-300 hover:bg-slate-800"
-                onClick={handleResetPassword}
-                disabled={resetting}
-                title={isSelf ? 'Reset my password' : 'New password'}
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-              </Button>
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-slate-500 hover:text-blue-300 hover:bg-slate-800"
+                  onClick={handleCopyWelcome}
+                  disabled={copyingWelcome || resetting}
+                  title={cachedIssued?.password
+                    ? 'Copy welcome message (username, temp password, app link)'
+                    : 'Issue a temp password and copy the welcome message'}
+                >
+                  {welcomeCopied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-slate-500 hover:text-amber-300 hover:bg-slate-800"
+                  onClick={handleResetPassword}
+                  disabled={resetting || copyingWelcome}
+                  title={isSelf ? 'Reset my password' : 'New password'}
+                >
+                  <KeyRound className="h-3.5 w-3.5" />
+                </Button>
+              </>
             )}
             <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-blue-400 hover:bg-slate-800" onClick={openEdit}>
               <Edit2 className="h-3.5 w-3.5" />
@@ -458,6 +562,19 @@ export default function ManageUsersSection() {
   const [error, setError] = useState('');
   const [issuedResult, setIssuedResult] = useState(null);
 
+  const mergeIssued = (result) => {
+    setIssuedResult((prev) => {
+      const map = new Map((prev?.issued || []).map((item) => [String(item.email || '').toLowerCase(), item]));
+      for (const item of result?.issued || []) {
+        map.set(String(item.email || '').toLowerCase(), item);
+      }
+      return {
+        issued: Array.from(map.values()),
+        skipped: result?.skipped || [],
+      };
+    });
+  };
+
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
     queryFn: () => base44.entities.PendingUser.list(),
@@ -469,6 +586,9 @@ export default function ManageUsersSection() {
   });
 
   const crew = mergeCrew(pendingUsers, loginUsers);
+  const issuedLookup = Object.fromEntries(
+    (issuedResult?.issued || []).map((item) => [String(item.email || '').toLowerCase(), item])
+  );
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
@@ -480,7 +600,7 @@ export default function ManageUsersSection() {
     setBusy(true);
     try {
       const result = await base44.users.resetPasswords({ includeSelf });
-      setIssuedResult(result);
+      mergeIssued(result);
       setConfirmBulk(false);
       setIncludeSelf(false);
       refresh();
@@ -565,6 +685,7 @@ export default function ManageUsersSection() {
           <AddUserForm
             onClose={() => setShowAddForm(false)}
             onAdded={refresh}
+            onIssued={mergeIssued}
           />
         )}
         <div className="divide-y divide-slate-800 -mx-6 -mb-6">
@@ -575,7 +696,8 @@ export default function ManageUsersSection() {
               pu={pu}
               onRefresh={refresh}
               currentEmail={currentEmail}
-              onIssued={setIssuedResult}
+              onIssued={mergeIssued}
+              issuedLookup={issuedLookup}
             />
           ))}
         </div>

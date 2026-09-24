@@ -419,7 +419,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Calendar"
-            description="Google Data + Fancam sync. Auto-syncs at 06:00, 13:00 and 20:00 SAST."
+            description="Google Data + Fancam sync. Slack Gameday is a fail-safe. Auto-syncs at 06:00, 13:00 and 20:00 SAST."
             icon={CalendarDays}
           >
             <GoogleCalendarSettings />
@@ -430,7 +430,7 @@ export default function Settings() {
         {isAnalytics && (
           <SettingsCategory
             title="Calendar sync"
-            description="Pull Google or the Slack games list the same way admins do"
+            description="Pull Google or the Gameday Slack channel the same way admins do. Paste is a fail-safe."
             icon={CalendarDays}
             defaultOpen
           >
@@ -563,7 +563,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Team"
-            description="Users, roles, passwords, and auto-assignment"
+            description="Users, roles, welcome login messages, and auto-assignment"
             icon={Users}
           >
             <ManageUsersSection queryClient={queryClient} />

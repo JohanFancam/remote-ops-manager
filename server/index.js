@@ -233,7 +233,7 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
-  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts'];
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics'];
   let role = String(req.body?.role || 'user');
   if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });

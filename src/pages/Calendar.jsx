@@ -24,7 +24,6 @@ import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
-import SlackGamesSyncModal from '../components/calendar/SlackGamesSyncModal';
 import { submitCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import {
   SHOOT_STATUS_DOTS,
@@ -489,7 +488,7 @@ export default function Calendar() {
   const [dayPopup, setDayPopup] = useState(null); // Date | null
   const [quickViewShoot, setQuickViewShoot] = useState(null); // shoot | null
   const [googleSyncing, setGoogleSyncing] = useState(false);
-  const [slackSyncOpen, setSlackSyncOpen] = useState(false);
+  const [slackSyncing, setSlackSyncing] = useState(false);
   const canSyncCalendar = isAdmin || isAnalytics;
 
   useEffect(() => {
@@ -524,6 +523,27 @@ export default function Calendar() {
       toast.error(err.message || 'Google sync failed');
     } finally {
       setGoogleSyncing(false);
+    }
+  };
+
+  const handleSlackSync = async () => {
+    if (!canSyncCalendar || slackSyncing) return;
+    if (!slackStatus?.configured) {
+      toast.error('Connect the Gameday Slack channel in Settings → Calendar first.');
+      return;
+    }
+    setSlackSyncing(true);
+    try {
+      const result = await base44.slack.sync();
+      await queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      await queryClient.invalidateQueries({ queryKey: ['slackStatus'] });
+      toast.success(
+        `Slack Gameday: ${result.created} new · ${result.updated} updated${result.skipped ? ` · ${result.skipped} not marked for capture` : ''}. Assignments kept.`
+      );
+    } catch (err) {
+      toast.error(err.message || 'Slack sync failed');
+    } finally {
+      setSlackSyncing(false);
     }
   };
 
@@ -1648,14 +1668,17 @@ export default function Calendar() {
                   </Button>
                 )}
                 <Button
-                  onClick={() => setSlackSyncOpen(true)}
+                  onClick={handleSlackSync}
+                  disabled={slackSyncing || googleSyncing}
                   variant="outline"
                   className="border-slate-700 text-slate-200 hover:bg-slate-800"
                   size="sm"
-                  title="Sync from the daily Slack games list"
+                  title={slackStatus?.configured
+                    ? 'Pull the latest Gameday Bot schedule from Slack. Paste a single game in Settings if you only need one update.'
+                    : 'Connect the Gameday Slack channel in Settings first.'}
                 >
-                  <MessageSquare className="h-4 w-4 mr-1" />
-                  Sync from Slack
+                  <MessageSquare className={`h-4 w-4 mr-1 ${slackSyncing ? 'animate-pulse' : ''}`} />
+                  {slackSyncing ? 'Slack sync…' : 'Sync from Slack'}
                 </Button>
               </>
             )}
@@ -1779,15 +1802,6 @@ export default function Calendar() {
       </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
-      <SlackGamesSyncModal
-        open={slackSyncOpen}
-        onClose={() => setSlackSyncOpen(false)}
-        configured={!!slackStatus?.configured}
-        onSynced={() => {
-          queryClient.invalidateQueries({ queryKey: ['shoots'] });
-          queryClient.invalidateQueries({ queryKey: ['slackStatus'] });
-        }}
-      />
 
       <DayEventsPopup
         open={!!dayPopup}

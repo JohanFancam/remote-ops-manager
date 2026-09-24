@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageSquare, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import SlackPasteFailSafe from './SlackPasteFailSafe';
 
 export default function SlackGamesSettings({ canEdit = true }) {
   const queryClient = useQueryClient();
@@ -32,7 +33,7 @@ export default function SlackGamesSettings({ canEdit = true }) {
       });
       setBotToken('');
       queryClient.invalidateQueries({ queryKey: ['slackStatus'] });
-      toast.success('Slack games channel saved');
+      toast.success('Slack Gameday channel saved');
     } catch (err) {
       toast.error(err.message || 'Could not save Slack settings');
     } finally {
@@ -46,7 +47,7 @@ export default function SlackGamesSettings({ canEdit = true }) {
       const result = await base44.slack.sync();
       queryClient.invalidateQueries({ queryKey: ['shoots'] });
       queryClient.invalidateQueries({ queryKey: ['slackStatus'] });
-      toast.success(`Slack sync: ${result.created} new · ${result.updated} updated`);
+      toast.success(`Slack sync: ${result.created} new · ${result.updated} updated${result.skipped ? ` · ${result.skipped} not marked for capture` : ''}`);
     } catch (err) {
       toast.error(err.message || 'Slack sync failed');
     } finally {
@@ -62,13 +63,14 @@ export default function SlackGamesSettings({ canEdit = true }) {
     <Card className="bg-slate-900 border-slate-800 mt-4">
       <CardHeader className="border-b border-slate-800 pb-4">
         <CardTitle className="text-slate-100 flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-400" /> Slack games list
+          <MessageSquare className="h-5 w-5 text-blue-400" /> Slack Gameday fail-safe
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         <p className="text-sm text-slate-400">
-          Fail-safe when Google is down. Invite a Slack bot to the channel that posts the 09:00 SAST games list
-          (local time + SA time). Sync reads the latest list and adds or updates shoots. It never deletes.
+          Google Calendar stays the source of truth. If it is down, Sync from Slack reads the Gameday Bot
+          post (GAMEDAY SCHEDULE, Scheduled Start SAST / Local). Games marked “not for capture” are skipped.
+          This never deletes shoots.
         </p>
         {canEdit ? (
           <>
@@ -83,7 +85,7 @@ export default function SlackGamesSettings({ canEdit = true }) {
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Channel ID</label>
+              <label className="text-xs text-slate-400 block mb-1">Gameday channel ID</label>
               <Input
                 value={channelId}
                 onChange={(e) => setChannelId(e.target.value)}
@@ -91,7 +93,7 @@ export default function SlackGamesSettings({ canEdit = true }) {
                 className="bg-slate-800 border-slate-800 text-slate-100"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                In Slack, open the channel → About → copy the Channel ID. Invite the bot to that channel.
+                Open the Gameday Bot channel in Slack → About → copy the Channel ID. Invite the ROM bot to that channel.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -112,9 +114,10 @@ export default function SlackGamesSettings({ canEdit = true }) {
           </Button>
         )}
         <p className="text-xs text-slate-500">
-          {status?.configured ? 'Channel connected.' : 'Channel not connected yet.'}
+          {status?.configured ? 'Gameday channel connected.' : 'Gameday channel not connected yet.'}
           {lastSync ? ` Last Slack sync: ${lastSync} SAST` : ''}
         </p>
+        <SlackPasteFailSafe />
       </CardContent>
     </Card>
   );

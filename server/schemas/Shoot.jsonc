@@ -161,6 +161,14 @@
       "type": "boolean",
       "default": false,
       "description": "Live Data times get first priority when issues need repair"
+    },
+    "game_pk": {
+      "type": "string",
+      "description": "Gameday / MLB game PK when synced from Slack"
+    },
+    "backbone_id": {
+      "type": "string",
+      "description": "Gameday backbone id when synced from Slack"
     }
   },
   "required": [
