@@ -157,26 +157,81 @@ function monogramFor(name) {
   return (words[words.length - 1] || short || '?').slice(0, 1).toUpperCase();
 }
 
+export const TILE_LOGO_TONE_FILTER = 'brightness(0) invert(1)';
+
+export function normalizeTeamKey(value) {
+  return norm(value);
+}
+
+export function parseTileLogoOverrides(raw) {
+  if (!raw) return {};
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const normKey = norm(key);
+      if (!normKey) continue;
+      if (typeof value === 'string' && value.trim()) {
+        out[normKey] = { url: value.trim(), label: key };
+      } else if (value && typeof value === 'object' && value.url) {
+        out[normKey] = {
+          url: String(value.url).trim(),
+          label: String(value.label || key).trim() || key,
+        };
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function serializeTileLogoOverrides(overrides = {}) {
+  return JSON.stringify(overrides || {});
+}
+
+function findOverride(name, overrides = {}) {
+  if (!name || !overrides || typeof overrides !== 'object') return null;
+  const nameKeys = lookupKeys(name);
+  for (const key of nameKeys) {
+    if (overrides[key]?.url) return overrides[key];
+  }
+  for (const [okey, value] of Object.entries(overrides)) {
+    if (!value?.url) continue;
+    const overrideKeys = lookupKeys(value.label || okey);
+    if (nameKeys.some((key) => key.length >= 3 && overrideKeys.includes(key))) {
+      return value;
+    }
+  }
+  return null;
+}
+
 export function readTileLogoSettings(appSettings = []) {
   const get = (key) => appSettings.find((item) => item.key === key)?.value;
   const enabledRaw = String(get('tile_logos_enabled') ?? 'true').toLowerCase();
   const size = Number(get('tile_logos_size'));
+  const opacity = Number(get('tile_logos_opacity'));
   return {
     enabled: enabledRaw !== 'false' && enabledRaw !== '0',
     sizePercent: Number.isFinite(size) ? Math.min(160, Math.max(60, size)) : 100,
+    opacityPercent: Number.isFinite(opacity) ? Math.min(100, Math.max(10, opacity)) : 70,
+    overrides: parseTileLogoOverrides(get('tile_logo_overrides')),
   };
 }
 
-export function resolveTeamMarks(title, sport = '') {
+export function resolveTeamMarks(title, sport = '', overrides = {}) {
   const names = parseMatchupTeams(title);
   const league = inferLeague(names, sport);
   return names.map((name) => {
+    const custom = findOverride(name, overrides);
     const hit = resolveOne(name, league || sport);
     return {
       name,
       label: shortenTitle(name) || name,
-      url: hit?.url || '',
+      url: custom?.url || hit?.url || '',
       monogram: monogramFor(name),
+      custom: Boolean(custom),
     };
   });
 }
