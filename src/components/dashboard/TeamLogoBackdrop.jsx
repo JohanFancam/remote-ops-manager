@@ -4,19 +4,19 @@ import { readTileLogoSettings, resolveTeamMarks } from '@/utils/teamLogos';
 function CornerMark({ mark, side, sizePercent }) {
   const [failed, setFailed] = useState(false);
   if (!mark) return null;
-  const position = side === 'left' ? 'left-2.5 bottom-2.5' : 'right-2.5 bottom-2.5';
-  const px = Math.round(40 * (sizePercent / 100));
+  const position = side === 'left' ? 'left-3 bottom-3' : 'right-3 bottom-3';
+  const px = Math.round(48 * (sizePercent / 100));
   const showImage = mark.url && !failed;
   return (
     <div
-      className={`pointer-events-none absolute ${position} z-[1]`}
+      className={`pointer-events-none absolute ${position} z-0`}
       style={{ width: px, height: px }}
     >
       {showImage ? (
         <img
           src={mark.url}
           alt=""
-          className="h-full w-full object-contain select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+          className="h-full w-full object-contain select-none drop-shadow-[0_3px_10px_rgba(0,0,0,0.65)]"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -36,7 +36,7 @@ export default function TeamLogoBackdrop({ title, sport, appSettings = [] }) {
   const left = marks[0];
   const right = marks.length > 1 ? marks[1] : null;
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden>
+    <div className="pointer-events-none absolute inset-0 hidden overflow-hidden rounded-xl lg:block" aria-hidden>
       <CornerMark mark={left} side="left" sizePercent={sizePercent} />
       {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} /> : null}
     </div>

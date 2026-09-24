@@ -43,7 +43,7 @@ function Section({ label, accent = 'text-slate-500', children, withDivider = tru
         <p className={`mb-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${accent}`}>{label}</p>
         {children}
       </div>
-      {withDivider && <div className="hidden lg:block w-px bg-[color:var(--rom-line)]" />}
+      {withDivider && <div className="hidden lg:block w-px shrink-0 bg-[color:var(--rom-line)]" />}
     </div>
   );
 }
@@ -108,7 +108,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   return (
     <div className="rom-panel relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/[0.07] via-transparent to-sky-400/[0.04]" />
-      <div className="relative grid gap-6 lg:grid-cols-4">
+      <div className="relative grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Section label="Now" accent="text-blue-400/80">
           <div className="rom-mono text-2xl font-medium tracking-tight text-slate-50 sm:text-3xl tabular-nums">
             {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

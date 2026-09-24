@@ -66,7 +66,7 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       type="button"
       disabled={!canClick}
       onClick={canClick ? onClick : undefined}
-      className={`inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+      className={`inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
         done
           ? 'border-emerald-800 bg-emerald-950/40 text-green-300'
           : 'border-slate-800 bg-slate-800/70 text-gray-200 hover:border-blue-500/70 hover:bg-blue-950/40 hover:text-slate-100'
@@ -435,7 +435,7 @@ export default function CountdownCard({
         onContextMenu={onContextMenu}
       >
         <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
-        <div className={`relative z-[1] px-3 py-4 sm:px-4 ${readTileLogoSettings(appSettings).enabled ? 'pb-14' : ''}`}>
+        <div className={`relative z-[1] px-3 py-4 sm:px-4 ${readTileLogoSettings(appSettings).enabled ? 'lg:pb-14' : ''}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -531,7 +531,7 @@ export default function CountdownCard({
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             {quickPhases.map((phase) => (
               <PhaseQuickButton
                 key={phase.label}
@@ -547,7 +547,7 @@ export default function CountdownCard({
               <button
                 onClick={() => canOpenShootComplete && setShowCompleteModal(true)}
                 disabled={!canOpenShootComplete}
-                className={`inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                className={`inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
                   canOpenShootComplete
                     ? 'border-blue-500 bg-blue-600/80 text-white hover:bg-blue-600'
                     : 'border-slate-800 bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -558,7 +558,7 @@ export default function CountdownCard({
             )}
 
             {isStatusCompleted && (
-              <div className="inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2.5 text-xs font-medium text-slate-400">
+              <div className="inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2.5 text-xs font-medium text-slate-400">
                 ✓ Shoot Complete
               </div>
             )}
@@ -567,7 +567,7 @@ export default function CountdownCard({
               <button
                 type="button"
                 onClick={handleCopyReadyMessage}
-                className="inline-flex h-8 min-w-[6.5rem] sm:min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
+                className="inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
               >
                 {readyCopied
                   ? <><Check className="mr-1 h-3.5 w-3.5" />Copied — paste in Slack</>

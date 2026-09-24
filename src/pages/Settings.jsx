@@ -351,10 +351,10 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-800 text-slate-100 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Settings</h1>
+        <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+          <h1 className="text-2xl md:text-3xl font-bold">Settings</h1>
           <Button onClick={() => window.location.reload()} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800 gap-2">
             <RefreshCw className="h-4 w-4" /> Refresh App
           </Button>

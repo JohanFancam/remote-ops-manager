@@ -1601,7 +1601,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5">
+    <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-5 overflow-x-hidden">
       <div className="w-full max-w-[1800px] mx-auto">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
