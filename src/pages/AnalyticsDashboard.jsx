@@ -10,6 +10,7 @@ import { formatTimeZA, normalizeShootStatus } from '@/utils/shootStatus';
 import { getShootRigLabel } from '@/components/calendar/ShootQuickView';
 import DayWindow, { shiftDayWindow } from '@/components/analytics/DayWindow';
 import { compareLiveDataFirst, isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import DashboardBanner from '@/components/dashboard/DashboardBanner';
 
 function timeToMinutes(time) {
   const [h, m] = String(time || '12:00').split(':').map(Number);
@@ -137,6 +138,16 @@ export default function AnalyticsDashboard() {
             Calendar edits go to admins first.
           </p>
         </header>
+
+        <section className="mb-8 rom-enter-delay">
+          <DashboardBanner
+            user={user}
+            shoots={shoots}
+            standbyDays={standbyDays}
+            allUsers={users}
+            showNextShoot={false}
+          />
+        </section>
 
         <section className="mb-8">
           <h2 className="rom-section-title mb-3 flex items-center gap-2">

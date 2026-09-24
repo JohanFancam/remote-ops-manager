@@ -9,6 +9,7 @@ import RemoteEarnings from '../components/dashboard/RemoteEarnings';
 import ShootChangeNotifier from '../components/dashboard/ShootChangeNotifier';
 import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
+import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import AnalyticsDashboard from './AnalyticsDashboard';
 
 export default function Dashboard() {
@@ -150,6 +151,27 @@ export default function Dashboard() {
             />
           </div>
         </section>
+
+        {(isAdmin || isStandby) && (
+          <section className="mb-8">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <h2 className="rom-section-title">Standby Coverage Shoots</h2>
+              <p className="hidden text-xs text-slate-500 sm:block">Every standby person and the games they cover (18:00–06:00).</p>
+            </div>
+            <div className="rom-panel">
+              <AdminStandbyShootList
+                shoots={visibleShoots}
+                allUsers={allUsers}
+                userEmail={user?.email}
+                rigSettings={rigSettings}
+                standbyDays={standbyDays}
+                onUpdate={handleShootUpdate}
+                isAdmin={isAdmin}
+                appSettings={appSettings}
+              />
+            </div>
+          </section>
+        )}
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
 

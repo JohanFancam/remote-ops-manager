@@ -48,7 +48,7 @@ function Section({ label, accent = 'text-slate-500', children, withDivider = tru
   );
 }
 
-export default function DashboardBanner({ user, shoots = [], standbyDays = [], allUsers = [] }) {
+export default function DashboardBanner({ user, shoots = [], standbyDays = [], allUsers = [], showNextShoot = true }) {
   const now = useClock();
 
   const getStandbyName = (sd) => {
@@ -108,7 +108,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   return (
     <div className="rom-panel relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/[0.07] via-transparent to-sky-400/[0.04]" />
-      <div className="relative grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`relative grid gap-5 sm:grid-cols-2 ${showNextShoot ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Section label="Now" accent="text-blue-400/80">
           <div className="rom-mono text-2xl font-medium tracking-tight text-slate-50 sm:text-3xl tabular-nums">
             {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -141,7 +141,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           )}
         </Section>
 
-        <Section label="Next Standby" accent="text-slate-500">
+        <Section label="Next Standby" accent="text-slate-500" withDivider={showNextShoot}>
           {nextStandby ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
@@ -157,23 +157,25 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
           )}
         </Section>
 
-        <Section label="Your Next Shoot" accent="text-blue-400/80" withDivider={false}>
-          {nextShoot ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
-                <Camera className="h-4 w-4 text-blue-400" />
-                <span className="truncate">{shortenTitle(nextShoot.title)}</span>
+        {showNextShoot && (
+          <Section label="Your Next Shoot" accent="text-blue-400/80" withDivider={false}>
+            {nextShoot ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-base font-semibold text-slate-50 sm:text-lg">
+                  <Camera className="h-4 w-4 text-blue-400" />
+                  <span className="truncate">{shortenTitle(nextShoot.title)}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pl-6">
+                  <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'EEE, MMM d')}</InfoPill>
+                  {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
+                </div>
+                <div className="pl-6 rom-mono text-lg font-medium text-blue-300 tabular-nums">{nextShootCountdown}</div>
               </div>
-              <div className="flex flex-wrap gap-1.5 pl-6">
-                <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'EEE, MMM d')}</InfoPill>
-                {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
-              </div>
-              <div className="pl-6 rom-mono text-lg font-medium text-blue-300 tabular-nums">{nextShootCountdown}</div>
-            </div>
-          ) : (
-            <div className="pt-1 text-sm text-slate-500">No upcoming shoot</div>
-          )}
-        </Section>
+            ) : (
+              <div className="pt-1 text-sm text-slate-500">No upcoming shoot</div>
+            )}
+          </Section>
+        )}
       </div>
     </div>
   );
