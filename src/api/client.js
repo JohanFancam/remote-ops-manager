@@ -262,6 +262,29 @@ export const api = {
       return request('/api/google/sync', { method: 'POST' });
     },
   },
+  slack: {
+    status() {
+      return request('/api/slack/status');
+    },
+    saveSettings({ botToken, channelId }) {
+      return request('/api/slack/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ botToken, channelId }),
+      });
+    },
+    preview({ text } = {}) {
+      return request('/api/slack/preview', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
+    },
+    sync({ text } = {}) {
+      return request('/api/slack/sync', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
+    },
+  },
   dataImport: {
     entities({ files, confirm = false, entityType = '' }) {
       const form = new FormData();

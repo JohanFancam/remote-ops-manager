@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
+import SlackGamesSettings from '../components/settings/SlackGamesSettings';
+import AnalyticsGoogleSync from '../components/settings/AnalyticsGoogleSync';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
 import TileLogoSettings from '../components/settings/TileLogoSettings';
@@ -180,7 +182,7 @@ function ChangePasswordCard() {
 }
 
 export default function Settings() {
-  const { user, isAdmin } = useApp();
+  const { user, isAdmin, isAnalytics } = useApp();
   const { refreshPublicSettings } = useAuth();
   const queryClient = useQueryClient();
 
@@ -421,6 +423,19 @@ export default function Settings() {
             icon={CalendarDays}
           >
             <GoogleCalendarSettings />
+            <SlackGamesSettings canEdit />
+          </SettingsCategory>
+        )}
+
+        {isAnalytics && (
+          <SettingsCategory
+            title="Calendar sync"
+            description="Pull Google or the Slack games list the same way admins do"
+            icon={CalendarDays}
+            defaultOpen
+          >
+            <AnalyticsGoogleSync />
+            <SlackGamesSettings canEdit={false} />
           </SettingsCategory>
         )}
 
