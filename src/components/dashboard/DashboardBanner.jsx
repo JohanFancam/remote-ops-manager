@@ -129,22 +129,8 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                       <Phone className="h-4 w-4 text-sky-400" />
                       <span className="truncate">{getStandbyName(sd)}</span>
                     </div>
-                    <div className="pl-6 space-y-1">
+                    <div className="pl-6">
                       <InfoPill tone="yellow">{format(new Date(`${startDate}T12:00:00`), 'EEE, MMM d')}</InfoPill>
-                      {shoots
-                        .filter((shoot) => {
-                          if (shoot.status === 'cancelled') return false;
-                          const game = getScheduleDateTimes(shoot).game || new Date(`${shoot.date}T${shoot.game_time || '12:00'}`);
-                          const startDt = new Date(`${startDate}T${sd.start_time || '18:00'}`);
-                          const endDt = new Date(`${sd.end_date || startDate}T${sd.end_time || '06:00'}`);
-                          return game >= startDt && game <= endDt;
-                        })
-                        .slice(0, 3)
-                        .map((shoot) => (
-                          <p key={shoot.id} className="text-[11px] text-slate-400 truncate">
-                            {shortenTitle(shoot.title)}
-                          </p>
-                        ))}
                     </div>
                   </div>
                 );
