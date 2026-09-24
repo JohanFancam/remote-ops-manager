@@ -2,6 +2,7 @@
  * pages.config.js - Page routing configuration
  */
 import Accounts from './pages/Accounts.jsx';
+import AppFaults from './pages/AppFaults.jsx';
 import Calendar from './pages/Calendar';
 import Dashboard from './pages/Dashboard.jsx';
 import Notifications from './pages/Notifications.jsx';
@@ -15,6 +16,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Accounts": Accounts,
+    "AppFaults": AppFaults,
     "Calendar": Calendar,
     "Dashboard": Dashboard,
     "Notifications": Notifications,

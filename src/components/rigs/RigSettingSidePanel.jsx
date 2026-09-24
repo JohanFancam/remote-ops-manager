@@ -36,7 +36,7 @@ const emptyForm = {
   fancam_night_enabled: false, fancam_night_hd: { ...DEFAULT_FANCAM_NIGHT_HD }, fancam_night_wide_enabled: true, fancam_night_wide: { ...DEFAULT_FANCAM_NIGHT_WIDE },
   indoor_enabled: true, indoor_hd: { ...DEFAULT_INDOOR_HD }, indoor_wide_enabled: true, indoor_wide: { ...DEFAULT_INDOOR_WIDE },
   attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
-  sound_enabled: false, sound_trigger_enabled: false, notes: '',
+  sound_enabled: false, sound_trigger_enabled: false, live_data: false, notes: '',
 };
 
 function Toggle({ enabled, onChange, readOnly }) {
@@ -201,6 +201,17 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   {RIG_TYPES.map(t => <SelectItem key={t} value={t} className="text-slate-100">{t}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Live Data</label>
+              <div className={`rounded-lg border p-3 flex items-center justify-between transition-colors ${form.live_data ? 'border-sky-500/40 bg-sky-500/10' : 'border-slate-800 bg-slate-900/40'}`}>
+                <div>
+                  <p className="text-sm font-semibold text-slate-100">Live Data team</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Shoots for this team show the Live Data badge and go first when issues need repair.</p>
+                </div>
+                <Toggle enabled={!!form.live_data} onChange={() => setForm({ ...form, live_data: !form.live_data })} readOnly={readOnly} />
+              </div>
             </div>
 
             {/* Shoot Plan */}

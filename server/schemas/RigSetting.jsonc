@@ -108,6 +108,11 @@
       "default": false,
       "description": "Sound Recording enabled"
     },
+    "live_data": {
+      "type": "boolean",
+      "default": false,
+      "description": "This team is Live Data — times get first priority when issues need repair"
+    },
     "notes": {
       "type": "string"
     }

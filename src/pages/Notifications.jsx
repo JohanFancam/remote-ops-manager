@@ -17,6 +17,7 @@ const FILTERS = [
   { id: 'team', label: 'Team' },
   { id: 'sync', label: 'Google sync' },
   { id: 'requests', label: 'Requests' },
+  { id: 'faults', label: 'App faults' },
 ];
 
 const START_TYPES = new Set(['needs_start', 'start_overdue', 'starting_soon']);
@@ -55,6 +56,8 @@ function notificationTypeLabel(type) {
       return 'Google sync';
     case 'calendar_request':
       return 'Calendar request';
+    case 'app_fault':
+      return 'App fault';
     default:
       return 'Update';
   }
@@ -74,6 +77,7 @@ function matchesFilter(type, filter) {
   if (filter === 'team') return TEAM_TYPES.has(type);
   if (filter === 'sync') return type === 'google_sync';
   if (filter === 'requests') return type === 'calendar_request';
+  if (filter === 'faults') return type === 'app_fault';
   return true;
 }
 

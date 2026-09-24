@@ -83,7 +83,7 @@ export default function AnalyticsDashboard() {
           title: shoot.title,
           photo: getShootRigLabel(shoot, rigSettings),
           operator: getDisplayName(users.find((u) => u.email === email), email),
-          liveData: isLiveData(shoot),
+          liveData: isLiveData(shoot, rigSettings),
         }));
         map.set(key, [...(map.get(key) || []), ...rows].sort((a, b) => (a.time || '').localeCompare(b.time || '')));
       });
@@ -97,7 +97,7 @@ export default function AnalyticsDashboard() {
       if (!key) return;
       const shoot = shoots.find((item) => item.id === report.shoot_id)
         || shoots.find((item) => item.title === report.shoot_title && item.date === report.shoot_date);
-      map.set(key, [...(map.get(key) || []), { ...report, live_data: isLiveData(shoot) }]);
+      map.set(key, [...(map.get(key) || []), { ...report, live_data: isLiveData(shoot, rigSettings) }]);
     });
     for (const [key, list] of map) {
       map.set(key, [...list].sort((a, b) => compareLiveDataFirst(a, b, () => (
@@ -105,7 +105,7 @@ export default function AnalyticsDashboard() {
       ))));
     }
     return map;
-  }, [reports, shoots]);
+  }, [reports, shoots, rigSettings]);
 
   const standbyByDate = useMemo(() => {
     const map = new Map();

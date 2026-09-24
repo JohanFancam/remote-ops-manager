@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut, Bell } from 'lucide-react';
+  Wrench, Settings, LogOut, Bell, AlertTriangle } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,7 @@ const allAdminMenuItems = [
   { label: 'Rigs', icon: Wrench, path: '/Rigs' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
+  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Pending/Approve', icon: DollarSign, path: '/Accounts' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -48,6 +49,7 @@ const allRemoteMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -56,6 +58,7 @@ const allStandbyMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -66,6 +69,7 @@ const accountsNavItems = [
 
 const allAccountsMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/AccountsDashboard' },
+  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
@@ -73,6 +77,7 @@ const allAnalyticsMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 

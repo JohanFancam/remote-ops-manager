@@ -5,8 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { X } from 'lucide-react';
 import { SHOOT_STATUSES, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
-import { LiveDataToggle } from '@/components/shoots/LiveDataControls';
-
 export default function ShootEditPanel({
   shoot,
   form,
@@ -89,11 +87,6 @@ export default function ShootEditPanel({
                 </SelectContent>
               </Select>
             </div>
-
-            <LiveDataToggle
-              checked={!!form.live_data}
-              onChange={(next) => setForm({ ...form, live_data: next })}
-            />
 
             {/* Description */}
             <div>

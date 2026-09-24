@@ -138,6 +138,8 @@ function storedTypeLabel(type) {
       return 'Google sync';
     case 'calendar_request':
       return 'Calendar request';
+    case 'app_fault':
+      return 'App fault';
     default:
       return urgencyLabel.change;
   }

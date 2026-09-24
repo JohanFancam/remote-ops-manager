@@ -118,4 +118,5 @@ export const ENTITY_TYPES = [
   'ShootNotification',
   'PushSubscription',
   'CalendarChangeRequest',
+  'AppFault',
 ];

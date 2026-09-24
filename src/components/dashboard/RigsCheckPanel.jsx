@@ -26,19 +26,19 @@ function getRigTypeLabel(shoot, rig) {
   return parts.length > 0 ? parts.join('/') : null;
 }
 
-function getShootsForOperationalDay(shoots, dateStr) {
+function getShootsForOperationalDay(shoots, dateStr, rigSettings = []) {
   const nextDateStr = format(addDays(new Date(dateStr + 'T12:00:00'), 1), 'yyyy-MM-dd');
   const sameDay = shoots.filter(s =>
     s.date === dateStr &&
     s.status !== 'cancelled' &&
     (!s.game_time || s.game_time >= '06:00')
-  ).sort((a, b) => compareLiveDataFirst(a, b, () => (a.game_time || '06:00').localeCompare(b.game_time || '06:00')));
+  ).sort((a, b) => compareLiveDataFirst(a, b, () => (a.game_time || '06:00').localeCompare(b.game_time || '06:00'), rigSettings));
 
   const nextDayEarly = shoots.filter(s =>
     s.date === nextDateStr &&
     s.status !== 'cancelled' &&
     s.game_time && s.game_time < '06:00'
-  ).sort((a, b) => compareLiveDataFirst(a, b, () => a.game_time.localeCompare(b.game_time)));
+  ).sort((a, b) => compareLiveDataFirst(a, b, () => a.game_time.localeCompare(b.game_time), rigSettings));
 
   return [...sameDay, ...nextDayEarly];
 }
@@ -149,7 +149,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
   })();
 
-  const allWeekShoots = days7.flatMap(d => getShootsForOperationalDay(shoots, d));
+  const allWeekShoots = days7.flatMap(d => getShootsForOperationalDay(shoots, d, rigSettings));
   const archivedWeekShoots = [...new Map(allWeekShoots.filter(s => archived.includes(s.id)).map(s => [s.id, s])).values()];
 
   return (
@@ -203,7 +203,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
               const inMonth = isSameMonth(day, calMonth);
               const isToday = ds === todayStr;
               const inCurrentWeek = ds >= weekStart && ds <= weekEndStr;
-              const dayOpsCount = getShootsForOperationalDay(shoots, ds).filter(s => !archived.includes(s.id)).length;
+              const dayOpsCount = getShootsForOperationalDay(shoots, ds, rigSettings).filter(s => !archived.includes(s.id)).length;
               return (
                 <button key={ds} onClick={() => jumpToWeek(ds)}
                   className={`rounded p-1 min-h-[36px] transition-all ${inMonth ? 'hover:bg-slate-700' : 'opacity-30'} ${isToday ? 'ring-1 ring-blue-500' : ''} ${inCurrentWeek ? 'bg-orange-900/30 ring-1 ring-orange-600/50' : ''}`}>
@@ -220,7 +220,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       {/* 7-Day Tile Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
         {days7.map(dateStr => {
-          const dayShoots = getShootsForOperationalDay(shoots, dateStr).filter(s => !archived.includes(s.id));
+          const dayShoots = getShootsForOperationalDay(shoots, dateStr, rigSettings).filter(s => !archived.includes(s.id));
           const isToday = dateStr === todayStr;
           const isPast = dateStr < todayStr;
           const dayChecked = dayShoots.filter(s => checked[s.id]);
@@ -280,7 +280,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                             <p className={`text-xs font-semibold truncate ${checked[s.id] ? 'line-through text-slate-500' : 'text-slate-100'}`}>
                               {shortenTitle(s.title)}
                             </p>
-                            {isLiveData(s) ? <LiveDataBadge className="shrink-0" /> : null}
+                            {isLiveData(s, rigSettings) ? <LiveDataBadge className="shrink-0" /> : null}
                           </div>
                           {s.location && (
                             <p className={`text-xs truncate mt-0.5 ${checked[s.id] ? 'text-gray-600' : 'text-slate-500'}`}>{s.location}</p>
