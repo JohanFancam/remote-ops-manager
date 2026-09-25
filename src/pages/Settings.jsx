@@ -10,7 +10,6 @@ import SlackGamesSettings from '../components/settings/SlackGamesSettings';
 import AnalyticsGoogleSync from '../components/settings/AnalyticsGoogleSync';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
-import TileLogoSettings from '../components/settings/TileLogoSettings';
 import SettingsCategory from '../components/settings/SettingsCategory';
 import { resolveAppLogoUrl } from '../components/brand/BrandMark';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -574,7 +573,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App logo, sign-in background, and tile marks"
+            description="App logo and sign-in background"
             icon={Image}
           >
             <Card className="bg-slate-900 border-slate-800">
@@ -644,7 +643,6 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
-            <TileLogoSettings appSettings={appSettings} />
           </SettingsCategory>
         )}
 
