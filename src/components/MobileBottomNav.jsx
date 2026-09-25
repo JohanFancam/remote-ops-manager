@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut, Bell, AlertTriangle } from 'lucide-react';
+  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
@@ -50,6 +50,7 @@ const allRemoteMenuItems = [
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
+  { label: 'Guide', icon: BookOpen, path: '/OperatorGuide' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -59,6 +60,7 @@ const allStandbyMenuItems = [
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
+  { label: 'Guide', icon: BookOpen, path: '/OperatorGuide' },
   { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];

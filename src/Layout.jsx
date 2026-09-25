@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle,
+  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import AppSplash from './components/brand/AppSplash';
@@ -102,6 +102,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
+    { name: 'Guide', icon: BookOpen, page: 'OperatorGuide' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
@@ -112,6 +113,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
+    { name: 'Guide', icon: BookOpen, page: 'OperatorGuide' },
     { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
