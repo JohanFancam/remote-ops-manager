@@ -20,7 +20,8 @@ import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
 import { isAssignmentLocked } from '../utils/assignmentLock';
-import { standbyColorForEmail, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
+import { standbyColorForEmail, EMPTY_STANDBY_COLOR, uniqueStandbyPeople } from '../components/utils/standbyColors';
+import StandbyCoverageOverview from '../components/calendar/StandbyCoverageOverview';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
@@ -477,6 +478,7 @@ function ShootCalendarEntry({
 
 export default function Calendar() {
   const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
+  const canSeeAllStandbyCoverage = isAdmin || isStandby || isAnalytics;
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -1397,7 +1399,11 @@ export default function Calendar() {
             const dayShoots = getShootsForDay(day);
             const visibleShoots = dayShoots.slice(0, MONTH_VISIBLE_SHOOTS);
             const hiddenCount = Math.max(0, dayShoots.length - MONTH_VISIBLE_SHOOTS);
-            const primaryStandby = getPrimaryStandbyForDay(day);
+            const dayStandbyPeople = getStandbyForDay(day);
+            const primaryStandby = dayStandbyPeople[0] || null;
+            const visibleStandbyPeople = canSeeAllStandbyCoverage
+              ? dayStandbyPeople
+              : (primaryStandby ? [primaryStandby] : []);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
@@ -1467,14 +1473,24 @@ export default function Calendar() {
                     </button>
                   )}
                 </div>
-                {primaryStandby && (
-                   <div className="mb-0.5 px-0.5 shrink-0">
-                     <span
-                       className={`text-[9px] rounded border px-1 py-px truncate max-w-full inline-block ${standbyColor.chip}`}
-                       title="Covered shoots are highlighted in this colour"
-                     >
-                       Standby: {primaryStandby.admin_name || primaryStandby.admin_email}
-                     </span>
+                {visibleStandbyPeople.length > 0 && (
+                   <div className="mb-0.5 flex flex-wrap gap-0.5 px-0.5 shrink-0">
+                     {visibleStandbyPeople.slice(0, 3).map((person) => {
+                       const color = standbyColorForEmail(person.admin_email);
+                       const label = (person.admin_name || person.admin_email || '').split(' ')[0];
+                       return (
+                         <span
+                           key={person.id || person.admin_email}
+                           className={`text-[9px] rounded border px-1 py-px truncate max-w-full inline-block ${color.chip}`}
+                           title={`Standby: ${person.admin_name || person.admin_email}. Covered shoots use this colour.`}
+                         >
+                           {canSeeAllStandbyCoverage ? label : `Standby: ${person.admin_name || person.admin_email}`}
+                         </span>
+                       );
+                     })}
+                     {visibleStandbyPeople.length > 3 && (
+                       <span className="text-[9px] text-slate-400">+{visibleStandbyPeople.length - 3}</span>
+                     )}
                    </div>
                  )}
                 {isAdmin && dayUnavailable.length > 0 && (
@@ -1743,6 +1759,16 @@ export default function Calendar() {
             </div>
           </Card>
 
+          {canSeeAllStandbyCoverage && (
+            <StandbyCoverageOverview
+              standbyDays={standbyDays}
+              allUsers={allUsers}
+              todayStr={todayStr}
+              currentUserEmail={user?.email || ''}
+              overviewOnly={isAnalytics}
+            />
+          )}
+
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-4">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Legend</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5">
@@ -1759,6 +1785,12 @@ export default function Calendar() {
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
                   <span className="text-xs text-slate-400">{l.label}</span>
+                </div>
+              ))}
+              {canSeeAllStandbyCoverage && uniqueStandbyPeople(standbyDays).map((person) => (
+                <div key={person.email} className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${person.color.dot}`} />
+                  <span className="text-xs text-slate-400">Standby · {person.name.split(' ')[0]}</span>
                 </div>
               ))}
             </div>
