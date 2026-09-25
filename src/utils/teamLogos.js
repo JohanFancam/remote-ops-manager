@@ -157,7 +157,16 @@ function monogramFor(name) {
   return (words[words.length - 1] || short || '?').slice(0, 1).toUpperCase();
 }
 
-export const TILE_LOGO_TONE_FILTER = 'brightness(0) invert(1)';
+export const TILE_LOGO_OUTLINE = [
+  'drop-shadow(1px 0 0 #fff)',
+  'drop-shadow(-1px 0 0 #fff)',
+  'drop-shadow(0 1px 0 #fff)',
+  'drop-shadow(0 -1px 0 #fff)',
+  'drop-shadow(1px 1px 0 #fff)',
+  'drop-shadow(-1px -1px 0 #fff)',
+  'drop-shadow(1px -1px 0 #fff)',
+  'drop-shadow(-1px 1px 0 #fff)',
+].join(' ');
 
 export function normalizeTeamKey(value) {
   return norm(value);

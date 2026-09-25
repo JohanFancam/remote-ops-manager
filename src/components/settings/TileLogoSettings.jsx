@@ -11,7 +11,7 @@ import {
   normalizeTeamKey,
   readTileLogoSettings,
   serializeTileLogoOverrides,
-  TILE_LOGO_TONE_FILTER,
+  TILE_LOGO_OUTLINE,
 } from '@/utils/teamLogos';
 
 async function upsertSetting(appSettings, key, value, description) {
@@ -30,7 +30,7 @@ function TonePreview({ url, label }) {
         src={url}
         alt={label || ''}
         className="h-full w-full object-contain"
-        style={{ filter: TILE_LOGO_TONE_FILTER, opacity: 0.85 }}
+        style={{ filter: TILE_LOGO_OUTLINE, opacity: 0.95 }}
       />
     </div>
   );
@@ -124,7 +124,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
       };
       await persistOverrides(next);
       setTeamName('');
-      toast.success(`Saved a one-tone mark for ${label}`);
+      toast.success(`Saved the logo for ${label}`);
     } catch (err) {
       toast.error(err.message || 'Could not upload that logo');
     } finally {
@@ -152,7 +152,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
           <div>
             <p className="text-sm text-slate-200">Show team marks on dashboard tiles</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              White one-tone logos stay in the bottom corners of the main tile. They do not move when rig settings expand.
+              Original team logos stay in the bottom corners, with a thin white outline so they read on the dark tile. They do not move when rig settings expand.
             </p>
           </div>
           <Switch
@@ -280,7 +280,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
           <p className="text-sm text-slate-200">Custom home-team logo</p>
           <p className="text-xs text-slate-500 mt-0.5 mb-3">
             If a team is not detected, type the home team name exactly as it appears on the shoot and upload its logo.
-            It is flattened to the same white one-tone mark automatically.
+            Custom logos stay in their original colors, with the same thin white outline.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
