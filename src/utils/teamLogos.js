@@ -157,16 +157,27 @@ function monogramFor(name) {
   return (words[words.length - 1] || short || '?').slice(0, 1).toUpperCase();
 }
 
-export const TILE_LOGO_OUTLINE = [
-  'drop-shadow(1px 0 0 #fff)',
-  'drop-shadow(-1px 0 0 #fff)',
-  'drop-shadow(0 1px 0 #fff)',
-  'drop-shadow(0 -1px 0 #fff)',
-  'drop-shadow(1px 1px 0 #fff)',
-  'drop-shadow(-1px -1px 0 #fff)',
-  'drop-shadow(1px -1px 0 #fff)',
-  'drop-shadow(-1px 1px 0 #fff)',
-].join(' ');
+export function clampTileLogoOutline(value, fallback = 0.5) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(3, Math.max(0, Math.round(n * 2) / 2));
+}
+
+export function tileLogoOutlineFilter(px) {
+  const width = clampTileLogoOutline(px, 0);
+  if (width <= 0) return 'none';
+  const d = `${width}px`;
+  return [
+    `drop-shadow(${d} 0 0 #fff)`,
+    `drop-shadow(-${d} 0 0 #fff)`,
+    `drop-shadow(0 ${d} 0 #fff)`,
+    `drop-shadow(0 -${d} 0 #fff)`,
+    `drop-shadow(${d} ${d} 0 #fff)`,
+    `drop-shadow(-${d} -${d} 0 #fff)`,
+    `drop-shadow(${d} -${d} 0 #fff)`,
+    `drop-shadow(-${d} ${d} 0 #fff)`,
+  ].join(' ');
+}
 
 export function normalizeTeamKey(value) {
   return norm(value);
@@ -228,6 +239,7 @@ export function readTileLogoSettings(appSettings = []) {
   const opacity = Number(get('tile_logos_opacity'));
   const mobileSize = Number(get('tile_logos_mobile_size'));
   const mobileOpacity = Number(get('tile_logos_mobile_opacity'));
+  const outlineRaw = get('tile_logos_outline');
   return {
     enabled: flagOn(get('tile_logos_enabled'), true),
     mobileEnabled: flagOn(get('tile_logos_mobile'), false),
@@ -235,6 +247,7 @@ export function readTileLogoSettings(appSettings = []) {
     opacityPercent: Number.isFinite(opacity) ? Math.min(100, Math.max(10, opacity)) : 70,
     mobileSizePercent: Number.isFinite(mobileSize) ? Math.min(140, Math.max(40, mobileSize)) : 80,
     mobileOpacityPercent: Number.isFinite(mobileOpacity) ? Math.min(100, Math.max(10, mobileOpacity)) : 55,
+    outlinePx: clampTileLogoOutline(outlineRaw, 0.5),
     overrides: parseTileLogoOverrides(get('tile_logo_overrides')),
   };
 }
