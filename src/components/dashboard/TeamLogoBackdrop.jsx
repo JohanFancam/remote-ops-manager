@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { readTileLogoSettings, resolveTeamMarks, TILE_LOGO_TONE_FILTER } from '@/utils/teamLogos';
+import { readTileLogoSettings, resolveTeamMarks, TILE_LOGO_OUTLINE } from '@/utils/teamLogos';
 
 const LG_QUERY = '(min-width: 1024px)';
 
@@ -24,7 +24,7 @@ function CornerMark({ mark, side, sizePercent, opacityPercent }) {
   const px = Math.round(48 * (sizePercent / 100));
   const showImage = mark.url && !failed;
   const tone = {
-    filter: TILE_LOGO_TONE_FILTER,
+    filter: TILE_LOGO_OUTLINE,
     opacity: opacityPercent / 100,
   };
   return (
