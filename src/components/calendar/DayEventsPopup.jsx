@@ -6,6 +6,7 @@ import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
+import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { standbyColorForEmail } from '@/components/utils/standbyColors';
 
 /**
@@ -79,7 +80,8 @@ export default function DayEventsPopup({
                 const shouldGrey = isPast || isCompleted || isCancelled;
                 const claimedByOther = !isAnalytics && !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
                 const showMinus = isAssigned || isPending;
-                const canToggle = !isAnalytics && !isPast && !isCancelled && !isCompleted && !!user?.email
+                const assignmentLocked = isAssignmentLocked(shoot);
+                const canToggle = !assignmentLocked && !isAnalytics && !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
                 const assignedNames = (shoot.assigned_operators || [])
@@ -139,7 +141,7 @@ export default function DayEventsPopup({
                           ) : null}
                         </span>
                       </button>
-                      {!isAnalytics && (
+                      {!isAnalytics && !assignmentLocked && (
                       <button
                         type="button"
                         disabled={!canToggle}

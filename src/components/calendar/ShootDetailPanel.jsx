@@ -11,6 +11,7 @@ import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtil
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '../../utils/assignmentApproval';
+import { isAssignmentLocked } from '../../utils/assignmentLock';
 
 function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -142,9 +143,11 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   const withinLimit = preCount < AUTO_APPROVE_LIMIT;
   const remainingAutoApprove = Math.max(0, AUTO_APPROVE_LIMIT - preCount);
 
+  const assignmentLocked = isAssignmentLocked(shoot);
+
   const handleSelfAssign = async () => {
     const email = user?.email;
-    if (!email) return;
+    if (!email || assignmentLocked) return;
 
     if (isPending) {
       await onUpdate(shoot.id, {
@@ -423,7 +426,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
 
       {/* Self assign/unassign — admin can do on past shoots too */}
-      {(!isPast || isAdmin) && (
+      {(!isPast || isAdmin) && !assignmentLocked && (
         <div>
           <Button
             size="sm"

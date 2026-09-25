@@ -6,6 +6,7 @@ import { getSchedule } from '@/components/utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
+import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
 
 function findMatchingRig(shoot, rigSettings = []) {
@@ -109,6 +110,7 @@ export default function ShootQuickView({
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
     .filter(Boolean);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
+  const assignmentLocked = isAssignmentLocked(shoot);
   const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
   const showAttention = matchedRig?.attention_enabled === true;
   const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
@@ -230,7 +232,9 @@ export default function ShootQuickView({
           <div>
             <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operator</p>
             <p className="text-sm text-slate-200">
-              {assignedNames.length
+              {assignmentLocked
+                ? 'Manual — not assignable'
+                : assignedNames.length
                 ? assignedNames.join(', ')
                 : pendingEmails.length
                   ? 'Pending approval'
@@ -240,7 +244,7 @@ export default function ShootQuickView({
             </p>
           </div>
 
-          {isAdmin && pendingEmails.length > 0 && (
+          {isAdmin && !assignmentLocked && pendingEmails.length > 0 && (
             <div className="rounded-lg border border-amber-800/40 bg-amber-950/25 px-3 py-2 space-y-2">
               <p className="text-[11px] font-medium uppercase tracking-wide text-amber-400">Pending approval</p>
               {pendingEmails.map((email) => {
@@ -296,7 +300,7 @@ export default function ShootQuickView({
                   {isAnalytics ? 'Request edit' : 'Edit Settings'}
                 </button>
               )}
-              {isAdmin && (
+              {isAdmin && !assignmentLocked && (
                 <button
                   type="button"
                   onClick={() => onAssignOperators?.(shoot)}

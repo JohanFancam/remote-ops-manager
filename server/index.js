@@ -37,6 +37,7 @@ import {
   saveOAuthClient,
   maybeRunScheduledGoogleSync,
 } from './googleCalendar.js';
+import { isAssignmentLocked } from './shootTitleMatch.js';
 import {
   getVapidPublicKey,
   savePushSubscription,
@@ -396,6 +397,12 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     }
     if (type === 'AppFault' && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
+    }
+    if (type === 'Shoot' && previous && isAssignmentLocked({ ...previous, ...patch })) {
+      delete patch.assigned_operators;
+      delete patch.pending_operators;
+      delete patch.pre_approved_operators;
+      delete patch.auto_assigned_for;
     }
     const updated = updateEntity(type, id, patch);
     if (!updated) return res.status(404).json({ error: 'Not found' });

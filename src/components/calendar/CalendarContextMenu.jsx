@@ -3,6 +3,7 @@ import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus } from 'l
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
+import { isAssignmentLocked } from '@/utils/assignmentLock';
 
 export default function CalendarContextMenu({
   shoot, isAdmin, isAnalytics = false, userEmail,
@@ -22,8 +23,17 @@ export default function CalendarContextMenu({
   const isAssigned = shoot?.assigned_operators?.includes(userEmail);
   const isPending = shoot?.pending_operators?.includes(userEmail);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, userEmail);
+  const assignmentLocked = isAssignmentLocked(shoot);
 
-  const selfAssignItem = isAssigned || isPending
+  const selfAssignItem = assignmentLocked
+    ? {
+        label: 'Manual — not assignable',
+        icon: UserCheck,
+        action: () => {},
+        color: 'text-slate-500',
+        disabled: true,
+      }
+    : isAssigned || isPending
     ? { label: isPending ? 'Cancel My Pending' : 'Unassign Me', icon: UserX, action: () => { onUnassignSelf(shoot); onClose(); }, color: 'text-amber-400' }
     : claimedByOther
       ? {
@@ -44,14 +54,14 @@ export default function CalendarContextMenu({
     ...(isAdmin ? [
       { label: 'Edit Shoot', icon: Edit2, action: () => { onEdit(shoot); onClose(); }, color: 'text-slate-100', divider: true },
       { label: 'Duplicate Shoot', icon: Copy, action: () => { onDuplicate(shoot); onClose(); }, color: 'text-slate-100' },
-      {
+      ...(!assignmentLocked ? [{
         label: (shoot?.pending_operators || []).length > 0
           ? `Review Pending (${shoot.pending_operators.length})`
           : 'Assign Operator',
         icon: UserPlus,
         action: () => { onAssignOperators(shoot); onClose(); },
         color: 'text-purple-400',
-      },
+      }] : []),
       { label: 'Delete Shoot', icon: Trash2, action: () => { onDelete(shoot.id); onClose(); }, color: 'text-red-400' },
     ] : []),
   ];
