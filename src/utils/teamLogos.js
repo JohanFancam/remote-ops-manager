@@ -157,21 +157,51 @@ function monogramFor(name) {
   return (words[words.length - 1] || short || '?').slice(0, 1).toUpperCase();
 }
 
-export function clampTileLogoOutline(value, fallback = 0.5) {
+const OUTLINE_WIDTHS = [0, 0.28, 0.4, 0.52, 0.65, 0.55, 0.75, 1, 1.25];
+
+export function clampTileLogoOutlineLevel(value, fallback = 2) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
-  return Math.min(3, Math.max(0, Math.round(n * 2) / 2));
+  return Math.min(8, Math.max(0, Math.round(n)));
 }
 
-export function tileLogoOutlineFilter(px) {
-  const width = clampTileLogoOutline(px, 0);
-  if (width <= 0) return 'none';
-  const d = `${width}px`;
-  return [
+function migrateOutlineLevel(raw) {
+  if (raw == null || raw === '') return 2;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 2;
+  if (n === 0) return 0;
+  // Older builds stored px (0.5–3) with an 8-way stroke that looked ~5px thick.
+  if (!Number.isInteger(n) || String(raw).includes('.')) {
+    if (n <= 0.5) return 2;
+    if (n <= 1) return 3;
+    if (n <= 2) return 5;
+    return 7;
+  }
+  return clampTileLogoOutlineLevel(n, 2);
+}
+
+export function tileLogoOutlineLabel(level) {
+  const n = clampTileLogoOutlineLevel(level, 0);
+  if (n <= 0) return 'Off';
+  if (n <= 2) return `${n} · hairline`;
+  if (n <= 4) return `${n} · thin`;
+  if (n <= 6) return `${n} · medium`;
+  return `${n} · thick`;
+}
+
+export function tileLogoOutlineFilter(level) {
+  const n = clampTileLogoOutlineLevel(level, 0);
+  if (n <= 0) return 'none';
+  const d = `${OUTLINE_WIDTHS[n]}px`;
+  const cardinal = [
     `drop-shadow(${d} 0 0 #fff)`,
     `drop-shadow(-${d} 0 0 #fff)`,
     `drop-shadow(0 ${d} 0 #fff)`,
     `drop-shadow(0 -${d} 0 #fff)`,
+  ];
+  if (n <= 4) return cardinal.join(' ');
+  return [
+    ...cardinal,
     `drop-shadow(${d} ${d} 0 #fff)`,
     `drop-shadow(-${d} -${d} 0 #fff)`,
     `drop-shadow(${d} -${d} 0 #fff)`,
@@ -239,7 +269,7 @@ export function readTileLogoSettings(appSettings = []) {
   const opacity = Number(get('tile_logos_opacity'));
   const mobileSize = Number(get('tile_logos_mobile_size'));
   const mobileOpacity = Number(get('tile_logos_mobile_opacity'));
-  const outlineRaw = get('tile_logos_outline');
+  const outlineRaw = get('tile_logos_outline_level') ?? get('tile_logos_outline');
   return {
     enabled: flagOn(get('tile_logos_enabled'), true),
     mobileEnabled: flagOn(get('tile_logos_mobile'), false),
@@ -247,7 +277,7 @@ export function readTileLogoSettings(appSettings = []) {
     opacityPercent: Number.isFinite(opacity) ? Math.min(100, Math.max(10, opacity)) : 70,
     mobileSizePercent: Number.isFinite(mobileSize) ? Math.min(140, Math.max(40, mobileSize)) : 80,
     mobileOpacityPercent: Number.isFinite(mobileOpacity) ? Math.min(100, Math.max(10, mobileOpacity)) : 55,
-    outlinePx: clampTileLogoOutline(outlineRaw, 0.5),
+    outlineLevel: migrateOutlineLevel(outlineRaw),
     overrides: parseTileLogoOverrides(get('tile_logo_overrides')),
   };
 }

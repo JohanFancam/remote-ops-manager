@@ -110,8 +110,14 @@ export default function ShootCompleteReminder({ user }) {
         />
       )}
       {active && !completing && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-amber-700/50 bg-slate-900 p-5 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4"
+          style={{
+            paddingTop: 'calc(4.5rem + env(safe-area-inset-top))',
+            paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))',
+          }}
+        >
+          <div className="w-full max-w-md max-h-full overflow-y-auto rounded-2xl border border-amber-700/50 bg-slate-900 p-4 shadow-2xl sm:p-5">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-amber-500/15 p-2">
                 <AlertTriangle className="h-5 w-5 text-amber-300" />
@@ -127,22 +133,22 @@ export default function ShootCompleteReminder({ user }) {
                 </p>
               </div>
             </div>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <Button
-                className="flex-1 bg-green-700 hover:bg-green-600"
-                onClick={() => setCompleting(active)}
-              >
-                Mark Shoot Complete
-              </Button>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:mt-5 sm:flex-row">
               <Button
                 variant="outline"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                className="min-h-11 border-slate-700 text-slate-300 hover:bg-slate-800 sm:flex-1"
                 onClick={() => {
                   snooze(active.id);
                   setNow(new Date());
                 }}
               >
                 Remind me in 10 min
+              </Button>
+              <Button
+                className="min-h-11 flex-1 bg-green-700 hover:bg-green-600"
+                onClick={() => setCompleting(active)}
+              >
+                Mark Shoot Complete
               </Button>
             </div>
           </div>

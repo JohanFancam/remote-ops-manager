@@ -11,6 +11,7 @@ import {
   Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
+import AppSplash from './components/brand/AppSplash';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
 import {
@@ -295,9 +296,7 @@ function LayoutContent({ children, currentPageName }) {
         )}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center h-full min-h-screen">
-            <div className="w-7 h-7 border-2 border-slate-800 border-t-blue-400 rounded-full animate-spin" />
-          </div>
+          <AppSplash logoUrl={logoUrl} />
         ) : (
           <div className="rom-enter">{children}</div>
         )}

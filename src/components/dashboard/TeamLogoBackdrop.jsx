@@ -17,14 +17,14 @@ function useIsDesktop() {
   return desktop;
 }
 
-function CornerMark({ mark, side, sizePercent, opacityPercent, outlinePx }) {
+function CornerMark({ mark, side, sizePercent, opacityPercent, outlineLevel }) {
   const [failed, setFailed] = useState(false);
   if (!mark) return null;
   const position = side === 'left' ? 'left-3 bottom-3' : 'right-3 bottom-3';
   const px = Math.round(48 * (sizePercent / 100));
   const showImage = mark.url && !failed;
   const tone = {
-    filter: tileLogoOutlineFilter(outlinePx),
+    filter: tileLogoOutlineFilter(outlineLevel),
     opacity: opacityPercent / 100,
   };
   return (
@@ -65,8 +65,8 @@ export default function TeamLogoBackdrop({ title, sport, appSettings = [] }) {
   const opacityPercent = desktop ? settings.opacityPercent : settings.mobileOpacityPercent;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden>
-      <CornerMark mark={left} side="left" sizePercent={sizePercent} opacityPercent={opacityPercent} outlinePx={settings.outlinePx} />
-      {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} opacityPercent={opacityPercent} outlinePx={settings.outlinePx} /> : null}
+      <CornerMark mark={left} side="left" sizePercent={sizePercent} opacityPercent={opacityPercent} outlineLevel={settings.outlineLevel} />
+      {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} opacityPercent={opacityPercent} outlineLevel={settings.outlineLevel} /> : null}
     </div>
   );
 }

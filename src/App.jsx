@@ -16,6 +16,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'r
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AppSplash from '@/components/brand/AppSplash';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -34,11 +35,7 @@ const AuthenticatedApp = () => {
   const location = useLocation();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-7 h-7 border-2 border-slate-800 border-t-blue-400 rounded-full animate-spin" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (authError?.type === 'user_not_registered') {
