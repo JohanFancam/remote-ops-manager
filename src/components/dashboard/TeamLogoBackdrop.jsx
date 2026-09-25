@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { readTileLogoSettings, resolveTeamMarks, TILE_LOGO_OUTLINE } from '@/utils/teamLogos';
+import { readTileLogoSettings, resolveTeamMarks, tileLogoOutlineFilter } from '@/utils/teamLogos';
 
 const LG_QUERY = '(min-width: 1024px)';
 
@@ -17,14 +17,14 @@ function useIsDesktop() {
   return desktop;
 }
 
-function CornerMark({ mark, side, sizePercent, opacityPercent }) {
+function CornerMark({ mark, side, sizePercent, opacityPercent, outlinePx }) {
   const [failed, setFailed] = useState(false);
   if (!mark) return null;
   const position = side === 'left' ? 'left-3 bottom-3' : 'right-3 bottom-3';
   const px = Math.round(48 * (sizePercent / 100));
   const showImage = mark.url && !failed;
   const tone = {
-    filter: TILE_LOGO_OUTLINE,
+    filter: tileLogoOutlineFilter(outlinePx),
     opacity: opacityPercent / 100,
   };
   return (
@@ -65,8 +65,8 @@ export default function TeamLogoBackdrop({ title, sport, appSettings = [] }) {
   const opacityPercent = desktop ? settings.opacityPercent : settings.mobileOpacityPercent;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden>
-      <CornerMark mark={left} side="left" sizePercent={sizePercent} opacityPercent={opacityPercent} />
-      {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} opacityPercent={opacityPercent} /> : null}
+      <CornerMark mark={left} side="left" sizePercent={sizePercent} opacityPercent={opacityPercent} outlinePx={settings.outlinePx} />
+      {right ? <CornerMark mark={right} side="right" sizePercent={sizePercent} opacityPercent={opacityPercent} outlinePx={settings.outlinePx} /> : null}
     </div>
   );
 }
