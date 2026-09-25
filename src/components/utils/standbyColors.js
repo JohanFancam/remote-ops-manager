@@ -113,3 +113,18 @@ export function uniqueStandbyPeople(standbyDays = []) {
   });
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** Upcoming / still-active overnight sessions, oldest first. */
+export function upcomingStandbySessions(standbyDays = [], fromYmd = '') {
+  return (standbyDays || [])
+    .filter((day) => {
+      const end = day.end_date || day.start_date || day.date;
+      return !!end && (!fromYmd || end >= fromYmd);
+    })
+    .slice()
+    .sort((a, b) => {
+      const aKey = `${a.start_date || a.date || ''}T${a.start_time || '18:00'}`;
+      const bKey = `${b.start_date || b.date || ''}T${b.start_time || '18:00'}`;
+      return aKey.localeCompare(bKey);
+    });
+}
