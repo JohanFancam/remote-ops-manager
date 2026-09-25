@@ -1734,6 +1734,16 @@ export default function Calendar() {
         </div>
 
         <div>
+          {canSeeAllStandbyCoverage && (
+            <StandbyCoverageOverview
+              standbyDays={standbyDays}
+              allUsers={allUsers}
+              todayStr={todayStr}
+              currentUserEmail={user?.email || ''}
+              overviewOnly={isAnalytics}
+            />
+          )}
+
           <Card className="bg-slate-900 border-slate-800 mb-4 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-800 gap-3">
               <Button variant="ghost" size="icon" onClick={goPrevious} className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex-shrink-0">
@@ -1758,16 +1768,6 @@ export default function Calendar() {
               {viewMode === 'week' && renderWeekView()}
             </div>
           </Card>
-
-          {canSeeAllStandbyCoverage && (
-            <StandbyCoverageOverview
-              standbyDays={standbyDays}
-              allUsers={allUsers}
-              todayStr={todayStr}
-              currentUserEmail={user?.email || ''}
-              overviewOnly={isAnalytics}
-            />
-          )}
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-4">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Legend</p>
