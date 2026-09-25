@@ -100,10 +100,12 @@ export const AuthProvider = ({ children }) => {
     return currentUser;
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    api.auth.logout(shouldRedirect ? '/login' : false);
+    setIsLoadingAuth(false);
+    setAuthError({ type: 'auth_required', message: 'Authentication required' });
+    api.auth.logout(false);
   };
 
   const navigateToLogin = () => {

@@ -271,8 +271,8 @@ export function readTileLogoSettings(appSettings = []) {
   const mobileOpacity = Number(get('tile_logos_mobile_opacity'));
   const outlineRaw = get('tile_logos_outline_level') ?? get('tile_logos_outline');
   return {
-    enabled: flagOn(get('tile_logos_enabled'), true),
-    mobileEnabled: flagOn(get('tile_logos_mobile'), false),
+    enabled: false,
+    mobileEnabled: false,
     sizePercent: Number.isFinite(size) ? Math.min(160, Math.max(60, size)) : 100,
     opacityPercent: Number.isFinite(opacity) ? Math.min(100, Math.max(10, opacity)) : 70,
     mobileSizePercent: Number.isFinite(mobileSize) ? Math.min(140, Math.max(40, mobileSize)) : 80,

@@ -156,7 +156,7 @@ export default function Dashboard() {
           <section className="mb-8">
             <div className="mb-3 flex items-end justify-between gap-3">
               <h2 className="rom-section-title">Standby Coverage Shoots</h2>
-              <p className="hidden text-xs text-slate-500 sm:block">Every standby person and the games they cover (18:00–06:00).</p>
+              <p className="hidden text-xs text-slate-500 sm:block">Games on your 18:00–06:00 standby nights.</p>
             </div>
             <div className="rom-panel">
               <AdminStandbyShootList

@@ -4,7 +4,6 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'dat
 import CountdownCard from './CountdownCard';
 import { getScheduleDateTimes } from '../utils/scheduleUtils';
 import { matchRig } from '../utils/rigUtils';
-import { uniqueStandbyPeople } from '../utils/standbyColors';
 import { normalizeEmail } from '@/utils/assignmentApproval';
 
 function getPrimaryDateTime(shoot, rigSettings = []) {
@@ -59,17 +58,15 @@ export default function AdminStandbyShootList({
   const [page, setPage] = useState(0);
   const [monthDate, setMonthDate] = useState(new Date());
   const [monthSelectedDate, setMonthSelectedDate] = useState(null);
-  const [personFilter, setPersonFilter] = useState('all');
-  const standbyPeople = useMemo(() => uniqueStandbyPeople(standbyDays), [standbyDays]);
 
   const myStandbyWindows = useMemo(() => {
-    const wanted = normalizeEmail(personFilter);
+    const me = normalizeEmail(userEmail);
     return standbyDays
       .map((sd) => {
         const startDate = sd.start_date || sd.date;
         const endDate = sd.end_date || startDate;
         if (!startDate) return null;
-        if (wanted && wanted !== 'all' && normalizeEmail(sd.admin_email) !== wanted) return null;
+        if (!me || normalizeEmail(sd.admin_email) !== me) return null;
         return {
           ...sd,
           startDt: new Date(`${startDate}T${sd.start_time || '18:00'}`),
@@ -78,7 +75,7 @@ export default function AdminStandbyShootList({
       })
       .filter(Boolean)
       .sort((a, b) => a.startDt - b.startDt);
-  }, [standbyDays, personFilter]);
+  }, [standbyDays, userEmail]);
 
   const allStandbyShoots = useMemo(() => {
     const seen = new Map();
@@ -102,7 +99,7 @@ export default function AdminStandbyShootList({
 
   useEffect(() => {
     setPage(0);
-  }, [viewMode, monthSelectedDate, shoots.length, standbyDays.length, personFilter]);
+  }, [viewMode, monthSelectedDate, shoots.length, standbyDays.length, userEmail]);
 
   const totalPages = Math.max(1, Math.ceil(allStandbyShoots.length / pageSize));
   const visibleShoots = allStandbyShoots.slice(page * pageSize, page * pageSize + pageSize);
@@ -162,37 +159,6 @@ export default function AdminStandbyShootList({
           {viewMode === 'tile' ? 'Showing max 4' : 'Showing max 3'}
         </div>
       </div>
-
-      {standbyPeople.length > 1 && (
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => setPersonFilter('all')}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-              personFilter === 'all'
-                ? 'border-blue-500/50 bg-blue-600/20 text-blue-200'
-                : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-            }`}
-          >
-            Everyone
-          </button>
-          {standbyPeople.map((person) => (
-            <button
-              key={person.email}
-              type="button"
-              onClick={() => setPersonFilter(person.email)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                personFilter === person.email
-                  ? person.color.chip
-                  : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              {person.name.split(' ')[0]}
-              {normalizeEmail(person.email) === normalizeEmail(userEmail) ? ' · you' : ''}
-            </button>
-          ))}
-        </div>
-      )}
 
       {viewMode === 'month' && (
         <div>

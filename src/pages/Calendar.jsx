@@ -20,8 +20,7 @@ import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
 import { isAssignmentLocked } from '../utils/assignmentLock';
-import { standbyColorForEmail, EMPTY_STANDBY_COLOR, uniqueStandbyPeople } from '../components/utils/standbyColors';
-import StandbyCoverageOverview from '../components/calendar/StandbyCoverageOverview';
+import { standbyColorForEmail, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
@@ -1734,16 +1733,6 @@ export default function Calendar() {
         </div>
 
         <div>
-          {canSeeAllStandbyCoverage && (
-            <StandbyCoverageOverview
-              standbyDays={standbyDays}
-              allUsers={allUsers}
-              todayStr={todayStr}
-              currentUserEmail={user?.email || ''}
-              overviewOnly={isAnalytics}
-            />
-          )}
-
           <Card className="bg-slate-900 border-slate-800 mb-4 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-800 gap-3">
               <Button variant="ghost" size="icon" onClick={goPrevious} className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 flex-shrink-0">
@@ -1785,12 +1774,6 @@ export default function Calendar() {
                 <div key={l.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
                   <span className="text-xs text-slate-400">{l.label}</span>
-                </div>
-              ))}
-              {canSeeAllStandbyCoverage && uniqueStandbyPeople(standbyDays).map((person) => (
-                <div key={person.email} className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${person.color.dot}`} />
-                  <span className="text-xs text-slate-400">Standby · {person.name.split(' ')[0]}</span>
                 </div>
               ))}
             </div>
