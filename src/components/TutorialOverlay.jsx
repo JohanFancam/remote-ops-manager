@@ -48,35 +48,31 @@ const ADMIN_STEPS = [
 const REMOTE_STEPS = [
   {
     title: "Welcome to Remote Ops Manager",
-    body: "This app keeps you connected with your shoot schedule, earnings, and team. Here's a quick walkthrough of what everything means."
+    body: "Sign in with the email and password you were sent. This app is your shoot schedule, calendar, and the place to mark work complete. Open Guide in the menu any time for the written steps."
   },
   {
-    title: "Dashboard — Your Shoots",
-    body: "Your upcoming assigned shoots appear as countdown cards. Each card shows exactly when you need to be set up and ready. The countdown turns red when setup time is approaching."
+    title: "Calendar — find a shoot and mark out",
+    body: "Open Calendar and tap a game to see details. If you cannot work a day, tap Out / Not available on that date so admins know. Tap it again to become available."
   },
   {
-    title: "Shoot Phases",
-    body: "Each shoot has phases: Setup, Pre-Shoot, Attention, and Sound. As you progress through each phase, mark it complete using the phase buttons on your shoot card. Starting pre-shoot alerts the admin on standby, and the Notifications tab keeps a history of those alerts."
+    title: "Dashboard — your game and rig settings",
+    body: "Dashboard shows the shoots you are assigned to. Expand a card (chevron) to read rig settings for that team. Logos stay in the corners."
   },
   {
-    title: "Standby Banner",
-    body: "The banner at the top shows which admin is on standby contact for today. If you have any issues, this is your contact person."
+    title: "Mark complete",
+    body: "Use Setup / Pre-Shoot / Game Start as you work. When finished, tap Shoot Complete and choose No Issues or Had Issues. Add a note if something went wrong."
   },
   {
-    title: "Top notifications",
-    body: "New alerts pop in from the top with a sound. Missed ones stay in Notifications above your name so you can clear them there. Open the Notifications tab to look back through the full history. Time or date changes show what it was and what it changed to (South Africa time)."
+    title: "Notifications",
+    body: "The Notifications tab is the history of alerts. To get phone or desktop pop-ups, go to Settings → Device Notifications → Enable notifications and allow the browser prompt."
   },
   {
-    title: "Earnings",
-    body: "Your earnings summary is on the dashboard. It shows this month's shoots, base rates, and any additional shoot bonuses. You can navigate to previous months to see history."
+    title: "App faults",
+    body: "If the app itself is broken, open App Faults, describe what happened, and send it. Only admins see the list and get notified."
   },
   {
-    title: "Calendar",
-    body: "The Calendar shows all your assigned shoots. Tap a shoot to see full details — game time, location, rig type, and standby contact."
-  },
-  {
-    title: "Settings",
-    body: "Update your profile here. If you are an admin, you'll also find team management and app configuration options."
+    title: "Earnings and settings",
+    body: "Earnings shows this month's shoots and rates. Settings is where you change your password and turn device notifications on or off."
   },
 ];
 
