@@ -10,7 +10,7 @@ export default function AppSplash({ logoUrl }) {
       <img
         src={logoUrl || DEFAULT_APP_LOGO}
         alt="Remote Ops Manager"
-        className="h-28 w-28 object-contain"
+        className="h-40 w-40 object-contain sm:h-44 sm:w-44"
       />
     </div>
   );
