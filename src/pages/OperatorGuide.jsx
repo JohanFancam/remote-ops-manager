@@ -51,9 +51,24 @@ export default function OperatorGuide() {
             <BookOpen className="h-6 w-6 text-blue-400" /> Operator guide
           </h1>
           <p className="rom-subtitle">
-            A short walkthrough of the screens you use every match day. Ask an admin if your login does not work.
+            A short walkthrough of the screens you use every match day. Watch the video first, then use the steps below. Ask an admin if your login does not work.
           </p>
         </header>
+
+        <div className="mb-8 overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+          <video
+            className="w-full"
+            controls
+            playsInline
+            preload="metadata"
+            src="/operator-guide.mp4"
+          >
+            Your browser cannot play this video. Use the written steps below.
+          </video>
+          <p className="px-4 py-2 text-xs text-slate-500">
+            About one minute. Captions on each screen: sign in, calendar, mark out, dashboard settings, complete, notifications, app fault.
+          </p>
+        </div>
 
         <ol className="space-y-4">
           {STEPS.map((step, index) => (
