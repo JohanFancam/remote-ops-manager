@@ -1,5 +1,5 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v4';
+const CACHE = 'rom-shell-v5';
 const SHELL = ['/', '/index.html', '/rom-logo.png', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {

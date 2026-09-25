@@ -58,8 +58,8 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
 
   if (saved) {
     return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" style={{ paddingTop: 'calc(4.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
+        <div className="max-h-full w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6">
 
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-7 w-7 text-emerald-400 flex-shrink-0" />
@@ -120,8 +120,8 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
 
   if (hadIssues === null) {
     return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-5">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" style={{ paddingTop: 'calc(4.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
+        <div className="max-h-full w-full max-w-sm space-y-5 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6">
 
           <h2 className="text-slate-100 font-bold text-lg">
             Mark Shoot Complete?
@@ -170,8 +170,8 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" style={{ paddingTop: 'calc(4.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
+      <div className="max-h-full w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-6">
 
         <h2 className="text-slate-100 font-bold text-lg">
           {hadIssues

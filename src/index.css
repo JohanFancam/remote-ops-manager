@@ -63,6 +63,16 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  html:not(.rom-ready),
+  html:not(.rom-ready) body {
+    background-color: #01184D !important;
+    background-image: none !important;
+  }
+
+  html:not(.rom-ready) body::before {
+    display: none !important;
+  }
+
   body {
     @apply bg-background text-foreground;
     background-color: var(--rom-canvas);

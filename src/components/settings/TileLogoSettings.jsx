@@ -12,6 +12,7 @@ import {
   readTileLogoSettings,
   serializeTileLogoOverrides,
   tileLogoOutlineFilter,
+  tileLogoOutlineLabel,
 } from '@/utils/teamLogos';
 
 async function upsertSetting(appSettings, key, value, description) {
@@ -23,14 +24,14 @@ async function upsertSetting(appSettings, key, value, description) {
   }
 }
 
-function TonePreview({ url, label, outlinePx }) {
+function TonePreview({ url, label, outlineLevel }) {
   return (
     <div className="h-12 w-12 shrink-0 rounded-md bg-slate-950 border border-slate-800 p-1">
       <img
         src={url}
         alt={label || ''}
         className="h-full w-full object-contain"
-        style={{ filter: tileLogoOutlineFilter(outlinePx), opacity: 0.95 }}
+        style={{ filter: tileLogoOutlineFilter(outlineLevel), opacity: 0.95 }}
       />
     </div>
   );
@@ -46,7 +47,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
   const [opacity, setOpacity] = useState(stored.opacityPercent);
   const [mobileSize, setMobileSize] = useState(stored.mobileSizePercent);
   const [mobileOpacity, setMobileOpacity] = useState(stored.mobileOpacityPercent);
-  const [outline, setOutline] = useState(stored.outlinePx);
+  const [outline, setOutline] = useState(stored.outlineLevel);
   const [overrides, setOverrides] = useState(stored.overrides);
   const [teamName, setTeamName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -60,8 +61,8 @@ export default function TileLogoSettings({ appSettings = [] }) {
     setOpacity(stored.opacityPercent);
     setMobileSize(stored.mobileSizePercent);
     setMobileOpacity(stored.mobileOpacityPercent);
-    setOutline(stored.outlinePx);
-  }, [stored.enabled, stored.mobileEnabled, stored.sizePercent, stored.opacityPercent, stored.mobileSizePercent, stored.mobileOpacityPercent, stored.outlinePx]);
+    setOutline(stored.outlineLevel);
+  }, [stored.enabled, stored.mobileEnabled, stored.sizePercent, stored.opacityPercent, stored.mobileSizePercent, stored.mobileOpacityPercent, stored.outlineLevel]);
 
   useEffect(() => {
     setOverrides(stored.overrides);
@@ -86,7 +87,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
       await upsertSetting(appSettings, 'tile_logos_opacity', String(look.opacity), 'Dashboard tile logo opacity percent');
       await upsertSetting(appSettings, 'tile_logos_mobile_size', String(look.mobileSize), 'Mobile dashboard tile logo size percent');
       await upsertSetting(appSettings, 'tile_logos_mobile_opacity', String(look.mobileOpacity), 'Mobile dashboard tile logo opacity percent');
-      await upsertSetting(appSettings, 'tile_logos_outline', String(look.outline), 'Dashboard tile logo white outline width in px');
+      await upsertSetting(appSettings, 'tile_logos_outline_level', String(look.outline), 'Dashboard tile logo white outline strength 0-8');
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } finally {
       setSaving(false);
@@ -223,14 +224,14 @@ export default function TileLogoSettings({ appSettings = [] }) {
         <div className={enabled ? '' : 'opacity-40 pointer-events-none'}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <label htmlFor="tile-logo-outline" className="text-sm text-slate-200">White outline</label>
-            <span className="text-xs font-mono text-slate-400">{outline === 0 ? 'Off' : `${outline}px`}</span>
+            <span className="text-xs font-mono text-slate-400">{tileLogoOutlineLabel(outline)}</span>
           </div>
           <input
             id="tile-logo-outline"
             type="range"
             min="0"
-            max="3"
-            step="0.5"
+            max="8"
+            step="1"
             value={outline}
             disabled={!enabled || saving}
             onChange={(e) => setOutline(Number(e.target.value))}
@@ -244,10 +245,10 @@ export default function TileLogoSettings({ appSettings = [] }) {
             <span>Thick</span>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <TonePreview url="https://a.espncdn.com/i/teamlogos/nba/500/ny.png" label="Outline preview" outlinePx={outline} />
-            <TonePreview url="https://a.espncdn.com/i/teamlogos/nba/500/bkn.png" label="Outline preview" outlinePx={outline} />
+            <TonePreview url="https://a.espncdn.com/i/teamlogos/nba/500/ny.png" label="Outline preview" outlineLevel={outline} />
+            <TonePreview url="https://a.espncdn.com/i/teamlogos/nba/500/bkn.png" label="Outline preview" outlineLevel={outline} />
             <p className="text-xs text-slate-500">
-              Preview updates as you drag. 0.5px is a thin edge; 0 turns the outline off.
+              1–4 stay a thin edge. 5–8 add a heavier outline. Off removes it.
             </p>
           </div>
         </div>
@@ -342,7 +343,7 @@ export default function TileLogoSettings({ appSettings = [] }) {
             <ul className="mt-3 space-y-2">
               {overrideList.map(([key, item]) => (
                 <li key={key} className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
-                  <TonePreview url={item.url} label={item.label} outlinePx={outline} />
+                  <TonePreview url={item.url} label={item.label} outlineLevel={outline} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-slate-200 truncate">{item.label}</p>
                     <p className="text-[11px] text-slate-500">Matches “{key}” on shoot titles</p>

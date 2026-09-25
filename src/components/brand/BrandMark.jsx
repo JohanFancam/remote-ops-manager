@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '@/lib/AuthContext';
 
 export const DEFAULT_APP_LOGO = '/rom-logo.png';
+export const ROM_BRAND_BLUE = '#01184D';
 
 export function resolveAppLogoUrl(customUrl) {
   const url = String(customUrl || '').trim();
