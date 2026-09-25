@@ -157,6 +157,11 @@
       "type": "boolean",
       "description": "True when cancelled because the Google event disappeared"
     },
+    "assignment_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for Google events with manual in the title — shown on the calendar but not assignable"
+    },
     "live_data": {
       "type": "boolean",
       "default": false,

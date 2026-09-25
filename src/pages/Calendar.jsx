@@ -19,6 +19,7 @@ import { getDisplayName } from '../components/utils/nameUtils';
 import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
+import { isAssignmentLocked } from '../utils/assignmentLock';
 import { standbyColorForEmail, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
@@ -221,7 +222,10 @@ function ShootCalendarEntry({
     })
     .join(', ');
 
-  const assignmentLabel = assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
+  const assignmentLocked = isAssignmentLocked(shoot);
+  const assignmentLabel = assignmentLocked
+    ? 'Manual — not assignable'
+    : assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
 
   // Count pre-approved slots using shared helper (reads live cache to avoid stale counts)
   const getPreApproved = (email) => {
@@ -248,7 +252,7 @@ function ShootCalendarEntry({
 
   const handleSelfAssign = async (e) => {
     e.stopPropagation();
-    if (!user?.email || isPast) return;
+    if (!user?.email || isPast || assignmentLocked) return;
     const email = user.email;
 
     if (isPending) {
@@ -327,7 +331,7 @@ function ShootCalendarEntry({
 
   const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
   const showMinus = isAssigned || isPending;
-  const canQuickAssign = !isAnalytics && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
+  const canQuickAssign = !assignmentLocked && !isAnalytics && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
 
   const quickAssignButton = (
     <button
@@ -350,7 +354,9 @@ function ShootCalendarEntry({
               : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50'
       } ${compact && showMinus ? 'opacity-100' : ''} ${compact && takenByOther ? 'opacity-60' : ''}`}
       title={
-        isPast
+        assignmentLocked
+          ? 'Manual shoot — not assignable'
+          : isPast
           ? 'Past shoot'
           : showMinus
             ? isPending
@@ -410,7 +416,7 @@ function ShootCalendarEntry({
               <span className="ml-1 text-[9px] uppercase text-amber-300">Updated</span>
             )}
           </p>
-          {!isAnalytics && (
+          {!isAnalytics && !assignmentLocked && (
             <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               {quickAssignButton}
             </div>
@@ -459,7 +465,7 @@ function ShootCalendarEntry({
             {assignmentLabel}
           </p>
         </div>
-        {!isAnalytics && (
+        {!isAnalytics && !assignmentLocked && (
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {quickAssignButton}
           </div>
@@ -1059,12 +1065,13 @@ export default function Calendar() {
   };
 
   const handleAssignOperators = (shoot) => {
-    if (!isAdmin) return;
+    if (!isAdmin || isAssignmentLocked(shoot)) return;
     setAssignOperatorsModal(shoot);
   };
 
   const handleConfirmAssignOperator = async (email) => {
     if (!assignOperatorsModal?.id || !email || !isAdmin) return;
+    if (isAssignmentLocked(assignOperatorsModal)) return;
     const shoot = shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal;
     if (hasEmail(shoot.assigned_operators, email)) return;
     const current = getShootClaimEmail(shoot);
@@ -1184,7 +1191,7 @@ export default function Calendar() {
 
   // Context menu self-assign — same business rules as card self-assign
   const handleContextMenuAssignSelf = async (shoot) => {
-    if (!user?.email) return;
+    if (!user?.email || isAssignmentLocked(shoot)) return;
     const email = user.email;
     const todayStrLocal = format(new Date(), 'yyyy-MM-dd');
     const isAssigned = hasEmail(shoot.assigned_operators, email);

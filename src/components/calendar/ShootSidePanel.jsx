@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '@/utils/assignmentApproval';
+import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
 
@@ -71,6 +72,7 @@ export default function ShootSidePanel({
   const isAssigned = shoot.assigned_operators?.includes(user?.email);
   const isPending = shoot.pending_operators?.includes(user?.email);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
+  const assignmentLocked = isAssignmentLocked(shoot);
 
   // Auto-assign config
   const autoAssignTeams = (() => {
@@ -97,7 +99,7 @@ export default function ShootSidePanel({
   const remaining = AUTO_APPROVE_LIMIT - preCount;
 
   const handleSelfAssign = async () => {
-    if (!user?.email || isPast) return;
+    if (!user?.email || isPast || assignmentLocked) return;
     const email = user.email;
 
     if (isPending) {
@@ -326,7 +328,10 @@ export default function ShootSidePanel({
               </Button>
             </>
           )}
-          {isOperator && !isPast && (
+          {assignmentLocked && (
+            <p className="w-full text-xs text-slate-500">Manual — not assignable</p>
+          )}
+          {isOperator && !isPast && !assignmentLocked && (
             <div className="flex flex-col gap-1.5 w-full">
               <Button
                 size="sm"

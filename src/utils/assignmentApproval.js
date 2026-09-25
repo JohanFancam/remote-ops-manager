@@ -69,6 +69,8 @@ export const getApprovedAssignmentCount = getPreApprovedCount;
  */
 export function isShootAvailableForAutoAssign(shoot) {
   if (!shoot) return false;
+  if (shoot.assignment_locked === true) return false;
+  if (/\bmanual\b/i.test(String(shoot.title || ''))) return false;
   return (
     (!shoot.assigned_operators || shoot.assigned_operators.length === 0) &&
     (!shoot.pending_operators || shoot.pending_operators.length === 0)
