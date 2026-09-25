@@ -14,11 +14,25 @@
     <style>
       html, body { background-color: #01184D; margin: 0; }
       #root { min-height: 100vh; }
+      #rom-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #01184D;
+      }
+      #rom-boot img { width: 10rem; height: 10rem; object-fit: contain; }
     </style>
     <title>Remote Ops Manager</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="rom-boot">
+        <img src="/rom-logo.png" alt="Remote Ops Manager" />
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

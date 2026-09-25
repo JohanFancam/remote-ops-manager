@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DEFAULT_APP_LOGO, ROM_BRAND_BLUE } from '@/components/brand/BrandMark';
 
 export default function AppSplash({ logoUrl }) {
+  useEffect(() => {
+    document.documentElement.classList.remove('rom-ready');
+    return () => {
+      document.documentElement.classList.add('rom-ready');
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center"

@@ -80,20 +80,30 @@ const AuthenticatedApp = () => {
 };
 
 
+function BootGate({ children }) {
+  const { isLoadingPublicSettings, isLoadingAuth } = useAuth();
+  if (isLoadingPublicSettings || isLoadingAuth) {
+    return <AppSplash />;
+  }
+  return children;
+}
+
 function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/*" element={<AuthenticatedApp />} />
-          </Routes>
+          <BootGate>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/*" element={<AuthenticatedApp />} />
+            </Routes>
+          </BootGate>
+          <Toaster />
+          <SonnerToaster />
         </Router>
-        <Toaster />
-        <SonnerToaster />
       </QueryClientProvider>
     </AuthProvider>
   )
