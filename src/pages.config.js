@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Notifications from './pages/Notifications.jsx';
 import OperatorGuide from './pages/OperatorGuide.jsx';
 import Reports from './pages/Reports';
+import RigChecks from './pages/RigChecks';
 import Rigs from './pages/Rigs';
 import Settings from './pages/Settings';
 import Shoots from './pages/Shoots';
@@ -23,6 +24,7 @@ export const PAGES = {
     "Notifications": Notifications,
     "OperatorGuide": OperatorGuide,
     "Reports": Reports,
+    "RigChecks": RigChecks,
     "Rigs": Rigs,
     "Settings": Settings,
     "Shoots": Shoots,

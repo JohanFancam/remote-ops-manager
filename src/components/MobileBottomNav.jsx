@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen } from 'lucide-react';
+  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen, CheckSquare } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,7 @@ const allAdminMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Rigs', icon: Wrench, path: '/Rigs' },
+  { label: 'Rig Checks', icon: CheckSquare, path: '/RigChecks' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
@@ -79,6 +80,7 @@ const allAnalyticsMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Rig Checks', icon: CheckSquare, path: '/RigChecks' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];

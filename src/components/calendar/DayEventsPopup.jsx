@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Minus, X } from 'lucide-react';
+import { Plus, Minus, X, Check } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
@@ -24,6 +24,8 @@ export default function DayEventsPopup({
   onClose,
   onToggleAssign,
   onSelectShoot,
+  onApprovePending,
+  onDeclinePending,
   getStandbyCoverageForShoot,
 }) {
   if (!open || !day) return null;
@@ -141,6 +143,33 @@ export default function DayEventsPopup({
                           ) : null}
                         </span>
                       </button>
+                      {isAdmin && (shoot.pending_operators || []).length > 0 && !assignmentLocked && (
+                        <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onApprovePending?.(shoot, shoot.pending_operators[0]);
+                          }}
+                          className="inline-flex h-6 items-center rounded-md border border-emerald-700/50 bg-emerald-950/40 px-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-900/50"
+                          title="Approve pending operator"
+                        >
+                          <Check className="h-3 w-3 mr-0.5" />
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeclinePending?.(shoot, shoot.pending_operators[0]);
+                          }}
+                          className="inline-flex h-6 items-center rounded-md border border-red-700/40 bg-red-950/30 px-1.5 text-[10px] font-medium text-red-300 hover:bg-red-950/50"
+                          title="Decline pending operator"
+                        >
+                          Decline
+                        </button>
+                        </>
+                      )}
                       {!isAnalytics && !assignmentLocked && (
                       <button
                         type="button"

@@ -167,6 +167,8 @@ function ShootCalendarEntry({
   onUpdate,
   onContextMenu,
   onQuickView,
+  onApprovePending,
+  onDeclinePending,
   getStandbyCoverageForShoot,
   queryClient,
 }) {
@@ -418,6 +420,17 @@ function ShootCalendarEntry({
           </p>
           {!isAnalytics && !assignmentLocked && (
             <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {isAdmin && hasPending && (
+                <button
+                  type="button"
+                  onClick={() => onApprovePending?.(shoot, shoot.pending_operators[0])}
+                  className="inline-flex h-4 w-4 items-center justify-center rounded text-emerald-300 hover:bg-emerald-950/40"
+                  title="Approve pending operator"
+                  aria-label="Approve pending operator"
+                >
+                  <Check className="h-3 w-3" />
+                </button>
+              )}
               {quickAssignButton}
             </div>
           )}
@@ -471,6 +484,32 @@ function ShootCalendarEntry({
           </div>
         )}
       </div>
+      {isAdmin && hasPending && !assignmentLocked && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {(shoot.pending_operators || []).map((email) => {
+            const name = getDisplayName(allUsers.find((u) => u.email === email), email);
+            return (
+              <div key={email} className="flex items-center gap-1.5">
+                <span className="text-[11px] text-amber-300 truncate max-w-[9rem]">{name}</span>
+                <button
+                  type="button"
+                  onClick={() => onApprovePending?.(shoot, email)}
+                  className="inline-flex h-6 items-center rounded-md border border-emerald-700/50 bg-emerald-950/40 px-2 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/50"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeclinePending?.(shoot, email)}
+                  className="inline-flex h-6 items-center rounded-md border border-red-700/40 bg-red-950/30 px-2 text-[11px] font-medium text-red-300 hover:bg-red-950/50"
+                >
+                  Decline
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1364,6 +1403,8 @@ export default function Calendar() {
         setQuickViewShoot(s);
         setDayPopup(null);
       }}
+      onApprovePending={handleApprovePending}
+      onDeclinePending={handleDeclinePending}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       queryClient={queryClient}
     />
@@ -1847,6 +1888,8 @@ export default function Calendar() {
         getStandbyCoverageForShoot={getStandbyCoverageForShoot}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
+        onApprovePending={handleApprovePending}
+        onDeclinePending={handleDeclinePending}
         onSelectShoot={(shoot) => {
           setQuickViewShoot(shoot);
           setDayPopup(null);

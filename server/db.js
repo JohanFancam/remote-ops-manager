@@ -119,4 +119,5 @@ export const ENTITY_TYPES = [
   'PushSubscription',
   'CalendarChangeRequest',
   'AppFault',
+  'RigCheckAssignment',
 ];

@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Phone, Check, X, MessageSquare } from 'lucide-r
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { matchRig } from '../utils/rigUtils';
+import { schedulePhaseFlags } from '../utils/schedulePhases';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { removeEmail, findPairedShootForUnassign } from '@/utils/assignmentApproval';
@@ -38,23 +39,23 @@ function formatCountdown(ms) {
   return `${days > 0 ? `${days}d ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function getLivePhase(shoot, phase, now, phaseDates, gameDate, showAttention, showSound) {
+function getLivePhase(shoot, phase, now, phaseDates, gameDate, flags) {
   if (shoot.status === 'completed') {
     return { label: 'Complete', color: 'bg-gray-500/20 text-slate-400 border-gray-500/30' };
   }
   if (phase.game_started || (gameDate && now >= gameDate)) {
     return { label: 'Game Started', color: 'bg-red-950/400/20 text-red-400 border-red-800' };
   }
-  if (showSound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
+  if (flags.sound && (phase.sound_started || (phaseDates.sound && now >= phaseDates.sound))) {
     return { label: 'Sound Check', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
   }
-  if (showAttention && (phase.attention_started || (phaseDates.attention && now >= phaseDates.attention))) {
+  if (flags.attention && (phase.attention_started || (phaseDates.attention && now >= phaseDates.attention))) {
     return { label: 'Attention', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
   }
-  if (phase.pre_shoot_started || (phaseDates.pre_shoot && now >= phaseDates.pre_shoot)) {
+  if (flags.pre_shoot && (phase.pre_shoot_started || (phaseDates.pre_shoot && now >= phaseDates.pre_shoot))) {
     return { label: 'Pre-Shoot', color: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' };
   }
-  if (phase.setup_complete || (phaseDates.setup && now >= phaseDates.setup)) {
+  if (flags.setup && (phase.setup_complete || (phaseDates.setup && now >= phaseDates.setup))) {
     return { label: 'Setup', color: 'bg-blue-600/20 text-blue-400 border-blue-800' };
   }
   return null;
@@ -129,9 +130,12 @@ export default function CountdownCard({
 
   const matchedRig = useMemo(() => matchRig(shoot, rigSettings), [rigSettings, shoot]);
 
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound_enabled === true;
-  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
+  const phaseFlags = schedulePhaseFlags(matchedRig);
+  const showSetup = phaseFlags.setup;
+  const showPreShoot = phaseFlags.pre_shoot;
+  const showAttention = phaseFlags.attention;
+  const showSound = phaseFlags.sound;
+  const showSoundTrigger = phaseFlags.sound_trigger;
 
   const gameDate = getGameDateTime(shoot);
   const phaseDates = getScheduleDateTimes(shoot, matchedRig);
@@ -156,8 +160,8 @@ export default function CountdownCard({
 
     const GRACE_MS = 5 * 60 * 1000;
     const candidates = [
-      { key: 'setup_complete', date: phaseDates.setup },
-      { key: 'pre_shoot_started', date: phaseDates.pre_shoot },
+      showSetup ? { key: 'setup_complete', date: phaseDates.setup } : null,
+      showPreShoot ? { key: 'pre_shoot_started', date: phaseDates.pre_shoot } : null,
       showAttention ? { key: 'attention_started', date: phaseDates.attention } : null,
       showSound ? { key: 'sound_started', date: phaseDates.sound } : null,
     ].filter(Boolean);
@@ -183,6 +187,8 @@ export default function CountdownCard({
     phaseDates.pre_shoot,
     phaseDates.attention,
     phaseDates.sound,
+    showSetup,
+    showPreShoot,
     showAttention,
     showSound,
     effectivePhaseStatus,
@@ -192,8 +198,8 @@ export default function CountdownCard({
     if (shoot.status === 'completed') return { label: 'Complete', date: null };
 
     const candidates = [
-      { label: 'Setup', key: 'setup_complete', date: phaseDates.setup },
-      { label: 'Pre-Shoot', key: 'pre_shoot_started', date: phaseDates.pre_shoot },
+      showSetup ? { label: 'Setup', key: 'setup_complete', date: phaseDates.setup } : null,
+      showPreShoot ? { label: 'Pre-Shoot', key: 'pre_shoot_started', date: phaseDates.pre_shoot } : null,
       showAttention ? { label: 'Attention', key: 'attention_started', date: phaseDates.attention } : null,
       showSound ? { label: 'Sound Check', key: 'sound_started', date: phaseDates.sound } : null,
       { label: 'Game Time', key: 'game_started', date: gameDate },
@@ -218,7 +224,7 @@ export default function CountdownCard({
           : formatCountdown(targetDiff);
 
   const countdownLabel = shoot.status === 'completed' ? 'shoot complete' : (nextPhaseTarget?.label || 'Game Time');
-  const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, showAttention, showSound);
+  const livePhase = getLivePhase(shoot, effectivePhaseStatus, now, phaseDates, gameDate, phaseFlags);
   const rigLabel = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || null;
   const shootTypeLabel = (() => {
     const baseType = shoot.rig_type_override || matchedRig?.rig_type || shoot.rig_type || 'Data';
@@ -235,8 +241,8 @@ export default function CountdownCard({
       '',
       `• Team: ${team}`,
       '',
-      `• Setup: ${timeLabel(phaseDates.setup)}`,
-      `• Pre-Shoot: ${timeLabel(phaseDates.pre_shoot)}`,
+      showSetup ? `• Setup: ${timeLabel(phaseDates.setup)}` : null,
+      showPreShoot ? `• Pre-Shoot: ${timeLabel(phaseDates.pre_shoot)}` : null,
       showAttention ? `• Attention: ${timeLabel(phaseDates.attention)}` : null,
       showSound ? `• Sound Recording: ${timeLabel(phaseDates.sound)}` : null,
       showSoundTrigger ? `• Sound Trigger: ${timeLabel(phaseDates.sound_trigger)}` : null,
@@ -271,16 +277,20 @@ export default function CountdownCard({
 
 
   const quickPhases = [
-    {
-      label: 'Setup',
-      time: phaseDates.setup ? format(phaseDates.setup, 'HH:mm') : null,
-      doneKey: 'setup_complete',
-    },
-    {
-      label: 'Pre-Shoot',
-      time: phaseDates.pre_shoot ? format(phaseDates.pre_shoot, 'HH:mm') : null,
-      doneKey: 'pre_shoot_started',
-    },
+    showSetup
+      ? {
+          label: 'Setup',
+          time: phaseDates.setup ? format(phaseDates.setup, 'HH:mm') : null,
+          doneKey: 'setup_complete',
+        }
+      : null,
+    showPreShoot
+      ? {
+          label: 'Pre-Shoot',
+          time: phaseDates.pre_shoot ? format(phaseDates.pre_shoot, 'HH:mm') : null,
+          doneKey: 'pre_shoot_started',
+        }
+      : null,
     showAttention
       ? {
           label: 'Attention',

@@ -1,0 +1,66 @@
+{
+  "name": "RigCheckAssignment",
+  "type": "object",
+  "properties": {
+    "rig_setting_id": {
+      "type": "string",
+      "description": "RigSetting this check was copied from"
+    },
+    "team": {
+      "type": "string"
+    },
+    "shoot_id": {
+      "type": "string",
+      "description": "Optional shoot this check is for"
+    },
+    "shoot_title": {
+      "type": "string"
+    },
+    "shoot_date": {
+      "type": "string"
+    },
+    "assignee_email": {
+      "type": "string"
+    },
+    "assigned_by": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["manual", "shoot"],
+      "default": "manual"
+    },
+    "items": {
+      "type": "array",
+      "description": "Checklist copied from the rig default checks"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "completed", "cancelled"],
+      "default": "pending"
+    },
+    "completed_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "assignee_email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

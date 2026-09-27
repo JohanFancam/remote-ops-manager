@@ -11,6 +11,7 @@ import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import AssignedRigChecksPanel from '../components/dashboard/AssignedRigChecksPanel';
 
 export default function Dashboard() {
   const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
@@ -121,6 +122,8 @@ export default function Dashboard() {
         </header>
 
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
+
+        <AssignedRigChecksPanel userEmail={user?.email} />
 
         <section className="mb-8 rom-enter-delay">
           <DashboardBanner

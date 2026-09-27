@@ -150,6 +150,8 @@ const ENTITY_NAMES = [
   'Event',
   'ShootNotification',
   'CalendarChangeRequest',
+  'AppFault',
+  'RigCheckAssignment',
 ];
 
 const entities = Object.fromEntries(ENTITY_NAMES.map((name) => [name, createEntityApi(name)]));

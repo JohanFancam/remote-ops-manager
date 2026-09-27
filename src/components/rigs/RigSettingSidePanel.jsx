@@ -37,6 +37,7 @@ const emptyForm = {
   indoor_enabled: true, indoor_hd: { ...DEFAULT_INDOOR_HD }, indoor_wide_enabled: true, indoor_wide: { ...DEFAULT_INDOOR_WIDE },
   attention_enabled: false, attention_hd: { ...DEFAULT_ATTENTION_HD },
   sound_enabled: false, sound_trigger_enabled: false, live_data: false, notes: '',
+  setup_enabled: true, pre_shoot_enabled: true, default_checks: [],
 };
 
 function Toggle({ enabled, onChange, readOnly }) {
@@ -135,7 +136,10 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
 
   const handleSave = () => {
     if (!form.team) return;
-    onSave(form);
+    onSave({
+      ...form,
+      default_checks: (form.default_checks || []).map((item) => String(item || '').trim()).filter(Boolean),
+    });
     setForm(emptyForm);
     onClose();
   };
@@ -246,23 +250,44 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Schedule Offsets</label>
-              <p className="text-[10px] text-slate-500 mb-2">Minutes relative to game time. Negative is before kickoff. These times are used on the dashboard, not the calendar card.</p>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Schedule Times</label>
+              <p className="text-[10px] text-slate-500 mb-2">
+                Switch off times this team does not use. An attention-only team can keep Setup, Attention, and Game, and turn the rest off.
+                Minutes are relative to game time (negative is before kickoff).
+              </p>
+              <div className="space-y-2">
                 {[
-                  { key: 'setup_offset', label: 'Setup' },
-                  { key: 'pre_shoot_offset', label: 'Pre-Shoot' },
-                  { key: 'attention_offset', label: 'Attention' },
-                  { key: 'sound_offset', label: 'Sound Recording' },
-                  { key: 'sound_trigger_offset', label: 'Sound Trigger' },
-                  { key: 'game_duration_minutes', label: 'Game length (min)' },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <label className="text-xs text-slate-500 block mb-1">{label}</label>
-                    <Input type="number" value={form[key] ?? ''} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} disabled={readOnly}
-                      className="bg-slate-800 border-slate-800 text-slate-100 h-8 text-sm disabled:opacity-60" />
-                  </div>
-                ))}
+                  { key: 'setup_offset', label: 'Setup', enableKey: 'setup_enabled' },
+                  { key: 'pre_shoot_offset', label: 'Pre-Shoot', enableKey: 'pre_shoot_enabled' },
+                  { key: 'attention_offset', label: 'Attention', enableKey: 'attention_enabled' },
+                  { key: 'sound_offset', label: 'Sound Recording', enableKey: 'sound_enabled' },
+                  { key: 'sound_trigger_offset', label: 'Sound Trigger', enableKey: 'sound_trigger_enabled' },
+                ].map(({ key, label, enableKey }) => {
+                  const on = enableKey === 'setup_enabled' || enableKey === 'pre_shoot_enabled'
+                    ? form[enableKey] !== false
+                    : !!form[enableKey];
+                  return (
+                    <div key={key} className={`rounded-lg border p-3 ${on ? 'border-slate-700 bg-slate-800/60' : 'border-slate-800 bg-slate-900/40'}`}>
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="text-sm text-slate-100">{label}</span>
+                        <Toggle enabled={on} onChange={() => setForm({ ...form, [enableKey]: !on })} readOnly={readOnly} />
+                      </div>
+                      {on && (
+                        <div>
+                          <label className="text-xs text-slate-500 block mb-1">Minutes from game time</label>
+                          <Input type="number" value={form[key] ?? ''} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })} disabled={readOnly}
+                            className="bg-slate-800 border-slate-800 text-slate-100 h-8 text-sm disabled:opacity-60" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-3">
+                  <span className="text-sm text-slate-100">Game Time</span>
+                  <p className="text-[10px] text-slate-500 mt-0.5 mb-2">Always shown. Set how long the game usually runs.</p>
+                  <Input type="number" value={form.game_duration_minutes ?? ''} onChange={e => setForm({ ...form, game_duration_minutes: Number(e.target.value) })} disabled={readOnly}
+                    className="bg-slate-800 border-slate-800 text-slate-100 h-8 text-sm disabled:opacity-60" />
+                </div>
               </div>
             </div>
 
@@ -362,6 +387,45 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                   </div>
                   <Toggle enabled={form.sound_trigger_enabled} onChange={() => setForm({ ...form, sound_trigger_enabled: !form.sound_trigger_enabled })} readOnly={readOnly} />
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Default Rig Checks</label>
+              <p className="text-[10px] text-slate-500 mb-2">
+                These items are copied when a tester is assigned, and when an operator is assigned to a shoot for this team.
+              </p>
+              <div className="space-y-1.5">
+                {(form.default_checks || []).map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => {
+                        const next = [...(form.default_checks || [])];
+                        next[idx] = e.target.value;
+                        setForm({ ...form, default_checks: next });
+                      }}
+                      disabled={readOnly}
+                      className="bg-slate-800 border-slate-800 text-slate-100 h-8 text-sm disabled:opacity-60"
+                    />
+                    {!readOnly && (
+                      <button type="button" onClick={() => setForm({ ...form, default_checks: form.default_checks.filter((_, i) => i !== idx) })}
+                        className="text-slate-500 hover:text-red-400">
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!readOnly && (
+                  <Button type="button" size="sm" variant="outline"
+                    onClick={() => setForm({ ...form, default_checks: [...(form.default_checks || []), ''] })}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                    Add check item
+                  </Button>
+                )}
+                {readOnly && !(form.default_checks || []).length && (
+                  <p className="text-xs text-slate-500 italic">No default checks set.</p>
+                )}
               </div>
             </div>
 

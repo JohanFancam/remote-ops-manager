@@ -1,3 +1,5 @@
+import { isSchedulePhaseEnabled } from './schedulePhases';
+
 export function timeToMinutes(timeStr) {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
@@ -38,12 +40,13 @@ export function getScheduleDateTimes(shoot, rig) {
     return d;
   };
 
+  const maybe = (phase, date) => (isSchedulePhaseEnabled(rig, phase) ? date : null);
   return {
-    setup: withOffset(rig?.setup_offset ?? shoot?.setup_offset ?? -150),
-    pre_shoot: withOffset(rig?.pre_shoot_offset ?? shoot?.pre_shoot_offset ?? -120),
-    attention: withOffset(rig?.attention_offset ?? shoot?.attention_offset ?? -30),
-    sound: withOffset(rig?.sound_offset ?? shoot?.sound_offset ?? -30),
-    sound_trigger: withOffset(rig?.sound_trigger_offset ?? shoot?.sound_trigger_offset ?? 10),
+    setup: maybe('setup', withOffset(rig?.setup_offset ?? shoot?.setup_offset ?? -150)),
+    pre_shoot: maybe('pre_shoot', withOffset(rig?.pre_shoot_offset ?? shoot?.pre_shoot_offset ?? -120)),
+    attention: maybe('attention', withOffset(rig?.attention_offset ?? shoot?.attention_offset ?? -30)),
+    sound: maybe('sound', withOffset(rig?.sound_offset ?? shoot?.sound_offset ?? -30)),
+    sound_trigger: maybe('sound_trigger', withOffset(rig?.sound_trigger_offset ?? shoot?.sound_trigger_offset ?? 10)),
     game: gameDate,
   };
 }

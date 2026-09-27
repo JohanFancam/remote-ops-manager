@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen,
+  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen, CheckSquare,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import AppSplash from './components/brand/AppSplash';
@@ -64,7 +64,7 @@ function LayoutContent({ children, currentPageName }) {
 
   useEffect(() => {
     if (isLoading || !isAnalytics) return;
-    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings', 'AppFaults']);
+    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings', 'AppFaults', 'RigChecks']);
     const page = currentPageName || 'Dashboard';
     if (!allowed.has(page)) {
       navigate('/', { replace: true });
@@ -90,6 +90,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
+    { name: 'Rig Checks', icon: CheckSquare, page: 'RigChecks' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
@@ -128,6 +129,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'Rig Checks', icon: CheckSquare, page: 'RigChecks' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];

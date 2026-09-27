@@ -38,6 +38,7 @@ import {
   maybeRunScheduledGoogleSync,
 } from './googleCalendar.js';
 import { isAssignmentLocked } from './shootTitleMatch.js';
+import { syncRigChecksForShoot } from './rigChecks.js';
 import {
   getVapidPublicKey,
   savePushSubscription,
@@ -353,6 +354,9 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
     const payload = { ...(req.body || {}) };
+    if (type === 'RigCheckAssignment' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
     if (type === 'AppFault') {
       payload.reported_by_email = req.user?.email || payload.reported_by_email || '';
       payload.reported_by_name = req.user?.full_name || payload.reported_by_name || payload.reported_by_email;
@@ -376,6 +380,11 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
         console.warn('Standby notification failed:', err.message);
       });
     }
+    if (type === 'Shoot') {
+      try { syncRigChecksForShoot(null, created, req.user); } catch (err) {
+        console.warn('Rig check assign failed:', err.message);
+      }
+    }
     res.status(201).json(created);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -398,6 +407,26 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     if (type === 'AppFault' && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
+    if (type === 'RigCheckAssignment') {
+      if (!previous) return res.status(404).json({ error: 'Not found' });
+      const isAdmin = req.user?.role === 'admin';
+      const assignee = String(previous?.assignee_email || '').trim().toLowerCase();
+      const me = String(req.user?.email || '').trim().toLowerCase();
+      if (!isAdmin && assignee !== me) {
+        return res.status(403).json({ error: 'Only the assigned person can update this rig check' });
+      }
+      if (!isAdmin) {
+        const allowed = {
+          items: patch.items,
+          notes: patch.notes,
+          status: patch.status,
+          completed_at: patch.completed_at,
+        };
+        Object.keys(patch).forEach((key) => {
+          if (!(key in allowed)) delete patch[key];
+        });
+      }
+    }
     if (type === 'Shoot' && previous && isAssignmentLocked({ ...previous, ...patch })) {
       delete patch.assigned_operators;
       delete patch.pending_operators;
@@ -411,6 +440,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
       handleShootChange(previous, updated, req.user).catch((err) => {
         console.warn('Shoot notification failed:', err.message);
       });
+      try { syncRigChecksForShoot(previous, updated, req.user); } catch (err) {
+        console.warn('Rig check assign failed:', err.message);
+      }
     }
     if (type === 'OperatorAvailability' && previous) {
       handleAvailabilityChange(previous, updated, req.user, 'update').catch((err) => {
@@ -432,7 +464,7 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
 app.delete('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
-    if (type === 'AppFault' && req.user?.role !== 'admin') {
+    if ((type === 'AppFault' || type === 'RigCheckAssignment') && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
     const previous = getEntity(type, id);

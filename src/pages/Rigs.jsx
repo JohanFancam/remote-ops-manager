@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
+import RigCheckAssignPanel from '../components/rigs/RigCheckAssignPanel';
 import { LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 
 export default function Rigs() {
-  const { isAdmin } = useApp();
+  const { isAdmin, user } = useApp();
   const queryClient = useQueryClient();
   const [sidePanelRig, setSidePanelRig] = useState(null); // rig object to edit, or {} for new, or null for closed
   const [viewOnly, setViewOnly] = useState(false); // true when viewing (not editing)
@@ -21,6 +23,16 @@ export default function Rigs() {
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
+  });
+  const { data: users = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: isAdmin,
+  });
+  const { data: shoots = [] } = useQuery({
+    queryKey: ['shoots'],
+    queryFn: () => base44.entities.Shoot.list('-date', 400),
+    enabled: isAdmin,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['rigSettings'] });
@@ -83,6 +95,15 @@ export default function Rigs() {
           )}
         </div>
 
+        {isAdmin && (
+          <RigCheckAssignPanel
+            rigSettings={rigSettings}
+            users={users}
+            shoots={shoots}
+            currentEmail={user?.email}
+          />
+        )}
+
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -127,6 +148,20 @@ export default function Rigs() {
                   {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 text-xs">Attention</Badge>}
                   {rig.sound_enabled && <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 text-xs">Sound</Badge>}
                   {rig.sound_trigger_enabled && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">Sound Trigger</Badge>}
+                  {(() => {
+                    const phases = schedulePhaseFlags(rig);
+                    return (
+                      <>
+                        {phases.setup && <Badge className="bg-slate-700/60 text-slate-300 border-slate-600 text-xs">Setup time</Badge>}
+                        {phases.pre_shoot && <Badge className="bg-slate-700/60 text-slate-300 border-slate-600 text-xs">Pre-shoot time</Badge>}
+                        {(rig.default_checks || []).filter(Boolean).length > 0 && (
+                          <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-xs">
+                            {(rig.default_checks || []).filter(Boolean).length} checks
+                          </Badge>
+                        )}
+                      </>
+                    );
+                  })()}
                   {isAdmin && (
                     <button
                       type="button"

@@ -4,8 +4,8 @@ import { Copy, Check, Wrench, Camera, AlertTriangle, Volume2, Flag } from 'lucid
 import ShootCompleteModal from './ShootCompleteModal';
 
 const PHASES = [
-  { key: 'setup_complete', label: 'Setup Complete', Icon: Wrench, requiresRig: null },
-  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', Icon: Camera, requiresRig: null },
+  { key: 'setup_complete', label: 'Setup Complete', Icon: Wrench, requiresRig: 'setup' },
+  { key: 'pre_shoot_started', label: 'Pre-Shoot Started', Icon: Camera, requiresRig: 'pre_shoot' },
   { key: 'attention_started', label: 'Attention Started', Icon: AlertTriangle, requiresRig: 'attention_camera' },
   { key: 'sound_started', label: 'Sound Started', Icon: Volume2, requiresRig: 'sound' },
   { key: 'shoot_complete', label: 'Shoot Complete', Icon: Flag, requiresRig: null, isComplete: true },
@@ -57,8 +57,10 @@ export default function ShootPhaseButtons({ shoot, user, rigSetting, slackMessag
 
   const visiblePhases = PHASES.filter(p => {
     if (!p.requiresRig) return true;
+    if (p.requiresRig === 'setup') return rigSetting?.setup_enabled !== false;
+    if (p.requiresRig === 'pre_shoot') return rigSetting?.pre_shoot_enabled !== false;
     if (p.requiresRig === 'attention_camera') return rigSetting?.attention_enabled === true;
-    if (p.requiresRig === 'sound') return rigSetting?.sound_enabled === true;
+    if (p.requiresRig === 'sound') return rigSetting?.sound_enabled === true || rigSetting?.sound === true;
     return true;
   });
 

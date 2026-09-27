@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { getSchedule } from '@/components/utils/scheduleUtils';
+import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
@@ -112,16 +113,14 @@ export default function ShootQuickView({
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
   const assignmentLocked = isAssignmentLocked(shoot);
   const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
-  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
+  const phaseFlags = schedulePhaseFlags(matchedRig);
 
   const scheduleRows = schedule ? [
-    { label: 'Setup', time: schedule.setup },
-    { label: 'Pre-Shoot', time: schedule.pre_shoot },
-    showAttention ? { label: 'Attention', time: schedule.attention } : null,
-    showSound ? { label: 'Sound Recording', time: schedule.sound } : null,
-    showSoundTrigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
+    phaseFlags.setup ? { label: 'Setup', time: schedule.setup } : null,
+    phaseFlags.pre_shoot ? { label: 'Pre-Shoot', time: schedule.pre_shoot } : null,
+    phaseFlags.attention ? { label: 'Attention', time: schedule.attention } : null,
+    phaseFlags.sound ? { label: 'Sound Recording', time: schedule.sound } : null,
+    phaseFlags.sound_trigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
     { label: 'Game', time: schedule.game },
   ].filter(Boolean) : [];
 
