@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Minus, X, Check } from 'lucide-react';
+import { Plus, Minus, X, Check, Wrench } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
@@ -26,6 +26,8 @@ export default function DayEventsPopup({
   onSelectShoot,
   onApprovePending,
   onDeclinePending,
+  onRigCheckToggle,
+  canCheckShoot,
   getStandbyCoverageForShoot,
 }) {
   if (!open || !day) return null;
@@ -143,6 +145,22 @@ export default function DayEventsPopup({
                           ) : null}
                         </span>
                       </button>
+                      {canCheckShoot?.(shoot) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRigCheckToggle?.(shoot);
+                          }}
+                          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                            shoot.rig_check_completed ? 'text-emerald-300' : 'text-amber-300 hover:bg-amber-950/40'
+                          }`}
+                          title={shoot.rig_check_completed ? 'Rig checked' : 'Quick rig check'}
+                          aria-label={shoot.rig_check_completed ? 'Rig checked' : 'Quick rig check'}
+                        >
+                          <Wrench className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {isAdmin && (shoot.pending_operators || []).length > 0 && !assignmentLocked && (
                         <>
                         <button

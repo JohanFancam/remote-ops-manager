@@ -286,6 +286,21 @@ export const api = {
         body: JSON.stringify({ text: text || '' }),
       });
     },
+    rigCheckStatus() {
+      return request('/api/slack/rig-check');
+    },
+    saveRigCheckSettings({ channelId, teamId, openUrl, delivery } = {}) {
+      return request('/api/slack/rig-check', {
+        method: 'PATCH',
+        body: JSON.stringify({ channelId, teamId, openUrl, delivery }),
+      });
+    },
+    postRigCheck({ text } = {}) {
+      return request('/api/slack/rig-check', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
+    },
   },
   dataImport: {
     entities({ files, confirm = false, entityType = '' }) {

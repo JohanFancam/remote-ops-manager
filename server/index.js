@@ -64,6 +64,12 @@ import {
   applySlackGames,
   todaySastYmd,
 } from './slackCalendar.js';
+import {
+  getRigCheckSlackSettings,
+  saveRigCheckSlackSettings,
+  canSendRigCheckMessage,
+  postRigCheckToSlack,
+} from './slackRigCheck.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -706,6 +712,33 @@ app.post('/api/slack/preview', authMiddleware, requireAdminOrAnalytics, async (r
     res.json({ ok: true, text, ...result });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/slack/rig-check', authMiddleware, (req, res) => {
+  res.json(getRigCheckSlackSettings());
+});
+
+app.patch('/api/slack/rig-check', authMiddleware, requireAdmin, (req, res) => {
+  const settings = saveRigCheckSlackSettings({
+    channelId: req.body?.channelId,
+    teamId: req.body?.teamId,
+    openUrl: req.body?.openUrl,
+    delivery: req.body?.delivery,
+  });
+  res.json({ ok: true, ...settings });
+});
+
+app.post('/api/slack/rig-check', authMiddleware, async (req, res) => {
+  try {
+    if (!canSendRigCheckMessage(req.user)) {
+      return res.status(403).json({ error: 'You cannot send rig-check messages' });
+    }
+    const text = String(req.body?.text || '').trim();
+    const result = await postRigCheckToSlack(text);
+    res.json({ ok: true, ts: result.ts || null, channel: result.channel || null });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Slack post failed' });
   }
 });
 

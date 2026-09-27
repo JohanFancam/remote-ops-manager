@@ -7,6 +7,8 @@ import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import SlackGamesSettings from '../components/settings/SlackGamesSettings';
+import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
+import RigCheckSlackSettings from '../components/settings/RigCheckSlackSettings';
 import AnalyticsGoogleSync from '../components/settings/AnalyticsGoogleSync';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
@@ -522,6 +524,17 @@ export default function Settings() {
                 </Button>
               </CardContent>
             </Card>
+          </SettingsCategory>
+        )}
+
+        {isAdmin && (
+          <SettingsCategory
+            title="Rig checks"
+            description="Who can tick calendar rig checks, and which Slack group gets the ready message"
+            icon={MessageSquare}
+          >
+            <RigCheckUsersSettings appSettings={appSettings} allUsers={allUsers} />
+            <RigCheckSlackSettings />
           </SettingsCategory>
         )}
 

@@ -27,6 +27,7 @@ import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
 import { submitCalendarChangeRequest } from '../utils/calendarChangeRequests';
+import { canPerformCalendarRigCheck, copyButtonLabel, openSlackHref, parseRigCheckUsers } from '../utils/slackRigCheck';
 import {
   SHOOT_STATUS_DOTS,
   normalizeShootStatus,
@@ -169,6 +170,8 @@ function ShootCalendarEntry({
   onQuickView,
   onApprovePending,
   onDeclinePending,
+  onRigCheckToggle,
+  canCheckRig = false,
   getStandbyCoverageForShoot,
   queryClient,
 }) {
@@ -418,22 +421,37 @@ function ShootCalendarEntry({
               <span className="ml-1 text-[9px] uppercase text-amber-300">Updated</span>
             )}
           </p>
-          {!isAnalytics && !assignmentLocked && (
-            <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              {isAdmin && hasPending && (
-                <button
-                  type="button"
-                  onClick={() => onApprovePending?.(shoot, shoot.pending_operators[0])}
-                  className="inline-flex h-4 w-4 items-center justify-center rounded text-emerald-300 hover:bg-emerald-950/40"
-                  title="Approve pending operator"
-                  aria-label="Approve pending operator"
-                >
-                  <Check className="h-3 w-3" />
-                </button>
-              )}
-              {quickAssignButton}
-            </div>
-          )}
+          <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {canCheckRig && (
+              <button
+                type="button"
+                onClick={() => onRigCheckToggle?.(shoot)}
+                className={`inline-flex h-4 w-4 items-center justify-center rounded ${
+                  shoot.rig_check_completed ? 'text-emerald-300 opacity-100' : 'text-amber-300 opacity-0 group-hover:opacity-100 focus:opacity-100'
+                }`}
+                title={shoot.rig_check_completed ? 'Rig checked — open message' : 'Quick rig check'}
+                aria-label={shoot.rig_check_completed ? 'Rig checked' : 'Quick rig check'}
+              >
+                <Wrench className="h-3 w-3" />
+              </button>
+            )}
+            {!isAnalytics && !assignmentLocked && (
+              <>
+                {isAdmin && hasPending && (
+                  <button
+                    type="button"
+                    onClick={() => onApprovePending?.(shoot, shoot.pending_operators[0])}
+                    className="inline-flex h-4 w-4 items-center justify-center rounded text-emerald-300 hover:bg-emerald-950/40"
+                    title="Approve pending operator"
+                    aria-label="Approve pending operator"
+                  >
+                    <Check className="h-3 w-3" />
+                  </button>
+                )}
+                {quickAssignButton}
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -478,11 +496,24 @@ function ShootCalendarEntry({
             {assignmentLabel}
           </p>
         </div>
-        {!isAnalytics && !assignmentLocked && (
-          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {quickAssignButton}
-          </div>
-        )}
+        <div className="flex-shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {canCheckRig && (
+            <button
+              type="button"
+              onClick={() => onRigCheckToggle?.(shoot)}
+              className={`inline-flex h-7 items-center gap-1 rounded-md border px-1.5 text-[11px] font-medium ${
+                shoot.rig_check_completed
+                  ? 'border-emerald-700/50 bg-emerald-950/40 text-emerald-300'
+                  : 'border-amber-600/40 bg-amber-950/30 text-amber-300 hover:bg-amber-900/40'
+              }`}
+              title={shoot.rig_check_completed ? 'Rig checked — open message' : 'Quick rig check'}
+            >
+              <Wrench className="h-3.5 w-3.5" />
+              {shoot.rig_check_completed ? 'Checked' : 'Rig check'}
+            </button>
+          )}
+          {!isAnalytics && !assignmentLocked && quickAssignButton}
+        </div>
       </div>
       {isAdmin && hasPending && !assignmentLocked && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -528,6 +559,8 @@ export default function Calendar() {
   const [selectedShoot, setSelectedShoot] = useState(null);
   const [rigCheckMessageShootIds, setRigCheckMessageShootIds] = useState([]);
   const [rigCheckCopied, setRigCheckCopied] = useState(false);
+  const [rigCheckPosted, setRigCheckPosted] = useState(false);
+  const [rigCheckSending, setRigCheckSending] = useState(false);
   const [showRigCheckPanel, setShowRigCheckPanel] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, shoot }
   const [assignOperatorsModal, setAssignOperatorsModal] = useState(null); // shoot
@@ -537,6 +570,7 @@ export default function Calendar() {
   const [googleSyncing, setGoogleSyncing] = useState(false);
   const [slackSyncing, setSlackSyncing] = useState(false);
   const canSyncCalendar = isAdmin || isAnalytics;
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -554,6 +588,12 @@ export default function Calendar() {
     queryKey: ['slackStatus'],
     queryFn: () => base44.slack.status(),
     enabled: !!canSyncCalendar,
+  });
+
+  const { data: slackRigCheckStatus } = useQuery({
+    queryKey: ['slackRigCheckStatus'],
+    queryFn: () => base44.slack.rigCheckStatus(),
+    enabled: !!user,
   });
 
   const handleGoogleSync = async () => {
@@ -859,15 +899,37 @@ export default function Calendar() {
         return '• ' + teamName + ' - ' + label;
       });
 
-    return 'Shoots ready for today :\n\n' + items.join('\n');
+    const template = appSettings.find((s) => s.key === 'rigscheck_template')?.value
+      || 'Shoots ready for today :\n\n{list}';
+    return template.includes('{list}')
+      ? template.replace('{list}', items.join('\n'))
+      : `${template}\n\n${items.join('\n')}`;
   };
 
+  const canUseRigCheckTools = isAdmin || isStandby || parseRigCheckUsers(appSettings).some(
+    (email) => normalizeEmail(email) === normalizeEmail(user?.email)
+  );
+
+  const canCheckShoot = (shoot) => canPerformCalendarRigCheck({
+    shoot,
+    user,
+    isAdmin,
+    isStandby,
+    appSettings,
+    coverage: getStandbyCoverageForShoot(shoot),
+    todayStr,
+  });
+
   const rigCheckMessageShoots = useMemo(() => {
-    return rigCheckMessageShootIds
-      .map(id => shoots.find(s => s.id === id))
-      .filter(Boolean)
-      .filter(s => !s.rig_check_archived);
-  }, [rigCheckMessageShootIds, shoots]);
+    const fromSession = rigCheckMessageShootIds
+      .map((id) => shoots.find((s) => s.id === id))
+      .filter(Boolean);
+    const fromSaved = shoots.filter((s) => (
+      s.rig_check_completed && !s.rig_check_archived && (s.date || '') >= todayStr
+    ));
+    return Array.from(new Map([...fromSaved, ...fromSession].map((s) => [s.id, s])).values())
+      .filter((s) => !s.rig_check_archived);
+  }, [rigCheckMessageShootIds, shoots, todayStr]);
 
   const rigCheckSlackMessage = useMemo(
     () => buildRigCheckSlackMessage(rigCheckMessageShoots),
@@ -876,9 +938,31 @@ export default function Calendar() {
 
   const handleCopyRigCheckMessage = async () => {
     if (!rigCheckSlackMessage) return;
-    await navigator.clipboard.writeText(rigCheckSlackMessage);
+    try {
+      await navigator.clipboard.writeText(rigCheckSlackMessage);
+    } catch {
+      // clipboard can be blocked
+    }
     setRigCheckCopied(true);
-    // don't auto-reset — stays green until archived
+    const delivery = slackRigCheckStatus?.delivery || 'copy_open';
+    const canPost = !!slackRigCheckStatus?.canPost;
+    let posted = false;
+    if ((delivery === 'post' || delivery === 'both') && canPost) {
+      setRigCheckSending(true);
+      try {
+        await base44.slack.postRigCheck({ text: rigCheckSlackMessage });
+        posted = true;
+        setRigCheckPosted(true);
+        toast.success('Sent to the Slack group');
+      } catch (err) {
+        toast.error(err.message || 'Could not post to Slack — message is on the clipboard');
+      } finally {
+        setRigCheckSending(false);
+      }
+    }
+    if (delivery === 'copy_open' || delivery === 'both' || !posted) {
+      openSlackHref(slackRigCheckStatus?.openHref || 'slack://open');
+    }
   };
 
   const handleArchiveRigCheckMessageShoots = async () => {
@@ -896,12 +980,18 @@ export default function Calendar() {
 
     setRigCheckMessageShootIds(prev => prev.filter(id => !idsToArchive.includes(id)));
     setRigCheckCopied(false);
+    setRigCheckPosted(false);
     setShowRigCheckPanel(false);
     refresh();
   };
 
   const handleRigCheckToggle = async (shoot, standbyCoverage) => {
     if (!shoot?.id || !user?.email) return;
+    if (shoot.rig_check_completed) {
+      setRigCheckMessageShootIds((prev) => [...new Set([...prev, shoot.id])]);
+      setShowRigCheckPanel(true);
+      return;
+    }
     const nextChecked = !shoot.rig_check_completed;
     const nowIso = new Date().toISOString();
 
@@ -983,7 +1073,6 @@ export default function Calendar() {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['shoots'] });
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
 
   const getShootsForDay = (day) => {
@@ -1405,6 +1494,8 @@ export default function Calendar() {
       }}
       onApprovePending={handleApprovePending}
       onDeclinePending={handleDeclinePending}
+      canCheckRig={canCheckShoot(shoot)}
+      onRigCheckToggle={() => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
       getStandbyCoverageForShoot={getStandbyCoverageForShoot}
       queryClient={queryClient}
     />
@@ -1755,6 +1846,25 @@ export default function Calendar() {
                 )}
               </>
             )}
+            {canUseRigCheckTools && (
+              <Button
+                onClick={() => setShowRigCheckPanel(true)}
+                variant="outline"
+                className={`border-slate-700 text-slate-200 hover:bg-slate-800 ${
+                  rigCheckMessageShoots.length ? 'border-amber-600/50 text-amber-200' : ''
+                }`}
+                size="sm"
+                title="Open the rig-check Slack message"
+              >
+                <Wrench className="h-4 w-4 mr-1" />
+                Rig check message
+                {rigCheckMessageShoots.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 text-[10px] text-amber-300">
+                    {rigCheckMessageShoots.length}
+                  </span>
+                )}
+              </Button>
+            )}
             {isAdmin && (
               <>
                 <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
@@ -1827,25 +1937,43 @@ export default function Calendar() {
       </div>
 
       {/* Rig Check Slack Message — Sheet panel */}
-      <Sheet open={showRigCheckPanel && rigCheckMessageShoots.length > 0} onOpenChange={setShowRigCheckPanel}>
+      <Sheet open={showRigCheckPanel} onOpenChange={setShowRigCheckPanel}>
         <SheetContent side="right" className="w-full bg-slate-900 border-l border-slate-800 p-0 [&_button[type='button']]:text-slate-400 overflow-y-auto transition-all duration-300">
           <SheetHeader className="px-4 py-3 border-b border-slate-800 flex-shrink-0">
             <SheetTitle className="flex items-center gap-2 text-slate-100">
-              <Wrench className={`h-4 w-4 flex-shrink-0 ${rigCheckCopied ? 'text-emerald-400' : 'text-amber-400'}`} />
+              <Wrench className={`h-4 w-4 flex-shrink-0 ${rigCheckCopied || rigCheckPosted ? 'text-emerald-400' : 'text-amber-400'}`} />
               Rig Check Message
               <span className="text-xs bg-yellow-500/20 text-amber-400 border border-yellow-500/30 rounded-full px-1.5 py-0.5">{rigCheckMessageShoots.length}</span>
             </SheetTitle>
           </SheetHeader>
           <div className="flex gap-2 px-4 py-3 border-b border-slate-800 flex-shrink-0">
-            <Button size="sm" onClick={handleCopyRigCheckMessage} className={`flex-1 text-xs h-8 ${rigCheckCopied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-500'}`}>
-              {rigCheckCopied ? <><Check className="h-3.5 w-3.5 mr-1" />Copied!</> : <><Copy className="h-3.5 w-3.5 mr-1" />Copy to Clipboard</>}
+            <Button
+              size="sm"
+              onClick={handleCopyRigCheckMessage}
+              disabled={!rigCheckSlackMessage || rigCheckSending}
+              className={`flex-1 text-xs h-8 ${rigCheckCopied || rigCheckPosted ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-500'}`}
+            >
+              {rigCheckSending
+                ? 'Sending…'
+                : <><Copy className="h-3.5 w-3.5 mr-1" />{copyButtonLabel({
+                  delivery: slackRigCheckStatus?.delivery,
+                  canPost: slackRigCheckStatus?.canPost,
+                  copied: rigCheckCopied,
+                  posted: rigCheckPosted,
+                })}</>}
             </Button>
-            <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} className="border-slate-800 text-slate-400 hover:bg-slate-800 text-xs h-8">
+            <Button size="sm" variant="outline" onClick={handleArchiveRigCheckMessageShoots} disabled={rigCheckMessageShoots.length === 0} className="border-slate-800 text-slate-400 hover:bg-slate-800 text-xs h-8">
               Archive All
             </Button>
           </div>
           <div className="p-4 space-y-4">
+            {rigCheckSlackMessage ? (
             <pre className="whitespace-pre-wrap rounded-lg bg-slate-800 border border-slate-800 p-3 text-xs text-gray-200 font-sans">{rigCheckSlackMessage}</pre>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Tick the wrench on a calendar entry to add it here. Then copy the message — Slack will open, or the bot will post to the group set in Admin Settings → Rig checks.
+              </p>
+            )}
             <div className="space-y-1.5">
               <p className="text-xs text-slate-500 uppercase tracking-wider">Checked Shoots</p>
               {rigCheckMessageShoots.map((shoot) => {
@@ -1890,6 +2018,8 @@ export default function Calendar() {
         onToggleAssign={handleContextMenuAssignSelf}
         onApprovePending={handleApprovePending}
         onDeclinePending={handleDeclinePending}
+        canCheckShoot={canCheckShoot}
+        onRigCheckToggle={(shoot) => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
         onSelectShoot={(shoot) => {
           setQuickViewShoot(shoot);
           setDayPopup(null);
@@ -1899,13 +2029,7 @@ export default function Calendar() {
       {quickViewShoot && (() => {
         const liveQuick = shoots.find((s) => s.id === quickViewShoot.id) || quickViewShoot;
         const coverage = getStandbyCoverageForShoot(liveQuick);
-        const isMyCoverage = coverage?.admin_email === user?.email;
-        const rigCheckUsersRaw = appSettings.find((s) => s.key === 'rig_check_users')?.value;
-        const rigCheckUsers = rigCheckUsersRaw ? JSON.parse(rigCheckUsersRaw) : [];
-        const isPermittedRigChecker = user?.email && rigCheckUsers.includes(user.email);
-        const canCheckRig = !((liveQuick.date || '') < todayStr) && (
-          (!!coverage && (isAdmin || isStandby) && isMyCoverage) || isPermittedRigChecker
-        );
+        const canCheckRig = canCheckShoot(liveQuick);
         return (
           <ShootQuickView
             shoot={liveQuick}
@@ -1946,6 +2070,8 @@ export default function Calendar() {
           onAssignSelf={handleContextMenuAssignSelf}
           onUnassignSelf={handleContextMenuUnassignSelf}
           onViewDetails={(shoot) => { setSelectedShoot(shoot); setSelectedDate(new Date(shoot.date + 'T12:00:00')); setContextMenu(null); }}
+          canCheckRig={canCheckShoot(contextMenu.shoot)}
+          onRigCheckToggle={(shoot) => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
           onClose={() => setContextMenu(null)}
         />
       )}

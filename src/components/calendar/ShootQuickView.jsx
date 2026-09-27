@@ -286,7 +286,7 @@ export default function ShootQuickView({
                   }`}
                 >
                   <Wrench className="h-3.5 w-3.5" />
-                  {shoot.rig_check_completed ? 'Rig checked' : 'Mark Rig Checked'}
+                  {shoot.rig_check_completed ? 'Open message' : 'Quick rig check'}
                 </button>
               )}
               {(isAdmin || isAnalytics) && (
