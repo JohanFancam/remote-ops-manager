@@ -194,7 +194,11 @@ export default function Dashboard() {
           </div>
         )}
 
-        <AssignedRigChecksPanel userEmail={user?.email} alwaysShow={isAdmin || isStandby} />
+        <AssignedRigChecksPanel
+          userEmail={user?.email}
+          alwaysShow={isAdmin || isStandby}
+          showAll={isAdmin}
+        />
       </div>
     </div>
   );

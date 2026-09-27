@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { assignmentProgress, isRigCheckAssignee } from '@/utils/rigChecks';
+import { getDisplayName } from '@/components/utils/nameUtils';
 import RigCheckTile from '@/components/rigs/RigCheckTile';
 
 const PAGE_SIZE = 4;
 
-export default function AssignedRigChecksPanel({ userEmail, alwaysShow = false }) {
+export default function AssignedRigChecksPanel({ userEmail, alwaysShow = false, showAll = false }) {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState('');
   const [expandedId, setExpandedId] = useState('');
@@ -20,16 +21,26 @@ export default function AssignedRigChecksPanel({ userEmail, alwaysShow = false }
     enabled: !!userEmail,
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: !!showAll,
+  });
+
   const mine = useMemo(() => {
     return assignments
-      .filter((row) => isRigCheckAssignee(row, userEmail) && row.status !== 'cancelled')
+      .filter((row) => {
+        if (row.status === 'cancelled') return false;
+        if (showAll) return true;
+        return isRigCheckAssignee(row, userEmail);
+      })
       .sort((a, b) => {
         const aOpen = a.status === 'completed' ? 1 : 0;
         const bOpen = b.status === 'completed' ? 1 : 0;
         if (aOpen !== bOpen) return aOpen - bOpen;
         return String(a.due_date || a.shoot_date || '').localeCompare(String(b.due_date || b.shoot_date || ''));
       });
-  }, [assignments, userEmail]);
+  }, [assignments, userEmail, showAll]);
 
   const persist = async (row, patch) => {
     setSavingId(row.id);
@@ -84,10 +95,13 @@ export default function AssignedRigChecksPanel({ userEmail, alwaysShow = false }
                 <RigCheckTile
                   key={row.id}
                   row={row}
+                  assigneeName={showAll
+                    ? getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)
+                    : ''}
                   todayStr={todayStr}
                   expanded={expandedId === row.id}
                   onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
-                  editable
+                  editable={isRigCheckAssignee(row, userEmail)}
                   saving={savingId === row.id}
                   onToggleItem={toggleItem}
                   onNotesBlur={(item, notes) => persist(item, { notes })}
