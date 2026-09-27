@@ -9,6 +9,7 @@ import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } f
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import CalendarRigTestActions from '@/components/calendar/CalendarRigTestActions';
 
 function findMatchingRig(shoot, rigSettings = []) {
   return matchRig(shoot, rigSettings);
@@ -242,6 +243,14 @@ export default function ShootQuickView({
                     : 'Unassigned'}
             </p>
           </div>
+
+          <CalendarRigTestActions
+            shoot={shoot}
+            user={user}
+            isAdmin={isAdmin}
+            allUsers={allUsers}
+            rigSettings={rigSettings}
+          />
 
           {isAdmin && !assignmentLocked && pendingEmails.length > 0 && (
             <div className="rounded-lg border border-amber-800/40 bg-amber-950/25 px-3 py-2 space-y-2">

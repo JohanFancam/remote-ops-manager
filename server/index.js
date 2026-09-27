@@ -51,6 +51,7 @@ import {
   handleStandbyChange,
   notifyAppFault,
   runReminderPass,
+  createNotifications,
 } from './notifications.js';
 import {
   importEntityRows,
@@ -362,8 +363,13 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
     const type = req.params.type;
     const payload = { ...(req.body || {}) };
     if (type === 'RigCheckAssignment') {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin only' });
+      const isAdmin = req.user?.role === 'admin';
+      const isStandby = req.user?.role === 'standby';
+      if (!isAdmin && !isStandby) {
+        return res.status(403).json({ error: 'Admin or operator/standby only' });
+      }
+      if (!isAdmin) {
+        payload.assignee_email = req.user?.email || payload.assignee_email;
       }
       const email = String(payload.assignee_email || '').trim().toLowerCase();
       const assignee = email ? findUserByEmail(email) : null;
@@ -387,6 +393,22 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
       payload.created_at = payload.created_at || nowIso();
     }
     const created = createEntity(type, payload, req.user);
+    if (type === 'RigCheckAssignment') {
+      const shoot = created.shoot_id ? getEntity('Shoot', created.shoot_id) : null;
+      const due = created.due_date || created.shoot_date || shoot?.date || '';
+      createNotifications({
+        notificationKey: `rig_check:${created.id}`,
+        type: 'rig_check',
+        title: 'Rig test assigned',
+        message: `${created.team || 'Rig'} · ${created.shoot_title || shoot?.title || 'shoot'}${due ? ` · due ${due}` : ''}`,
+        shoot,
+        targetEmails: [created.assignee_email],
+        url: '/',
+        createdByName: req.user?.full_name || req.user?.email || '',
+      }).catch((err) => {
+        console.warn('Rig check notification failed:', err.message);
+      });
+    }
     if (type === 'AppFault') {
       notifyAppFault(created, req.user).catch((err) => {
         console.warn('App fault notification failed:', err.message);

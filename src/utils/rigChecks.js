@@ -30,11 +30,22 @@ export function isRigCheckOverdue(assignment, todayStr) {
   return assignment.due_date < todayStr;
 }
 
+export function canAssignRigTests(user) {
+  return RIG_CHECK_ELIGIBLE_ROLES.includes(user?.role);
+}
+
 export function eligibleRigCheckUsers(users = []) {
   return (users || []).filter((user) => {
     if (!user?.email || user.inactive) return false;
     return RIG_CHECK_ELIGIBLE_ROLES.includes(user.role);
   });
+}
+
+export function openAssignmentsForShoot(assignments = [], shootId) {
+  if (!shootId) return [];
+  return (assignments || []).filter((row) => (
+    row.shoot_id === shootId && row.status !== 'completed' && row.status !== 'cancelled'
+  ));
 }
 
 export function upcomingShootsForTesting(shoots = [], todayStr) {

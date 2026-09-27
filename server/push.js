@@ -100,6 +100,7 @@ export async function sendPushToEmails(emails, payload) {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: sub.keys || {} },
         body,
+        { TTL: 60 * 60 * 24, urgency: 'high' },
       );
       sent += 1;
     } catch (err) {

@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { CheckSquare, StickyNote } from 'lucide-react';
 import { format } from 'date-fns';
-import { assignmentProgress, isRigCheckAssignee, isRigCheckOverdue } from '@/utils/rigChecks';
-import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { assignmentProgress, isRigCheckAssignee } from '@/utils/rigChecks';
+import RigCheckTile from '@/components/rigs/RigCheckTile';
 
-export default function AssignedRigChecksPanel({ userEmail }) {
+const PAGE_SIZE = 4;
+
+export default function AssignedRigChecksPanel({ userEmail, alwaysShow = false }) {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState('');
+  const [expandedId, setExpandedId] = useState('');
+  const [page, setPage] = useState(0);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: assignments = [] } = useQuery({
@@ -17,11 +20,16 @@ export default function AssignedRigChecksPanel({ userEmail }) {
     enabled: !!userEmail,
   });
 
-  const mine = assignments.filter((row) => (
-    isRigCheckAssignee(row, userEmail) && row.status !== 'cancelled'
-  ));
-  const open = mine.filter((row) => row.status !== 'completed');
-  const recentDone = mine.filter((row) => row.status === 'completed').slice(0, 4);
+  const mine = useMemo(() => {
+    return assignments
+      .filter((row) => isRigCheckAssignee(row, userEmail) && row.status !== 'cancelled')
+      .sort((a, b) => {
+        const aOpen = a.status === 'completed' ? 1 : 0;
+        const bOpen = b.status === 'completed' ? 1 : 0;
+        if (aOpen !== bOpen) return aOpen - bOpen;
+        return String(a.due_date || a.shoot_date || '').localeCompare(String(b.due_date || b.shoot_date || ''));
+      });
+  }, [assignments, userEmail]);
 
   const persist = async (row, patch) => {
     setSavingId(row.id);
@@ -49,85 +57,67 @@ export default function AssignedRigChecksPanel({ userEmail }) {
     });
   };
 
-  if (!userEmail || (open.length === 0 && recentDone.length === 0)) return null;
+  if (!userEmail || (!alwaysShow && mine.length === 0)) return null;
+
+  const totalPages = Math.max(1, Math.ceil(mine.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const visible = mine.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <section className="mb-8">
-      <div className="mb-3">
-        <h2 className="rom-section-title">Assigned Rig Checks</h2>
-        <p className="text-xs text-slate-500 mt-0.5">Tick each item once the test is done. Notes stay on the admin/data graph.</p>
-      </div>
-      <div className="rom-panel space-y-3 p-4">
-        {open.length === 0 && (
-          <p className="text-sm text-slate-500">No open rig checks assigned to you.</p>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="rom-section-title">Rig Check Coverage</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Expand a tile for the checklist and notes. Four show at a time.</p>
+        </div>
+        {mine.length > 0 && (
+          <p className="hidden text-xs text-slate-500 sm:block">Showing max 4</p>
         )}
-        {open.map((row) => {
-          const progress = assignmentProgress(row);
-          const overdue = isRigCheckOverdue(row, todayStr);
-          return (
-            <div key={row.id} className={`rounded-xl border bg-slate-900/70 p-4 ${overdue ? 'border-red-700/70' : 'border-slate-800'}`}>
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-100">{row.team || 'Rig check'}</p>
-                  <p className="text-xs text-slate-500">
-                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Rig test'}
-                    {row.shoot_date ? ` · ${row.shoot_date}` : ''}
-                  </p>
-                  {row.due_date && (
-                    <p className={`text-xs mt-0.5 ${overdue ? 'text-red-400' : 'text-orange-300'}`}>
-                      {overdue ? `Overdue · due ${row.due_date}` : `Due ${row.due_date}`}
-                    </p>
-                  )}
-                </div>
-                <span className="text-xs text-orange-300">
-                  {progress.done}/{progress.total || (row.items || []).length || 0}
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                {(row.items || []).map((item, index) => (
-                  <label key={`${row.id}-${index}`} className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!item.checked}
-                      disabled={savingId === row.id}
-                      onChange={() => toggleItem(row, index)}
-                      className="mt-0.5 accent-orange-500"
-                    />
-                    <span className={`text-sm ${item.checked ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                      {item.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="mt-3">
-                <label className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-                  <StickyNote className="h-3 w-3" /> Notes
-                </label>
-                <textarea
-                  defaultValue={row.notes || ''}
-                  rows={2}
-                  placeholder="Anything the next person should know…"
-                  onBlur={(e) => {
-                    const notes = e.target.value;
-                    if (notes !== (row.notes || '')) persist(row, { notes });
-                  }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-md px-2.5 py-2 text-sm text-slate-100 placeholder:text-slate-600"
+      </div>
+      <div className="rom-panel p-4">
+        {mine.length === 0 ? (
+          <p className="text-sm text-slate-500 py-6 text-center">No rig tests assigned to you.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              {visible.map((row) => (
+                <RigCheckTile
+                  key={row.id}
+                  row={row}
+                  todayStr={todayStr}
+                  expanded={expandedId === row.id}
+                  onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
+                  editable
+                  saving={savingId === row.id}
+                  onToggleItem={toggleItem}
+                  onNotesBlur={(item, notes) => persist(item, { notes })}
                 />
-              </div>
+              ))}
             </div>
-          );
-        })}
-        {recentDone.length > 0 && (
-          <div className="pt-2 border-t border-slate-800">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Recently completed</p>
-            {recentDone.map((row) => (
-              <p key={row.id} className="text-xs text-slate-500 flex items-center gap-1.5">
-                <CheckSquare className="h-3 w-3 text-emerald-400" />
-                {row.team}
-                {row.completed_at ? ` · ${format(new Date(row.completed_at), 'd MMM HH:mm')}` : ''}
-              </p>
-            ))}
-          </div>
+            {mine.length > PAGE_SIZE && (
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                >
+                  Previous
+                </button>
+                <span className="text-[10px] font-bold text-gray-600">
+                  SHOWING {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, mine.length)} OF {mine.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

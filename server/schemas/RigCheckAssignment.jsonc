@@ -56,7 +56,7 @@
   "rls": {
     "create": {
       "user_condition": {
-        "role": "admin"
+        "role": ["admin", "standby"]
       }
     },
     "read": {},

@@ -123,8 +123,6 @@ export default function Dashboard() {
 
         <ShootChangeNotifier userEmail={user?.email} isAdmin={isAdmin} />
 
-        <AssignedRigChecksPanel userEmail={user?.email} />
-
         <section className="mb-8 rom-enter-delay">
           <DashboardBanner
             user={user}
@@ -195,6 +193,8 @@ export default function Dashboard() {
             <RemoteEarnings user={user} />
           </div>
         )}
+
+        <AssignedRigChecksPanel userEmail={user?.email} alwaysShow={isAdmin || isStandby} />
       </div>
     </div>
   );

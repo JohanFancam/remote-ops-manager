@@ -19,7 +19,7 @@ import {
   NotificationPopups,
 } from './components/dashboard/ShootNotifications';
 import RefreshReminder from './components/RefreshReminder';
-import { registerServiceWorker } from './lib/pushNotifications';
+import { ensurePushSubscription, registerServiceWorker } from './lib/pushNotifications';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,27 @@ function LayoutContent({ children, currentPageName }) {
   useEffect(() => {
     registerServiceWorker();
   }, []);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    ensurePushSubscription();
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return undefined;
+    const onMessage = (event) => {
+      const path = event.data?.url;
+      if (event.data?.type !== 'rom-notification-click' || !path) return;
+      try {
+        const url = new URL(path, window.location.origin);
+        navigate(url.pathname + url.search);
+      } catch {
+        navigate('/');
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [navigate]);
 
   useEffect(() => {
     if (isLoading || !isAccounts) return;

@@ -1,18 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CheckSquare, StickyNote } from 'lucide-react';
+import { CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDisplayName } from '@/components/utils/nameUtils';
-import { assignmentProgress, isRigCheckOverdue } from '@/utils/rigChecks';
-import { shortenTitle } from '@/components/utils/scheduleUtils';
 import RigCheckAssignPanel from '@/components/rigs/RigCheckAssignPanel';
+import RigCheckTile from '@/components/rigs/RigCheckTile';
 
 export default function RigChecks() {
   const { user, isAdmin, isAnalytics } = useApp();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [expandedId, setExpandedId] = useState('');
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['rigCheckAssignments'],
@@ -120,56 +120,22 @@ export default function RigChecks() {
           )}
         </section>
 
-        <section className="rom-panel p-4 mb-8">
-          <h2 className="text-sm font-semibold text-slate-100 mb-3">All assignments</h2>
-          <div className="space-y-2">
-            {active.length === 0 && <p className="text-sm text-slate-500">Nothing assigned yet.</p>}
-            {active.slice(0, 40).map((row) => {
-              const progress = assignmentProgress(row);
-              const name = getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email);
-              const overdue = isRigCheckOverdue(row, todayStr);
-              return (
-                <div key={row.id} className={`rounded-lg border bg-slate-900/60 px-3 py-2 ${overdue ? 'border-red-700/70' : 'border-slate-800'}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-slate-100">
-                      {row.team || 'Rig'}
-                      <span className="text-slate-500"> · {name}</span>
-                    </p>
-                    <span className={`text-xs ${row.status === 'completed' ? 'text-emerald-400' : overdue ? 'text-red-400' : 'text-orange-300'}`}>
-                      {row.status === 'completed' ? 'Checked' : overdue ? 'Overdue' : `${progress.done}/${progress.total || 0} open`}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Rig test'}
-                    {row.shoot_date ? ` · ${row.shoot_date}` : ''}
-                    {row.due_date ? ` · due ${row.due_date}` : ''}
-                    {row.completed_at ? ` · done ${format(new Date(row.completed_at), 'd MMM HH:mm')}` : ''}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         <section className="rom-panel p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <StickyNote className="h-4 w-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-slate-100">Notes</h2>
-          </div>
-          {notes.length === 0 ? (
-            <p className="text-sm text-slate-500">No notes on assigned checks yet.</p>
+          <h2 className="text-sm font-semibold text-slate-100 mb-3">Assignments</h2>
+          <p className="text-xs text-slate-500 mb-3">Tiles show whether the rig was checked. Expand one for the items and notes.</p>
+          {active.length === 0 ? (
+            <p className="text-sm text-slate-500">Nothing assigned yet.</p>
           ) : (
-            <div className="space-y-2">
-              {notes.map((row) => (
-                <div key={row.id} className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
-                  <p className="text-xs text-slate-500 mb-1">
-                    {row.team}
-                    {row.shoot_title ? ` · ${shortenTitle(row.shoot_title)}` : ''}
-                    {' · '}
-                    {getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
-                  </p>
-                  <p className="text-sm text-slate-200 whitespace-pre-wrap">{row.notes}</p>
-                </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              {active.slice(0, 40).map((row) => (
+                <RigCheckTile
+                  key={row.id}
+                  row={row}
+                  assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
+                  todayStr={todayStr}
+                  expanded={expandedId === row.id}
+                  onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
+                />
               ))}
             </div>
           )}
