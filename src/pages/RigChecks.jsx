@@ -6,11 +6,13 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { CheckSquare, StickyNote } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDisplayName } from '@/components/utils/nameUtils';
-import { assignmentProgress } from '@/utils/rigChecks';
+import { assignmentProgress, isRigCheckOverdue } from '@/utils/rigChecks';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import RigCheckAssignPanel from '@/components/rigs/RigCheckAssignPanel';
 
 export default function RigChecks() {
-  const { isAdmin, isAnalytics } = useApp();
+  const { user, isAdmin, isAnalytics } = useApp();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['rigCheckAssignments'],
@@ -19,6 +21,16 @@ export default function RigChecks() {
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
+  });
+  const { data: shoots = [] } = useQuery({
+    queryKey: ['shoots'],
+    queryFn: () => base44.entities.Shoot.list('-date', 500),
+    enabled: isAdmin,
+  });
+  const { data: rigSettings = [] } = useQuery({
+    queryKey: ['rigSettings'],
+    queryFn: () => base44.entities.RigSetting.list(),
+    enabled: isAdmin,
   });
 
   const active = assignments.filter((row) => row.status !== 'cancelled');
@@ -56,8 +68,17 @@ export default function RigChecks() {
         <header className="mb-8">
           <p className="rom-kicker mb-2">Rig Checks</p>
           <h1 className="rom-title">Checked rigs</h1>
-          <p className="rom-subtitle">Completed tests, open assignments, and notes from the people who ticked them off.</p>
+          <p className="rom-subtitle">Assign a shoot’s rig test, then track what was checked and any notes.</p>
         </header>
+
+        {isAdmin && (
+          <RigCheckAssignPanel
+            rigSettings={rigSettings}
+            users={users}
+            shoots={shoots}
+            currentEmail={user?.email}
+          />
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
           <div className="rom-panel p-4">
@@ -106,20 +127,22 @@ export default function RigChecks() {
             {active.slice(0, 40).map((row) => {
               const progress = assignmentProgress(row);
               const name = getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email);
+              const overdue = isRigCheckOverdue(row, todayStr);
               return (
-                <div key={row.id} className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
+                <div key={row.id} className={`rounded-lg border bg-slate-900/60 px-3 py-2 ${overdue ? 'border-red-700/70' : 'border-slate-800'}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-slate-100">
                       {row.team || 'Rig'}
                       <span className="text-slate-500"> · {name}</span>
                     </p>
-                    <span className={`text-xs ${row.status === 'completed' ? 'text-emerald-400' : 'text-orange-300'}`}>
-                      {row.status === 'completed' ? 'Checked' : `${progress.done}/${progress.total || 0} open`}
+                    <span className={`text-xs ${row.status === 'completed' ? 'text-emerald-400' : overdue ? 'text-red-400' : 'text-orange-300'}`}>
+                      {row.status === 'completed' ? 'Checked' : overdue ? 'Overdue' : `${progress.done}/${progress.total || 0} open`}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Standalone test'}
+                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Rig test'}
                     {row.shoot_date ? ` · ${row.shoot_date}` : ''}
+                    {row.due_date ? ` · due ${row.due_date}` : ''}
                     {row.completed_at ? ` · done ${format(new Date(row.completed_at), 'd MMM HH:mm')}` : ''}
                   </p>
                 </div>

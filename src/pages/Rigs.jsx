@@ -6,12 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
-import RigCheckAssignPanel from '../components/rigs/RigCheckAssignPanel';
 import { LiveDataBadge } from '@/components/shoots/LiveDataControls';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 
 export default function Rigs() {
-  const { isAdmin, user } = useApp();
+  const { isAdmin } = useApp();
   const queryClient = useQueryClient();
   const [sidePanelRig, setSidePanelRig] = useState(null); // rig object to edit, or {} for new, or null for closed
   const [viewOnly, setViewOnly] = useState(false); // true when viewing (not editing)
@@ -24,17 +23,6 @@ export default function Rigs() {
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
   });
-  const { data: users = [] } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => base44.entities.User.list(),
-    enabled: isAdmin,
-  });
-  const { data: shoots = [] } = useQuery({
-    queryKey: ['shoots'],
-    queryFn: () => base44.entities.Shoot.list('-date', 400),
-    enabled: isAdmin,
-  });
-
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['rigSettings'] });
 
   const handleSave = async (formData) => {
@@ -86,7 +74,7 @@ export default function Rigs() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Rig Settings</h1>
-            <p className="text-slate-400 text-sm mt-1">Team-based camera configurations</p>
+            <p className="text-slate-400 text-sm mt-1">Team camera configs and the default checklist used when that team’s shoot is assigned for rig testing</p>
           </div>
           {isAdmin && (
             <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-blue-600 hover:bg-blue-500">
@@ -94,15 +82,6 @@ export default function Rigs() {
             </Button>
           )}
         </div>
-
-        {isAdmin && (
-          <RigCheckAssignPanel
-            rigSettings={rigSettings}
-            users={users}
-            shoots={shoots}
-            currentEmail={user?.email}
-          />
-        )}
 
         {/* Search */}
         <div className="relative mb-6">

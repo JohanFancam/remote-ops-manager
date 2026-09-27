@@ -11,13 +11,17 @@
     },
     "shoot_id": {
       "type": "string",
-      "description": "Optional shoot this check is for"
+      "description": "Shoot this rig test is for"
     },
     "shoot_title": {
       "type": "string"
     },
     "shoot_date": {
       "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "description": "Date the rig test must be finished by (defaults to the shoot date)"
     },
     "assignee_email": {
       "type": "string"

@@ -12,17 +12,30 @@ export function matchRig(shoot, rigSettings = []) {
   if (!shoot) return null;
   const client = String(shoot.client || '').toLowerCase().trim();
   const title = String(shoot.title || '').toLowerCase().trim();
-  return (rigSettings || []).find((r) => {
-    const team = String(r.team || '').toLowerCase().trim();
-    if (!team) return false;
-    return (
-      team === client || team === title
-      || (client && client.includes(team))
-      || (title && title.includes(team))
-      || (client && team.includes(client))
-      || (title && team.includes(title))
-    );
-  }) || null;
+  const hay = `${client} ${title}`.replace(/\s+/g, ' ').trim();
+  const vs = hay.match(/(.+?)\s+vs\.?\s+(.+)/);
+  const home = String(vs?.[1] || client || '').trim();
+
+  let best = null;
+  let bestScore = 0;
+  for (const rig of rigSettings || []) {
+    const team = String(rig.team || '').toLowerCase().trim();
+    if (!team) continue;
+    const last = team.split(/\s+/).pop();
+    let score = 0;
+    if (team === client || team === title) score = 100;
+    else if (hay.includes(team)) score = 80 + team.length;
+    else if (last && last.length >= 4 && hay.includes(last)) score = 40 + last.length;
+    else continue;
+    if (home && (home.includes(team) || team.includes(home) || (last.length >= 4 && home.includes(last)))) {
+      score += 15;
+    }
+    if (score > bestScore) {
+      best = rig;
+      bestScore = score;
+    }
+  }
+  return best;
 }
 
 export function offsetsFromRig(rig, shoot = {}) {

@@ -393,7 +393,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Default Rig Checks</label>
               <p className="text-[10px] text-slate-500 mb-2">
-                These items are copied when a tester is assigned, and when an operator is assigned to a shoot for this team.
+                Copied onto a rig test when that team’s shoot is assigned to an admin or operator/standby.
               </p>
               <div className="space-y-1.5">
                 {(form.default_checks || []).map((item, idx) => (

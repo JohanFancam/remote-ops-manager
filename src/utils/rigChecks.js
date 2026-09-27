@@ -1,7 +1,6 @@
-import { matchRig } from '@/components/utils/rigUtils';
 import { normalizeEmail } from '@/utils/assignmentApproval';
 
-export const RIG_CHECK_ELIGIBLE_ROLES = ['admin', 'user', 'standby'];
+export const RIG_CHECK_ELIGIBLE_ROLES = ['admin', 'standby'];
 
 export function normalizeDefaultChecks(rig) {
   const raw = rig?.default_checks;
@@ -24,6 +23,13 @@ export function isRigCheckAssignee(assignment, email) {
   return normalizeEmail(assignment?.assignee_email) === normalizeEmail(email);
 }
 
+export function isRigCheckOverdue(assignment, todayStr) {
+  if (!assignment?.due_date) return false;
+  const status = String(assignment.status || '');
+  if (status === 'completed' || status === 'cancelled') return false;
+  return assignment.due_date < todayStr;
+}
+
 export function eligibleRigCheckUsers(users = []) {
   return (users || []).filter((user) => {
     if (!user?.email || user.inactive) return false;
@@ -31,14 +37,12 @@ export function eligibleRigCheckUsers(users = []) {
   });
 }
 
-export function upcomingShootsForRig(shoots = [], rig, todayStr) {
-  if (!rig) return [];
+export function upcomingShootsForTesting(shoots = [], todayStr) {
   return (shoots || [])
     .filter((shoot) => {
       if (!shoot?.date || shoot.date < todayStr) return false;
       const status = String(shoot.status || '').toLowerCase();
-      if (status === 'cancelled' || status === 'completed') return false;
-      return matchRig(shoot, [rig])?.id === rig.id;
+      return status !== 'cancelled' && status !== 'completed';
     })
     .sort((a, b) => {
       const date = String(a.date).localeCompare(String(b.date));
@@ -51,15 +55,17 @@ export function buildManualRigCheck({
   rig,
   assigneeEmail,
   assignedBy,
-  shoot = null,
+  shoot,
+  dueDate,
 }) {
   const items = itemsFromDefaultChecks(rig);
   return {
     rig_setting_id: rig?.id || '',
-    team: rig?.team || '',
+    team: rig?.team || shoot?.client || '',
     shoot_id: shoot?.id || '',
     shoot_title: shoot?.title || shoot?.client || '',
     shoot_date: shoot?.date || '',
+    due_date: dueDate || shoot?.date || '',
     assignee_email: String(assigneeEmail || '').trim().toLowerCase(),
     assigned_by: assignedBy || '',
     source: 'manual',

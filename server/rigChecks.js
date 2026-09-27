@@ -1,5 +1,6 @@
 import { listEntities, createEntity, filterEntities, updateEntity } from './entities.js';
-import { defaultCheckLabels, matchRigSetting } from './rigCheckUtils.js';
+import { findUserByEmail } from './auth.js';
+import { defaultCheckLabels, isEligibleRigCheckRole, isActiveUser, matchRigSetting } from './rigCheckUtils.js';
 
 export { defaultCheckLabels, matchRigSetting };
 
@@ -30,6 +31,8 @@ export function syncRigChecksForShoot(previous, shoot, user = null) {
   if (!rig || !checks.length) return;
 
   for (const email of added) {
+    const assignee = findUserByEmail(email);
+    if (!isActiveUser(assignee) || !isEligibleRigCheckRole(assignee.role)) continue;
     const already = existing.find((row) => (
       String(row.assignee_email || '').trim().toLowerCase() === email
       && row.status !== 'cancelled'
@@ -41,6 +44,7 @@ export function syncRigChecksForShoot(previous, shoot, user = null) {
       shoot_id: shoot.id,
       shoot_title: shoot.title || shoot.client || rig.team || '',
       shoot_date: shoot.date || '',
+      due_date: shoot.date || '',
       assignee_email: email,
       assigned_by: user?.email || '',
       source: 'shoot',

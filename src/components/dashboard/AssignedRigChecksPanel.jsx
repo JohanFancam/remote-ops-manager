@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { CheckSquare, StickyNote } from 'lucide-react';
 import { format } from 'date-fns';
-import { assignmentProgress, isRigCheckAssignee } from '@/utils/rigChecks';
+import { assignmentProgress, isRigCheckAssignee, isRigCheckOverdue } from '@/utils/rigChecks';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 
 export default function AssignedRigChecksPanel({ userEmail }) {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState('');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['rigCheckAssignments'],
@@ -62,15 +63,21 @@ export default function AssignedRigChecksPanel({ userEmail }) {
         )}
         {open.map((row) => {
           const progress = assignmentProgress(row);
+          const overdue = isRigCheckOverdue(row, todayStr);
           return (
-            <div key={row.id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+            <div key={row.id} className={`rounded-xl border bg-slate-900/70 p-4 ${overdue ? 'border-red-700/70' : 'border-slate-800'}`}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-100">{row.team || 'Rig check'}</p>
                   <p className="text-xs text-slate-500">
-                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Standalone test'}
+                    {row.shoot_title ? shortenTitle(row.shoot_title) : 'Rig test'}
                     {row.shoot_date ? ` · ${row.shoot_date}` : ''}
                   </p>
+                  {row.due_date && (
+                    <p className={`text-xs mt-0.5 ${overdue ? 'text-red-400' : 'text-orange-300'}`}>
+                      {overdue ? `Overdue · due ${row.due_date}` : `Due ${row.due_date}`}
+                    </p>
+                  )}
                 </div>
                 <span className="text-xs text-orange-300">
                   {progress.done}/{progress.total || (row.items || []).length || 0}

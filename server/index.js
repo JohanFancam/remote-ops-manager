@@ -39,6 +39,7 @@ import {
 } from './googleCalendar.js';
 import { isAssignmentLocked } from './shootTitleMatch.js';
 import { syncRigChecksForShoot } from './rigChecks.js';
+import { validateRigCheckAssignment } from './rigCheckUtils.js';
 import {
   getVapidPublicKey,
   savePushSubscription,
@@ -360,8 +361,23 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
     const payload = { ...(req.body || {}) };
-    if (type === 'RigCheckAssignment' && req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin only' });
+    if (type === 'RigCheckAssignment') {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin only' });
+      }
+      const email = String(payload.assignee_email || '').trim().toLowerCase();
+      const assignee = email ? findUserByEmail(email) : null;
+      const assignError = validateRigCheckAssignment({
+        shootId: payload.shoot_id,
+        assignee,
+      });
+      if (assignError) {
+        return res.status(400).json({ error: assignError });
+      }
+      if (!payload.due_date) {
+        const shoot = payload.shoot_id ? getEntity('Shoot', payload.shoot_id) : null;
+        payload.due_date = shoot?.date || payload.shoot_date || '';
+      }
     }
     if (type === 'AppFault') {
       payload.reported_by_email = req.user?.email || payload.reported_by_email || '';
