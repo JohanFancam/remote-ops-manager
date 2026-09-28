@@ -54,6 +54,16 @@ export function matchRigSetting(shoot, rigs = []) {
 
 export function defaultCheckLabels(rig) {
   const raw = rig?.default_checks;
-  if (!Array.isArray(raw)) return [];
-  return raw.map((item) => String(item || '').trim()).filter(Boolean);
+  let list = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      list = JSON.parse(trimmed);
+    } catch {
+      list = trimmed.split(/\n|,/).map((item) => item.trim());
+    }
+  }
+  if (!Array.isArray(list)) return [];
+  return list.map((item) => String(item || '').trim()).filter(Boolean);
 }

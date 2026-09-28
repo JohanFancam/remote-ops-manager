@@ -1,11 +1,47 @@
-import { normalizeEmail } from '@/utils/assignmentApproval';
+import { normalizeEmail } from './assignmentApproval.js';
 
 export const RIG_CHECK_ELIGIBLE_ROLES = ['admin', 'standby'];
 
 export function normalizeDefaultChecks(rig) {
   const raw = rig?.default_checks;
-  if (!Array.isArray(raw)) return [];
-  return raw.map((item) => String(item || '').trim()).filter(Boolean);
+  let list = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      list = JSON.parse(trimmed);
+    } catch {
+      list = trimmed.split(/\n|,/).map((item) => item.trim());
+    }
+  }
+  if (!Array.isArray(list)) return [];
+  return list.map((item) => String(item || '').trim()).filter(Boolean);
+}
+
+export function isPlaceholderChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) return true;
+  if (items.length === 1 && String(items[0]?.label || '').trim().toLowerCase() === 'rig check complete') {
+    return true;
+  }
+  return false;
+}
+
+export function mergeChecklistFromRig(assignment, rig) {
+  const defaults = itemsFromDefaultChecks(rig);
+  if (!defaults.length) return assignment;
+  const existing = Array.isArray(assignment?.items) ? assignment.items : [];
+  if (isPlaceholderChecklist(existing)) {
+    return {
+      ...assignment,
+      items: defaults,
+      team: assignment?.team || rig?.team || '',
+      rig_setting_id: assignment?.rig_setting_id || rig?.id || '',
+    };
+  }
+  const have = new Set(existing.map((item) => String(item?.label || '').trim().toLowerCase()).filter(Boolean));
+  const extras = defaults.filter((item) => !have.has(item.label.toLowerCase()));
+  if (!extras.length) return assignment;
+  return { ...assignment, items: [...existing, ...extras] };
 }
 
 export function itemsFromDefaultChecks(rig) {

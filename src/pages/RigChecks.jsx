@@ -8,6 +8,8 @@ import { format } from 'date-fns';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import RigCheckAssignPanel from '@/components/rigs/RigCheckAssignPanel';
 import RigCheckTile from '@/components/rigs/RigCheckTile';
+import { mergeChecklistFromRig } from '@/utils/rigChecks';
+import { matchRig } from '@/components/utils/rigUtils';
 
 export default function RigChecks() {
   const { user, isAdmin, isAnalytics } = useApp();
@@ -30,7 +32,7 @@ export default function RigChecks() {
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
-    enabled: isAdmin,
+    enabled: isAdmin || isAnalytics,
   });
 
   const active = assignments.filter((row) => row.status !== 'cancelled');
@@ -130,7 +132,11 @@ export default function RigChecks() {
               {active.slice(0, 40).map((row) => (
                 <RigCheckTile
                   key={row.id}
-                  row={row}
+                  row={mergeChecklistFromRig(
+                    row,
+                    rigSettings.find((rig) => rig.id === row.rig_setting_id)
+                      || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
+                  )}
                   assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
                   todayStr={todayStr}
                   expanded={expandedId === row.id}
