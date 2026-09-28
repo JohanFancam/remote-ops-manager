@@ -185,7 +185,6 @@ export default function Dashboard() {
         <AssignedRigChecksPanel
           userEmail={user?.email}
           alwaysShow={isAdmin || isStandby}
-          showAll={isAdmin}
         />
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}

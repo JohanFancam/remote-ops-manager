@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, ChevronDown, ChevronUp, StickyNote } from 'lucide-react';
+import { CheckCircle2, CheckSquare, ChevronDown, ChevronUp, StickyNote } from 'lucide-react';
 import { format } from 'date-fns';
 import { assignmentProgress, isRigCheckOverdue } from '@/utils/rigChecks';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
@@ -13,6 +13,7 @@ export default function RigCheckTile({
   editable = false,
   saving = false,
   onToggleItem,
+  onConfirmChecked,
   onNotesBlur,
 }) {
   const progress = assignmentProgress(row);
@@ -112,6 +113,23 @@ export default function RigCheckTile({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {editable && onConfirmChecked && !checked && (
+        <div className="px-4 pb-4">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirmChecked(row);
+            }}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 px-3 py-2 text-sm font-semibold text-white"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Confirm checked
+          </button>
         </div>
       )}
     </div>
