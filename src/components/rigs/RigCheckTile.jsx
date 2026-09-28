@@ -37,6 +37,12 @@ export default function RigCheckTile({
           {assigneeName && (
             <p className="text-xs text-slate-400 mt-0.5 truncate">{assigneeName}</p>
           )}
+          {(row.items || []).length > 0 && (
+            <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+              {(row.items || []).map((item) => item.label).filter(Boolean).slice(0, 4).join(' · ')}
+              {(row.items || []).length > 4 ? '…' : ''}
+            </p>
+          )}
           {row.due_date && (
             <p className={`text-xs mt-1 ${overdue ? 'text-red-400' : 'text-orange-300'}`}>
               {overdue ? `Overdue · due ${row.due_date}` : `Due ${row.due_date}`}

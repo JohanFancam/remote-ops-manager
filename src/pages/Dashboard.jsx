@@ -172,8 +172,6 @@ export default function Dashboard() {
           </DashboardSection>
         )}
 
-        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
-
         {isOperator && (
           <DashboardSection
             title="Pending Approval"
@@ -190,6 +188,7 @@ export default function Dashboard() {
           showAll={isAdmin}
         />
 
+        {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
         {isOperator && <RemoteEarnings user={user} />}
       </div>
     </div>

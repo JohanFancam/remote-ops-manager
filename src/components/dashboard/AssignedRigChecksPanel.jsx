@@ -141,7 +141,10 @@ export default function AssignedRigChecksPanel({
       const aOpen = a.status === 'completed' ? 1 : 0;
       const bOpen = b.status === 'completed' ? 1 : 0;
       if (aOpen !== bOpen) return aOpen - bOpen;
-      return String(a.due_date || a.shoot_date || '').localeCompare(String(b.due_date || b.shoot_date || ''));
+      const aPreview = a.preview ? 0 : 1;
+      const bPreview = b.preview ? 0 : 1;
+      if (aPreview !== bPreview) return aPreview - bPreview;
+      return String(a.due_date || a.shoot_date || a.team || '').localeCompare(String(b.due_date || b.shoot_date || b.team || ''));
     });
   }, [assignments, userEmail, showAll, alwaysShow, shoots, rigSettings, todayStr]);
 
