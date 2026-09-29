@@ -87,16 +87,7 @@ function clampShootOperators(data) {
   return { ...data, assigned_operators: assigned, pending_operators: pending };
 }
 
-export function createEntity(entityType, data = {}, user = null) {
-  assertKnownType(entityType);
-
-  if (entityType === 'User') {
-    const err = new Error('Create users via /api/auth/register or invite');
-    err.status = 400;
-    throw err;
-  }
-
-  const id = newId();
+function insertEntity(entityType, id, data = {}, user = null) {
   const ts = nowIso();
   const { id: _ignore, created_date, updated_date, created_by_id, ...rawPayload } = data;
   const payload = entityType === 'Shoot' ? clampShootOperators(rawPayload) : rawPayload;
@@ -108,6 +99,37 @@ export function createEntity(entityType, data = {}, user = null) {
   const created = getEntity(entityType, id);
   emitEntityChange(entityType, { type: 'create', data: created });
   return created;
+}
+
+export function createEntity(entityType, data = {}, user = null) {
+  assertKnownType(entityType);
+
+  if (entityType === 'User') {
+    const err = new Error('Create users via /api/auth/register or invite');
+    err.status = 400;
+    throw err;
+  }
+
+  return insertEntity(entityType, newId(), data, user);
+}
+
+/** Recreate a row with its original id when that id is still free. */
+export function restoreEntity(entityType, data = {}, user = null) {
+  assertKnownType(entityType);
+
+  if (entityType === 'User') {
+    const err = new Error('Create users via /api/auth/register or invite');
+    err.status = 400;
+    throw err;
+  }
+
+  const requestedId = String(data.id || '').trim();
+  if (requestedId) {
+    const existing = getEntity(entityType, requestedId);
+    if (existing) return existing;
+    return insertEntity(entityType, requestedId, data, user);
+  }
+  return insertEntity(entityType, newId(), data, user);
 }
 
 export function updateEntity(entityType, id, data = {}) {

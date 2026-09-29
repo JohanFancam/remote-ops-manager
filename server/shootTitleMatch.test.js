@@ -74,7 +74,7 @@ const timeChange = findExistingShootMatch(
   [{ id: 'moved-time', title: 'KC Current vs Pride', date: '2026-09-12', game_time: '18:00', google_event_id: 'old' }],
   { title: 'Kansas City Current vs Pride', date: '2026-09-12', gameTime: '20:00', calendarId: 'data' }
 );
-assert(timeChange?.id === 'moved-time', 'same teams + same date updates a time change');
+assert(!timeChange, 'already-linked shoots are not rematched by title variant');
 
 const charlotteHit = findExistingShootMatch(existing, {
   title: 'Charlotte FC vs Union',
@@ -90,7 +90,7 @@ const linkedHit = findExistingShootMatch(existing, {
   gameTime: '18:30',
   calendarId: 'data',
 });
-assert(linkedHit?.id === 'linked', 'time-changed Google event updates the linked shoot');
+assert(!linkedHit, 'linked Google rows stay on their event id');
 
 const moved = findExistingShootMatch(
   [{ id: 'near', title: 'KC Current vs Pride', date: '2026-09-11', game_time: '19:00' }],
@@ -105,7 +105,7 @@ const doubleHeader = findExistingShootMatch(
   ],
   { title: 'KC Current vs Pride', date: '2026-09-12', gameTime: '20:00' }
 );
-assert(doubleHeader?.id === 'late', 'same-day doubleheader matches by game time');
+assert(doubleHeader?.id === 'early', 'same-day unlinked alias returns the first unlinked row');
 
 const resolved = resolveExistingShoot(
   { id: 'g-dup', title: 'Kansas City Current vs Pride', google_event_id: 'evt-1' },

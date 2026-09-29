@@ -5,7 +5,7 @@
 import { listEntities, createEntity, updateEntity } from './entities.js';
 import { handleShootChange } from './notifications.js';
 import { sastYmd } from './googleCalendar.js';
-import { findExistingShootMatch, titlesAreEquivalent } from './shootTitleMatch.js';
+import { titlesAreEquivalent } from './shootTitleMatch.js';
 
 const ZA_TZ = 'Africa/Johannesburg';
 const MONTHS = {
@@ -383,6 +383,26 @@ export function parseSlackGamesList(rawText, { fallbackDate } = {}) {
   return parseGenericGamesList(text, fallbackDate);
 }
 
+function normalizeTitle(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function titleMatches(a, b) {
+  const left = normalizeTitle(a);
+  const right = normalizeTitle(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const [home, away] = right.split(' vs ');
+  return Boolean(home && away && left.includes(home) && left.includes(away));
+}
+
+function dayShift(ymd, days) {
+  const [y, m, d] = String(ymd || '').split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
+}
+
 function findExistingShoot(shoots, game) {
   const list = shoots || [];
   if (game.game_pk) {
@@ -393,11 +413,10 @@ function findExistingShoot(shoots, game) {
     const byBb = list.find((shoot) => String(shoot.backbone_id || '') === String(game.backbone_id));
     if (byBb) return byBb;
   }
-  return findExistingShootMatch(list, {
-    title: game.title,
-    date: game.date,
-    gameTime: game.game_time,
-  });
+  const sameDate = list.find((shoot) => shoot.date === game.date && titleMatches(shoot.title, game.title));
+  if (sameDate) return sameDate;
+  const nearby = [dayShift(game.date, -1), dayShift(game.date, 1)].filter(Boolean);
+  return list.find((shoot) => nearby.includes(shoot.date) && titleMatches(shoot.title, game.title)) || null;
 }
 
 export function captureRequirement(capture) {

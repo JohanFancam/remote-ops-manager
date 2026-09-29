@@ -8,8 +8,9 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { listEntities, createEntity, updateEntity, deleteEntity } from './entities.js';
 import { handleShootChange, createNotifications } from './notifications.js';
+import { archiveDeletedShoot, shootHasPeople } from './shootArchive.js';
 import {
-  findExistingShootMatch,
+  findAliasDateMatch,
   isManualShootTitle,
   matchupKey,
   resolveExistingShoot,
@@ -109,6 +110,8 @@ export function getGoogleSettings() {
     lastSyncAt: saved.lastSyncAt || null,
     lastSyncStats: saved.lastSyncStats || null,
     lastSyncChanges: saved.lastSyncChanges || [],
+    lastRestoreAt: saved.lastRestoreAt || null,
+    lastRestoreStats: saved.lastRestoreStats || null,
     lastAutoSyncSlot: saved.lastAutoSyncSlot || null,
     autoSyncHours: AUTO_SYNC_HOURS,
     autoSyncTimeZone: ZA_TZ,
@@ -207,6 +210,8 @@ export function getGoogleStatus() {
     lastSyncAt: settings.lastSyncAt || null,
     lastSyncStats: settings.lastSyncStats || null,
     lastSyncChanges: settings.lastSyncChanges || [],
+    lastRestoreAt: settings.lastRestoreAt || null,
+    lastRestoreStats: settings.lastRestoreStats || null,
     lastAutoSyncSlot: settings.lastAutoSyncSlot || null,
     autoSyncHours: AUTO_SYNC_HOURS,
     autoSyncTimeZone: ZA_TZ,
@@ -280,8 +285,16 @@ async function getAuthedClient() {
   return client;
 }
 
-function findTitleDateMatch(shoots, title, date, calendarId = '', gameTime = '') {
-  return findExistingShootMatch(shoots, { title, date, gameTime, calendarId });
+function findTitleDateMatch(shoots, title, date, calendarId = '') {
+  return findAliasDateMatch(shoots, title, date, calendarId);
+}
+
+function assignmentSnapshot(shoot) {
+  return {
+    shootId: shoot?.id || '',
+    assigned_operators: [...(shoot?.assigned_operators || [])],
+    pending_operators: [...(shoot?.pending_operators || [])],
+  };
 }
 
 /** Convert Google event start → { date: yyyy-MM-dd, game_time: HH:mm|'' } in SAST. */
@@ -393,23 +406,48 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       existingShoots.filter((shoot) => !linked || shoot.id !== linked.id),
       title,
       times.date,
-      source.id,
-      times.game_time
+      source.id
     );
     const { keep: existing, retire } = resolveExistingShoot(linked, aliasMatch);
     if (retire) {
-      deleteEntity('Shoot', retire.id);
-      const retireIdx = existingShoots.findIndex((shoot) => shoot.id === retire.id);
-      if (retireIdx >= 0) existingShoots.splice(retireIdx, 1);
-      byGoogleId.delete(retire.google_event_id);
-      cancelled += 1;
-      changes.push({
-        action: 'duplicate',
-        title: retire.title,
-        date: retire.date,
-        time: retire.game_time || retire.start_time || '',
-        calendar: source.label,
-      });
+      archiveDeletedShoot(retire, 'duplicate');
+      if (existing && shootHasPeople(retire) && !shootHasPeople(existing)) {
+        const moved = updateEntity('Shoot', existing.id, {
+          assigned_operators: retire.assigned_operators || [],
+          pending_operators: retire.pending_operators || [],
+        });
+        if (moved) {
+          const keepIdx = existingShoots.findIndex((shoot) => shoot.id === existing.id);
+          if (keepIdx >= 0) existingShoots[keepIdx] = moved;
+          Object.assign(existing, moved);
+        }
+      }
+      if (shootHasPeople(retire) && existing && shootHasPeople(existing)
+        && String(existing.assigned_operators?.[0] || '') !== String(retire.assigned_operators?.[0] || '')) {
+        skipped += 1;
+        changes.push({
+          action: 'kept_assigned',
+          title: retire.title,
+          date: retire.date,
+          time: retire.game_time || retire.start_time || '',
+          calendar: source.label,
+          ...assignmentSnapshot(retire),
+        });
+      } else {
+        deleteEntity('Shoot', retire.id);
+        const retireIdx = existingShoots.findIndex((shoot) => shoot.id === retire.id);
+        if (retireIdx >= 0) existingShoots.splice(retireIdx, 1);
+        byGoogleId.delete(retire.google_event_id);
+        cancelled += 1;
+        changes.push({
+          action: 'duplicate',
+          title: retire.title,
+          date: retire.date,
+          time: retire.game_time || retire.start_time || '',
+          calendar: source.label,
+          ...assignmentSnapshot(retire),
+        });
+      }
     }
     const assignmentLocked = isManualShootTitle(title) || isManualShootTitle(existing?.title);
     if (existing) {
@@ -512,6 +550,25 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   const latestShoots = listEntities('Shoot', '-date', 5000);
 
   const removeShoot = (shoot, action = 'deleted') => {
+    archiveDeletedShoot(shoot, action);
+    const snapshot = assignmentSnapshot(shoot);
+    if (shootHasPeople(shoot)) {
+      updateEntity('Shoot', shoot.id, {
+        status: 'cancelled',
+        google_sync_cancelled: true,
+        google_sync_flag: 'cancelled',
+      });
+      cancelled += 1;
+      changes.push({
+        action: 'cancelled',
+        title: shoot.title,
+        date: shoot.date,
+        time: shoot.game_time || shoot.start_time || '',
+        calendar: shoot.google_calendar_label || '',
+        ...snapshot,
+      });
+      return;
+    }
     deleteEntity('Shoot', shoot.id);
     cancelled += 1;
     changes.push({
@@ -520,6 +577,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       date: shoot.date,
       time: shoot.game_time || shoot.start_time || '',
       calendar: shoot.google_calendar_label || '',
+      ...snapshot,
     });
     createNotifications({
       notificationKey: `google_sync_delete:${shoot.id}:${syncedAt}`,
@@ -531,6 +589,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       targetRole: 'admin',
       createdByName: user?.full_name || user?.email || 'Google sync',
       url: '/Calendar',
+      extras: snapshot,
     }).catch((err) => {
       console.warn('Google delete notification failed:', err.message);
     });
@@ -565,7 +624,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     const calKey = shootCalendarId && shoot.date
       ? `${shootCalendarId}|${matchupKey(shoot.title, shoot.date)}`
       : '';
-    if (calKey && claimedCalKeys.has(calKey)) {
+    if (calKey && claimedCalKeys.has(calKey) && !shootHasPeople(shoot) && shoot.google_sync_flag !== 'restored') {
       removeShoot(shoot, 'duplicate');
     }
   }

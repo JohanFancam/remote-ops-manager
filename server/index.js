@@ -72,6 +72,7 @@ import {
   canSendRigCheckMessage,
   postRigCheckToSlack,
 } from './slackRigCheck.js';
+import { restoreSyncDeletedShoots } from './restoreSyncDeletedShoots.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -742,6 +743,16 @@ app.post('/api/google/sync', authMiddleware, requireAdminOrAnalytics, async (req
   }
 });
 
+app.post('/api/google/restore-deleted', authMiddleware, requireAdmin, (_req, res) => {
+  try {
+    const result = restoreSyncDeletedShoots({ force: true });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Sync delete restore failed:', err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.get('/api/slack/status', authMiddleware, requireAdminOrAnalytics, (_req, res) => {
   res.json(getSlackGamesSettings());
 });
@@ -869,6 +880,17 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`Remote Ops API listening on http://localhost:${PORT}`);
   console.log(`Entity types: User, ${ENTITY_TYPES.join(', ')}`);
+
+  try {
+    const restored = restoreSyncDeletedShoots();
+    if (!restored.skipped) {
+      console.log(
+        `Sync delete restore: ${restored.recreated} recreated, ${restored.reassigned} reassigned, ${restored.hints} hints`
+      );
+    }
+  } catch (err) {
+    console.warn('Sync delete restore failed:', err.message);
+  }
 
   // Day-of reminders plus Google auto-sync (06:00 / 13:00 / 20:00 SAST)
   const runBackgroundJobs = () => {
