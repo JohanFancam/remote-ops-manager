@@ -10,10 +10,10 @@ import { listEntities, createEntity, updateEntity, deleteEntity } from './entiti
 import { handleShootChange, createNotifications } from './notifications.js';
 import { archiveDeletedShoot, shootHasPeople } from './shootArchive.js';
 import {
-  findAliasDateMatch,
+  findExistingShootMatch,
   isManualShootTitle,
   matchupKey,
-  resolveExistingShoot,
+  normalizeGameTime,
   titlesAreEquivalent,
 } from './shootTitleMatch.js';
 
@@ -285,8 +285,8 @@ async function getAuthedClient() {
   return client;
 }
 
-function findTitleDateMatch(shoots, title, date, calendarId = '') {
-  return findAliasDateMatch(shoots, title, date, calendarId);
+function findTitleDateMatch(shoots, title, date, calendarId = '', gameTime = '') {
+  return findExistingShootMatch(shoots, { title, date, gameTime, calendarId });
 }
 
 function assignmentSnapshot(shoot) {
@@ -406,49 +406,10 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       existingShoots.filter((shoot) => !linked || shoot.id !== linked.id),
       title,
       times.date,
-      source.id
+      source.id,
+      times.game_time
     );
-    const { keep: existing, retire } = resolveExistingShoot(linked, aliasMatch);
-    if (retire) {
-      archiveDeletedShoot(retire, 'duplicate');
-      if (existing && shootHasPeople(retire) && !shootHasPeople(existing)) {
-        const moved = updateEntity('Shoot', existing.id, {
-          assigned_operators: retire.assigned_operators || [],
-          pending_operators: retire.pending_operators || [],
-        });
-        if (moved) {
-          const keepIdx = existingShoots.findIndex((shoot) => shoot.id === existing.id);
-          if (keepIdx >= 0) existingShoots[keepIdx] = moved;
-          Object.assign(existing, moved);
-        }
-      }
-      if (shootHasPeople(retire) && existing && shootHasPeople(existing)
-        && String(existing.assigned_operators?.[0] || '') !== String(retire.assigned_operators?.[0] || '')) {
-        skipped += 1;
-        changes.push({
-          action: 'kept_assigned',
-          title: retire.title,
-          date: retire.date,
-          time: retire.game_time || retire.start_time || '',
-          calendar: source.label,
-          ...assignmentSnapshot(retire),
-        });
-      } else {
-        deleteEntity('Shoot', retire.id);
-        const retireIdx = existingShoots.findIndex((shoot) => shoot.id === retire.id);
-        if (retireIdx >= 0) existingShoots.splice(retireIdx, 1);
-        byGoogleId.delete(retire.google_event_id);
-        cancelled += 1;
-        changes.push({
-          action: 'duplicate',
-          title: retire.title,
-          date: retire.date,
-          time: retire.game_time || retire.start_time || '',
-          calendar: source.label,
-          ...assignmentSnapshot(retire),
-        });
-      }
-    }
+    const existing = linked || aliasMatch || null;
     const assignmentLocked = isManualShootTitle(title) || isManualShootTitle(existing?.title);
     if (existing) {
       const previousEventId = existing.google_event_id;
@@ -456,7 +417,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       byGoogleId.set(event.id, existing);
       const existingTime = existing.game_time || existing.start_time || '';
       const restore = existing.status === 'cancelled' && existing.google_sync_cancelled;
-      const timeChanged = existingTime !== times.game_time;
+      const timeChanged = normalizeGameTime(existingTime) !== normalizeGameTime(times.game_time);
       const dateChanged = existing.date !== times.date;
       const keepAppTitle = titlesAreEquivalent(existing.title, title);
       const titleChanged = !keepAppTitle && existing.title !== title;

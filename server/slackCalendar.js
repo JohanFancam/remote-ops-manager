@@ -5,7 +5,7 @@
 import { listEntities, createEntity, updateEntity } from './entities.js';
 import { handleShootChange } from './notifications.js';
 import { sastYmd } from './googleCalendar.js';
-import { titlesAreEquivalent } from './shootTitleMatch.js';
+import { findExistingShootMatch, titlesAreEquivalent } from './shootTitleMatch.js';
 
 const ZA_TZ = 'Africa/Johannesburg';
 const MONTHS = {
@@ -413,6 +413,12 @@ function findExistingShoot(shoots, game) {
     const byBb = list.find((shoot) => String(shoot.backbone_id || '') === String(game.backbone_id));
     if (byBb) return byBb;
   }
+  const matched = findExistingShootMatch(list, {
+    title: game.title,
+    date: game.date,
+    gameTime: game.game_time,
+  });
+  if (matched) return matched;
   const sameDate = list.find((shoot) => shoot.date === game.date && titleMatches(shoot.title, game.title));
   if (sameDate) return sameDate;
   const nearby = [dayShift(game.date, -1), dayShift(game.date, 1)].filter(Boolean);

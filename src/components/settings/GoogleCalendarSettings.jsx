@@ -165,7 +165,8 @@ export default function GoogleCalendarSettings() {
       <CardContent className="pt-4 space-y-4">
         <p className="text-xs text-slate-500">
           Connect Google once, then pick your Data and Fancam calendars. Sync pulls both at the same time into the app
-          calendar format (South Africa time). Edits in this app never write back to Google.
+          calendar format (South Africa time). A time or date change on Google updates that same app entry; a game that
+          is not on the app calendar is created. Edits in this app never write back to Google.
         </p>
         <p className="text-xs text-slate-500">
           After they are connected, both calendars auto-sync at{' '}

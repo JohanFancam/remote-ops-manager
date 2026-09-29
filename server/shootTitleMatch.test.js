@@ -74,7 +74,7 @@ const timeChange = findExistingShootMatch(
   [{ id: 'moved-time', title: 'KC Current vs Pride', date: '2026-09-12', game_time: '18:00', google_event_id: 'old' }],
   { title: 'Kansas City Current vs Pride', date: '2026-09-12', gameTime: '20:00', calendarId: 'data' }
 );
-assert(!timeChange, 'already-linked shoots are not rematched by title variant');
+assert(timeChange?.id === 'moved-time', 'same teams + same date updates a time change');
 
 const charlotteHit = findExistingShootMatch(existing, {
   title: 'Charlotte FC vs Union',
@@ -90,7 +90,13 @@ const linkedHit = findExistingShootMatch(existing, {
   gameTime: '18:30',
   calendarId: 'data',
 });
-assert(!linkedHit, 'linked Google rows stay on their event id');
+assert(linkedHit?.id === 'linked', 'time-changed Google event updates the linked shoot');
+
+const dateMovedLinked = findExistingShootMatch(
+  [{ id: 'shifted', title: 'Current vs Pride', date: '2026-09-11', game_time: '19:00', google_event_id: 'g-old' }],
+  { title: 'Kansas City Current vs Pride', date: '2026-09-12', gameTime: '19:00', calendarId: 'data' }
+);
+assert(dateMovedLinked?.id === 'shifted', 'same teams + same time updates a date change');
 
 const moved = findExistingShootMatch(
   [{ id: 'near', title: 'KC Current vs Pride', date: '2026-09-11', game_time: '19:00' }],
@@ -105,14 +111,23 @@ const doubleHeader = findExistingShootMatch(
   ],
   { title: 'KC Current vs Pride', date: '2026-09-12', gameTime: '20:00' }
 );
-assert(doubleHeader?.id === 'early', 'same-day unlinked alias returns the first unlinked row');
+assert(doubleHeader?.id === 'late', 'same-day doubleheader matches by game time');
+
+const noGuess = findExistingShootMatch(
+  [
+    { id: 'early', title: 'Current vs Pride', date: '2026-09-12', game_time: '15:00' },
+    { id: 'late', title: 'Current vs Pride', date: '2026-09-12', game_time: '20:00' },
+  ],
+  { title: 'KC Current vs Pride', date: '2026-09-12', gameTime: '18:00' }
+);
+assert(!noGuess, 'unmatched doubleheader time creates a new entry');
 
 const resolved = resolveExistingShoot(
   { id: 'g-dup', title: 'Kansas City Current vs Pride', google_event_id: 'evt-1' },
   { id: 'app-1', title: 'Current vs Pride' }
 );
-assert(resolved.keep?.id === 'app-1', 'prefer app shoot over Google recreation');
-assert(resolved.retire?.id === 'g-dup', 'retire Google-titled duplicate');
+assert(resolved.keep?.id === 'g-dup', 'same event id keeps the linked shoot');
+assert(!resolved.retire, 'matching never retires another shoot');
 
 const onlyLinked = resolveExistingShoot({ id: 'g1', google_event_id: 'e' }, null);
 assert(onlyLinked.keep?.id === 'g1' && !onlyLinked.retire, 'keep sole Google-linked shoot');
