@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { getSchedule } from '@/components/utils/scheduleUtils';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { useTimezone } from '@/components/TimezoneContext';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
@@ -40,14 +40,6 @@ export function shootDotClass(shoot, rigSettings = [], { past = false } = {}) {
   return 'bg-blue-500';
 }
 
-function timezoneLabel() {
-  const offset = -new Date().getTimezoneOffset();
-  const sign = offset >= 0 ? '+' : '-';
-  const abs = Math.abs(offset);
-  const hours = String(Math.floor(abs / 60)).padStart(2, '0');
-  const minutes = abs % 60;
-  return `GMT${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
-}
 
 function PillButton({ active, children, onClick, disabled }) {
   return (
@@ -92,10 +84,11 @@ export default function ShootQuickView({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busyRig, setBusyRig] = useState(false);
+  const { timeZone, abbr } = useTimezone();
 
   if (!shoot) return null;
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const isPast = (shoot.date || '') < todayStr;
   const status = normalizeShootStatus(shoot.status);
   const isCancelled = status === 'cancelled';
@@ -108,7 +101,7 @@ export default function ShootQuickView({
   const effectiveRig = shoot.rig_type_override || matchedRig?.rig_type || 'Data';
   const isFancam = /fancam/i.test(effectiveRig);
   const dateLabel = shoot.date
-    ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric' })
+    ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric', time: shoot.game_time })
     : '';
   const assignedNames = (shoot.assigned_operators || [])
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
@@ -168,8 +161,8 @@ export default function ShootQuickView({
               </h2>
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
-                {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time)}` : ''}
-                {` (${timezoneLabel()})`}
+                {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time, shoot.date)}` : ''}
+                {` (${abbr})`}
               </p>
             </div>
           </div>

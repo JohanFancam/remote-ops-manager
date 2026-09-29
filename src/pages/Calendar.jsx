@@ -11,7 +11,7 @@ import SlackSyncToggle from '../components/calendar/SlackSyncToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, addMonths, subMonths, isToday, startOfWeek,
+  isSameDay, addMonths, subMonths, startOfWeek,
   endOfWeek, addWeeks, subWeeks, addDays
 } from 'date-fns';
 import CSVImportModal from '../components/shoots/CSVImportModal';
@@ -30,8 +30,11 @@ import { submitCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { canPerformCalendarRigCheck, copyButtonLabel, openSlackHref, parseRigCheckUsers } from '../utils/slackRigCheck';
 import {
   SHOOT_STATUS_DOTS,
+  formatTimeZA,
   normalizeShootStatus,
 } from '../utils/shootStatus';
+import { useTimezone } from '../components/TimezoneContext';
+import { displayYmdForSource, formatYmdInTz, parseSourceDateTime } from '../utils/timezone';
 
 const MONTH_VISIBLE_SHOOTS = 3;
 
@@ -412,7 +415,7 @@ function ShootCalendarEntry({
           <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
           <p className="min-w-0 flex-1 text-[11px] leading-[1.35] text-slate-100 truncate">
             {shoot.game_time ? (
-              <span className="tabular-nums text-slate-400 mr-1">{shoot.game_time}</span>
+              <span className="tabular-nums text-slate-400 mr-1">{formatTimeZA(shoot.game_time, shoot.date)}</span>
             ) : null}
             <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
             {shoot.google_sync_flag === 'new' && (
@@ -484,7 +487,7 @@ function ShootCalendarEntry({
         <span className={`mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-100 break-words whitespace-normal leading-snug">
-            {shoot.game_time ? <span className="font-mono tabular-nums text-slate-400 font-medium mr-1.5">{shoot.game_time}</span> : null}
+            {shoot.game_time ? <span className="font-mono tabular-nums text-slate-400 font-medium mr-1.5">{formatTimeZA(shoot.game_time, shoot.date)}</span> : null}
             <span className={coveredTitleClass || undefined} title={coveredTitleTitle}>{titleText}</span>
             {shoot.google_sync_flag === 'new' && (
               <span className="ml-1.5 text-[10px] uppercase tracking-wide text-emerald-300">New</span>
@@ -572,7 +575,8 @@ export default function Calendar() {
   const [googleSyncing, setGoogleSyncing] = useState(false);
   const [slackSyncing, setSlackSyncing] = useState(false);
   const canSyncCalendar = isAdmin || isAnalytics;
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { timeZone } = useTimezone();
+  const todayStr = formatYmdInTz(new Date(), timeZone);
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -748,20 +752,21 @@ export default function Calendar() {
     if (!shoot?.date) return null;
 
     const shootTime = shoot.game_time || shoot.start_time || '12:00';
-    const shootDateTime = new Date(`${shoot.date}T00:00:00`);
-    shootDateTime.setMinutes(timeToMinutes(shootTime));
+    const shootDateTime = parseSourceDateTime(shoot.date, shootTime);
+    if (!shootDateTime) return null;
 
     return (standbyDays || []).find((standby) => {
       const startDateStr = standby.start_date || standby.date;
       if (!startDateStr) return false;
 
-      const fallbackEndDate = format(addDays(new Date(`${startDateStr}T00:00:00`), 1), 'yyyy-MM-dd');
+      const fallbackEndDate = format(addDays(new Date(`${startDateStr}T12:00:00`), 1), 'yyyy-MM-dd');
       const endDateStr = standby.end_date || fallbackEndDate;
       const startTime = standby.start_time || '18:00';
       const endTime = standby.end_time || '06:00';
 
-      const startDateTime = new Date(`${startDateStr}T${startTime}:00`);
-      const endDateTime = new Date(`${endDateStr}T${endTime}:00`);
+      const startDateTime = parseSourceDateTime(startDateStr, startTime);
+      const endDateTime = parseSourceDateTime(endDateStr, endTime);
+      if (!startDateTime || !endDateTime) return false;
 
       return shootDateTime >= startDateTime && shootDateTime <= endDateTime;
     }) || null;
@@ -1080,7 +1085,7 @@ export default function Calendar() {
   const getShootsForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
     return shoots
-      .filter(s => s.date === dateStr)
+      .filter((s) => displayYmdForSource(s.date, s.game_time || s.start_time, timeZone) === dateStr)
       .sort((a, b) => (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || ''));
   };
 
@@ -1548,7 +1553,7 @@ export default function Calendar() {
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
             const isSelected = isSameDay(day, selectedDate);
-            const today = isToday(day);
+            const today = dateStr === todayStr;
             return (
               <div
                 key={day.toISOString()}
@@ -1684,7 +1689,7 @@ export default function Calendar() {
             const isPast = dateStr < todayStr;
 
             return (
-              <div key={day.toISOString()} className={`rounded-xl border ${isToday(day) ? 'border-blue-500/60 bg-blue-950/40' : 'border-slate-800 bg-slate-800/40'}`}>
+              <div key={day.toISOString()} className={`rounded-xl border ${dateStr === todayStr ? 'border-blue-500/60 bg-blue-950/40' : 'border-slate-800 bg-slate-800/40'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>

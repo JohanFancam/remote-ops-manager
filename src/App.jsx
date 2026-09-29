@@ -15,6 +15,7 @@ import ChangePassword from './pages/ChangePassword';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { TimezoneProvider } from '@/components/TimezoneContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppSplash from '@/components/brand/AppSplash';
 
@@ -91,6 +92,7 @@ function BootGate({ children }) {
 function App() {
   return (
     <AuthProvider>
+      <TimezoneProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
@@ -105,6 +107,7 @@ function App() {
           <SonnerToaster />
         </Router>
       </QueryClientProvider>
+      </TimezoneProvider>
     </AuthProvider>
   )
 }

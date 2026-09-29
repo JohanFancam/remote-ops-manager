@@ -1,4 +1,5 @@
 import { isSchedulePhaseEnabled } from './schedulePhases';
+import { formatHmInTz, getDisplayTimeZone, parseSourceDateTime } from '@/utils/timezone';
 
 export function timeToMinutes(timeStr) {
   if (!timeStr) return 0;
@@ -16,9 +17,7 @@ export function minutesToTime(totalMinutes) {
 export function getGameDateTime(shoot) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!shoot?.date || !gameTime) return null;
-  const [year, month, day] = shoot.date.split('-').map(Number);
-  const [h, m] = gameTime.split(':').map(Number);
-  return new Date(year, month - 1, day, h, m, 0, 0);
+  return parseSourceDateTime(shoot.date, gameTime);
 }
 
 export function getScheduleDateTimes(shoot, rig) {
@@ -55,13 +54,15 @@ export function getSchedule(shoot, rig) {
   const gameTime = shoot?.game_time || shoot?.start_time;
   if (!gameTime) return null;
   const dates = getScheduleDateTimes(shoot, rig);
+  const tz = getDisplayTimeZone();
+  const hm = (date) => (date ? formatHmInTz(date, tz) : null);
   return {
-    setup: dates.setup ? minutesToTime(dates.setup.getHours() * 60 + dates.setup.getMinutes()) : null,
-    pre_shoot: dates.pre_shoot ? minutesToTime(dates.pre_shoot.getHours() * 60 + dates.pre_shoot.getMinutes()) : null,
-    attention: dates.attention ? minutesToTime(dates.attention.getHours() * 60 + dates.attention.getMinutes()) : null,
-    sound: dates.sound ? minutesToTime(dates.sound.getHours() * 60 + dates.sound.getMinutes()) : null,
-    sound_trigger: dates.sound_trigger ? minutesToTime(dates.sound_trigger.getHours() * 60 + dates.sound_trigger.getMinutes()) : null,
-    game: gameTime,
+    setup: hm(dates.setup),
+    pre_shoot: hm(dates.pre_shoot),
+    attention: hm(dates.attention),
+    sound: hm(dates.sound),
+    sound_trigger: hm(dates.sound_trigger),
+    game: hm(dates.game) || gameTime,
   };
 }
 

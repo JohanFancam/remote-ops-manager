@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Phone, ArrowRight, Camera } from 'lucide-react';
-import { format } from 'date-fns';
 import { getDisplayName } from '../utils/nameUtils';
 import { getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
+import { useTimezone } from '@/components/TimezoneContext';
+import { formatHmInTz, parseSourceDateTime } from '@/utils/timezone';
+import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 
 function useClock() {
   const [now, setNow] = useState(new Date());
@@ -50,6 +52,7 @@ function Section({ label, accent = 'text-slate-500', children, withDivider = tru
 
 export default function DashboardBanner({ user, shoots = [], standbyDays = [], allUsers = [], showNextShoot = true }) {
   const now = useClock();
+  const { timeZone, abbr } = useTimezone();
 
   const getStandbyName = (sd) => {
     const u = allUsers.find((x) => x.email === sd.admin_email);
@@ -61,9 +64,9 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       const startDate = sd.start_date || sd.date;
       const endDate = sd.end_date || startDate;
       if (!startDate) return false;
-      const startDt = new Date(`${startDate}T${sd.start_time || '18:00'}`);
-      const endDt = new Date(`${endDate}T${sd.end_time || '06:00'}`);
-      return now >= startDt && now <= endDt;
+      const startDt = parseSourceDateTime(startDate, sd.start_time || '18:00');
+      const endDt = parseSourceDateTime(endDate, sd.end_time || '06:00');
+      return startDt && endDt && now >= startDt && now <= endDt;
     });
   }, [standbyDays, now]);
 
@@ -72,13 +75,13 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       .filter((sd) => {
         const startDate = sd.start_date || sd.date;
         if (!startDate) return false;
-        const startDt = new Date(`${startDate}T${sd.start_time || '18:00'}`);
-        return startDt > now;
+        const startDt = parseSourceDateTime(startDate, sd.start_time || '18:00');
+        return startDt && startDt > now;
       })
       .sort((a, b) => {
-        const aStart = new Date(`${a.start_date || a.date}T${a.start_time || '18:00'}`);
-        const bStart = new Date(`${b.start_date || b.date}T${b.start_time || '18:00'}`);
-        return aStart - bStart;
+        const aStart = parseSourceDateTime(a.start_date || a.date, a.start_time || '18:00');
+        const bStart = parseSourceDateTime(b.start_date || b.date, b.start_time || '18:00');
+        return (aStart?.getTime() || 0) - (bStart?.getTime() || 0);
       })[0] || null;
   }, [standbyDays, now]);
 
@@ -111,10 +114,11 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
       <div className={`relative grid gap-5 sm:grid-cols-2 ${showNextShoot ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Section label="Now" accent="text-blue-400/80">
           <div className="rom-mono text-2xl font-medium tracking-tight text-slate-50 sm:text-3xl tabular-nums">
-            {now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {now.toLocaleTimeString('en-ZA', { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
           </div>
           <div className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-slate-500">
-            {format(now, 'EEE, d MMM yyyy')}
+            {now.toLocaleDateString('en-ZA', { timeZone, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            <span className="ml-2 text-slate-600">{abbr}</span>
           </div>
         </Section>
 
@@ -130,7 +134,10 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                       <span className="truncate">{getStandbyName(sd)}</span>
                     </div>
                     <div className="pl-6">
-                      <InfoPill tone="yellow">{format(new Date(`${startDate}T12:00:00`), 'EEE, MMM d')}</InfoPill>
+                      <InfoPill tone="yellow">
+                        {formatDateZA(startDate, { weekday: 'short', month: 'short', time: sd.start_time || '18:00' })}
+                        {sd.start_time ? ` · ${formatTimeZA(sd.start_time, startDate)}` : ''}
+                      </InfoPill>
                     </div>
                   </div>
                 );
@@ -149,7 +156,14 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                 <span className="truncate">{getStandbyName(nextStandby)}</span>
               </div>
               <div className="pl-6">
-                <InfoPill>{format(new Date(`${(nextStandby.start_date || nextStandby.date)}T12:00:00`), 'EEE, MMM d')}</InfoPill>
+                <InfoPill>
+                  {formatDateZA(nextStandby.start_date || nextStandby.date, {
+                    weekday: 'short',
+                    month: 'short',
+                    time: nextStandby.start_time || '18:00',
+                  })}
+                  {nextStandby.start_time ? ` · ${formatTimeZA(nextStandby.start_time, nextStandby.start_date || nextStandby.date)}` : ''}
+                </InfoPill>
               </div>
             </div>
           ) : (
@@ -166,8 +180,8 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
                   <span className="truncate">{shortenTitle(nextShoot.title)}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pl-6">
-                  <InfoPill>{format(new Date(`${nextShoot.date}T12:00:00`), 'EEE, MMM d')}</InfoPill>
-                  {nextShootSchedule?.setup && <InfoPill tone="blue">setup {format(nextShootSchedule.setup, 'HH:mm')}</InfoPill>}
+                  <InfoPill>{formatDateZA(nextShoot.date, { weekday: 'short', month: 'short', time: nextShoot.game_time })}</InfoPill>
+                  {nextShootSchedule?.setup && <InfoPill tone="blue">setup {formatHmInTz(nextShootSchedule.setup, timeZone)}</InfoPill>}
                 </div>
                 <div className="pl-6 rom-mono text-lg font-medium text-blue-300 tabular-nums">{nextShootCountdown}</div>
               </div>

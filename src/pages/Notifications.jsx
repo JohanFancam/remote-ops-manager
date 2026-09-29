@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { Bell, Calendar, Search, X, Check } from 'lucide-react';
 import { applyCalendarChangeRequest, declineCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { cn } from '@/lib/utils';
@@ -128,7 +129,7 @@ function sastDateKey(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 'unknown';
   return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Africa/Johannesburg',
+    timeZone: getDisplayTimeZone(),
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -140,7 +141,7 @@ function sastDateLabel(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 'Unknown date';
   return d.toLocaleDateString('en-ZA', {
-    timeZone: 'Africa/Johannesburg',
+    timeZone: getDisplayTimeZone(),
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -153,7 +154,7 @@ function sastTimeLabel(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString('en-ZA', {
-    timeZone: 'Africa/Johannesburg',
+    timeZone: getDisplayTimeZone(),
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -382,9 +383,9 @@ export default function Notifications() {
                             {(notification.shoot_date || notification.shoot_time) && (
                               <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-400">
                                 <Calendar className="h-3 w-3" />
-                                {notification.shoot_date ? <span>{formatDateZA(notification.shoot_date)}</span> : null}
+                                {notification.shoot_date ? <span>{formatDateZA(notification.shoot_date, { time: notification.shoot_time })}</span> : null}
                                 {notification.shoot_time && (
-                                  <span>· {formatTimeZA(notification.shoot_time)} SAST</span>
+                                  <span>· {formatTimeZA(notification.shoot_time, notification.shoot_date)} {formatTimezoneAbbr(getDisplayTimeZone())}</span>
                                 )}
                               </div>
                             )}

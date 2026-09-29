@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { CalendarDays, Camera, Shield } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '@/components/AppContext';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
-import { formatDateZA, formatTimeZA, normalizeShootStatus } from '@/utils/shootStatus';
+import { formatDateTimeZA, normalizeShootStatus } from '@/utils/shootStatus';
 import { coverageForShoot } from '@/utils/standbyCoverage';
 import DashboardSection from '@/components/dashboard/DashboardSection';
+import DashboardBanner from '@/components/dashboard/DashboardBanner';
+import { useTimezone } from '@/components/TimezoneContext';
+import { displayYmdForSource, formatYmdInTz } from '@/utils/timezone';
 
 const PAGE_SIZE_KEY = 'viewer_dashboard_page_size';
 const LOCAL_KEY = 'rom_viewer_dashboard_page_size';
@@ -42,8 +44,7 @@ function ViewerGameTile({ shoot, users, standbyDays }) {
         )}
       </div>
       <p className="text-xs text-slate-500 mt-1">
-        {formatDateZA(shoot.date, { weekday: 'short' })}
-        {(shoot.game_time || shoot.start_time) ? ` · ${formatTimeZA(shoot.game_time || shoot.start_time)}` : ''}
+        {formatDateTimeZA(shoot.date, shoot.game_time || shoot.start_time)}
       </p>
       <div className="mt-auto pt-3 space-y-1.5">
         <p className="flex items-center gap-1.5 text-xs text-slate-300 min-w-0">
@@ -61,8 +62,9 @@ function ViewerGameTile({ shoot, users, standbyDays }) {
 
 export default function ViewerSchedule() {
   const { user } = useApp();
+  const { timeZone } = useTimezone();
   const queryClient = useQueryClient();
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayStr = formatYmdInTz(new Date(), timeZone);
   const firstName = user?.full_name?.split(' ')[0] || 'Viewer';
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(() => {
@@ -110,7 +112,9 @@ export default function ViewerSchedule() {
   const upcoming = useMemo(() => (
     (shoots || [])
       .filter((shoot) => {
-        if (!shoot?.date || shoot.date < todayStr) return false;
+        if (!shoot?.date) return false;
+        const displayDate = displayYmdForSource(shoot.date, shoot.game_time || shoot.start_time || '23:59', timeZone);
+        if (displayDate < todayStr) return false;
         const status = normalizeShootStatus(shoot.status);
         return status !== 'cancelled' && status !== 'completed';
       })
@@ -119,7 +123,7 @@ export default function ViewerSchedule() {
         if (date !== 0) return date;
         return String(a.game_time || a.start_time || '').localeCompare(String(b.game_time || b.start_time || ''));
       })
-  ), [shoots, todayStr]);
+  ), [shoots, todayStr, timeZone]);
 
   const totalPages = Math.max(1, Math.ceil(upcoming.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
@@ -162,6 +166,16 @@ export default function ViewerSchedule() {
           <h1 className="rom-title">Welcome, {firstName}</h1>
           <p className="rom-subtitle">Upcoming games, who is capturing, and who is on standby.</p>
         </header>
+
+        <section className="mb-8 rom-enter-delay">
+          <DashboardBanner
+            user={user}
+            shoots={shoots}
+            standbyDays={standbyDays}
+            allUsers={users}
+            showNextShoot={false}
+          />
+        </section>
 
         <DashboardSection
           title="Upcoming games"

@@ -228,6 +228,17 @@ app.patch('/api/auth/me', authMiddleware, (req, res) => {
   delete body.standby;
   delete body.inactive;
   delete body.email;
+  if (body.timezone !== undefined) {
+    const tz = String(body.timezone || '').trim();
+    if (tz && tz !== 'device') {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date());
+      } catch {
+        return res.status(400).json({ error: 'Unknown time zone' });
+      }
+    }
+    body.timezone = tz || 'Africa/Johannesburg';
+  }
   const updated = updateUser(req.user.id, body);
   res.json(updated);
 });

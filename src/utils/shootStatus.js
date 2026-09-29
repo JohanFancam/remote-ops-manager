@@ -1,3 +1,12 @@
+import {
+  DEFAULT_TIMEZONE,
+  formatHmInTz,
+  formatYmdInTz,
+  getDisplayTimeZone,
+  parseSourceDateTime,
+  SOURCE_TIMEZONE,
+} from './timezone.js';
+
 /** Canonical shoot statuses for Remote Ops Manager. */
 export const SHOOT_STATUSES = ['upcoming', 'cancelled', 'postponed', 'completed'];
 
@@ -36,7 +45,7 @@ export const SHOOT_STATUS_DOTS = {
   cancelled: 'bg-red-600',
 };
 
-export const ZA_TIMEZONE = 'Africa/Johannesburg';
+export const ZA_TIMEZONE = DEFAULT_TIMEZONE;
 
 /** South African Rand display. */
 export function formatZAR(amount, { withSpace = true } = {}) {
@@ -45,43 +54,53 @@ export function formatZAR(amount, { withSpace = true } = {}) {
   return withSpace ? `R ${formatted}` : `R${formatted}`;
 }
 
-/** Date string (yyyy-MM-dd) → en-ZA medium date (Africa/Johannesburg). */
+/** Date string (yyyy-MM-dd) → medium date in the signed-in user's time zone. */
 export function formatDateZA(dateStr, options = {}) {
   if (!dateStr) return '—';
+  const { time, ...intl } = options;
   const d = dateStr instanceof Date
     ? dateStr
-    : new Date(String(dateStr).includes('T') ? dateStr : `${dateStr}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return String(dateStr);
+    : String(dateStr).includes('T')
+      ? new Date(dateStr)
+      : parseSourceDateTime(String(dateStr).slice(0, 10), time || '12:00');
+  if (!d || Number.isNaN(d.getTime())) return String(dateStr);
   return d.toLocaleDateString('en-ZA', {
-    timeZone: ZA_TIMEZONE,
+    timeZone: getDisplayTimeZone(),
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    ...options,
+    ...intl,
   });
 }
 
-/** Time string HH:mm → en-ZA 24h display. */
-export function formatTimeZA(timeStr) {
+/** Time string HH:mm stored in SAST → 24h display in the user's time zone. */
+export function formatTimeZA(timeStr, dateStr = '') {
   if (!timeStr) return '—';
   if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-    const [h, m] = timeStr.split(':');
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    const sourceDate = dateStr
+      ? String(dateStr).slice(0, 10)
+      : formatYmdInTz(new Date(), SOURCE_TIMEZONE);
+    const d = parseSourceDateTime(sourceDate, timeStr);
+    return d ? formatHmInTz(d, getDisplayTimeZone()) : timeStr;
   }
   const d = new Date(timeStr);
   if (Number.isNaN(d.getTime())) return String(timeStr);
-  return d.toLocaleTimeString('en-ZA', {
-    timeZone: ZA_TIMEZONE,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  return formatHmInTz(d, getDisplayTimeZone());
 }
 
 export function formatDateTimeZA(dateStr, timeStr) {
-  const datePart = formatDateZA(dateStr);
+  if (!dateStr) return formatTimeZA(timeStr);
+  const d = parseSourceDateTime(String(dateStr).slice(0, 10), timeStr || '12:00');
+  if (!d) return formatDateZA(dateStr);
+  const tz = getDisplayTimeZone();
+  const datePart = d.toLocaleDateString('en-ZA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
   if (!timeStr) return datePart;
-  return `${datePart}, ${formatTimeZA(timeStr)}`;
+  return `${datePart}, ${formatHmInTz(d, tz)}`;
 }
 
 /** Assigned tiles grey as soon as the shoot is marked complete. */
