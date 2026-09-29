@@ -330,6 +330,10 @@ function isReadOnlyUser(user) {
   return user?.role === 'viewer';
 }
 
+function viewerMayWriteSetting(key, value) {
+  return key === 'viewer_dashboard_page_size' && (String(value) === '4' || String(value) === '6');
+}
+
 function canReadAppFaults(user) {
   return user?.role === 'admin';
 }
@@ -365,10 +369,12 @@ app.post('/api/entities/:type/filter', authMiddleware, (req, res) => {
 app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
-    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
-      return res.status(403).json({ error: 'Viewer accounts are read-only' });
-    }
     const payload = { ...(req.body || {}) };
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      if (!(type === 'AppSettings' && viewerMayWriteSetting(payload.key, payload.value))) {
+        return res.status(403).json({ error: 'Viewer accounts are read-only' });
+      }
+    }
     if (type === 'RigCheckAssignment') {
       const isAdmin = req.user?.role === 'admin';
       const isStandby = req.user?.role === 'standby';
@@ -445,11 +451,15 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
 app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
-    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
-      return res.status(403).json({ error: 'Viewer accounts are read-only' });
-    }
     const previous = getEntity(type, id);
     const patch = { ...(req.body || {}) };
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      const settingKey = patch.key || previous?.key;
+      const settingValue = patch.value != null ? patch.value : previous?.value;
+      if (!(type === 'AppSettings' && viewerMayWriteSetting(settingKey, settingValue) && (!patch.key || patch.key === 'viewer_dashboard_page_size'))) {
+        return res.status(403).json({ error: 'Viewer accounts are read-only' });
+      }
+    }
     if (type === 'User') {
       if (req.user?.role !== 'admin') {
         return res.status(403).json({ error: 'Admin only' });
