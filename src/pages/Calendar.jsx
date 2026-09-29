@@ -158,6 +158,7 @@ function ShootCalendarEntry({
   isAdmin,
   isOperator,
   isAnalytics = false,
+  isViewer = false,
   allUsers,
   allShoots,
   rigSettings,
@@ -208,7 +209,7 @@ function ShootCalendarEntry({
 
   // Remotes cannot self-assign when another remote already claimed (assigned or pending)
   const claimedByOther = isClaimedByOtherOperator(shoot, user?.email);
-  const takenByOther = !isAnalytics && !isAdmin && !isAssigned && !isPending && claimedByOther;
+  const takenByOther = !isAnalytics && !isViewer && !isAdmin && !isAssigned && !isPending && claimedByOther;
 
   const dotColor = isCancelled
     ? 'bg-red-600'
@@ -336,7 +337,7 @@ function ShootCalendarEntry({
 
   const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
   const showMinus = isAssigned || isPending;
-  const canQuickAssign = !assignmentLocked && !isAnalytics && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
+  const canQuickAssign = !assignmentLocked && !isAnalytics && !isViewer && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
 
   const quickAssignButton = (
     <button
@@ -435,7 +436,7 @@ function ShootCalendarEntry({
                 <Wrench className="h-3 w-3" />
               </button>
             )}
-            {!isAnalytics && !assignmentLocked && (
+            {!isAnalytics && !isViewer && !assignmentLocked && (
               <>
                 {isAdmin && hasPending && (
                   <button
@@ -512,7 +513,7 @@ function ShootCalendarEntry({
               {shoot.rig_check_completed ? 'Checked' : 'Rig check'}
             </button>
           )}
-          {!isAnalytics && !assignmentLocked && quickAssignButton}
+          {!isAnalytics && !isViewer && !assignmentLocked && quickAssignButton}
         </div>
       </div>
       {isAdmin && hasPending && !assignmentLocked && (
@@ -546,8 +547,9 @@ function ShootCalendarEntry({
 }
 
 export default function Calendar() {
-  const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
-  const canSeeAllStandbyCoverage = isAdmin || isStandby || isAnalytics;
+  const { user, isAdmin, isStandby, isOperator, isAnalytics, isViewer } = useApp();
+  const canSeeAllStandbyCoverage = isAdmin || isStandby || isAnalytics || isViewer;
+  const readOnly = isViewer;
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -805,7 +807,7 @@ export default function Calendar() {
   };
 
   const handleToggleUnavailableDay = async (day) => {
-    if (!user?.email || isAdmin) return;
+    if (readOnly || !user?.email || isAdmin) return;
     const dateStr = format(day, 'yyyy-MM-dd');
     const exactCalendarEntry = getMyExactCalendarUnavailableForDay(day);
 
@@ -1083,6 +1085,7 @@ export default function Calendar() {
   };
 
   const handleAddShoot = async () => {
+    if (readOnly) return;
     if (!form.title || !form.date) return;
     const payload = {
       ...form,
@@ -1126,6 +1129,7 @@ export default function Calendar() {
   };
 
   const handleShootUpdate = async (id, data) => {
+    if (readOnly) return;
     if (isAnalytics) {
       const existing = shoots.find((s) => s.id === id);
       await submitCalendarChangeRequest({
@@ -1468,6 +1472,7 @@ export default function Calendar() {
     : null;
 
   const handleContextMenu = (e, shoot) => {
+    if (readOnly) return;
     setContextMenu({ shoot });
   };
 
@@ -1480,6 +1485,7 @@ export default function Calendar() {
       isAdmin={isAdmin}
       isOperator={isOperator}
       isAnalytics={isAnalytics}
+      isViewer={isViewer}
       allUsers={allUsers}
       allShoots={shoots}
       rigSettings={rigSettings}
@@ -1766,7 +1772,9 @@ export default function Calendar() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Calendar</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {isAnalytics
+              {isViewer
+                ? 'View-only calendar. Open a game to see who is capturing and who is on standby.'
+                : isAnalytics
                 ? 'View the full calendar and standby coverage. Request edits from a shoot — assignments stay with operators.'
                 : 'Calendar is the main view. Operators can mark full-day unavailability here; admins see those indicators.'}
             </p>
@@ -2011,6 +2019,7 @@ export default function Calendar() {
         user={user}
         isAdmin={isAdmin}
         isAnalytics={isAnalytics}
+        isViewer={isViewer}
         allUsers={allUsers}
         rigSettings={rigSettings}
         getStandbyCoverageForShoot={getStandbyCoverageForShoot}
@@ -2037,11 +2046,13 @@ export default function Calendar() {
             isAdmin={isAdmin}
             isStandby={isStandby}
             isAnalytics={isAnalytics}
+            isViewer={isViewer}
             allUsers={allUsers}
             rigSettings={rigSettings}
-            canCheckRig={canCheckRig}
+            standbyCoverage={coverage}
+            canCheckRig={!readOnly && canCheckRig}
             onClose={() => setQuickViewShoot(null)}
-            onUpdate={handleShootUpdate}
+            onUpdate={readOnly ? undefined : handleShootUpdate}
             onApprovePending={handleApprovePending}
             onDeclinePending={handleDeclinePending}
             onEdit={startEdit}
@@ -2076,7 +2087,7 @@ export default function Calendar() {
         />
       )}
 
-      {liveSelectedShoot && (
+      {liveSelectedShoot && !readOnly && (
         <ShootSidePanel
           shoot={liveSelectedShoot}
           user={user}

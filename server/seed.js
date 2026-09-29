@@ -73,6 +73,7 @@ function seedUsers(demoDisabled = false) {
     { email: 'priya.nair@example.com', password: 'standby123', full_name: 'Priya Nair', role: 'standby', standby: true },
     { email: 'accounts@example.com', password: 'accounts123', full_name: 'Accounts Desk', role: 'accounts' },
     { email: 'analytics@example.com', password: 'analytics123', full_name: 'Data Analytics', role: 'analytics' },
+    { email: 'viewer@example.com', password: 'viewer123', full_name: 'Schedule Viewer', role: 'viewer' },
   ];
 
   for (const u of roster) {

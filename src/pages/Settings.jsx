@@ -183,7 +183,7 @@ function ChangePasswordCard() {
 }
 
 export default function Settings() {
-  const { user, isAdmin, isAnalytics } = useApp();
+  const { user, isAdmin, isAnalytics, isViewer } = useApp();
   const { refreshPublicSettings } = useAuth();
   const queryClient = useQueryClient();
 
@@ -376,8 +376,8 @@ export default function Settings() {
               <div className="flex-1 min-w-0">
                 <p className="text-lg font-semibold text-slate-100">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-slate-400 text-sm">{user?.email}</p>
-                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
-                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : user?.role === 'analytics' ? 'Data Analytics' : 'Remote Operator'}
+                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : user?.role === 'viewer' ? 'bg-slate-600/30 text-slate-300 border-slate-600' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : user?.role === 'analytics' ? 'Data Analytics' : user?.role === 'viewer' ? 'Viewer' : 'Remote Operator'}
                 </Badge>
               </div>
             </div>
@@ -398,8 +398,8 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Push / install — all roles */}
-        <Card className="bg-slate-900 border-slate-800 mb-6">
+        {/* Push / install — all roles except view-only */}
+        {!isViewer && <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <Bell className="h-5 w-5 text-blue-400" /> Device Notifications
@@ -408,7 +408,7 @@ export default function Settings() {
           <CardContent className="pt-4">
             <EnablePushCard />
           </CardContent>
-        </Card>
+        </Card>}
 
         {isAdmin && (
           <div className="mb-3 mt-2">

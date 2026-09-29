@@ -19,6 +19,8 @@ export default function RigChecks() {
   const { data: assignments = [] } = useQuery({
     queryKey: ['rigCheckAssignments'],
     queryFn: () => base44.entities.RigCheckAssignment.list('-created_date', 400),
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
   const { data: users = [] } = useQuery({
     queryKey: ['allUsers'],
@@ -36,8 +38,12 @@ export default function RigChecks() {
   });
 
   const active = assignments.filter((row) => row.status !== 'cancelled');
-  const completed = active.filter((row) => row.status === 'completed');
-  const pending = active.filter((row) => row.status !== 'completed');
+  const completed = active
+    .filter((row) => row.status === 'completed')
+    .sort((a, b) => String(b.completed_at || b.updated_date || '').localeCompare(String(a.completed_at || a.updated_date || '')));
+  const pending = active
+    .filter((row) => row.status !== 'completed')
+    .sort((a, b) => String(a.due_date || a.shoot_date || '').localeCompare(String(b.due_date || b.shoot_date || '')));
 
   const chartData = useMemo(() => {
     const map = new Map();
@@ -124,25 +130,53 @@ export default function RigChecks() {
 
         <section className="rom-panel p-4">
           <h2 className="text-sm font-semibold text-slate-100 mb-3">Assignments</h2>
-          <p className="text-xs text-slate-500 mb-3">Tiles show whether the rig was checked. Expand one for the items and notes.</p>
+          <p className="text-xs text-slate-500 mb-3">Confirmed checks show as Done first. Expand one for the items and notes.</p>
           {active.length === 0 ? (
             <p className="text-sm text-slate-500">Nothing assigned yet.</p>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {active.slice(0, 40).map((row) => (
-                <RigCheckTile
-                  key={row.id}
-                  row={mergeChecklistFromRig(
-                    row,
-                    rigSettings.find((rig) => rig.id === row.rig_setting_id)
-                      || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
-                  )}
-                  assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
-                  todayStr={todayStr}
-                  expanded={expandedId === row.id}
-                  onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
-                />
-              ))}
+            <div className="space-y-5">
+              {completed.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400 mb-2">Done</p>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {completed.slice(0, 20).map((row) => (
+                      <RigCheckTile
+                        key={row.id}
+                        row={mergeChecklistFromRig(
+                          row,
+                          rigSettings.find((rig) => rig.id === row.rig_setting_id)
+                            || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
+                        )}
+                        assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
+                        todayStr={todayStr}
+                        expanded={expandedId === row.id}
+                        onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {pending.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-300 mb-2">Open</p>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {pending.slice(0, 20).map((row) => (
+                      <RigCheckTile
+                        key={row.id}
+                        row={mergeChecklistFromRig(
+                          row,
+                          rigSettings.find((rig) => rig.id === row.rig_setting_id)
+                            || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
+                        )}
+                        assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
+                        todayStr={todayStr}
+                        expanded={expandedId === row.id}
+                        onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>

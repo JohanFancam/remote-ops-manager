@@ -19,6 +19,7 @@ export default function DayEventsPopup({
   user,
   isAdmin = false,
   isAnalytics = false,
+  isViewer = false,
   allUsers = [],
   rigSettings = [],
   onClose,
@@ -82,10 +83,10 @@ export default function DayEventsPopup({
                 const isPending = shoot.pending_operators?.includes(user?.email);
                 const isPast = (shoot.date || dateStr) < todayStr;
                 const shouldGrey = isPast || isCompleted || isCancelled;
-                const claimedByOther = !isAnalytics && !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
+                const claimedByOther = !isAnalytics && !isViewer && !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
                 const showMinus = isAssigned || isPending;
                 const assignmentLocked = isAssignmentLocked(shoot);
-                const canToggle = !assignmentLocked && !isAnalytics && !isPast && !isCancelled && !isCompleted && !!user?.email
+                const canToggle = !assignmentLocked && !isAnalytics && !isViewer && !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
                 const assignedNames = (shoot.assigned_operators || [])
@@ -188,7 +189,7 @@ export default function DayEventsPopup({
                         </button>
                         </>
                       )}
-                      {!isAnalytics && !assignmentLocked && (
+                      {!isAnalytics && !isViewer && !assignmentLocked && (
                       <button
                         type="button"
                         disabled={!canToggle}

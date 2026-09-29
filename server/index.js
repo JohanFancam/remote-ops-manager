@@ -252,7 +252,7 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
-  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics'];
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics', 'viewer'];
   let role = String(req.body?.role || 'user');
   if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -326,6 +326,10 @@ app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
   res.json({ file_url });
 });
 
+function isReadOnlyUser(user) {
+  return user?.role === 'viewer';
+}
+
 function canReadAppFaults(user) {
   return user?.role === 'admin';
 }
@@ -361,6 +365,9 @@ app.post('/api/entities/:type/filter', authMiddleware, (req, res) => {
 app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      return res.status(403).json({ error: 'Viewer accounts are read-only' });
+    }
     const payload = { ...(req.body || {}) };
     if (type === 'RigCheckAssignment') {
       const isAdmin = req.user?.role === 'admin';
@@ -438,6 +445,9 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
 app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      return res.status(403).json({ error: 'Viewer accounts are read-only' });
+    }
     const previous = getEntity(type, id);
     const patch = { ...(req.body || {}) };
     if (type === 'User') {
@@ -508,6 +518,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
 app.delete('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
+    if (isReadOnlyUser(req.user)) {
+      return res.status(403).json({ error: 'Viewer accounts are read-only' });
+    }
     if ((type === 'AppFault' || type === 'RigCheckAssignment') && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }

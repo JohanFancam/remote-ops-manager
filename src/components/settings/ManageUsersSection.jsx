@@ -16,6 +16,7 @@ const ROLE_OPTIONS = [
   { value: 'user', label: 'Remote Operator' },
   { value: 'standby', label: 'Operator / Standby' },
   { value: 'analytics', label: 'Data Analytics' },
+  { value: 'viewer', label: 'Viewer' },
 ];
 
 const roleBadgeClass = {
@@ -23,6 +24,7 @@ const roleBadgeClass = {
   standby: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
   accounts: 'bg-green-500/20 text-emerald-400 border-green-500/30',
   analytics: 'bg-cyan-500/20 text-cyan-300 border-cyan-800',
+  viewer: 'bg-slate-600/30 text-slate-300 border-slate-600',
   user: 'bg-slate-700 text-slate-400 border-slate-700',
 };
 const roleLabel = {
@@ -31,6 +33,7 @@ const roleLabel = {
   user: 'Remote Operator',
   standby: 'Operator / Standby',
   analytics: 'Data Analytics',
+  viewer: 'Viewer',
 };
 
 async function copyText(text) {

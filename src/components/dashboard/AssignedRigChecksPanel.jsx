@@ -129,6 +129,7 @@ export default function AssignedRigChecksPanel({
       status: 'completed',
       completed_at: now,
     });
+    queryClient.invalidateQueries({ queryKey: ['rigCheckAssignments'] });
   };
 
   if (!userEmail || (!alwaysShow && rows.length === 0)) return null;

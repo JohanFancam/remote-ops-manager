@@ -75,8 +75,10 @@ export default function ShootQuickView({
   isAdmin = false,
   isStandby = false,
   isAnalytics = false,
+  isViewer = false,
   allUsers = [],
   rigSettings = [],
+  standbyCoverage = null,
   onClose,
   onUpdate,
   onApprovePending,
@@ -230,7 +232,7 @@ export default function ShootQuickView({
           )}
 
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operator</p>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Capturing</p>
             <p className="text-sm text-slate-200">
               {assignmentLocked
                 ? 'Manual — not assignable'
@@ -244,13 +246,24 @@ export default function ShootQuickView({
             </p>
           </div>
 
-          <CalendarRigTestActions
-            shoot={shoot}
-            user={user}
-            isAdmin={isAdmin}
-            allUsers={allUsers}
-            rigSettings={rigSettings}
-          />
+          <div>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Standby</p>
+            <p className="text-sm text-slate-200">
+              {standbyCoverage
+                ? (standbyCoverage.admin_name || standbyCoverage.admin_email)
+                : 'No standby'}
+            </p>
+          </div>
+
+          {!isViewer && (
+            <CalendarRigTestActions
+              shoot={shoot}
+              user={user}
+              isAdmin={isAdmin}
+              allUsers={allUsers}
+              rigSettings={rigSettings}
+            />
+          )}
 
           {isAdmin && !assignmentLocked && pendingEmails.length > 0 && (
             <div className="rounded-lg border border-amber-800/40 bg-amber-950/25 px-3 py-2 space-y-2">
@@ -282,7 +295,7 @@ export default function ShootQuickView({
             </div>
           )}
 
-          {(isAdmin || isStandby || isAnalytics) && (
+          {!isViewer && (isAdmin || isStandby || isAnalytics) && (
             <div className="flex flex-wrap gap-2">
               {canCheckRig && (
                 <button

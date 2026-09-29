@@ -34,6 +34,12 @@ const analyticsNavItems = [
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
+const viewerNavItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
 const allAdminMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
@@ -85,9 +91,15 @@ const allAnalyticsMenuItems = [
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
+const allViewerMenuItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isStandby, isAccounts, isAnalytics, isLoading, user } = useApp();
+  const { isAdmin, isStandby, isAccounts, isAnalytics, isViewer, isLoading, user } = useApp();
   const { logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -96,11 +108,13 @@ export default function MobileBottomNav() {
   const navItems = isAdmin ? adminNavItems
     : isAccounts ? accountsNavItems
     : isAnalytics ? analyticsNavItems
+    : isViewer ? viewerNavItems
     : isStandby ? standbyNavItems
     : remoteNavItems;
   const allMenuItems = isAdmin ? allAdminMenuItems
     : isAccounts ? allAccountsMenuItems
     : isAnalytics ? allAnalyticsMenuItems
+    : isViewer ? allViewerMenuItems
     : isStandby ? allStandbyMenuItems
     : allRemoteMenuItems;
 

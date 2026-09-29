@@ -9,10 +9,9 @@ import { google } from 'googleapis';
 import { listEntities, createEntity, updateEntity, deleteEntity } from './entities.js';
 import { handleShootChange, createNotifications } from './notifications.js';
 import {
-  findAliasDateMatch,
+  findExistingShootMatch,
   isManualShootTitle,
   matchupKey,
-  normalizeShootTitle,
   resolveExistingShoot,
   titlesAreEquivalent,
 } from './shootTitleMatch.js';
@@ -281,17 +280,8 @@ async function getAuthedClient() {
   return client;
 }
 
-function findTitleDateMatch(shoots, title, date, calendarId = '') {
-  const wanted = normalizeShootTitle(title);
-  if (!wanted || !date) return null;
-  const exact = (shoots || []).find((shoot) => (
-    !shoot.google_event_id
-    && shoot.date === date
-    && normalizeShootTitle(shoot.title) === wanted
-    && (!shoot.google_calendar_id || !calendarId || shoot.google_calendar_id === calendarId)
-  ));
-  if (exact) return exact;
-  return findAliasDateMatch(shoots, title, date, calendarId);
+function findTitleDateMatch(shoots, title, date, calendarId = '', gameTime = '') {
+  return findExistingShootMatch(shoots, { title, date, gameTime, calendarId });
 }
 
 /** Convert Google event start → { date: yyyy-MM-dd, game_time: HH:mm|'' } in SAST. */
@@ -403,7 +393,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       existingShoots.filter((shoot) => !linked || shoot.id !== linked.id),
       title,
       times.date,
-      source.id
+      source.id,
+      times.game_time
     );
     const { keep: existing, retire } = resolveExistingShoot(linked, aliasMatch);
     if (retire) {
@@ -456,6 +447,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         patch.google_sync_flag = 'updated';
       }
       const next = updateEntity('Shoot', existing.id, patch);
+      const idx = existingShoots.findIndex((shoot) => shoot.id === existing.id);
+      if (idx >= 0) existingShoots[idx] = next || { ...existing, ...patch };
       if (changed && next) {
         updated += 1;
         changes.push({
@@ -474,7 +467,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         unchanged += 1;
       }
     } else {
-      createEntity('Shoot', {
+      const createdShoot = createEntity('Shoot', {
         title,
         client: '',
         location: event.location || '',
@@ -499,6 +492,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         google_sync_flag: 'new',
         ...DEFAULT_OFFSETS,
       }, user);
+      existingShoots.push(createdShoot);
+      byGoogleId.set(event.id, createdShoot);
       created += 1;
       changes.push({
         action: 'created',

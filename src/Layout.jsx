@@ -26,16 +26,17 @@ import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSE_WIDTH = 1400;
 
-function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics) {
+function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics, isViewer) {
   if (isAdmin) return 'Admin';
   if (isStandby) return 'Operator / Standby';
   if (isAccounts) return 'Accounts';
   if (isAnalytics) return 'Data Analytics';
+  if (isViewer) return 'Viewer';
   return 'Remote Operator';
 }
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isStandby, isAccounts, isAnalytics, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, isAnalytics, isViewer, isLoading } = useApp();
   const { logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
@@ -91,6 +92,15 @@ function LayoutContent({ children, currentPageName }) {
       navigate('/', { replace: true });
     }
   }, [isLoading, isAnalytics, currentPageName, navigate]);
+
+  useEffect(() => {
+    if (isLoading || !isViewer) return;
+    const allowed = new Set(['Dashboard', 'Calendar', 'Settings']);
+    const page = currentPageName || 'Dashboard';
+    if (!allowed.has(page)) {
+      navigate('/', { replace: true });
+    }
+  }, [isLoading, isViewer, currentPageName, navigate]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -155,6 +165,12 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
+  const viewerNav = [
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
+    { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Settings', icon: Settings, page: 'Settings' },
+  ];
+
   const navItems = isAdmin
     ? adminNav
     : isStandby
@@ -163,7 +179,9 @@ function LayoutContent({ children, currentPageName }) {
         ? accountsNav
         : isAnalytics
           ? analyticsNav
-          : remoteNav;
+          : isViewer
+            ? viewerNav
+            : remoteNav;
 
   const handleLogout = () => logout(true);
 
@@ -172,7 +190,7 @@ function LayoutContent({ children, currentPageName }) {
       shoots={shoots}
       user={user}
       notifyHours={notifyHours}
-      enabled={!!user && !isAccounts}
+      enabled={!!user && !isAccounts && !isViewer}
     >
     <div className="min-h-screen flex">
       <TooltipProvider delayDuration={200}>
@@ -201,7 +219,7 @@ function LayoutContent({ children, currentPageName }) {
             <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center gap-2 rounded-xl border border-[color:var(--rom-line)] bg-white/[0.03] px-2.5 py-2">
                 <span className="rom-live-dot" />
-                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics)}</span>
+                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics, isViewer)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
             </div>
@@ -308,9 +326,9 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
-      {user && !isAccounts && <NotificationPopups />}
-      {user && !isAccounts && <ShootCompleteReminder user={user} />}
-      {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
+      {user && !isAccounts && !isViewer && <NotificationPopups />}
+      {user && !isAccounts && !isViewer && <ShootCompleteReminder user={user} />}
+      {user && !isAccounts && !isViewer && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
       <MobileBottomNav />
 

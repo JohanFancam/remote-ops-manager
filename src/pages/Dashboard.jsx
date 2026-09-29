@@ -14,9 +14,10 @@ import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList
 import AnalyticsDashboard from './AnalyticsDashboard';
 import AssignedRigChecksPanel from '../components/dashboard/AssignedRigChecksPanel';
 import DashboardSection from '../components/dashboard/DashboardSection';
+import ViewerSchedule from '../components/dashboard/ViewerSchedule';
 
 export default function Dashboard() {
-  const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
+  const { user, isAdmin, isStandby, isOperator, isAnalytics, isViewer } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -106,6 +107,10 @@ export default function Dashboard() {
 
   if (isAnalytics) {
     return <AnalyticsDashboard />;
+  }
+
+  if (isViewer) {
+    return <ViewerSchedule />;
   }
 
   return (
