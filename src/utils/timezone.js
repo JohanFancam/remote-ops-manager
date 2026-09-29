@@ -132,6 +132,7 @@ export function formatHmInTz(date, timeZone = DEFAULT_TIMEZONE) {
 }
 
 export function formatTimezoneAbbr(timeZone = DEFAULT_TIMEZONE, date = new Date()) {
+  if (timeZone === SOURCE_TIMEZONE) return 'SAST';
   try {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone,
