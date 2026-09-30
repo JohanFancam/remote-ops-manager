@@ -8,6 +8,7 @@ import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { Bell, Calendar, Search, X, Check } from 'lucide-react';
 import { applyCalendarChangeRequest, declineCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { cn } from '@/lib/utils';
+import { userCanSeeNotification } from '@/utils/notificationVisibility';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -22,7 +23,7 @@ const FILTERS = [
 ];
 
 const START_TYPES = new Set(['needs_start', 'start_overdue', 'starting_soon']);
-const SCHEDULE_TYPES = new Set(['schedule_change', 'cancelled']);
+const SCHEDULE_TYPES = new Set(['schedule_change', 'cancelled', 'postponed']);
 const TEAM_TYPES = new Set([
   'assigned', 'approved', 'unassigned', 'operator_action',
   'availability', 'availability_digest',
@@ -43,6 +44,8 @@ function notificationTypeLabel(type) {
       return 'Pre-shoot started';
     case 'cancelled':
       return 'Cancelled';
+    case 'postponed':
+      return 'Postponed';
     case 'assigned':
     case 'approved':
     case 'unassigned':
@@ -82,37 +85,8 @@ function matchesFilter(type, filter) {
   return true;
 }
 
-const ANALYTICS_NOTIFICATION_TYPES = new Set([
-  'calendar_request',
-  'google_sync',
-  'schedule_change',
-  'cancelled',
-]);
-
 function userCanSeeHistory(notification, user) {
-  const email = (user?.email || '').toLowerCase();
-  if (!email) return false;
-  if (user?.role === 'admin') return true;
-
-  const targetEmail = (notification.target_user_email || '').toLowerCase();
-  if (user?.role === 'analytics') {
-    if (!ANALYTICS_NOTIFICATION_TYPES.has(notification.type)) return false;
-    if (notification.type === 'calendar_request') return targetEmail === email;
-    if (targetEmail && targetEmail !== email) return false;
-    return true;
-  }
-
-  if (targetEmail && targetEmail === email) return true;
-
-  if (notification.target_role === 'admin_standby') {
-    return user?.role === 'admin' || user?.role === 'standby' || user?.standby === true;
-  }
-
-  if (notification.target_role && notification.target_role === user?.role) {
-    return true;
-  }
-
-  return false;
+  return userCanSeeNotification(notification, user, { ignoreDismissed: true });
 }
 
 function wasDismissed(notification, user) {
@@ -162,10 +136,12 @@ function sastTimeLabel(iso) {
 }
 
 export default function Notifications() {
-  const { user, isAdmin, isAnalytics } = useApp();
+  const { user, isAdmin, isAnalytics, isOperator } = useApp();
   const visibleFilters = isAnalytics
     ? FILTERS.filter((item) => ['all', 'requests', 'sync', 'schedule'].includes(item.id))
-    : FILTERS;
+    : isOperator
+      ? FILTERS.filter((item) => ['all', 'team', 'schedule'].includes(item.id))
+      : FILTERS;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
+import { X, Copy, Trash2, Users, Pencil, Wrench, Plus, Minus } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { getSchedule } from '@/components/utils/scheduleUtils';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
@@ -66,6 +66,7 @@ export default function ShootQuickView({
   user,
   isAdmin = false,
   isStandby = false,
+  isOperator = false,
   isAnalytics = false,
   isViewer = false,
   allUsers = [],
@@ -79,11 +80,13 @@ export default function ShootQuickView({
   onDuplicate,
   onDelete,
   onAssignOperators,
+  onAssignSelf,
   onRigCheckToggle,
   canCheckRig = false,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busyRig, setBusyRig] = useState(false);
+  const [busyAssign, setBusyAssign] = useState(false);
   const { timeZone, abbr } = useTimezone();
 
   if (!shoot) return null;
@@ -94,6 +97,9 @@ export default function ShootQuickView({
   const isCancelled = status === 'cancelled';
   const isCompleted = status === 'completed';
   const shouldGrey = isPast || isCompleted || isCancelled;
+  const selfEmail = String(user?.email || '').toLowerCase();
+  const isAssigned = !!(selfEmail && (shoot.assigned_operators || []).some((e) => String(e).toLowerCase() === selfEmail));
+  const isPending = !!(selfEmail && (shoot.pending_operators || []).some((e) => String(e).toLowerCase() === selfEmail));
   const pendingEmails = shoot.pending_operators || [];
   const matchedRig = findMatchingRig(shoot, rigSettings);
   const venue = resolveShootLocation(shoot, matchedRig);
@@ -119,6 +125,20 @@ export default function ShootQuickView({
     phaseFlags.sound_trigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
     { label: 'Game', time: schedule.game },
   ].filter(Boolean) : [];
+
+  const canSelfAssign = isOperator && !isAnalytics && !isViewer && !assignmentLocked && !isPast
+    && !isCancelled && !isCompleted && !!user?.email && !!onAssignSelf
+    && (isAssigned || isPending || isAdmin || !claimedByOther);
+
+  const handleSelfAssign = async () => {
+    if (!canSelfAssign || busyAssign) return;
+    setBusyAssign(true);
+    try {
+      await onAssignSelf(shoot);
+    } finally {
+      setBusyAssign(false);
+    }
+  };
 
   const setRigType = async (type) => {
     if (!canToggleRig || shoot.rig_type_override === type) return;
@@ -237,6 +257,33 @@ export default function ShootQuickView({
                     ? 'Taken'
                     : 'Unassigned'}
             </p>
+            {isOperator && !assignmentLocked && !isPast && !isCancelled && !isCompleted && onAssignSelf && (
+              <button
+                type="button"
+                disabled={!canSelfAssign || busyAssign || (claimedByOther && !isAssigned && !isPending)}
+                onClick={handleSelfAssign}
+                className={`mt-2 inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                  isAssigned || isPending
+                    ? 'border-red-500/40 bg-red-950/40 text-red-200 hover:bg-red-950/70'
+                    : claimedByOther
+                      ? 'border-slate-700 bg-slate-800/60 text-slate-500'
+                      : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200 hover:bg-emerald-950/50'
+                }`}
+              >
+                {isAssigned || isPending
+                  ? <Minus className="h-3.5 w-3.5" />
+                  : <Plus className="h-3.5 w-3.5" />}
+                {busyAssign
+                  ? (isAssigned || isPending ? 'Updating…' : 'Assigning…')
+                  : isAssigned
+                    ? 'Unassign myself'
+                    : isPending
+                      ? 'Cancel pending'
+                      : claimedByOther
+                        ? 'Taken — unavailable'
+                        : 'Assign myself'}
+              </button>
+            )}
           </div>
 
           <div>

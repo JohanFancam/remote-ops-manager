@@ -2050,6 +2050,7 @@ export default function Calendar() {
             user={user}
             isAdmin={isAdmin}
             isStandby={isStandby}
+            isOperator={isOperator}
             isAnalytics={isAnalytics}
             isViewer={isViewer}
             allUsers={allUsers}
@@ -2066,6 +2067,7 @@ export default function Calendar() {
             onAssignOperators={(shoot) => {
               handleAssignOperators(shoot);
             }}
+            onAssignSelf={readOnly ? undefined : handleContextMenuAssignSelf}
             onRigCheckToggle={() => handleRigCheckToggle(liveQuick, coverage || null)}
           />
         );

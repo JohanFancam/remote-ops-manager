@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { cn } from '@/lib/utils';
+import { isRemoteOperatorRole, userCanSeeNotification } from '@/utils/notificationVisibility';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 const NotificationCtx = createContext(null);
@@ -36,42 +37,6 @@ function isExpired(notification) {
   if (!created) return false;
 
   return Date.now() - created.getTime() > FIVE_DAYS_MS;
-}
-
-const ANALYTICS_NOTIFICATION_TYPES = new Set([
-  'calendar_request',
-  'google_sync',
-  'schedule_change',
-  'cancelled',
-]);
-
-function userCanSeeNotification(notification, user) {
-  const email = (user?.email || '').toLowerCase();
-  if (!email) return false;
-
-  const dismissedBy = notification.dismissed_by || [];
-  if (dismissedBy.map((e) => String(e).toLowerCase()).includes(email)) return false;
-
-  const targetEmail = (notification.target_user_email || '').toLowerCase();
-
-  if (user?.role === 'analytics') {
-    if (!ANALYTICS_NOTIFICATION_TYPES.has(notification.type)) return false;
-    if (notification.type === 'calendar_request') return targetEmail === email;
-    if (targetEmail && targetEmail !== email) return false;
-    return true;
-  }
-
-  if (targetEmail && targetEmail === email) return true;
-
-  if (notification.target_role === 'admin_standby') {
-    return user?.role === 'admin' || user?.standby === true;
-  }
-
-  if (notification.target_role && notification.target_role === user?.role) {
-    return true;
-  }
-
-  return false;
 }
 
 function playNotificationSound() {
@@ -125,6 +90,8 @@ function storedTypeLabel(type) {
       return 'Pre-shoot started';
     case 'cancelled':
       return 'Cancelled';
+    case 'postponed':
+      return 'Postponed';
     case 'assigned':
     case 'approved':
     case 'unassigned':
@@ -292,6 +259,7 @@ function useNotificationState(shoots, user, notifyHours) {
   }, [shoots, user?.email]);
 
   const reminderNotifications = useMemo(() => {
+    if (isRemoteOperatorRole(user)) return [];
     return myAssigned.map((shoot) => {
       const setupTime = getSetupTime(shoot);
       if (!setupTime) return null;
@@ -319,7 +287,7 @@ function useNotificationState(shoots, user, notifyHours) {
         urgency,
       };
     }).filter(Boolean);
-  }, [myAssigned, notifyHours, now]);
+  }, [myAssigned, notifyHours, now, user]);
 
   const activeReminders = reminderNotifications.filter((n) => !dismissedReminders.includes(n.key));
 

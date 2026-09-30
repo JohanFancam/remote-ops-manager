@@ -234,6 +234,8 @@ export async function handleShootChange(previous, next, user = null) {
 
   const wasCancelled = String(previous?.status || '') === 'cancelled';
   const isCancelled = String(next.status || '') === 'cancelled';
+  const wasPostponed = String(previous?.status || '') === 'postponed';
+  const isPostponed = String(next.status || '') === 'postponed';
   if (!wasCancelled && isCancelled) {
     const targets = uniqueEmails([
       ...prevAssigned, ...nextAssigned, ...prevPending, ...nextPending,
@@ -243,6 +245,19 @@ export async function handleShootChange(previous, next, user = null) {
       type: 'cancelled',
       title: 'Shoot cancelled',
       message: `${title} on ${next.date || previous?.date || ''} was cancelled.`,
+      shoot: next,
+      targetEmails: targets,
+      url: '/Calendar',
+    });
+  } else if (!wasPostponed && isPostponed) {
+    const targets = uniqueEmails([
+      ...prevAssigned, ...nextAssigned, ...prevPending, ...nextPending,
+    ]).filter((e) => e !== actor);
+    await createNotifications({
+      notificationKey: `postponed:${next.id}:${stamp}`,
+      type: 'postponed',
+      title: 'Shoot postponed',
+      message: `${title} on ${next.date || previous?.date || ''} was postponed.`,
       shoot: next,
       targetEmails: targets,
       url: '/Calendar',
