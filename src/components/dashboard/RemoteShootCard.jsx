@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, MapPin, Flag, Camera, Zap, Volume2, AlertTriang
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '../utils/rigUtils';
+import { schedulePhaseFlags } from '../utils/schedulePhases';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootCompleteModal from '../shoots/ShootCompleteModal';
 import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus } from '@/utils/shootStatus';
@@ -77,9 +78,12 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
   const venue = resolveShootLocation(shoot, matchedRig);
   const diff = gameDate ? gameDate - now : null;
   const livePhase = getLivePhaseLabel({ ...shoot, phase_status: effectivePhase }, now);
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
-  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
+  const phaseFlags = schedulePhaseFlags(matchedRig);
+  const showSetup = phaseFlags.setup;
+  const showPreShoot = phaseFlags.pre_shoot;
+  const showAttention = phaseFlags.attention;
+  const showSound = phaseFlags.sound;
+  const showSoundTrigger = phaseFlags.sound_trigger;
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigLabel = effectiveRigType ? (matchedRig?.sound ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
@@ -105,8 +109,8 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
   };
 
   const phases = schedule ? [
-    { label: 'Setup', key: 'setup_complete', Icon: Zap, time: schedule.setup },
-    { label: 'Pre-Shoot', key: 'pre_shoot_started', Icon: Camera, time: schedule.pre_shoot },
+    showSetup ? { label: 'Setup', key: 'setup_complete', Icon: Zap, time: schedule.setup } : null,
+    showPreShoot ? { label: 'Pre-Shoot', key: 'pre_shoot_started', Icon: Camera, time: schedule.pre_shoot } : null,
     showAttention ? { label: 'Attention', key: 'attention_started', Icon: AlertTriangle, time: schedule.attention } : null,
     showSound ? { label: 'Sound Recording', key: 'sound_started', Icon: Volume2, time: schedule.sound } : null,
     showSoundTrigger ? { label: 'Sound Trigger', key: 'sound_trigger_started', Icon: Volume2, time: schedule.sound_trigger } : null,

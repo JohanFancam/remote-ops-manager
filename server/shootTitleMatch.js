@@ -1,7 +1,10 @@
 /**
- * Google / app shoot title matching.
+ * Google / Slack / app shoot title matching.
  * Kansas City Current, KC Current, and Current are the same team.
  * Charlotte FC and Charlotte are the same team.
+ *
+ * Same-game rows (including already-linked Google rows) are updated when
+ * the time or date moves. Matching never retires or deletes a shoot.
  */
 
 const TEAM_ALIASES = {
@@ -17,6 +20,12 @@ export function normalizeShootTitle(value) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
+}
+
+export function normalizeGameTime(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return '';
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
 }
 
 export function isManualShootTitle(title) {
@@ -44,6 +53,12 @@ export function canonicalTeamName(name) {
   return key;
 }
 
+export function teamsMatch(a, b) {
+  const left = canonicalTeamName(a);
+  const right = canonicalTeamName(b);
+  return Boolean(left && right && left === right);
+}
+
 export function parseMatchupSides(title) {
   const cleaned = String(title || '').replace(/\s*\([^)]*\)\s*$/g, '').trim();
   const match = cleaned.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
@@ -65,6 +80,10 @@ export function titlesAreEquivalent(a, b) {
   return !!keyA && keyA === keyB;
 }
 
+export function matchupsEquivalent(a, b) {
+  return titlesAreEquivalent(a, b);
+}
+
 function dateOffsetDays(from, to) {
   const a = Date.parse(`${from}T12:00:00Z`);
   const b = Date.parse(`${to}T12:00:00Z`);
@@ -72,46 +91,81 @@ function dateOffsetDays(from, to) {
   return Math.round((b - a) / 86400000);
 }
 
-/**
- * Find an existing app shoot for a Google event that is the same game
- * under a team-name variant. Prefers an unlinked shoot on the same date.
- */
-export function findAliasDateMatch(shoots, title, date, calendarId = '') {
-  const wanted = matchupKey(title, date);
-  if (!wanted || !date) return null;
-  const list = shoots || [];
+function sameCalendar(shoot, calendarId = '') {
+  return !calendarId || !shoot.google_calendar_id || shoot.google_calendar_id === calendarId;
+}
 
-  const sameCalendar = (shoot) => (
-    !calendarId
-    || !shoot.google_calendar_id
-    || shoot.google_calendar_id === calendarId
-  );
+function shootTime(shoot) {
+  return normalizeGameTime(shoot?.game_time || shoot?.start_time);
+}
 
-  const sameDate = list.filter((shoot) => (
-    !shoot.google_event_id
-    && shoot.date === date
-    && sameCalendar(shoot)
-    && matchupKey(shoot.title, shoot.date) === wanted
-  ));
-  if (sameDate.length) return sameDate[0];
-
-  const nearbyTeams = list.filter((shoot) => {
-    if (shoot.google_event_id) return false;
-    if (!sameCalendar(shoot)) return false;
-    if (Math.abs(dateOffsetDays(shoot.date, date)) > 2) return false;
-    return matchupKey(shoot.title, 'x') === matchupKey(title, 'x');
-  });
-  return nearbyTeams.length === 1 ? nearbyTeams[0] : null;
+function preferCandidate(list = []) {
+  if (!list.length) return null;
+  return [...list].sort((a, b) => {
+    const aLinked = a.google_event_id ? 1 : 0;
+    const bLinked = b.google_event_id ? 1 : 0;
+    if (aLinked !== bLinked) return aLinked - bLinked;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  })[0];
 }
 
 /**
- * If Google already linked a recreation and the app still has the original
- * team-name variant, keep the app shoot (title + assignments) and retire
- * the Google-titled copy.
+ * Find the existing app shoot for an incoming calendar/Slack game so a
+ * time or date change updates that row. Linked Google rows are included.
+ * Never used to delete another shoot.
+ */
+export function findExistingShootMatch(shoots, {
+  title,
+  date,
+  gameTime = '',
+  calendarId = '',
+} = {}) {
+  if (!title || !date) return null;
+  const wantedTime = normalizeGameTime(gameTime);
+  const pool = (shoots || []).filter((shoot) => (
+    shoot
+    && sameCalendar(shoot, calendarId)
+    && titlesAreEquivalent(shoot.title, title)
+  ));
+  if (!pool.length) return null;
+
+  const sameDate = pool.filter((shoot) => shoot.date === date);
+  if (sameDate.length === 1) return sameDate[0];
+  if (sameDate.length > 1) {
+    if (wantedTime) {
+      const timed = sameDate.filter((shoot) => shootTime(shoot) === wantedTime);
+      if (timed.length === 1) return timed[0];
+      if (timed.length > 1) return preferCandidate(timed);
+    }
+    const unlinked = sameDate.filter((shoot) => !shoot.google_event_id);
+    if (unlinked.length === 1) return unlinked[0];
+    return null;
+  }
+
+  if (wantedTime) {
+    const sameTimeNearby = pool.filter((shoot) => (
+      shootTime(shoot) === wantedTime
+      && Math.abs(dateOffsetDays(shoot.date, date)) <= 2
+    ));
+    if (sameTimeNearby.length === 1) return sameTimeNearby[0];
+  }
+
+  const nearby = pool.filter((shoot) => Math.abs(dateOffsetDays(shoot.date, date)) <= 2);
+  return nearby.length === 1 ? nearby[0] : null;
+}
+
+/** Unlinked same-date / unique nearby alias. */
+export function findAliasDateMatch(shoots, title, date, calendarId = '') {
+  const wanted = matchupKey(title, date);
+  if (!wanted || !date) return null;
+  const list = (shoots || []).filter((shoot) => shoot && !shoot.google_event_id);
+  return findExistingShootMatch(list, { title, date, calendarId });
+}
+
+/**
+ * Keep the Google-linked row when the event id already matches.
+ * Otherwise use the title/date/time match. Never retire another shoot.
  */
 export function resolveExistingShoot(linked, aliasMatch) {
-  if (linked && aliasMatch && linked.id !== aliasMatch.id) {
-    return { keep: aliasMatch, retire: linked };
-  }
   return { keep: linked || aliasMatch || null, retire: null };
 }

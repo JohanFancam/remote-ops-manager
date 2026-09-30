@@ -27,7 +27,7 @@ export default function EnablePushCard() {
     try {
       await enablePushNotifications();
       setEnabled(true);
-      setMessage('Notifications enabled. You can also install this app from your browser menu.');
+      setMessage('Notifications on. They still pop up if you close the app or the browser tab.');
     } catch (err) {
       setError(err.message || 'Could not enable notifications');
     } finally {
@@ -58,9 +58,9 @@ export default function EnablePushCard() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-slate-100">Phone & desktop alerts</p>
           <p className="text-xs text-slate-500 mt-1">
-            Enable push so you get alerts when shoots change, approvals land, or a shoot is starting —
-            even if the app is closed. On phones use <span className="text-slate-300">Add to Home Screen</span> /
-            Install for an app-like icon.
+            Enable push so alerts pop on this phone or desktop even when the app is closed or the tab is gone.
+            On iPhone / iPad use <span className="text-slate-300">Add to Home Screen</span> first (Safari 16.4+).
+            Android and desktop Chrome / Edge can enable directly.
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v5';
+const CACHE = 'rom-shell-v6';
 const SHELL = ['/', '/index.html', '/rom-logo.png', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -35,8 +35,6 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/uploads')) return;
 
-  // Page loads must come from the network so a deploy is picked up immediately;
-  // the cache is only a fallback when offline.
   if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
       fetch(request)
@@ -49,7 +47,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Vite fingerprints filenames, so hashed assets can be served from cache safely
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((response) => {
@@ -57,15 +54,17 @@ self.addEventListener('fetch', (event) => {
         return response;
       }))
     );
-    return;
   }
-
-  // Everything else stays uncached: synthesising a fallback here only turned
-  // aborted requests into confusing error statuses in the console.
 });
 
+function absoluteUrl(path) {
+  const raw = String(path || '/');
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return new URL(raw.startsWith('/') ? raw : `/${raw}`, self.location.origin).href;
+}
+
 self.addEventListener('push', (event) => {
-  let data = { title: 'Remote Ops', body: 'You have an update', url: '/Calendar' };
+  let data = { title: 'Remote Ops', body: 'You have an update', url: '/' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {
@@ -76,31 +75,47 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  const icon = absoluteUrl('/icon-192.png');
+  const tag = [data.type || 'rom-notification', data.shootId || data.url || Date.now()].join(':');
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'Remote Ops', {
-      body: data.body || '',
-      icon: '/rom-logo.png',
-      badge: '/rom-logo.png',
-      data: { url: data.url || '/Calendar' },
-      tag: data.type || 'rom-notification',
+      body: data.body || 'You have an update',
+      icon,
+      badge: icon,
+      image: undefined,
+      data: { url: data.url || '/' },
+      tag,
       renotify: true,
+      requireInteraction: true,
+      silent: false,
+      vibrate: [200, 100, 200],
+      timestamp: Date.now(),
     })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification?.data?.url || '/Calendar';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ('focus' in client) {
-          client.navigate?.(targetUrl);
-          return client.focus();
+  const targetUrl = absoluteUrl(event.notification?.data?.url || '/');
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) {
+      if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+        await client.focus();
+        try {
+          if (typeof client.navigate === 'function') await client.navigate(targetUrl);
+        } catch {
+          // ignore
         }
+        try {
+          client.postMessage({ type: 'rom-notification-click', url: targetUrl });
+        } catch {
+          // ignore
+        }
+        return;
       }
-      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
-      return undefined;
-    })
-  );
+    }
+    if (self.clients.openWindow) await self.clients.openWindow(targetUrl);
+  })());
 });

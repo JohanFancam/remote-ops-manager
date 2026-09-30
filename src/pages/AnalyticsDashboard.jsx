@@ -7,28 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { formatTimeZA, normalizeShootStatus } from '@/utils/shootStatus';
+import { parseSourceDateTime } from '@/utils/timezone';
 import { getShootRigLabel } from '@/components/calendar/ShootQuickView';
 import DayWindow, { shiftDayWindow } from '@/components/analytics/DayWindow';
 import { compareLiveDataFirst, isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
 import DashboardBanner from '@/components/dashboard/DashboardBanner';
 
-function timeToMinutes(time) {
-  const [h, m] = String(time || '12:00').split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
-}
-
 function coverageForShoot(shoot, standbyDays) {
   if (!shoot?.date) return null;
   const shootTime = shoot.game_time || shoot.start_time || '12:00';
-  const shootDateTime = new Date(`${shoot.date}T00:00:00`);
-  shootDateTime.setMinutes(timeToMinutes(shootTime));
+  const shootDateTime = parseSourceDateTime(shoot.date, shootTime);
+  if (!shootDateTime) return null;
   return (standbyDays || []).find((standby) => {
     const startDateStr = standby.start_date || standby.date;
     if (!startDateStr) return false;
-    const fallbackEndDate = format(addDays(new Date(`${startDateStr}T00:00:00`), 1), 'yyyy-MM-dd');
+    const fallbackEndDate = format(addDays(new Date(`${startDateStr}T12:00:00`), 1), 'yyyy-MM-dd');
     const endDateStr = standby.end_date || fallbackEndDate;
-    const start = new Date(`${startDateStr}T${standby.start_time || '18:00'}:00`);
-    const end = new Date(`${endDateStr}T${standby.end_time || '06:00'}:00`);
+    const start = parseSourceDateTime(startDateStr, standby.start_time || '18:00');
+    const end = parseSourceDateTime(endDateStr, standby.end_time || '06:00');
+    if (!start || !end) return false;
     return shootDateTime >= start && shootDateTime <= end;
   }) || null;
 }
@@ -79,6 +76,7 @@ export default function AnalyticsDashboard() {
         if (!key) return;
         const rows = (shoot.assigned_operators || []).map((email) => ({
           id: `${shoot.id}-${email}`,
+          date: shoot.date,
           time: shoot.game_time || shoot.start_time || '',
           title: shoot.title,
           photo: getShootRigLabel(shoot, rigSettings),
@@ -170,7 +168,7 @@ export default function AnalyticsDashboard() {
                         {row.liveData ? <LiveDataBadge /> : null}
                       </div>
                       <p className="mt-1 text-xs text-slate-400">
-                        {row.time ? formatTimeZA(row.time) : 'Time TBC'}
+                        {row.time ? formatTimeZA(row.time, row.date) : 'Time TBC'}
                         {' · '}
                         {row.photo || 'Photo TBC'}
                       </p>
@@ -250,7 +248,7 @@ export default function AnalyticsDashboard() {
                         <ul className="mt-2 space-y-1">
                           {session.covered.slice(0, 8).map((shoot) => (
                             <li key={shoot.id} className="text-xs text-slate-300">
-                              {formatTimeZA(shoot.game_time || shoot.start_time || '')} · {shoot.title}
+                              {formatTimeZA(shoot.game_time || shoot.start_time || '', shoot.date)} · {shoot.title}
                               {' · '}
                               {getShootRigLabel(shoot, rigSettings)}
                             </li>

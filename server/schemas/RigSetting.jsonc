@@ -108,6 +108,23 @@
       "default": false,
       "description": "Sound Recording enabled"
     },
+    "setup_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show setup time on shoot schedules"
+    },
+    "pre_shoot_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show pre-shoot time on shoot schedules"
+    },
+    "default_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Default rig-check items copied onto assigned testers and assigned shoots"
+    },
     "live_data": {
       "type": "boolean",
       "default": false,

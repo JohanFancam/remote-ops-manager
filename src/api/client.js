@@ -150,6 +150,8 @@ const ENTITY_NAMES = [
   'Event',
   'ShootNotification',
   'CalendarChangeRequest',
+  'AppFault',
+  'RigCheckAssignment',
 ];
 
 const entities = Object.fromEntries(ENTITY_NAMES.map((name) => [name, createEntityApi(name)]));
@@ -207,6 +209,12 @@ export const api = {
       return request('/api/users/invite', {
         method: 'POST',
         body: JSON.stringify({ email, role, full_name }),
+      });
+    },
+    resetPassword({ email, allowCreate = false, full_name = '', role = 'user', inactive = false } = {}) {
+      return request('/api/users/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, allowCreate, full_name, role, inactive }),
       });
     },
     resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {
@@ -280,6 +288,21 @@ export const api = {
     },
     sync({ text } = {}) {
       return request('/api/slack/sync', {
+        method: 'POST',
+        body: JSON.stringify({ text: text || '' }),
+      });
+    },
+    rigCheckStatus() {
+      return request('/api/slack/rig-check');
+    },
+    saveRigCheckSettings({ channelId, teamId, openUrl, delivery } = {}) {
+      return request('/api/slack/rig-check', {
+        method: 'PATCH',
+        body: JSON.stringify({ channelId, teamId, openUrl, delivery }),
+      });
+    },
+    postRigCheck({ text } = {}) {
+      return request('/api/slack/rig-check', {
         method: 'POST',
         body: JSON.stringify({ text: text || '' }),
       });

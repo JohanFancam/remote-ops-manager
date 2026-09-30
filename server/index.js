@@ -38,6 +38,8 @@ import {
   maybeRunScheduledGoogleSync,
 } from './googleCalendar.js';
 import { isAssignmentLocked } from './shootTitleMatch.js';
+import { syncRigChecksForShoot } from './rigChecks.js';
+import { validateRigCheckAssignment } from './rigCheckUtils.js';
 import {
   getVapidPublicKey,
   savePushSubscription,
@@ -49,6 +51,7 @@ import {
   handleStandbyChange,
   notifyAppFault,
   runReminderPass,
+  createNotifications,
 } from './notifications.js';
 import {
   importEntityRows,
@@ -63,6 +66,13 @@ import {
   applySlackGames,
   todaySastYmd,
 } from './slackCalendar.js';
+import {
+  getRigCheckSlackSettings,
+  saveRigCheckSlackSettings,
+  canSendRigCheckMessage,
+  postRigCheckToSlack,
+} from './slackRigCheck.js';
+import { restoreSyncDeletedShoots } from './restoreSyncDeletedShoots.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
@@ -218,6 +228,17 @@ app.patch('/api/auth/me', authMiddleware, (req, res) => {
   delete body.standby;
   delete body.inactive;
   delete body.email;
+  if (body.timezone !== undefined) {
+    const tz = String(body.timezone || '').trim();
+    if (tz && tz !== 'device') {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date());
+      } catch {
+        return res.status(400).json({ error: 'Unknown time zone' });
+      }
+    }
+    body.timezone = tz || 'Africa/Johannesburg';
+  }
   const updated = updateUser(req.user.id, body);
   res.json(updated);
 });
@@ -243,7 +264,7 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
     return res.status(403).json({ error: 'Admin only' });
   }
   const email = String(req.body?.email || '').trim().toLowerCase();
-  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics'];
+  const ALLOWED_ROLES = ['admin', 'user', 'standby', 'accounts', 'analytics', 'viewer'];
   let role = String(req.body?.role || 'user');
   if (!ALLOWED_ROLES.includes(role)) role = 'user';
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -273,6 +294,48 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
  *   allowCreate?: boolean create a login if the email has none (per-user)
  *   createFrom?: { [email]: { full_name, role, inactive } }
  */
+app.post('/api/users/reset-password', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: 'Choose a user to reset' });
+    }
+    const includeSelf = email === String(req.user.email || '').trim().toLowerCase();
+    const createFrom = {};
+    if (req.body?.full_name || req.body?.role) {
+      createFrom[email] = {
+        full_name: req.body.full_name || '',
+        role: req.body.role || 'user',
+        inactive: !!req.body.inactive,
+      };
+    }
+    const result = resetLoginPasswords({
+      emails: [email],
+      skipEmail: req.user.email,
+      includeSkipEmail: includeSelf,
+      allowCreate: !!req.body?.allowCreate,
+      createFrom,
+    });
+    if (!result.issued.length) {
+      const reason = result.skipped[0]?.reason;
+      const message = reason === 'inactive'
+        ? 'That account is marked not in use'
+        : reason === 'self'
+          ? 'Confirm includeSelf to reset your own password'
+          : 'No login found for that user';
+      return res.status(400).json({ error: message, skipped: result.skipped });
+    }
+    res.json({
+      ok: true,
+      issued: result.issued,
+      user: result.issued[0],
+      skipped: result.skipped,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.post('/api/users/reset-passwords', authMiddleware, requireAdmin, (req, res) => {
   try {
     const rawEmails = req.body?.emails;
@@ -317,6 +380,14 @@ app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
   res.json({ file_url });
 });
 
+function isReadOnlyUser(user) {
+  return user?.role === 'viewer';
+}
+
+function viewerMayWriteSetting(key, value) {
+  return key === 'viewer_dashboard_page_size' && (String(value) === '4' || String(value) === '6');
+}
+
 function canReadAppFaults(user) {
   return user?.role === 'admin';
 }
@@ -353,6 +424,34 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
   try {
     const type = req.params.type;
     const payload = { ...(req.body || {}) };
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      if (!(type === 'AppSettings' && viewerMayWriteSetting(payload.key, payload.value))) {
+        return res.status(403).json({ error: 'Viewer accounts are read-only' });
+      }
+    }
+    if (type === 'RigCheckAssignment') {
+      const isAdmin = req.user?.role === 'admin';
+      const isStandby = req.user?.role === 'standby';
+      if (!isAdmin && !isStandby) {
+        return res.status(403).json({ error: 'Admin or operator/standby only' });
+      }
+      if (!isAdmin) {
+        payload.assignee_email = req.user?.email || payload.assignee_email;
+      }
+      const email = String(payload.assignee_email || '').trim().toLowerCase();
+      const assignee = email ? findUserByEmail(email) : null;
+      const assignError = validateRigCheckAssignment({
+        shootId: payload.shoot_id,
+        assignee,
+      });
+      if (assignError) {
+        return res.status(400).json({ error: assignError });
+      }
+      if (!payload.due_date) {
+        const shoot = payload.shoot_id ? getEntity('Shoot', payload.shoot_id) : null;
+        payload.due_date = shoot?.date || payload.shoot_date || '';
+      }
+    }
     if (type === 'AppFault') {
       payload.reported_by_email = req.user?.email || payload.reported_by_email || '';
       payload.reported_by_name = req.user?.full_name || payload.reported_by_name || payload.reported_by_email;
@@ -361,6 +460,22 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
       payload.created_at = payload.created_at || nowIso();
     }
     const created = createEntity(type, payload, req.user);
+    if (type === 'RigCheckAssignment') {
+      const shoot = created.shoot_id ? getEntity('Shoot', created.shoot_id) : null;
+      const due = created.due_date || created.shoot_date || shoot?.date || '';
+      createNotifications({
+        notificationKey: `rig_check:${created.id}`,
+        type: 'rig_check',
+        title: 'Rig test assigned',
+        message: `${created.team || 'Rig'} · ${created.shoot_title || shoot?.title || 'shoot'}${due ? ` · due ${due}` : ''}`,
+        shoot,
+        targetEmails: [created.assignee_email],
+        url: '/',
+        createdByName: req.user?.full_name || req.user?.email || '',
+      }).catch((err) => {
+        console.warn('Rig check notification failed:', err.message);
+      });
+    }
     if (type === 'AppFault') {
       notifyAppFault(created, req.user).catch((err) => {
         console.warn('App fault notification failed:', err.message);
@@ -376,6 +491,11 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
         console.warn('Standby notification failed:', err.message);
       });
     }
+    if (type === 'Shoot') {
+      try { syncRigChecksForShoot(null, created, req.user); } catch (err) {
+        console.warn('Rig check assign failed:', err.message);
+      }
+    }
     res.status(201).json(created);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -387,6 +507,13 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     const { type, id } = req.params;
     const previous = getEntity(type, id);
     const patch = { ...(req.body || {}) };
+    if (isReadOnlyUser(req.user) && type !== 'UserPresence') {
+      const settingKey = patch.key || previous?.key;
+      const settingValue = patch.value != null ? patch.value : previous?.value;
+      if (!(type === 'AppSettings' && viewerMayWriteSetting(settingKey, settingValue) && (!patch.key || patch.key === 'viewer_dashboard_page_size'))) {
+        return res.status(403).json({ error: 'Viewer accounts are read-only' });
+      }
+    }
     if (type === 'User') {
       if (req.user?.role !== 'admin') {
         return res.status(403).json({ error: 'Admin only' });
@@ -397,6 +524,26 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
     }
     if (type === 'AppFault' && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
+    }
+    if (type === 'RigCheckAssignment') {
+      if (!previous) return res.status(404).json({ error: 'Not found' });
+      const isAdmin = req.user?.role === 'admin';
+      const assignee = String(previous?.assignee_email || '').trim().toLowerCase();
+      const me = String(req.user?.email || '').trim().toLowerCase();
+      if (!isAdmin && assignee !== me) {
+        return res.status(403).json({ error: 'Only the assigned person can update this rig check' });
+      }
+      if (!isAdmin) {
+        const allowed = {
+          items: patch.items,
+          notes: patch.notes,
+          status: patch.status,
+          completed_at: patch.completed_at,
+        };
+        Object.keys(patch).forEach((key) => {
+          if (!(key in allowed)) delete patch[key];
+        });
+      }
     }
     if (type === 'Shoot' && previous && isAssignmentLocked({ ...previous, ...patch })) {
       delete patch.assigned_operators;
@@ -411,6 +558,9 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
       handleShootChange(previous, updated, req.user).catch((err) => {
         console.warn('Shoot notification failed:', err.message);
       });
+      try { syncRigChecksForShoot(previous, updated, req.user); } catch (err) {
+        console.warn('Rig check assign failed:', err.message);
+      }
     }
     if (type === 'OperatorAvailability' && previous) {
       handleAvailabilityChange(previous, updated, req.user, 'update').catch((err) => {
@@ -432,7 +582,10 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
 app.delete('/api/entities/:type/:id', authMiddleware, async (req, res) => {
   try {
     const { type, id } = req.params;
-    if (type === 'AppFault' && req.user?.role !== 'admin') {
+    if (isReadOnlyUser(req.user)) {
+      return res.status(403).json({ error: 'Viewer accounts are read-only' });
+    }
+    if ((type === 'AppFault' || type === 'RigCheckAssignment') && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
     const previous = getEntity(type, id);
@@ -643,6 +796,16 @@ app.post('/api/google/sync', authMiddleware, requireAdminOrAnalytics, async (req
   }
 });
 
+app.post('/api/google/restore-deleted', authMiddleware, requireAdmin, (_req, res) => {
+  try {
+    const result = restoreSyncDeletedShoots({ force: true });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Sync delete restore failed:', err);
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.get('/api/slack/status', authMiddleware, requireAdminOrAnalytics, (_req, res) => {
   res.json(getSlackGamesSettings());
 });
@@ -674,6 +837,33 @@ app.post('/api/slack/preview', authMiddleware, requireAdminOrAnalytics, async (r
     res.json({ ok: true, text, ...result });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/slack/rig-check', authMiddleware, (req, res) => {
+  res.json(getRigCheckSlackSettings());
+});
+
+app.patch('/api/slack/rig-check', authMiddleware, requireAdmin, (req, res) => {
+  const settings = saveRigCheckSlackSettings({
+    channelId: req.body?.channelId,
+    teamId: req.body?.teamId,
+    openUrl: req.body?.openUrl,
+    delivery: req.body?.delivery,
+  });
+  res.json({ ok: true, ...settings });
+});
+
+app.post('/api/slack/rig-check', authMiddleware, async (req, res) => {
+  try {
+    if (!canSendRigCheckMessage(req.user)) {
+      return res.status(403).json({ error: 'You cannot send rig-check messages' });
+    }
+    const text = String(req.body?.text || '').trim();
+    const result = await postRigCheckToSlack(text);
+    res.json({ ok: true, ts: result.ts || null, channel: result.channel || null });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Slack post failed' });
   }
 });
 
@@ -743,6 +933,17 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`Remote Ops API listening on http://localhost:${PORT}`);
   console.log(`Entity types: User, ${ENTITY_TYPES.join(', ')}`);
+
+  try {
+    const restored = restoreSyncDeletedShoots();
+    if (!restored.skipped) {
+      console.log(
+        `Sync delete restore: ${restored.recreated} recreated, ${restored.reassigned} reassigned, ${restored.hints} hints`
+      );
+    }
+  } catch (err) {
+    console.warn('Sync delete restore failed:', err.message);
+  }
 
   // Day-of reminders plus Google auto-sync (06:00 / 13:00 / 20:00 SAST)
   const runBackgroundJobs = () => {

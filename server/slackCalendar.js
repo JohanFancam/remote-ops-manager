@@ -5,6 +5,7 @@
 import { listEntities, createEntity, updateEntity } from './entities.js';
 import { handleShootChange } from './notifications.js';
 import { sastYmd } from './googleCalendar.js';
+import { findExistingShootMatch, titlesAreEquivalent } from './shootTitleMatch.js';
 
 const ZA_TZ = 'Africa/Johannesburg';
 const MONTHS = {
@@ -412,6 +413,12 @@ function findExistingShoot(shoots, game) {
     const byBb = list.find((shoot) => String(shoot.backbone_id || '') === String(game.backbone_id));
     if (byBb) return byBb;
   }
+  const matched = findExistingShootMatch(list, {
+    title: game.title,
+    date: game.date,
+    gameTime: game.game_time,
+  });
+  if (matched) return matched;
   const sameDate = list.find((shoot) => shoot.date === game.date && titleMatches(shoot.title, game.title));
   if (sameDate) return sameDate;
   const nearby = [dayShift(game.date, -1), dayShift(game.date, 1)].filter(Boolean);
@@ -460,7 +467,7 @@ export function applySlackGames({ text, fallbackDate, user, confirm = true } = {
     if (existing) {
       const existingTime = existing.game_time || existing.start_time || '';
       const timeChanged = Boolean(game.game_time) && existingTime !== game.game_time;
-      const titleChanged = existing.title !== game.title;
+      const titleChanged = existing.title !== game.title && !titlesAreEquivalent(existing.title, game.title);
       const dateChanged = Boolean(game.date) && existing.date !== game.date;
       const pkChanged = Boolean(game.game_pk) && existing.game_pk !== game.game_pk;
       const rigChanged = Boolean(capture.rig) && existing.rig_type_override !== capture.rig;
@@ -525,7 +532,7 @@ export function applySlackGames({ text, fallbackDate, user, confirm = true } = {
         localTime: game.local_time,
       });
     } else {
-      createEntity('Shoot', {
+      const createdShoot = createEntity('Shoot', {
         title: game.title,
         client: '',
         location: '',
@@ -547,6 +554,7 @@ export function applySlackGames({ text, fallbackDate, user, confirm = true } = {
         ...(capture.rig ? { rig_type_override: capture.rig } : {}),
         ...DEFAULT_OFFSETS,
       }, user);
+      if (createdShoot) existingShoots.push(createdShoot);
       created += 1;
       changes.push({
         action: 'created',

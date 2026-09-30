@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen } from 'lucide-react';
+  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen, CheckSquare } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
@@ -34,10 +34,17 @@ const analyticsNavItems = [
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
+const viewerNavItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
 const allAdminMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Rigs', icon: Wrench, path: '/Rigs' },
+  { label: 'Rig Checks', icon: CheckSquare, path: '/RigChecks' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
@@ -79,13 +86,20 @@ const allAnalyticsMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
+  { label: 'Rig Checks', icon: CheckSquare, path: '/RigChecks' },
   { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
+  { label: 'Settings', icon: Settings, path: '/Settings' },
+];
+
+const allViewerMenuItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
 export default function MobileBottomNav() {
   const location = useLocation();
-  const { isAdmin, isStandby, isAccounts, isAnalytics, isLoading, user } = useApp();
+  const { isAdmin, isStandby, isAccounts, isAnalytics, isViewer, isLoading, user } = useApp();
   const { logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -94,11 +108,13 @@ export default function MobileBottomNav() {
   const navItems = isAdmin ? adminNavItems
     : isAccounts ? accountsNavItems
     : isAnalytics ? analyticsNavItems
+    : isViewer ? viewerNavItems
     : isStandby ? standbyNavItems
     : remoteNavItems;
   const allMenuItems = isAdmin ? allAdminMenuItems
     : isAccounts ? allAccountsMenuItems
     : isAnalytics ? allAnalyticsMenuItems
+    : isViewer ? allViewerMenuItems
     : isStandby ? allStandbyMenuItems
     : allRemoteMenuItems;
 

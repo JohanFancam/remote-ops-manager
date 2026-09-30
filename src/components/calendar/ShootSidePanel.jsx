@@ -5,7 +5,9 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
-import { shortenTitle } from '@/components/utils/scheduleUtils';
+import { getSchedule, shortenTitle } from '@/components/utils/scheduleUtils';
+import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
+import { matchRig } from '@/components/utils/rigUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
 
 const timeToMinutes = (timeStr) => {
@@ -280,29 +282,34 @@ export default function ShootSidePanel({
           {/* Schedule Timeline */}
           <div className="mt-3 pt-3 border-t border-slate-800">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Schedule</p>
+            {(() => {
+              const matchedRig = matchRig(shoot, rigSettings);
+              const flags = schedulePhaseFlags(matchedRig);
+              const schedule = getSchedule(shoot, matchedRig);
+              return (
             <div className="space-y-2">
-              {shoot.setup_offset !== undefined && (
+              {flags.setup && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Setup</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule?.setup || calculateScheduleTime(shoot.game_time, shoot.setup_offset)}</span>
                 </div>
               )}
-              {shoot.pre_shoot_offset !== undefined && (
+              {flags.pre_shoot && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Pre-Shoot</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule?.pre_shoot || calculateScheduleTime(shoot.game_time, shoot.pre_shoot_offset)}</span>
                 </div>
               )}
-              {shoot.attention_offset !== undefined && (
+              {flags.attention && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Attention</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule?.attention || calculateScheduleTime(shoot.game_time, shoot.attention_offset)}</span>
                 </div>
               )}
-              {shoot.sound_offset !== undefined && (
+              {flags.sound && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Sound Check</span>
-                  <span className="text-gray-200 font-mono">{calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
+                  <span className="text-gray-200 font-mono">{schedule?.sound || calculateScheduleTime(shoot.game_time, shoot.sound_offset)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-xs border-t border-slate-800 pt-2 mt-2">
@@ -310,6 +317,8 @@ export default function ShootSidePanel({
                 <span className="text-gray-200 font-mono">{shoot.game_time || 'TBA'}</span>
               </div>
             </div>
+              );
+            })()}
           </div>
         </div>
 

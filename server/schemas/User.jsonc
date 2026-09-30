@@ -8,9 +8,16 @@
         "admin",
         "user",
         "standby",
-        "accounts"
+        "accounts",
+        "analytics",
+        "viewer"
       ],
       "default": "user"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Africa/Johannesburg",
+      "description": "IANA time zone for displaying clocks and shoot times. Default is South African Time. Use device to follow the phone or computer."
     }
   }
 }

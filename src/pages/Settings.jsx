@@ -7,6 +7,8 @@ import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import SlackGamesSettings from '../components/settings/SlackGamesSettings';
+import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
+import RigCheckSlackSettings from '../components/settings/RigCheckSlackSettings';
 import AnalyticsGoogleSync from '../components/settings/AnalyticsGoogleSync';
 import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
@@ -18,9 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound,
-  CalendarDays, Database, Users
+  CalendarDays, Database, Users, Globe
 } from 'lucide-react';
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
+import { useTimezone } from '@/components/TimezoneContext';
+import { TIMEZONE_OPTIONS, deviceTimeZone, formatTimezoneAbbr } from '@/utils/timezone';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
   const defaultRigs = 'Rigs ready for today: {list}';
@@ -181,8 +185,11 @@ function ChangePasswordCard() {
 }
 
 export default function Settings() {
-  const { user, isAdmin, isAnalytics } = useApp();
+  const { user, isAdmin, isAnalytics, isViewer } = useApp();
   const { refreshPublicSettings } = useAuth();
+  const { storedTimezone, setTimezone, timeZone, abbr } = useTimezone();
+  const [timezoneSaved, setTimezoneSaved] = useState(false);
+  const [now, setNow] = useState(new Date());
   const queryClient = useQueryClient();
 
   const [slackMsgs, setSlackMsgs] = useState({});
@@ -247,6 +254,11 @@ export default function Settings() {
   const logoUrl = logoSetting?.value;
   const loginBgSetting = appSettings.find(s => s.key === 'login_background_url');
   const loginBgUrl = loginBgSetting?.value;
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(iv);
+  }, []);
 
   useEffect(() => {
     if (!appSettings.length) return;
@@ -374,8 +386,8 @@ export default function Settings() {
               <div className="flex-1 min-w-0">
                 <p className="text-lg font-semibold text-slate-100">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-slate-400 text-sm">{user?.email}</p>
-                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
-                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : user?.role === 'analytics' ? 'Data Analytics' : 'Remote Operator'}
+                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : user?.role === 'viewer' ? 'bg-slate-600/30 text-slate-300 border-slate-600' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : user?.role === 'analytics' ? 'Data Analytics' : user?.role === 'viewer' ? 'Viewer' : 'Remote Operator'}
                 </Badge>
               </div>
             </div>
@@ -396,8 +408,45 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Push / install — all roles */}
         <Card className="bg-slate-900 border-slate-800 mb-6">
+          <CardHeader className="border-b border-slate-800 pb-4">
+            <CardTitle className="text-slate-100 flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-400" /> Time zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            <p className="text-xs text-slate-500">
+              Default is South African Time. After you set a time zone, the clock, calendar times, standby banner, and shoot times follow it.
+            </p>
+            <select
+              value={storedTimezone || 'Africa/Johannesburg'}
+              onChange={async (e) => {
+                await setTimezone(e.target.value);
+                setTimezoneSaved(true);
+                setTimeout(() => setTimezoneSaved(false), 2000);
+              }}
+              className="w-full max-w-md rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+            >
+              {TIMEZONE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <p className="text-sm text-slate-300">
+              Now:{' '}
+              <span className="font-mono tabular-nums">
+                {now.toLocaleTimeString('en-ZA', { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+              </span>
+              <span className="text-slate-500"> {abbr}</span>
+              {storedTimezone === 'device' && (
+                <span className="text-slate-500"> · device {deviceTimeZone()} ({formatTimezoneAbbr(deviceTimeZone())})</span>
+              )}
+            </p>
+            {timezoneSaved && <p className="text-xs text-emerald-400">Time zone saved. Times across the app now use this zone.</p>}
+          </CardContent>
+        </Card>
+
+        {/* Push / install — all roles except view-only */}
+        {!isViewer && <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <Bell className="h-5 w-5 text-blue-400" /> Device Notifications
@@ -406,7 +455,7 @@ export default function Settings() {
           <CardContent className="pt-4">
             <EnablePushCard />
           </CardContent>
-        </Card>
+        </Card>}
 
         {isAdmin && (
           <div className="mb-3 mt-2">
@@ -527,6 +576,17 @@ export default function Settings() {
 
         {isAdmin && (
           <SettingsCategory
+            title="Rig checks"
+            description="Who can tick calendar rig checks, and which Slack group gets the ready message"
+            icon={MessageSquare}
+          >
+            <RigCheckUsersSettings appSettings={appSettings} allUsers={allUsers} />
+            <RigCheckSlackSettings />
+          </SettingsCategory>
+        )}
+
+        {isAdmin && (
+          <SettingsCategory
             title="Messages"
             description="Rigs check, shoot summary, and phase Slack copy"
             icon={MessageSquare}
@@ -562,8 +622,9 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Team"
-            description="Users, roles, welcome login messages, and auto-assignment"
+            description="Users, roles, admin password reset, welcome login messages, and auto-assignment"
             icon={Users}
+            defaultOpen
           >
             <ManageUsersSection queryClient={queryClient} />
             <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />

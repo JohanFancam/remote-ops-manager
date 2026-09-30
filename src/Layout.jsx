@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen,
+  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen, CheckSquare,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import AppSplash from './components/brand/AppSplash';
@@ -19,23 +19,24 @@ import {
   NotificationPopups,
 } from './components/dashboard/ShootNotifications';
 import RefreshReminder from './components/RefreshReminder';
-import { registerServiceWorker } from './lib/pushNotifications';
+import { ensurePushSubscription, registerServiceWorker } from './lib/pushNotifications';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSE_WIDTH = 1400;
 
-function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics) {
+function roleLabel(isAdmin, isStandby, isAccounts, isAnalytics, isViewer) {
   if (isAdmin) return 'Admin';
   if (isStandby) return 'Operator / Standby';
   if (isAccounts) return 'Accounts';
   if (isAnalytics) return 'Data Analytics';
+  if (isViewer) return 'Viewer';
   return 'Remote Operator';
 }
 
 function LayoutContent({ children, currentPageName }) {
-  const { user, isAdmin, isStandby, isAccounts, isAnalytics, isLoading } = useApp();
+  const { user, isAdmin, isStandby, isAccounts, isAnalytics, isViewer, isLoading } = useApp();
   const { logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < SIDEBAR_COLLAPSE_WIDTH
@@ -55,6 +56,27 @@ function LayoutContent({ children, currentPageName }) {
   }, []);
 
   useEffect(() => {
+    if (!user?.email) return;
+    ensurePushSubscription();
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return undefined;
+    const onMessage = (event) => {
+      const path = event.data?.url;
+      if (event.data?.type !== 'rom-notification-click' || !path) return;
+      try {
+        const url = new URL(path, window.location.origin);
+        navigate(url.pathname + url.search);
+      } catch {
+        navigate('/');
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [navigate]);
+
+  useEffect(() => {
     if (isLoading || !isAccounts) return;
     const page = currentPageName || 'Dashboard';
     if (page !== 'AccountsDashboard' && page !== 'Settings') {
@@ -64,12 +86,21 @@ function LayoutContent({ children, currentPageName }) {
 
   useEffect(() => {
     if (isLoading || !isAnalytics) return;
-    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings', 'AppFaults']);
+    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings', 'AppFaults', 'RigChecks']);
     const page = currentPageName || 'Dashboard';
     if (!allowed.has(page)) {
       navigate('/', { replace: true });
     }
   }, [isLoading, isAnalytics, currentPageName, navigate]);
+
+  useEffect(() => {
+    if (isLoading || !isViewer) return;
+    const allowed = new Set(['Dashboard', 'Calendar', 'Settings']);
+    const page = currentPageName || 'Dashboard';
+    if (!allowed.has(page)) {
+      navigate('/', { replace: true });
+    }
+  }, [isLoading, isViewer, currentPageName, navigate]);
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -90,6 +121,7 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Rigs', icon: Wrench, page: 'Rigs' },
+    { name: 'Rig Checks', icon: CheckSquare, page: 'RigChecks' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
@@ -128,7 +160,14 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
+    { name: 'Rig Checks', icon: CheckSquare, page: 'RigChecks' },
     { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
+    { name: 'Settings', icon: Settings, page: 'Settings' },
+  ];
+
+  const viewerNav = [
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
+    { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -140,7 +179,9 @@ function LayoutContent({ children, currentPageName }) {
         ? accountsNav
         : isAnalytics
           ? analyticsNav
-          : remoteNav;
+          : isViewer
+            ? viewerNav
+            : remoteNav;
 
   const handleLogout = () => logout(true);
 
@@ -149,7 +190,7 @@ function LayoutContent({ children, currentPageName }) {
       shoots={shoots}
       user={user}
       notifyHours={notifyHours}
-      enabled={!!user && !isAccounts}
+      enabled={!!user && !isAccounts && !isViewer}
     >
     <div className="min-h-screen flex">
       <TooltipProvider delayDuration={200}>
@@ -178,7 +219,7 @@ function LayoutContent({ children, currentPageName }) {
             <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center gap-2 rounded-xl border border-[color:var(--rom-line)] bg-white/[0.03] px-2.5 py-2">
                 <span className="rom-live-dot" />
-                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics)}</span>
+                <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics, isViewer)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
               </div>
             </div>
@@ -285,9 +326,9 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
-      {user && !isAccounts && <NotificationPopups />}
-      {user && !isAccounts && <ShootCompleteReminder user={user} />}
-      {user && !isAccounts && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
+      {user && !isAccounts && !isViewer && <NotificationPopups />}
+      {user && !isAccounts && !isViewer && <ShootCompleteReminder user={user} />}
+      {user && !isAccounts && !isViewer && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 
       <MobileBottomNav />
 

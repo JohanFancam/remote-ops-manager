@@ -22,9 +22,38 @@ export function pushSupported() {
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register('/sw.js');
+    return await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
   } catch (err) {
     console.warn('Service worker registration failed:', err);
+    return null;
+  }
+}
+
+export async function ensurePushSubscription() {
+  if (!pushSupported()) return null;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
+  try {
+    const registration = await registerServiceWorker();
+    if (!registration) return null;
+    await navigator.serviceWorker.ready;
+    const { publicKey } = await api.push.vapidPublicKey();
+    if (!publicKey) return null;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+    await api.push.subscribe(subscription.toJSON());
+    try {
+      localStorage.setItem('rom_push_enabled', '1');
+    } catch {
+      // ignore
+    }
+    return subscription;
+  } catch (err) {
+    console.warn('Could not refresh push subscription:', err);
     return null;
   }
 }

@@ -21,6 +21,7 @@ export function AppProvider({ children }) {
   const isStandby = user?.role === 'standby';
   const isAccounts = user?.role === 'accounts';
   const isAnalytics = user?.role === 'analytics';
+  const isViewer = user?.role === 'viewer';
   // Anyone who takes shoots and earns from them
   const isOperator = user?.role === 'user' || isStandby;
   const adminLevel = null; // removed admin levels
@@ -83,7 +84,7 @@ export function AppProvider({ children }) {
   }, [user?.email]);
 
   return (
-    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isAnalytics, isOperator, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
+    <AppContext.Provider value={{ user, isAdmin, isStandby, isAccounts, isAnalytics, isViewer, isOperator, isLevel1Admin, isLevel2Admin, adminLevel, isLoading }}>
       {children}
     </AppContext.Provider>
   );

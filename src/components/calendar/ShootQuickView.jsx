@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import { X, Copy, Trash2, Users, Pencil, Wrench } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { getSchedule } from '@/components/utils/scheduleUtils';
+import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 import { matchRig, resolveShootLocation } from '@/components/utils/rigUtils';
 import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { useTimezone } from '@/components/TimezoneContext';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import CalendarRigTestActions from '@/components/calendar/CalendarRigTestActions';
 
 function findMatchingRig(shoot, rigSettings = []) {
   return matchRig(shoot, rigSettings);
@@ -38,14 +40,6 @@ export function shootDotClass(shoot, rigSettings = [], { past = false } = {}) {
   return 'bg-blue-500';
 }
 
-function timezoneLabel() {
-  const offset = -new Date().getTimezoneOffset();
-  const sign = offset >= 0 ? '+' : '-';
-  const abs = Math.abs(offset);
-  const hours = String(Math.floor(abs / 60)).padStart(2, '0');
-  const minutes = abs % 60;
-  return `GMT${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
-}
 
 function PillButton({ active, children, onClick, disabled }) {
   return (
@@ -73,8 +67,10 @@ export default function ShootQuickView({
   isAdmin = false,
   isStandby = false,
   isAnalytics = false,
+  isViewer = false,
   allUsers = [],
   rigSettings = [],
+  standbyCoverage = null,
   onClose,
   onUpdate,
   onApprovePending,
@@ -88,10 +84,11 @@ export default function ShootQuickView({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busyRig, setBusyRig] = useState(false);
+  const { timeZone, abbr } = useTimezone();
 
   if (!shoot) return null;
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const isPast = (shoot.date || '') < todayStr;
   const status = normalizeShootStatus(shoot.status);
   const isCancelled = status === 'cancelled';
@@ -104,7 +101,7 @@ export default function ShootQuickView({
   const effectiveRig = shoot.rig_type_override || matchedRig?.rig_type || 'Data';
   const isFancam = /fancam/i.test(effectiveRig);
   const dateLabel = shoot.date
-    ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric' })
+    ? formatDateZA(shoot.date, { weekday: 'long', month: 'long', day: 'numeric', time: shoot.game_time })
     : '';
   const assignedNames = (shoot.assigned_operators || [])
     .map((email) => getDisplayName(allUsers.find((u) => u.email === email), email))
@@ -112,16 +109,14 @@ export default function ShootQuickView({
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
   const assignmentLocked = isAssignmentLocked(shoot);
   const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound_enabled === true || matchedRig?.sound === true;
-  const showSoundTrigger = matchedRig?.sound_trigger_enabled === true;
+  const phaseFlags = schedulePhaseFlags(matchedRig);
 
   const scheduleRows = schedule ? [
-    { label: 'Setup', time: schedule.setup },
-    { label: 'Pre-Shoot', time: schedule.pre_shoot },
-    showAttention ? { label: 'Attention', time: schedule.attention } : null,
-    showSound ? { label: 'Sound Recording', time: schedule.sound } : null,
-    showSoundTrigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
+    phaseFlags.setup ? { label: 'Setup', time: schedule.setup } : null,
+    phaseFlags.pre_shoot ? { label: 'Pre-Shoot', time: schedule.pre_shoot } : null,
+    phaseFlags.attention ? { label: 'Attention', time: schedule.attention } : null,
+    phaseFlags.sound ? { label: 'Sound Recording', time: schedule.sound } : null,
+    phaseFlags.sound_trigger ? { label: 'Sound Trigger', time: schedule.sound_trigger } : null,
     { label: 'Game', time: schedule.game },
   ].filter(Boolean) : [];
 
@@ -166,8 +161,8 @@ export default function ShootQuickView({
               </h2>
               <p className="mt-1 text-sm text-slate-400">
                 {dateLabel}
-                {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time)}` : ''}
-                {` (${timezoneLabel()})`}
+                {shoot.game_time ? ` · ${formatTimeZA(shoot.game_time, shoot.date)}` : ''}
+                {` (${abbr})`}
               </p>
             </div>
           </div>
@@ -230,7 +225,7 @@ export default function ShootQuickView({
           )}
 
           <div>
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Operator</p>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Capturing</p>
             <p className="text-sm text-slate-200">
               {assignmentLocked
                 ? 'Manual — not assignable'
@@ -243,6 +238,25 @@ export default function ShootQuickView({
                     : 'Unassigned'}
             </p>
           </div>
+
+          <div>
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Standby</p>
+            <p className="text-sm text-slate-200">
+              {standbyCoverage
+                ? (standbyCoverage.admin_name || standbyCoverage.admin_email)
+                : 'No standby'}
+            </p>
+          </div>
+
+          {!isViewer && (
+            <CalendarRigTestActions
+              shoot={shoot}
+              user={user}
+              isAdmin={isAdmin}
+              allUsers={allUsers}
+              rigSettings={rigSettings}
+            />
+          )}
 
           {isAdmin && !assignmentLocked && pendingEmails.length > 0 && (
             <div className="rounded-lg border border-amber-800/40 bg-amber-950/25 px-3 py-2 space-y-2">
@@ -274,7 +288,7 @@ export default function ShootQuickView({
             </div>
           )}
 
-          {(isAdmin || isStandby || isAnalytics) && (
+          {!isViewer && (isAdmin || isStandby || isAnalytics) && (
             <div className="flex flex-wrap gap-2">
               {canCheckRig && (
                 <button
@@ -287,7 +301,7 @@ export default function ShootQuickView({
                   }`}
                 >
                   <Wrench className="h-3.5 w-3.5" />
-                  {shoot.rig_check_completed ? 'Rig checked' : 'Mark Rig Checked'}
+                  {shoot.rig_check_completed ? 'Open message' : 'Quick rig check'}
                 </button>
               )}
               {(isAdmin || isAnalytics) && (

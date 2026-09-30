@@ -8,20 +8,22 @@ import {
 } from 'lucide-react';
 
 import { getSchedule, timeToMinutes, minutesToTime } from '../utils/scheduleUtils';
+import { schedulePhaseFlags } from '../utils/schedulePhases';
+import { matchRig } from '../utils/rigUtils';
 import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '../../utils/assignmentApproval';
 import { isAssignmentLocked } from '../../utils/assignmentLock';
 
-function ReadySlackMessage({ shoot, schedule, showAttention, showSound, rigType }) {
+function ReadySlackMessage({ shoot, schedule, showSetup = true, showPreShoot = true, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
   const team = shoot.client || shoot.title;
   const lines = [
     `Ready for today's ${team} shoot`,
     '',
     schedule ? [
-      `Setup: ${schedule.setup}`,
-      `Pre-Shoot: ${schedule.pre_shoot}`,
+      showSetup ? `Setup: ${schedule.setup}` : null,
+      showPreShoot ? `Pre-Shoot: ${schedule.pre_shoot}` : null,
       showAttention ? `Attention: ${schedule.attention}` : null,
       showSound ? `Sound Check: ${schedule.sound}` : null,
       `Game Time: ${schedule.game}`,
@@ -87,7 +89,9 @@ async function createShootTimeEntry(shoot, email, name, entryType, notes) {
 
 export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, allShoots = [], allUsers = [], standbyAdmins = [], slackMessages = {}, appSettings = [], onUpdate }) {
   const [showRigSettings, setShowRigSettings] = useState(false);
-  const schedule = getSchedule(shoot);
+  const matchedRigForSchedule = matchRig(shoot, rigSettings);
+  const schedule = getSchedule(shoot, matchedRigForSchedule);
+  const phaseFlags = schedulePhaseFlags(matchedRigForSchedule);
   const todayStr = new Date().toISOString().split('T')[0];
   const isPast = shoot.date < todayStr;
 
@@ -121,14 +125,13 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
   // Count pre-approved slots using the shared helper
   const getApprovedCount = (email) => getPreApprovedCount(allShoots, email, shoot.id, todayStr);
 
-  const matchedRig = rigSettings?.find(r =>
-    r.team && shoot.client &&
-    r.team.toLowerCase().trim() === shoot.client.toLowerCase().trim()
-  );
+  const matchedRig = matchedRigForSchedule;
 
   // Which optional phases are enabled for this shoot
-  const showAttention = matchedRig?.attention_enabled === true;
-  const showSound = matchedRig?.sound_enabled === true;
+  const showSetup = phaseFlags.setup;
+  const showPreShoot = phaseFlags.pre_shoot;
+  const showAttention = phaseFlags.attention;
+  const showSound = phaseFlags.sound;
   const effectiveRigType = shoot.rig_type_override || matchedRig?.rig_type;
   const rigTypeLabel = effectiveRigType ? (matchedRig?.sound_enabled ? `${effectiveRigType}/Sound` : effectiveRigType) : null;
 
@@ -209,8 +212,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
       {schedule && (
         <div className="bg-slate-800/60 rounded-lg p-3">
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Schedule</p>
-          <ScheduleRow Icon={Zap} label="Setup" time={schedule.setup} />
-          <ScheduleRow Icon={Camera} label="Pre-Shoot" time={schedule.pre_shoot} />
+          {showSetup && <ScheduleRow Icon={Zap} label="Setup" time={schedule.setup} />}
+          {showPreShoot && <ScheduleRow Icon={Camera} label="Pre-Shoot" time={schedule.pre_shoot} />}
           {showAttention && <ScheduleRow Icon={AlertTriangle} label="Attention" time={schedule.attention} />}
           {showSound && <ScheduleRow Icon={Volume2} label="Sound Check" time={schedule.sound} />}
           <ScheduleRow Icon={Clock} label="Game Time" time={schedule.game} highlight />
@@ -455,7 +458,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
 
       {/* Ready Slack message — shown as soon as assigned */}
       {isApproved && schedule && (
-        <ReadySlackMessage shoot={shoot} schedule={schedule} showAttention={showAttention} showSound={showSound} rigType={rigTypeLabel} />
+        <ReadySlackMessage shoot={shoot} schedule={schedule} showSetup={showSetup} showPreShoot={showPreShoot} showAttention={showAttention} showSound={showSound} rigType={rigTypeLabel} />
       )}
 
       {/* Standby info for this shoot date — show who is on standby */}

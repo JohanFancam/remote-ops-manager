@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
 import { LiveDataBadge } from '@/components/shoots/LiveDataControls';
+import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 
 export default function Rigs() {
   const { isAdmin } = useApp();
@@ -22,7 +23,6 @@ export default function Rigs() {
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
   });
-
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['rigSettings'] });
 
   const handleSave = async (formData) => {
@@ -74,7 +74,7 @@ export default function Rigs() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Rig Settings</h1>
-            <p className="text-slate-400 text-sm mt-1">Team-based camera configurations</p>
+            <p className="text-slate-400 text-sm mt-1">Team camera configs and the default checklist used when that team’s shoot is assigned for rig testing</p>
           </div>
           {isAdmin && (
             <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-blue-600 hover:bg-blue-500">
@@ -127,6 +127,20 @@ export default function Rigs() {
                   {rig.attention_enabled && <Badge className="bg-yellow-500/20 text-amber-400 border-yellow-500/30 text-xs">Attention</Badge>}
                   {rig.sound_enabled && <Badge className="bg-green-500/20 text-emerald-400 border-green-500/30 text-xs">Sound</Badge>}
                   {rig.sound_trigger_enabled && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">Sound Trigger</Badge>}
+                  {(() => {
+                    const phases = schedulePhaseFlags(rig);
+                    return (
+                      <>
+                        {phases.setup && <Badge className="bg-slate-700/60 text-slate-300 border-slate-600 text-xs">Setup time</Badge>}
+                        {phases.pre_shoot && <Badge className="bg-slate-700/60 text-slate-300 border-slate-600 text-xs">Pre-shoot time</Badge>}
+                        {(rig.default_checks || []).filter(Boolean).length > 0 && (
+                          <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-xs">
+                            {(rig.default_checks || []).filter(Boolean).length} checks
+                          </Badge>
+                        )}
+                      </>
+                    );
+                  })()}
                   {isAdmin && (
                     <button
                       type="button"

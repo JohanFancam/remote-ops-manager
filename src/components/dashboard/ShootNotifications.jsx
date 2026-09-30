@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { X, Calendar, CheckCheck, AlertTriangle, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
+import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { cn } from '@/lib/utils';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
@@ -154,8 +155,8 @@ function scheduleLines(notification) {
   if (!fromDate && !fromTime && notification.type !== 'schedule_change') return null;
   if (notification.type !== 'schedule_change' && !fromDate && !fromTime) return null;
   return {
-    was: `${fromDate ? formatDateZA(fromDate) : '—'} · ${fromTime ? formatTimeZA(fromTime) : '—'} SAST`,
-    now: `${toDate ? formatDateZA(toDate) : '—'} · ${toTime ? formatTimeZA(toTime) : '—'} SAST`,
+    was: `${fromDate ? formatDateZA(fromDate, { time: fromTime }) : '—'} · ${fromTime ? formatTimeZA(fromTime, fromDate) : '—'} ${formatTimezoneAbbr(getDisplayTimeZone())}`,
+    now: `${toDate ? formatDateZA(toDate, { time: toTime }) : '—'} · ${toTime ? formatTimeZA(toTime, toDate) : '—'} ${formatTimezoneAbbr(getDisplayTimeZone())}`,
   };
 }
 
@@ -196,8 +197,8 @@ function NotificationBody({ item }) {
         {!change && (notification.shoot_date || notification.shoot_time) && (
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-300">
             <Calendar className="h-3 w-3" />
-            {notification.shoot_date ? <span>{formatDateZA(notification.shoot_date)}</span> : null}
-            {notification.shoot_time && <span>· {formatTimeZA(notification.shoot_time)} SAST</span>}
+            {notification.shoot_date ? <span>{formatDateZA(notification.shoot_date, { time: notification.shoot_time })}</span> : null}
+            {notification.shoot_time && <span>· {formatTimeZA(notification.shoot_time, notification.shoot_date)} {formatTimezoneAbbr(getDisplayTimeZone())}</span>}
           </div>
         )}
 
@@ -220,8 +221,8 @@ function NotificationBody({ item }) {
       <p className="text-sm font-semibold text-slate-50 truncate">{item.shoot.title}</p>
       <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-200">
         <Calendar className="h-3 w-3" />
-        <span>{formatDateZA(item.shoot.date)}</span>
-        {item.shoot.game_time && <span>· {formatTimeZA(item.shoot.game_time)} SAST</span>}
+        <span>{formatDateZA(item.shoot.date, { time: item.shoot.game_time })}</span>
+        {item.shoot.game_time && <span>· {formatTimeZA(item.shoot.game_time, item.shoot.date)} {formatTimezoneAbbr(getDisplayTimeZone())}</span>}
       </div>
       <p className="text-xs text-slate-200 mt-0.5">
         Setup: {format(item.setupTime, 'HH:mm')}

@@ -8,12 +8,12 @@ import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
 import { listEntities, createEntity, updateEntity, deleteEntity } from './entities.js';
 import { handleShootChange, createNotifications } from './notifications.js';
+import { archiveDeletedShoot, shootHasPeople } from './shootArchive.js';
 import {
-  findAliasDateMatch,
+  findExistingShootMatch,
   isManualShootTitle,
   matchupKey,
-  normalizeShootTitle,
-  resolveExistingShoot,
+  normalizeGameTime,
   titlesAreEquivalent,
 } from './shootTitleMatch.js';
 
@@ -110,6 +110,8 @@ export function getGoogleSettings() {
     lastSyncAt: saved.lastSyncAt || null,
     lastSyncStats: saved.lastSyncStats || null,
     lastSyncChanges: saved.lastSyncChanges || [],
+    lastRestoreAt: saved.lastRestoreAt || null,
+    lastRestoreStats: saved.lastRestoreStats || null,
     lastAutoSyncSlot: saved.lastAutoSyncSlot || null,
     autoSyncHours: AUTO_SYNC_HOURS,
     autoSyncTimeZone: ZA_TZ,
@@ -208,6 +210,8 @@ export function getGoogleStatus() {
     lastSyncAt: settings.lastSyncAt || null,
     lastSyncStats: settings.lastSyncStats || null,
     lastSyncChanges: settings.lastSyncChanges || [],
+    lastRestoreAt: settings.lastRestoreAt || null,
+    lastRestoreStats: settings.lastRestoreStats || null,
     lastAutoSyncSlot: settings.lastAutoSyncSlot || null,
     autoSyncHours: AUTO_SYNC_HOURS,
     autoSyncTimeZone: ZA_TZ,
@@ -281,17 +285,16 @@ async function getAuthedClient() {
   return client;
 }
 
-function findTitleDateMatch(shoots, title, date, calendarId = '') {
-  const wanted = normalizeShootTitle(title);
-  if (!wanted || !date) return null;
-  const exact = (shoots || []).find((shoot) => (
-    !shoot.google_event_id
-    && shoot.date === date
-    && normalizeShootTitle(shoot.title) === wanted
-    && (!shoot.google_calendar_id || !calendarId || shoot.google_calendar_id === calendarId)
-  ));
-  if (exact) return exact;
-  return findAliasDateMatch(shoots, title, date, calendarId);
+function findTitleDateMatch(shoots, title, date, calendarId = '', gameTime = '') {
+  return findExistingShootMatch(shoots, { title, date, gameTime, calendarId });
+}
+
+function assignmentSnapshot(shoot) {
+  return {
+    shootId: shoot?.id || '',
+    assigned_operators: [...(shoot?.assigned_operators || [])],
+    pending_operators: [...(shoot?.pending_operators || [])],
+  };
 }
 
 /** Convert Google event start → { date: yyyy-MM-dd, game_time: HH:mm|'' } in SAST. */
@@ -403,23 +406,10 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       existingShoots.filter((shoot) => !linked || shoot.id !== linked.id),
       title,
       times.date,
-      source.id
+      source.id,
+      times.game_time
     );
-    const { keep: existing, retire } = resolveExistingShoot(linked, aliasMatch);
-    if (retire) {
-      deleteEntity('Shoot', retire.id);
-      const retireIdx = existingShoots.findIndex((shoot) => shoot.id === retire.id);
-      if (retireIdx >= 0) existingShoots.splice(retireIdx, 1);
-      byGoogleId.delete(retire.google_event_id);
-      cancelled += 1;
-      changes.push({
-        action: 'duplicate',
-        title: retire.title,
-        date: retire.date,
-        time: retire.game_time || retire.start_time || '',
-        calendar: source.label,
-      });
-    }
+    const existing = linked || aliasMatch || null;
     const assignmentLocked = isManualShootTitle(title) || isManualShootTitle(existing?.title);
     if (existing) {
       const previousEventId = existing.google_event_id;
@@ -427,7 +417,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       byGoogleId.set(event.id, existing);
       const existingTime = existing.game_time || existing.start_time || '';
       const restore = existing.status === 'cancelled' && existing.google_sync_cancelled;
-      const timeChanged = existingTime !== times.game_time;
+      const timeChanged = normalizeGameTime(existingTime) !== normalizeGameTime(times.game_time);
       const dateChanged = existing.date !== times.date;
       const keepAppTitle = titlesAreEquivalent(existing.title, title);
       const titleChanged = !keepAppTitle && existing.title !== title;
@@ -456,6 +446,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         patch.google_sync_flag = 'updated';
       }
       const next = updateEntity('Shoot', existing.id, patch);
+      const idx = existingShoots.findIndex((shoot) => shoot.id === existing.id);
+      if (idx >= 0) existingShoots[idx] = next || { ...existing, ...patch };
       if (changed && next) {
         updated += 1;
         changes.push({
@@ -474,7 +466,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         unchanged += 1;
       }
     } else {
-      createEntity('Shoot', {
+      const createdShoot = createEntity('Shoot', {
         title,
         client: '',
         location: event.location || '',
@@ -499,6 +491,8 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
         google_sync_flag: 'new',
         ...DEFAULT_OFFSETS,
       }, user);
+      existingShoots.push(createdShoot);
+      byGoogleId.set(event.id, createdShoot);
       created += 1;
       changes.push({
         action: 'created',
@@ -517,6 +511,25 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
   const latestShoots = listEntities('Shoot', '-date', 5000);
 
   const removeShoot = (shoot, action = 'deleted') => {
+    archiveDeletedShoot(shoot, action);
+    const snapshot = assignmentSnapshot(shoot);
+    if (shootHasPeople(shoot)) {
+      updateEntity('Shoot', shoot.id, {
+        status: 'cancelled',
+        google_sync_cancelled: true,
+        google_sync_flag: 'cancelled',
+      });
+      cancelled += 1;
+      changes.push({
+        action: 'cancelled',
+        title: shoot.title,
+        date: shoot.date,
+        time: shoot.game_time || shoot.start_time || '',
+        calendar: shoot.google_calendar_label || '',
+        ...snapshot,
+      });
+      return;
+    }
     deleteEntity('Shoot', shoot.id);
     cancelled += 1;
     changes.push({
@@ -525,6 +538,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       date: shoot.date,
       time: shoot.game_time || shoot.start_time || '',
       calendar: shoot.google_calendar_label || '',
+      ...snapshot,
     });
     createNotifications({
       notificationKey: `google_sync_delete:${shoot.id}:${syncedAt}`,
@@ -536,6 +550,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
       targetRole: 'admin',
       createdByName: user?.full_name || user?.email || 'Google sync',
       url: '/Calendar',
+      extras: snapshot,
     }).catch((err) => {
       console.warn('Google delete notification failed:', err.message);
     });
@@ -570,7 +585,7 @@ export async function syncGoogleCalendar({ user = null, timeMin = null, timeMax 
     const calKey = shootCalendarId && shoot.date
       ? `${shootCalendarId}|${matchupKey(shoot.title, shoot.date)}`
       : '';
-    if (calKey && claimedCalKeys.has(calKey)) {
+    if (calKey && claimedCalKeys.has(calKey) && !shootHasPeople(shoot) && shoot.google_sync_flag !== 'restored') {
       removeShoot(shoot, 'duplicate');
     }
   }

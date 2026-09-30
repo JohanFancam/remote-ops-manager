@@ -37,6 +37,7 @@ const WIPE_ENTITY_TYPES = [
   'Event',
   'ShootNotification',
   'UserPresence',
+  'RigCheckAssignment',
 ];
 
 const DEMO_SETTING_KEYS = ['auto_assign_teams', 'auto_assign_users'];

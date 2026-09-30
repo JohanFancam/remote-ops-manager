@@ -92,6 +92,12 @@ export const AuthProvider = ({ children }) => {
     return updated;
   };
 
+  const updateMe = async (patch) => {
+    const updated = await api.auth.updateMe(patch);
+    setUser(updated);
+    return updated;
+  };
+
   const register = async ({ email, password, full_name }) => {
     const currentUser = await api.auth.register({ email, password, full_name });
     setUser(currentUser);
@@ -136,6 +142,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         changePassword,
+        updateMe,
         logout,
         navigateToLogin,
         checkAppState,

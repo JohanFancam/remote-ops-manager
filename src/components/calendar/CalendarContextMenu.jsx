@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus } from 'lucide-react';
+import { Edit2, Copy, Trash2, UserCheck, UserX, ExternalLink, UserPlus, Wrench } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
@@ -9,6 +9,7 @@ export default function CalendarContextMenu({
   shoot, isAdmin, isAnalytics = false, userEmail,
   onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
+  onRigCheckToggle, canCheckRig = false,
   onClose
 }) {
 
@@ -49,6 +50,12 @@ export default function CalendarContextMenu({
 
   const items = [
     { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
+    ...(canCheckRig ? [{
+      label: shoot?.rig_check_completed ? 'Open rig check message' : 'Quick rig check',
+      icon: Wrench,
+      action: () => { onRigCheckToggle?.(shoot); onClose(); },
+      color: shoot?.rig_check_completed ? 'text-emerald-400' : 'text-amber-400',
+    }] : []),
     ...(!isAnalytics ? [selfAssignItem] : []),
 
     ...(isAdmin ? [

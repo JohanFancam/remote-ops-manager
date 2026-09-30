@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { format } from 'date-fns';
+import { CalendarDays, Shield, Clock } from 'lucide-react';
 import AdminDayShootView from '../components/dashboard/AdminDayShootView';
 import RemotePendingShoots from '../components/dashboard/RemotePendingShoots';
 import RemoteEarnings from '../components/dashboard/RemoteEarnings';
@@ -11,9 +12,12 @@ import AdminMonthlySummary from '../components/dashboard/AdminMonthlySummary';
 import DashboardBanner from '../components/dashboard/DashboardBanner';
 import AdminStandbyShootList from '../components/dashboard/AdminStandbyShootList';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import AssignedRigChecksPanel from '../components/dashboard/AssignedRigChecksPanel';
+import DashboardSection from '../components/dashboard/DashboardSection';
+import ViewerSchedule from '../components/dashboard/ViewerSchedule';
 
 export default function Dashboard() {
-  const { user, isAdmin, isStandby, isOperator, isAnalytics } = useApp();
+  const { user, isAdmin, isStandby, isOperator, isAnalytics, isViewer } = useApp();
   const queryClient = useQueryClient();
 
   const { data: shoots = [] } = useQuery({
@@ -105,6 +109,10 @@ export default function Dashboard() {
     return <AnalyticsDashboard />;
   }
 
+  if (isViewer) {
+    return <ViewerSchedule />;
+  }
+
   return (
     <div className="rom-page">
       <div className="rom-page-inner">
@@ -133,65 +141,59 @@ export default function Dashboard() {
           />
         </section>
 
-        <section className="mb-8 rom-enter-delay-2">
-          <div className="mb-3 flex items-end justify-between gap-3">
-            <h2 className="rom-section-title">My Assigned Shoots</h2>
-            <p className="hidden text-xs text-slate-500 sm:block">Current or next shoot shows first.</p>
-          </div>
-          <div className="rom-panel">
-            <AdminDayShootView
-              shoots={allAssignedShoots}
-              isAdmin={isAdmin || isStandby}
-              rigSettings={rigSettings}
-              onUpdate={handleShootUpdate}
-              userEmail={user?.email}
-              allUsers={allUsers}
-              allShoots={shoots}
-              appSettings={appSettings}
-            />
-          </div>
-        </section>
+        <DashboardSection
+          title="My Assigned Shoots"
+          icon={CalendarDays}
+          extra={<span className="text-xs text-slate-500">Current or next shoot shows first.</span>}
+        >
+          <AdminDayShootView
+            shoots={allAssignedShoots}
+            isAdmin={isAdmin || isStandby}
+            rigSettings={rigSettings}
+            onUpdate={handleShootUpdate}
+            userEmail={user?.email}
+            allUsers={allUsers}
+            allShoots={shoots}
+            appSettings={appSettings}
+          />
+        </DashboardSection>
 
         {(isAdmin || isStandby) && (
-          <section className="mb-8">
-            <div className="mb-3 flex items-end justify-between gap-3">
-              <h2 className="rom-section-title">Standby Coverage Shoots</h2>
-              <p className="hidden text-xs text-slate-500 sm:block">Games on your 18:00–06:00 standby nights.</p>
-            </div>
-            <div className="rom-panel">
-              <AdminStandbyShootList
-                shoots={visibleShoots}
-                allUsers={allUsers}
-                userEmail={user?.email}
-                rigSettings={rigSettings}
-                standbyDays={standbyDays}
-                onUpdate={handleShootUpdate}
-                isAdmin={isAdmin}
-                appSettings={appSettings}
-              />
-            </div>
-          </section>
+          <DashboardSection
+            title="Standby Coverage Shoots"
+            icon={Shield}
+            extra={<span className="text-xs text-slate-500">Games on your 18:00–06:00 standby nights.</span>}
+          >
+            <AdminStandbyShootList
+              shoots={visibleShoots}
+              allUsers={allUsers}
+              userEmail={user?.email}
+              rigSettings={rigSettings}
+              standbyDays={standbyDays}
+              onUpdate={handleShootUpdate}
+              isAdmin={isAdmin}
+              appSettings={appSettings}
+            />
+          </DashboardSection>
         )}
+
+        {isOperator && (
+          <DashboardSection
+            title="Pending Approval"
+            icon={Clock}
+            extra={<span className="text-xs text-slate-500">Requests waiting for admin approval.</span>}
+          >
+            <RemotePendingShoots shoots={shoots} user={user} onUpdate={handleShootUpdate} />
+          </DashboardSection>
+        )}
+
+        <AssignedRigChecksPanel
+          userEmail={user?.email}
+          alwaysShow={isAdmin || isStandby}
+        />
 
         {isAdmin && <AdminMonthlySummary shoots={shoots} user={user} appSettings={appSettings} />}
-
-        {isOperator && (
-          <section className="mb-8">
-            <div className="mb-3">
-              <h2 className="rom-section-title">Pending Approval</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Requests waiting for admin approval.</p>
-            </div>
-            <div className="rom-panel">
-              <RemotePendingShoots shoots={shoots} user={user} onUpdate={handleShootUpdate} />
-            </div>
-          </section>
-        )}
-
-        {isOperator && (
-          <div className="mt-6">
-            <RemoteEarnings user={user} />
-          </div>
-        )}
+        {isOperator && <RemoteEarnings user={user} />}
       </div>
     </div>
   );
