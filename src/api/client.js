@@ -211,6 +211,12 @@ export const api = {
         body: JSON.stringify({ email, role, full_name }),
       });
     },
+    resetPassword({ email, allowCreate = false, full_name = '', role = 'user', inactive = false } = {}) {
+      return request('/api/users/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, allowCreate, full_name, role, inactive }),
+      });
+    },
     resetPasswords({ emails, includeSelf = false, allowCreate = false, createFrom } = {}) {
       return request('/api/users/reset-passwords', {
         method: 'POST',

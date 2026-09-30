@@ -294,6 +294,48 @@ app.post('/api/users/invite', authMiddleware, (req, res) => {
  *   allowCreate?: boolean create a login if the email has none (per-user)
  *   createFrom?: { [email]: { full_name, role, inactive } }
  */
+app.post('/api/users/reset-password', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: 'Choose a user to reset' });
+    }
+    const includeSelf = email === String(req.user.email || '').trim().toLowerCase();
+    const createFrom = {};
+    if (req.body?.full_name || req.body?.role) {
+      createFrom[email] = {
+        full_name: req.body.full_name || '',
+        role: req.body.role || 'user',
+        inactive: !!req.body.inactive,
+      };
+    }
+    const result = resetLoginPasswords({
+      emails: [email],
+      skipEmail: req.user.email,
+      includeSkipEmail: includeSelf,
+      allowCreate: !!req.body?.allowCreate,
+      createFrom,
+    });
+    if (!result.issued.length) {
+      const reason = result.skipped[0]?.reason;
+      const message = reason === 'inactive'
+        ? 'That account is marked not in use'
+        : reason === 'self'
+          ? 'Confirm includeSelf to reset your own password'
+          : 'No login found for that user';
+      return res.status(400).json({ error: message, skipped: result.skipped });
+    }
+    res.json({
+      ok: true,
+      issued: result.issued,
+      user: result.issued[0],
+      skipped: result.skipped,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.post('/api/users/reset-passwords', authMiddleware, requireAdmin, (req, res) => {
   try {
     const rawEmails = req.body?.emails;
