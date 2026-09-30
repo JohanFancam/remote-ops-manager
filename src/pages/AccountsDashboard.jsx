@@ -19,10 +19,9 @@ import {
   operatorAssignedCost,
   operatorProjectedCost,
   operatorStandbyCost,
-  feeForProjectedShoot,
   isAwaitingApproval,
 } from '../components/utils/earningsUtils';
-import { formatDateZA, formatTimeZA, formatZAR } from '../utils/shootStatus';
+import { formatZAR } from '../utils/shootStatus';
 
 function money(amount) {
   return formatZAR(amount, { withSpace: false });
@@ -257,8 +256,6 @@ export default function AccountsDashboard() {
         inactive: !!op.inactive,
         shoots: opShoots.length,
         pending: opPending.length,
-        pendingShoots: opPending,
-        autoAdditionalIds: projection.autoAdditionalIds,
         standbyCount: standby.count,
       };
     }).filter((op) => op.shoots > 0 || op.standbyCount > 0 || op.pending > 0)
@@ -276,29 +273,6 @@ export default function AccountsDashboard() {
   const pendingCount = monthSummaryRows.reduce((s, r) => s + r.pending, 0);
   const paidCount = monthSummaryRows.filter((r) => r.paid).length;
   const paidTotal = monthSummaryRows.filter((r) => r.paid).reduce((s, r) => s + r.total, 0);
-
-  const pendingApprovalRows = useMemo(() => {
-    const rows = [];
-    monthSummaryRows.forEach((row) => {
-      (row.pendingShoots || []).forEach((shoot) => {
-        const recs = paymentRecords.filter((r) => r.operator_email === row.email && r.period_month === filterMonth);
-        const fee = feeForProjectedShoot(shoot, recs, row.autoAdditionalIds, rates);
-        rows.push({
-          id: `${shoot.id}:${row.email}`,
-          shoot,
-          email: row.email,
-          name: row.name,
-          fee,
-          isAdditional: row.autoAdditionalIds?.has(shoot.id),
-        });
-      });
-    });
-    return rows.sort((a, b) =>
-      String(a.shoot.date || '').localeCompare(String(b.shoot.date || ''))
-      || String(a.shoot.game_time || '').localeCompare(String(b.shoot.game_time || ''))
-      || a.name.localeCompare(b.name)
-    );
-  }, [monthSummaryRows, paymentRecords, filterMonth, rates]);
 
   const yearChartData = useMemo(() => {
     const yearNum = parseInt(filterMonth.split('-')[0], 10);
@@ -468,7 +442,7 @@ export default function AccountsDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
             <p className="text-slate-400 text-sm mt-0.5">
-              Monthly crew costs — same fees as Pending / Approve. Pending assignments show as a projection until they are approved.
+              Monthly crew costs — same fees as Pending / Approve. Pending assignments show a projection until they are approved.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -591,49 +565,8 @@ export default function AccountsDashboard() {
           </Card>
         </div>
 
-        {pendingApprovalRows.length > 0 && (
-          <Card className="bg-slate-900 border-amber-800/40">
-            <CardContent className="p-0">
-              <div className="px-5 py-3 border-b border-amber-800/30">
-                <p className="text-sm font-semibold text-amber-200 flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Pending shoots ({pendingApprovalRows.length})
-                </p>
-                <p className="text-xs text-amber-200/70 mt-1">
-                  Waiting for admin approval. Projected fee uses the same main / additional / postponed rates as approved shoots.
-                </p>
-              </div>
-              <div className="divide-y divide-slate-800">
-                {pendingApprovalRows.map((item) => (
-                  <div key={item.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-100 truncate">{item.shoot.title || 'Shoot'}</p>
-                      <p className="text-xs text-slate-500">
-                        {item.name}
-                        {' · '}
-                        {formatDateZA(item.shoot.date, { time: item.shoot.game_time })}
-                        {item.shoot.game_time ? ` · ${formatTimeZA(item.shoot.game_time, item.shoot.date)}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {item.isAdditional && (
-                        <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>
-                      )}
-                      <span className="font-mono text-sm font-semibold text-amber-200">{money(item.fee)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between px-5 py-3 border-t border-amber-800/30 bg-amber-950/20">
-                <span className="text-sm font-semibold text-amber-200/80">Pending add-on</span>
-                <span className="font-mono font-bold text-amber-100">{money(pendingAddTotal)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {monthSummaryRows.length === 0 ? (
-          <div className="text-center py-16 text-slate-500">No crew costs or pending shoots for this month.</div>
+          <div className="text-center py-16 text-slate-500">No crew costs for this month.</div>
         ) : (
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-0">
