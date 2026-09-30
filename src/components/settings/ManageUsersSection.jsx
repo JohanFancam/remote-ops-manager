@@ -633,127 +633,6 @@ function mergeCrew(pendingUsers = [], users = []) {
   );
 }
 
-function ResetUserPasswordPanel({ crew, currentEmail, onIssued, onRefresh }) {
-  const [email, setEmail] = useState('');
-  const [query, setQuery] = useState('');
-  const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const resettable = crew.filter((u) => !u.inactive);
-  const needle = query.trim().toLowerCase();
-  const filtered = needle
-    ? resettable.filter((u) => {
-        const hay = `${u.full_name || ''} ${u.email} ${roleLabel[u.role] || u.role}`.toLowerCase();
-        return hay.includes(needle);
-      })
-    : resettable;
-  const selected = resettable.find((u) => u.email === email);
-
-  const handleReset = async () => {
-    if (!selected) return;
-    setError('');
-    setBusy(true);
-    try {
-      const result = await base44.users.resetPassword({
-        email: selected.email,
-        allowCreate: true,
-        full_name: selected.full_name || '',
-        role: selected.role || 'user',
-        inactive: !!selected.inactive,
-      });
-      if (result.issued?.length) {
-        onIssued(result);
-        setConfirm(false);
-        toast.success(`Password reset for ${selected.full_name || selected.email}. Copy it now.`);
-        onRefresh();
-      } else {
-        setError(result.skipped?.[0]?.reason === 'inactive' ? 'Marked not in use — no login.' : 'No login to reset.');
-      }
-    } catch (err) {
-      setError(err.message || 'Could not reset password');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/20 p-4 space-y-3">
-      <div>
-        <p className="text-sm font-medium text-amber-100 flex items-center gap-2">
-          <KeyRound className="h-4 w-4" /> Reset a user’s password
-        </p>
-        <p className="text-xs text-amber-200/70 mt-1">
-          Only admins can do this. Choose the person, confirm, then copy the new temporary password — it is shown once.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">Search</label>
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Name, email, or role"
-            className="bg-slate-800 border-slate-700 text-slate-100 h-9 text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">User</label>
-          <select
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setConfirm(false); setError(''); }}
-            className="bg-slate-800 border border-slate-700 text-slate-100 rounded-md px-3 py-1.5 text-sm h-9 w-full"
-          >
-            <option value="">Select a user…</option>
-            {filtered.map((u) => (
-              <option key={u.email} value={u.email}>
-                {u.full_name ? `${u.full_name} — ${u.email}` : u.email}
-                {u.email === currentEmail ? ' (you)' : ''}
-                {` · ${roleLabel[u.role] || u.role}`}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      {confirm && selected ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs text-amber-200">
-            Reset password for <span className="font-medium text-amber-100">{selected.full_name || selected.email}</span>?
-            They will need the new temporary password on next sign-in.
-          </p>
-          <Button
-            size="sm"
-            className="h-8 bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs"
-            onClick={handleReset}
-            disabled={busy}
-          >
-            {busy ? 'Resetting…' : 'Yes, reset password'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 text-xs text-slate-400 hover:text-slate-100"
-            onClick={() => setConfirm(false)}
-            disabled={busy}
-          >
-            Cancel
-          </Button>
-        </div>
-      ) : (
-        <Button
-          size="sm"
-          className="h-8 bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs gap-1.5"
-          disabled={!selected}
-          onClick={() => { setConfirm(true); setError(''); }}
-        >
-          <KeyRound className="h-3.5 w-3.5" /> Reset this user’s password
-        </Button>
-      )}
-      {error && <p className="text-xs text-red-400">{error}</p>}
-    </div>
-  );
-}
-
 export default function ManageUsersSection() {
   const queryClient = useQueryClient();
   const { user } = useApp();
@@ -855,15 +734,9 @@ export default function ManageUsersSection() {
       </CardHeader>
       <CardContent className="pt-4">
         <p className="text-xs text-slate-500 mb-4">
-          Admins can reset any user’s password here. Live (green) means they are in the app now.
+          Use Reset on a person to issue a new temporary password. Live (green) means they are in the app now.
           Not signed in means they have not used the login you sent yet.
         </p>
-        <ResetUserPasswordPanel
-          crew={crew}
-          currentEmail={currentEmail}
-          onIssued={mergeIssued}
-          onRefresh={refresh}
-        />
         {issuedResult?.issued?.length > 0 && (
           <IssuedPasswords
             issued={issuedResult.issued}
