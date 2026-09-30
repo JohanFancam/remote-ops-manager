@@ -22,6 +22,7 @@ import {
   isAwaitingApproval,
 } from '../components/utils/earningsUtils';
 import { formatZAR } from '../utils/shootStatus';
+import { buildInvoiceCsvRows, invoiceExportName, invoiceFilename, mergeInvoiceOperatorRows } from '../utils/invoiceExport';
 
 function money(amount) {
   return formatZAR(amount, { withSpace: false });
@@ -311,14 +312,11 @@ export default function AccountsDashboard() {
   }, [exportMode, filterMonth, rangeFrom, rangeTo]);
 
   const exportPreview = useMemo(() => {
-    let total = 0;
-    let operators = 0;
-    exportMonths.forEach((monthKey) => {
-      const rows = operatorCostsForMonth(monthKey);
-      operators += rows.length;
-      total += rows.reduce((s, r) => s + r.total, 0);
-    });
-    return { months: exportMonths.length, total, operators };
+    const merged = mergeInvoiceOperatorRows(exportMonths.map((monthKey) => operatorCostsForMonth(monthKey)));
+    const total = merged.reduce((sum, row) => sum + row.total, 0);
+    const projected = merged.reduce((sum, row) => sum + row.projectedTotal, 0);
+    const pending = merged.reduce((sum, row) => sum + row.pending, 0);
+    return { months: exportMonths.length, operators: merged.length, total, projected, pending };
   }, [exportMonths, operatorCostsForMonth]);
 
   const openExport = () => {
@@ -331,53 +329,9 @@ export default function AccountsDashboard() {
 
   const handleDownloadExport = () => {
     const monthKeys = exportMonths;
-    const detail = [['Month', 'Operator', 'Amount (ZAR)', 'Paid']];
-    const monthTotals = [['Month', 'Month total (ZAR)']];
-    const byOperator = new Map();
-    let grand = 0;
-
-    monthKeys.forEach((monthKey) => {
-      const rows = operatorCostsForMonth(monthKey);
-      const monthLabel = format(new Date(`${monthKey}-01`), 'MMMM yyyy');
-      let monthTotal = 0;
-      rows.forEach((r) => {
-        detail.push([monthLabel, r.name, r.total.toFixed(2), r.paid ? 'Yes' : 'No']);
-        monthTotal += r.total;
-        const prev = byOperator.get(r.name) || { total: 0, email: r.email };
-        byOperator.set(r.name, { total: prev.total + r.total, email: r.email });
-      });
-      monthTotals.push([monthLabel, monthTotal.toFixed(2)]);
-      grand += monthTotal;
-    });
-
-    const operatorTotals = [['Operator', 'Period total (ZAR)']];
-    [...byOperator.entries()]
-      .sort((a, b) => b[1].total - a[1].total)
-      .forEach(([name, info]) => {
-        operatorTotals.push([name, info.total.toFixed(2)]);
-      });
-
-    const table = [
-      ...detail,
-      [],
-      ...monthTotals,
-      [],
-      ...operatorTotals,
-      [],
-      ['Grand total', grand.toFixed(2)],
-    ];
-
-    const first = monthKeys[0] || filterMonth;
-    const last = monthKeys[monthKeys.length - 1] || first;
-    const fullYear = monthKeys.length === 12
-      && first.endsWith('-01')
-      && last.endsWith('-12')
-      && first.slice(0, 4) === last.slice(0, 4);
-    const filename = monthKeys.length <= 1
-      ? `Crew_costs_${first}.csv`
-      : fullYear
-        ? `Crew_costs_${first.slice(0, 4)}.csv`
-        : `Crew_costs_${first}_to_${last}.csv`;
+    const merged = mergeInvoiceOperatorRows(monthKeys.map((monthKey) => operatorCostsForMonth(monthKey)));
+    const table = buildInvoiceCsvRows(merged);
+    const filename = invoiceFilename(invoiceExportName(appSettings), monthKeys.length ? monthKeys : [filterMonth]);
     downloadCsv(filename, table);
     setExportOpen(false);
   };
@@ -451,7 +405,7 @@ export default function AccountsDashboard() {
             </Button>
             <Button onClick={openExport} className="bg-green-700 hover:bg-green-600 gap-2 text-sm">
               <Download className="h-4 w-4" />
-              Export CSV
+              Export invoice
             </Button>
           </div>
         </div>
@@ -649,9 +603,10 @@ export default function AccountsDashboard() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-slate-100 font-semibold text-base">Export earnings</h3>
+                <h3 className="text-slate-100 font-semibold text-base">Export invoice</h3>
                 <p className="text-slate-400 text-sm mt-1">
-                  Download a CSV of operator totals for one month, the whole year, or a range of months.
+                  Downloads {invoiceExportName(appSettings)} with operator, email, shoot count, and earnings.
+                  Pending shoots add an after-pending grand total.
                 </p>
               </div>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-100" onClick={() => setExportOpen(false)}>
@@ -735,7 +690,8 @@ export default function AccountsDashboard() {
 
             <p className="text-xs text-slate-400">
               {exportPreview.months} month{exportPreview.months === 1 ? '' : 's'} · {money(exportPreview.total)}
-              {exportPreview.operators ? ` · ${exportPreview.operators} operator row${exportPreview.operators === 1 ? '' : 's'}` : ''}
+              {exportPreview.operators ? ` · ${exportPreview.operators} operator${exportPreview.operators === 1 ? '' : 's'}` : ''}
+              {exportPreview.pending > 0 ? ` · after pending ${money(exportPreview.projected)}` : ''}
             </p>
 
             <div className="flex gap-2">
