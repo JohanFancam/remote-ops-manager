@@ -56,8 +56,20 @@ export function normalizeHm(value) {
   return `${pad2(Number(match[1]))}:${match[2]}`;
 }
 
+const formatterCache = new Map();
+const zonedInstantCache = new Map();
+
+function getFormatter(cacheKey, locale, options) {
+  let formatter = formatterCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    formatterCache.set(cacheKey, formatter);
+  }
+  return formatter;
+}
+
 function partsInZone(date, timeZone) {
-  const parts = new Intl.DateTimeFormat('en-US', {
+  const parts = getFormatter(`parts:${timeZone}`, 'en-US', {
     timeZone,
     year: 'numeric',
     month: '2-digit',
@@ -80,9 +92,17 @@ function partsInZone(date, timeZone) {
 
 /** Instant for a wall-clock date/time in a named zone. */
 export function zonedTimeToUtc(ymd, hm, timeZone) {
-  const [year, month, day] = String(ymd || '').split('-').map(Number);
-  const [hour, minute] = normalizeHm(hm).split(':').map(Number);
-  if (!year || !month || !day) return null;
+  const date = String(ymd || '').slice(0, 10);
+  const clock = normalizeHm(hm);
+  const cacheKey = `${date}|${clock}|${timeZone}`;
+  if (zonedInstantCache.has(cacheKey)) return zonedInstantCache.get(cacheKey);
+
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = clock.split(':').map(Number);
+  if (!year || !month || !day) {
+    zonedInstantCache.set(cacheKey, null);
+    return null;
+  }
   let utc = Date.UTC(year, month - 1, day, hour, minute, 0);
   for (let i = 0; i < 3; i += 1) {
     const shown = partsInZone(new Date(utc), timeZone);
@@ -98,7 +118,9 @@ export function zonedTimeToUtc(ymd, hm, timeZone) {
       && check.minute === minute
     ) break;
   }
-  return new Date(utc);
+  const instant = new Date(utc);
+  zonedInstantCache.set(cacheKey, instant);
+  return instant;
 }
 
 export function parseSourceDateTime(ymd, hm = '12:00') {
@@ -109,7 +131,7 @@ export function parseSourceDateTime(ymd, hm = '12:00') {
 
 export function formatYmdInTz(date, timeZone = DEFAULT_TIMEZONE) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('en-CA', {
+  return getFormatter(`ymd:${timeZone}`, 'en-CA', {
     timeZone,
     year: 'numeric',
     month: '2-digit',
@@ -119,7 +141,7 @@ export function formatYmdInTz(date, timeZone = DEFAULT_TIMEZONE) {
 
 export function formatHmInTz(date, timeZone = DEFAULT_TIMEZONE) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  const parts = new Intl.DateTimeFormat('en-GB', {
+  const parts = getFormatter(`hm:${timeZone}`, 'en-GB', {
     timeZone,
     hour: '2-digit',
     minute: '2-digit',
@@ -145,8 +167,12 @@ export function formatTimezoneAbbr(timeZone = DEFAULT_TIMEZONE, date = new Date(
 }
 
 export function displayYmdForSource(ymd, hm, timeZone = DEFAULT_TIMEZONE) {
-  const instant = parseSourceDateTime(ymd, hm || '12:00');
-  return instant ? formatYmdInTz(instant, timeZone) : String(ymd || '').slice(0, 10);
+  const date = String(ymd || '').slice(0, 10);
+  if (!date) return '';
+  // Stored civil dates are already SAST. Skip conversion when the user is on SAST.
+  if (!timeZone || timeZone === SOURCE_TIMEZONE || timeZone === DEFAULT_TIMEZONE) return date;
+  const instant = parseSourceDateTime(date, hm || '12:00');
+  return instant ? formatYmdInTz(instant, timeZone) : date;
 }
 
 let displayTimeZone = DEFAULT_TIMEZONE;
