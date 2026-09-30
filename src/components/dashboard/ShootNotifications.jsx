@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { formatDateZA, formatTimeZA } from '@/utils/shootStatus';
 import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { cn } from '@/lib/utils';
-import { isRemoteOperatorRole, userCanSeeNotification } from '@/utils/notificationVisibility';
+import { isCalendarWatchRole, isRemoteOperatorRole, notificationDedupeKey, userCanSeeNotification } from '@/utils/notificationVisibility';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 const NotificationCtx = createContext(null);
@@ -222,10 +222,22 @@ function useNotificationState(shoots, user, notifyHours) {
 
     try {
       const records = await base44.entities.ShootNotification.list('-created_at', 500);
-      const activeRecords = (records || [])
+      const visible = (records || [])
         .filter((notification) => !isExpired(notification))
         .filter((notification) => userCanSeeNotification(notification, user));
 
+      if (!isCalendarWatchRole(user)) {
+        setStoredNotifications(visible);
+        return;
+      }
+
+      const seen = new Set();
+      const activeRecords = visible.filter((notification) => {
+        const key = notificationDedupeKey(notification);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       setStoredNotifications(activeRecords);
     } catch (error) {
       console.warn('Could not load ShootNotification records:', error);

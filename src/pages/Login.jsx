@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import AuthBackdrop from '@/components/auth/AuthBackdrop';
 import BrandMark from '@/components/brand/BrandMark';
+import { homePathForUser } from '@/utils/homePath';
 
 export default function Login() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const next = params.get('next') || '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,16 +15,16 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (isAuthenticated) navigate(next, { replace: true });
-  }, [isAuthenticated, navigate, next]);
+    if (isAuthenticated) navigate(homePathForUser(user), { replace: true });
+  }, [isAuthenticated, navigate, user]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      navigate(next, { replace: true });
+      const currentUser = await login(email.trim(), password);
+      navigate(homePathForUser(currentUser), { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {

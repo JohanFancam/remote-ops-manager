@@ -95,7 +95,7 @@ function LayoutContent({ children, currentPageName }) {
 
   useEffect(() => {
     if (isLoading || !isViewer) return;
-    const allowed = new Set(['Dashboard', 'Calendar', 'Settings']);
+    const allowed = new Set(['Dashboard', 'Calendar', 'Notifications', 'Settings']);
     const page = currentPageName || 'Dashboard';
     if (!allowed.has(page)) {
       navigate('/', { replace: true });
@@ -168,6 +168,7 @@ function LayoutContent({ children, currentPageName }) {
   const viewerNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
+    { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -190,7 +191,7 @@ function LayoutContent({ children, currentPageName }) {
       shoots={shoots}
       user={user}
       notifyHours={notifyHours}
-      enabled={!!user && !isAccounts && !isViewer}
+      enabled={!!user && !isAccounts}
     >
     <div className="min-h-screen flex">
       <TooltipProvider delayDuration={200}>
@@ -326,7 +327,7 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       <RefreshReminder />
-      {user && !isAccounts && !isViewer && <NotificationPopups />}
+      {user && !isAccounts && <NotificationPopups />}
       {user && !isAccounts && !isViewer && <ShootCompleteReminder user={user} />}
       {user && !isAccounts && !isViewer && <ShootChangePopup userEmail={user.email} isAdmin={isAdmin} />}
 

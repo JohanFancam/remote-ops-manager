@@ -198,8 +198,7 @@ export const api = {
       }
     },
     redirectToLogin() {
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `/login?next=${next}`;
+      window.location.href = '/login';
     },
     getToken,
     setToken,

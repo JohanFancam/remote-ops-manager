@@ -1,9 +1,13 @@
-const ANALYTICS_NOTIFICATION_TYPES = new Set([
-  'calendar_request',
-  'google_sync',
+const CALENDAR_UPDATE_TYPES = new Set([
   'schedule_change',
+  'google_sync',
   'cancelled',
   'postponed',
+]);
+
+const ANALYTICS_NOTIFICATION_TYPES = new Set([
+  ...CALENDAR_UPDATE_TYPES,
+  'calendar_request',
 ]);
 
 /** Remote Operator and Operator / Standby only see their own assignment and shoot-change alerts. */
@@ -19,14 +23,26 @@ export function isRemoteOperatorRole(user) {
   return user?.role === 'user' || user?.role === 'standby';
 }
 
+export function isCalendarWatchRole(user) {
+  return user?.role === 'viewer' || user?.role === 'analytics';
+}
+
 function normEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+/** Collapse per-operator copies of the same calendar update. */
+export function notificationDedupeKey(notification) {
+  const key = String(notification?.notification_key || notification?.id || '');
+  return key.replace(/:[^:]+@[^:]+$/, '') || notification?.id;
+}
+
 /**
  * Who can see a stored ShootNotification.
- * Admins see desk + role broadcasts. Remotes only see personal assign / approve /
+ * Admins see every row. Remotes only see personal assign / approve /
  * cancel / postpone / time-change rows aimed at their email.
+ * Viewers and Data Analytics see calendar updates (time/date changes and
+ * Google sync), regardless of which operator the row was addressed to.
  */
 export function userCanSeeNotification(notification, user, { ignoreDismissed = false } = {}) {
   const email = normEmail(user?.email);
@@ -43,8 +59,11 @@ export function userCanSeeNotification(notification, user, { ignoreDismissed = f
   if (user?.role === 'analytics') {
     if (!ANALYTICS_NOTIFICATION_TYPES.has(type)) return false;
     if (type === 'calendar_request') return targetEmail === email;
-    if (targetEmail && targetEmail !== email) return false;
-    return true;
+    return CALENDAR_UPDATE_TYPES.has(type);
+  }
+
+  if (user?.role === 'viewer') {
+    return CALENDAR_UPDATE_TYPES.has(type);
   }
 
   if (isRemoteOperatorRole(user)) {
@@ -53,9 +72,6 @@ export function userCanSeeNotification(notification, user, { ignoreDismissed = f
   }
 
   if (user?.role === 'admin') {
-    if (targetEmail && targetEmail === email) return true;
-    if (notification.target_role === 'admin' || notification.target_role === 'admin_standby') return true;
-    if (targetEmail && targetEmail !== email) return true;
     return true;
   }
 
@@ -64,4 +80,4 @@ export function userCanSeeNotification(notification, user, { ignoreDismissed = f
   return false;
 }
 
-export { ANALYTICS_NOTIFICATION_TYPES };
+export { ANALYTICS_NOTIFICATION_TYPES, CALENDAR_UPDATE_TYPES };

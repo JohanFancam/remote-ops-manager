@@ -108,6 +108,19 @@ function roleAdminEmails() {
     .map((u) => normEmail(u.email));
 }
 
+const CALENDAR_UPDATE_TYPES = new Set([
+  'schedule_change',
+  'google_sync',
+  'cancelled',
+  'postponed',
+]);
+
+function calendarWatchEmails() {
+  return listUsers()
+    .filter((u) => !u.inactive && (u.role === 'viewer' || u.role === 'analytics'))
+    .map((u) => normEmail(u.email));
+}
+
 function hasNotificationKey(notificationKey) {
   return filterEntities('ShootNotification', { notification_key: notificationKey }).length > 0;
 }
@@ -180,8 +193,9 @@ export async function createNotifications({
     : targetRole === 'admin'
       ? roleAdminEmails()
       : [];
+  const calendarAudience = CALENDAR_UPDATE_TYPES.has(type) ? calendarWatchEmails() : [];
 
-  const pushTargets = uniqueEmails([...emails, ...roleTargets])
+  const pushTargets = uniqueEmails([...emails, ...roleTargets, ...calendarAudience])
     .filter((email) => !excluded.includes(email));
 
   const pushResult = await sendPushToEmails(pushTargets, {

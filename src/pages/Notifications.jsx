@@ -8,7 +8,7 @@ import { formatTimezoneAbbr, getDisplayTimeZone } from '@/utils/timezone';
 import { Bell, Calendar, Search, X, Check } from 'lucide-react';
 import { applyCalendarChangeRequest, declineCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { cn } from '@/lib/utils';
-import { userCanSeeNotification } from '@/utils/notificationVisibility';
+import { notificationDedupeKey, userCanSeeNotification } from '@/utils/notificationVisibility';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -68,8 +68,7 @@ function notificationTypeLabel(type) {
 }
 
 function historyDedupeKey(notification) {
-  const key = String(notification.notification_key || notification.id || '');
-  return key.replace(/:[^:]+@[^:]+$/, '') || notification.id;
+  return notificationDedupeKey(notification);
 }
 
 function matchesFilter(type, filter) {
@@ -136,12 +135,14 @@ function sastTimeLabel(iso) {
 }
 
 export default function Notifications() {
-  const { user, isAdmin, isAnalytics, isOperator } = useApp();
+  const { user, isAdmin, isAnalytics, isOperator, isViewer } = useApp();
   const visibleFilters = isAnalytics
     ? FILTERS.filter((item) => ['all', 'requests', 'sync', 'schedule'].includes(item.id))
-    : isOperator
-      ? FILTERS.filter((item) => ['all', 'team', 'schedule'].includes(item.id))
-      : FILTERS;
+    : isViewer
+      ? FILTERS.filter((item) => ['all', 'sync', 'schedule'].includes(item.id))
+      : isOperator
+        ? FILTERS.filter((item) => ['all', 'team', 'schedule'].includes(item.id))
+        : FILTERS;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
