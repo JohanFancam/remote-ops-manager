@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -34,7 +34,8 @@ import {
   normalizeShootStatus,
 } from '../utils/shootStatus';
 import { useTimezone } from '../components/TimezoneContext';
-import { displayYmdForSource, formatYmdInTz, parseSourceDateTime } from '../utils/timezone';
+import { formatYmdInTz, parseSourceDateTime } from '../utils/timezone';
+import { groupShootsByDisplayDate, shootsForDisplayDate } from '../utils/calendarDayShoots';
 
 const MONTH_VISIBLE_SHOOTS = 3;
 
@@ -588,18 +589,21 @@ export default function Calendar() {
     queryKey: ['googleStatus'],
     queryFn: () => base44.google.status(),
     enabled: !!canSyncCalendar,
+    staleTime: 60_000,
   });
 
   const { data: slackStatus } = useQuery({
     queryKey: ['slackStatus'],
     queryFn: () => base44.slack.status(),
     enabled: !!canSyncCalendar,
+    staleTime: 60_000,
   });
 
   const { data: slackRigCheckStatus } = useQuery({
     queryKey: ['slackRigCheckStatus'],
     queryFn: () => base44.slack.rigCheckStatus(),
     enabled: !!user,
+    staleTime: 60_000,
   });
 
   const handleGoogleSync = async () => {
@@ -653,26 +657,31 @@ export default function Calendar() {
   const { data: shoots = [] } = useQuery({
     queryKey: ['shoots'],
     queryFn: () => base44.entities.Shoot.list('-date', 500),
+    staleTime: 60_000,
   });
 
   const { data: rigSettings = [] } = useQuery({
     queryKey: ['rigSettings'],
     queryFn: () => base44.entities.RigSetting.list(),
+    staleTime: 5 * 60_000,
   });
 
   const { data: rawUsers = [] } = useQuery({
     queryKey: ['allUsers'],
     queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60_000,
   });
 
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ['pendingUsers'],
     queryFn: () => base44.entities.PendingUser.list(),
+    staleTime: 5 * 60_000,
   });
 
   const { data: presenceRecords = [] } = useQuery({
     queryKey: ['userPresence'],
     queryFn: () => base44.entities.UserPresence.list(),
+    staleTime: 60_000,
   });
 
   const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com'];
@@ -726,6 +735,7 @@ export default function Calendar() {
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
     queryFn: () => base44.entities.AppSettings.list(),
+    staleTime: 5 * 60_000,
   });
 
   const slackMessages = useMemo(() => {
@@ -741,40 +751,57 @@ export default function Calendar() {
   const { data: standbyDays = [] } = useQuery({
     queryKey: ['standbyDays'],
     queryFn: () => base44.entities.StandbyDay.list('-date', 500),
+    staleTime: 60_000,
   });
 
   const { data: operatorAvailability = [] } = useQuery({
     queryKey: ['operatorAvailability'],
     queryFn: () => base44.entities.OperatorAvailability.list('-start_date', 500),
+    staleTime: 60_000,
   });
 
-  const getStandbyCoverageForShoot = (shoot) => {
-    if (!shoot?.date) return null;
+  const shootsByDisplayDate = useMemo(
+    () => groupShootsByDisplayDate(shoots, timeZone),
+    [shoots, timeZone]
+  );
 
-    const shootTime = shoot.game_time || shoot.start_time || '12:00';
-    const shootDateTime = parseSourceDateTime(shoot.date, shootTime);
-    if (!shootDateTime) return null;
+  const standbyByStartDate = useMemo(() => {
+    const map = new Map();
+    for (const item of standbyDays || []) {
+      const key = item.start_date || item.date;
+      if (!key) continue;
+      const list = map.get(key);
+      if (list) list.push(item);
+      else map.set(key, [item]);
+    }
+    return map;
+  }, [standbyDays]);
 
-    return (standbyDays || []).find((standby) => {
+  const standbyWindows = useMemo(() => (
+    (standbyDays || []).map((standby) => {
       const startDateStr = standby.start_date || standby.date;
-      if (!startDateStr) return false;
-
+      if (!startDateStr) return null;
       const fallbackEndDate = format(addDays(new Date(`${startDateStr}T12:00:00`), 1), 'yyyy-MM-dd');
       const endDateStr = standby.end_date || fallbackEndDate;
-      const startTime = standby.start_time || '18:00';
-      const endTime = standby.end_time || '06:00';
+      const startDateTime = parseSourceDateTime(startDateStr, standby.start_time || '18:00');
+      const endDateTime = parseSourceDateTime(endDateStr, standby.end_time || '06:00');
+      if (!startDateTime || !endDateTime) return null;
+      return { standby, start: startDateTime.getTime(), end: endDateTime.getTime() };
+    }).filter(Boolean)
+  ), [standbyDays]);
 
-      const startDateTime = parseSourceDateTime(startDateStr, startTime);
-      const endDateTime = parseSourceDateTime(endDateStr, endTime);
-      if (!startDateTime || !endDateTime) return false;
-
-      return shootDateTime >= startDateTime && shootDateTime <= endDateTime;
-    }) || null;
-  };
+  const getStandbyCoverageForShoot = useCallback((shoot) => {
+    if (!shoot?.date) return null;
+    const shootDateTime = parseSourceDateTime(shoot.date, shoot.game_time || shoot.start_time || '12:00');
+    if (!shootDateTime) return null;
+    const stamp = shootDateTime.getTime();
+    const hit = standbyWindows.find((window) => stamp >= window.start && stamp <= window.end);
+    return hit?.standby || null;
+  }, [standbyWindows]);
 
   const getStandbyForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    return standbyDays.filter(item => (item.start_date || item.date) === dateStr);
+    return standbyByStartDate.get(dateStr) || [];
   };
 
   const getPrimaryStandbyForDay = (day) => getStandbyForDay(day)[0] || null;
@@ -1084,9 +1111,7 @@ export default function Calendar() {
 
   const getShootsForDay = (day) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    return shoots
-      .filter((s) => displayYmdForSource(s.date, s.game_time || s.start_time, timeZone) === dateStr)
-      .sort((a, b) => (a.game_time || a.start_time || '').localeCompare(b.game_time || b.start_time || ''));
+    return shootsForDisplayDate(shootsByDisplayDate, dateStr);
   };
 
   const handleAddShoot = async () => {

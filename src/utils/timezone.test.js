@@ -23,6 +23,7 @@ assert(kickoff instanceof Date, 'parses sast datetime');
 assert(formatYmdInTz(kickoff, SOURCE_TIMEZONE) === '2026-09-29', 'sast date stays');
 assert(formatHmInTz(kickoff, SOURCE_TIMEZONE) === '20:00', 'sast time stays');
 assert(formatHmInTz(kickoff, 'America/New_York') === '14:00', 'converts to eastern');
+assert(displayYmdForSource('2026-09-30', '01:00', SOURCE_TIMEZONE) === '2026-09-30', 'sast display date is the stored date');
 assert(displayYmdForSource('2026-09-30', '01:00', 'America/New_York') === '2026-09-29', 'late sast game is previous evening in NY');
 
 const london = zonedTimeToUtc('2026-06-15', '18:00', 'Europe/London');
