@@ -677,9 +677,8 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Team"
-            description="Users, roles, admin password reset, welcome login messages, and auto-assignment"
+            description="Users, roles, password reset on each person, welcome login messages, and auto-assignment"
             icon={Users}
-            defaultOpen
           >
             <ManageUsersSection queryClient={queryClient} />
             <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
