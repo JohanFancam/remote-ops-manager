@@ -1,118 +1,48 @@
 import jsPDF from 'jspdf';
 import {
-  DEFAULT_POSTPONED_RATE,
   formatZAR,
   formatDateZA,
   normalizeShootStatus,
 } from '@/utils/shootStatus';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
+import {
+  ADDITIONAL_WINDOW_HOURS,
+  DEFAULT_ADDITIONAL_RATE,
+  DEFAULT_BASE_RATE,
+  DEFAULT_POSTPONED_RATE,
+  DEFAULT_STANDBY_RATE,
+  additionalIdsForShoots,
+  feeForProjectedShoot,
+  feeForShoot,
+  getAdditionalShootIds,
+  isAwaitingApproval,
+  mergeAssignedWithPending,
+  operatorAssignedCost,
+  operatorProjectedCost,
+  operatorStandbyCost,
+  operatorStandbySessions,
+  pairingPoolForDay,
+  timeToMinutes,
+} from './earningsCost.js';
 
-export const DEFAULT_BASE_RATE = 1000;
-export const DEFAULT_ADDITIONAL_RATE = 250;
-export const DEFAULT_STANDBY_RATE = 500;
-export const ADDITIONAL_WINDOW_HOURS = 2;
-export { DEFAULT_POSTPONED_RATE };
-
-// Parse "HH:MM" into minutes since midnight
-function timeToMinutes(timeStr) {
-  if (!timeStr) return null;
-  const [h, m] = timeStr.split(':').map(Number);
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
-}
-
-// Determine which shoots on a given day are "additional" (within 2hrs of a standard shoot)
-// Returns array of shoot ids that are additional
-export function pairingPoolForDay(dayShots) {
-  return dayShots.filter((s) => {
-    const st = normalizeShootStatus(s.status);
-    return st !== 'cancelled' && st !== 'postponed';
-  });
-}
-
-/** Fee for one assigned shoot — matches Pending / Approve. */
-export function feeForShoot(shoot, {
-  record,
-  isAdditional,
-  baseRate = DEFAULT_BASE_RATE,
-  additionalRate = DEFAULT_ADDITIONAL_RATE,
-  postponedRate = DEFAULT_POSTPONED_RATE,
-} = {}) {
-  const status = normalizeShootStatus(shoot.status);
-  if (status === 'cancelled') return 0;
-  if (status === 'postponed') return postponedRate;
-  if (record?.override_fee != null) return Number(record.override_fee) || 0;
-  const additional = record?.is_additional != null ? !!record.is_additional : !!isAdditional;
-  return additional ? additionalRate : baseRate;
-}
-
-export function additionalIdsForShoots(opShoots) {
-  const byDate = {};
-  opShoots.forEach((s) => {
-    if (!s?.date) return;
-    if (!byDate[s.date]) byDate[s.date] = [];
-    byDate[s.date].push(s);
-  });
-  const ids = new Set();
-  Object.values(byDate).forEach((dayShots) => {
-    getAdditionalShootIds(pairingPoolForDay(dayShots)).forEach((id) => ids.add(id));
-  });
-  return ids;
-}
-
-export function operatorStandbySessions(standbyDays = [], email, monthKey) {
-  const safe = String(email || '').toLowerCase().trim();
-  if (!safe || !monthKey) return [];
-  return standbyDays.filter((sd) => {
-    const start = sd.start_date || sd.date || '';
-    return String(sd.admin_email || '').toLowerCase().trim() === safe && start.startsWith(monthKey);
-  });
-}
-
-export function operatorStandbyCost(standbyDays, email, monthKey, standbyRate = DEFAULT_STANDBY_RATE) {
-  const sessions = operatorStandbySessions(standbyDays, email, monthKey);
-  return { count: sessions.length, total: sessions.length * Number(standbyRate || 0), sessions };
-}
-
-/** Sum of assigned-shoot fees for one operator in a month (Pending / Approve totals). */
-export function operatorAssignedCost(opShoots, opRecords = [], rates = {}) {
-  const autoAdditionalIds = additionalIdsForShoots(opShoots);
-  const total = opShoots.reduce((sum, shoot) => {
-    const rec = opRecords.find((r) => r.shoot_id === shoot.id);
-    const isAdditional = rec?.is_additional != null ? rec.is_additional : autoAdditionalIds.has(shoot.id);
-    return sum + feeForShoot(shoot, { record: rec, isAdditional, ...rates });
-  }, 0);
-  return { total, autoAdditionalIds };
-}
-
-export function getAdditionalShootIds(dayShots) {
-  const sorted = [...dayShots].sort((a, b) => {
-    const ta = timeToMinutes(a.game_time || a.start_time);
-    const tb = timeToMinutes(b.game_time || b.start_time);
-    if (ta == null && tb == null) return 0;
-    if (ta == null) return 1;
-    if (tb == null) return -1;
-    return ta - tb;
-  });
-
-  const additionalIds = new Set();
-
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    const tPrev = timeToMinutes(prev.game_time || prev.start_time);
-    const tCurr = timeToMinutes(curr.game_time || curr.start_time);
-
-    if (tPrev != null && tCurr != null) {
-      const diffHours = (tCurr - tPrev) / 60;
-      if (diffHours <= ADDITIONAL_WINDOW_HOURS) {
-        additionalIds.add(curr.id);
-      }
-    }
-  }
-
-  return additionalIds;
-}
+export {
+  ADDITIONAL_WINDOW_HOURS,
+  DEFAULT_ADDITIONAL_RATE,
+  DEFAULT_BASE_RATE,
+  DEFAULT_POSTPONED_RATE,
+  DEFAULT_STANDBY_RATE,
+  additionalIdsForShoots,
+  feeForProjectedShoot,
+  feeForShoot,
+  getAdditionalShootIds,
+  isAwaitingApproval,
+  mergeAssignedWithPending,
+  operatorAssignedCost,
+  operatorProjectedCost,
+  operatorStandbyCost,
+  operatorStandbySessions,
+  pairingPoolForDay,
+};
 
 function shootAmount(shoot, { baseRate, additionalRate, postponedRate, isAdditional }) {
   const status = normalizeShootStatus(shoot.status);

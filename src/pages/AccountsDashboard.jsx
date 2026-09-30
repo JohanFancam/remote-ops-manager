@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ChevronLeft, ChevronRight, Download, TrendingUp, Users,
-  DollarSign, CheckCircle2, Circle, RefreshCw, X
+  DollarSign, CheckCircle2, Circle, RefreshCw, X, Clock
 } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
@@ -17,9 +17,12 @@ import {
   DEFAULT_POSTPONED_RATE,
   DEFAULT_STANDBY_RATE,
   operatorAssignedCost,
+  operatorProjectedCost,
   operatorStandbyCost,
+  feeForProjectedShoot,
+  isAwaitingApproval,
 } from '../components/utils/earningsUtils';
-import { formatZAR } from '../utils/shootStatus';
+import { formatDateZA, formatTimeZA, formatZAR } from '../utils/shootStatus';
 
 function money(amount) {
   return formatZAR(amount, { withSpace: false });
@@ -207,6 +210,9 @@ export default function AccountsDashboard() {
       (s.assigned_operators || []).forEach((e) => {
         if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e);
       });
+      (s.pending_operators || []).forEach((e) => {
+        if (e && !knownEmails.has(e) && !adminEmails.has(e) && validEmails.has(e)) extraEmails.add(e);
+      });
     });
     const extraUsers = [...extraEmails].map((email) => ({
       email,
@@ -228,8 +234,12 @@ export default function AccountsDashboard() {
     const monthShoots = shoots.filter((s) => s.date?.startsWith(monthKey));
     return remoteUsers.map((op) => {
       const opShoots = monthShoots.filter((s) => s.assigned_operators?.includes(op.email));
+      const opPending = monthShoots.filter((s) =>
+        isAwaitingApproval(s) && (s.pending_operators || []).includes(op.email)
+      );
       const opRecords = paymentRecords.filter((r) => r.operator_email === op.email && r.period_month === monthKey);
       const { total: shootTotal } = operatorAssignedCost(opShoots, opRecords, rates);
+      const projection = operatorProjectedCost(opShoots, opPending, opRecords, rates);
       const standby = op.role === 'standby'
         ? operatorStandbyCost(standbyDays, op.email, monthKey, rates.standbyRate)
         : { count: 0, total: 0 };
@@ -240,13 +250,19 @@ export default function AccountsDashboard() {
         email: op.email,
         name: op.full_name || op.email,
         total: shootTotal + standby.total,
+        projectedTotal: projection.projected + standby.total,
+        pendingAdd: projection.pendingAdd,
         paid: monthRec?.paid === true,
         paidDate: monthRec?.paid_date || null,
         inactive: !!op.inactive,
         shoots: opShoots.length,
+        pending: opPending.length,
+        pendingShoots: opPending,
+        autoAdditionalIds: projection.autoAdditionalIds,
         standbyCount: standby.count,
       };
-    }).filter((op) => op.shoots > 0 || op.standbyCount > 0).sort((a, b) => b.total - a.total);
+    }).filter((op) => op.shoots > 0 || op.standbyCount > 0 || op.pending > 0)
+      .sort((a, b) => (b.projectedTotal - a.projectedTotal) || (b.total - a.total));
   }, [remoteUsers, shoots, paymentRecords, rates, standbyDays]);
 
   const monthSummaryRows = useMemo(
@@ -255,8 +271,34 @@ export default function AccountsDashboard() {
   );
 
   const grandTotal = monthSummaryRows.reduce((s, r) => s + r.total, 0);
+  const projectedGrand = monthSummaryRows.reduce((s, r) => s + r.projectedTotal, 0);
+  const pendingAddTotal = monthSummaryRows.reduce((s, r) => s + r.pendingAdd, 0);
+  const pendingCount = monthSummaryRows.reduce((s, r) => s + r.pending, 0);
   const paidCount = monthSummaryRows.filter((r) => r.paid).length;
   const paidTotal = monthSummaryRows.filter((r) => r.paid).reduce((s, r) => s + r.total, 0);
+
+  const pendingApprovalRows = useMemo(() => {
+    const rows = [];
+    monthSummaryRows.forEach((row) => {
+      (row.pendingShoots || []).forEach((shoot) => {
+        const recs = paymentRecords.filter((r) => r.operator_email === row.email && r.period_month === filterMonth);
+        const fee = feeForProjectedShoot(shoot, recs, row.autoAdditionalIds, rates);
+        rows.push({
+          id: `${shoot.id}:${row.email}`,
+          shoot,
+          email: row.email,
+          name: row.name,
+          fee,
+          isAdditional: row.autoAdditionalIds?.has(shoot.id),
+        });
+      });
+    });
+    return rows.sort((a, b) =>
+      String(a.shoot.date || '').localeCompare(String(b.shoot.date || ''))
+      || String(a.shoot.game_time || '').localeCompare(String(b.shoot.game_time || ''))
+      || a.name.localeCompare(b.name)
+    );
+  }, [monthSummaryRows, paymentRecords, filterMonth, rates]);
 
   const yearChartData = useMemo(() => {
     const yearNum = parseInt(filterMonth.split('-')[0], 10);
@@ -426,7 +468,7 @@ export default function AccountsDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
             <p className="text-slate-400 text-sm mt-0.5">
-              Monthly crew costs — same fees as Pending / Approve
+              Monthly crew costs — same fees as Pending / Approve. Pending assignments show as a projection until they are approved.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -499,7 +541,7 @@ export default function AccountsDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
@@ -507,6 +549,21 @@ export default function AccountsDashboard() {
                 <p className="text-slate-400 text-sm">This month</p>
               </div>
               <p className="text-2xl font-bold text-slate-100">{money(grandTotal)}</p>
+              <p className="text-xs text-slate-500 mt-1">Approved assignments</p>
+            </CardContent>
+          </Card>
+          <Card className={`border-slate-800 ${pendingCount ? 'bg-amber-950/20 border-amber-800/40' : 'bg-slate-900'}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-4 w-4 text-amber-400" />
+                <p className="text-slate-400 text-sm">After pending</p>
+              </div>
+              <p className="text-2xl font-bold text-slate-100">{money(projectedGrand)}</p>
+              <p className="text-xs text-amber-300/80 mt-1">
+                {pendingCount
+                  ? `+${money(pendingAddTotal)} from ${pendingCount} pending`
+                  : 'No pending shoots'}
+              </p>
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-800">
@@ -518,7 +575,7 @@ export default function AccountsDashboard() {
               <p className="text-2xl font-bold text-slate-100">{money(yearTotal)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900 border-slate-800 col-span-2 md:col-span-1">
+          <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-4 w-4 text-purple-400" />
@@ -534,29 +591,82 @@ export default function AccountsDashboard() {
           </Card>
         </div>
 
+        {pendingApprovalRows.length > 0 && (
+          <Card className="bg-slate-900 border-amber-800/40">
+            <CardContent className="p-0">
+              <div className="px-5 py-3 border-b border-amber-800/30">
+                <p className="text-sm font-semibold text-amber-200 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Pending shoots ({pendingApprovalRows.length})
+                </p>
+                <p className="text-xs text-amber-200/70 mt-1">
+                  Waiting for admin approval. Projected fee uses the same main / additional / postponed rates as approved shoots.
+                </p>
+              </div>
+              <div className="divide-y divide-slate-800">
+                {pendingApprovalRows.map((item) => (
+                  <div key={item.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-100 truncate">{item.shoot.title || 'Shoot'}</p>
+                      <p className="text-xs text-slate-500">
+                        {item.name}
+                        {' · '}
+                        {formatDateZA(item.shoot.date, { time: item.shoot.game_time })}
+                        {item.shoot.game_time ? ` · ${formatTimeZA(item.shoot.game_time, item.shoot.date)}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {item.isAdditional && (
+                        <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">Additional</Badge>
+                      )}
+                      <span className="font-mono text-sm font-semibold text-amber-200">{money(item.fee)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between px-5 py-3 border-t border-amber-800/30 bg-amber-950/20">
+                <span className="text-sm font-semibold text-amber-200/80">Pending add-on</span>
+                <span className="font-mono font-bold text-amber-100">{money(pendingAddTotal)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {monthSummaryRows.length === 0 ? (
-          <div className="text-center py-16 text-slate-500">No crew costs for this month.</div>
+          <div className="text-center py-16 text-slate-500">No crew costs or pending shoots for this month.</div>
         ) : (
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-0">
               <div className="px-5 py-3 border-b border-slate-800">
                 <p className="text-sm font-semibold text-slate-400">Operator totals</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Confirmed amount first. After pending is what they would earn if every pending shoot is approved.
+                </p>
               </div>
               <div className="divide-y divide-gray-800">
                 {monthSummaryRows.map((row) => (
                   <div
                     key={row.email}
-                    className={`px-5 py-4 flex items-center justify-between gap-3 ${row.inactive ? 'opacity-40' : ''} ${row.paid ? 'bg-emerald-950/30' : ''}`}
+                    className={`px-5 py-4 flex items-center justify-between gap-3 ${row.inactive ? 'opacity-40' : ''} ${row.paid ? 'bg-emerald-950/30' : ''} ${row.pending ? 'bg-amber-950/10' : ''}`}
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-100 truncate">{row.name}</p>
                       <p className="text-xs text-slate-500">
                         {row.shoots} shoot{row.shoots === 1 ? '' : 's'}
                         {row.standbyCount ? ` · ${row.standbyCount} standby` : ''}
+                        {row.pending ? ` · ${row.pending} pending` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-mono font-bold text-slate-100 text-sm">{money(row.total)}</span>
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-slate-100 text-sm">{money(row.total)}</span>
+                        {row.pending > 0 && (
+                          <p className="text-xs text-amber-300 mt-0.5">
+                            After pending {money(row.projectedTotal)}
+                            {row.pendingAdd ? ` (+${money(row.pendingAdd)})` : ''}
+                          </p>
+                        )}
+                      </div>
                       {canMarkPaid ? (
                         <button
                           onClick={() => handleTogglePaid(row)}
@@ -589,7 +699,12 @@ export default function AccountsDashboard() {
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-800/40">
                 <span className="text-sm font-semibold text-slate-400">Month total</span>
-                <span className="font-mono font-bold text-slate-100">{money(grandTotal)}</span>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-slate-100">{money(grandTotal)}</span>
+                  {pendingCount > 0 && (
+                    <p className="text-xs text-amber-300 mt-0.5">After pending {money(projectedGrand)}</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
