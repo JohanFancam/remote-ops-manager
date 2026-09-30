@@ -108,6 +108,19 @@ function roleAdminEmails() {
     .map((u) => normEmail(u.email));
 }
 
+const CALENDAR_UPDATE_TYPES = new Set([
+  'schedule_change',
+  'google_sync',
+  'cancelled',
+  'postponed',
+]);
+
+function calendarWatchEmails() {
+  return listUsers()
+    .filter((u) => !u.inactive && (u.role === 'viewer' || u.role === 'analytics'))
+    .map((u) => normEmail(u.email));
+}
+
 function hasNotificationKey(notificationKey) {
   return filterEntities('ShootNotification', { notification_key: notificationKey }).length > 0;
 }
@@ -180,8 +193,9 @@ export async function createNotifications({
     : targetRole === 'admin'
       ? roleAdminEmails()
       : [];
+  const calendarAudience = CALENDAR_UPDATE_TYPES.has(type) ? calendarWatchEmails() : [];
 
-  const pushTargets = uniqueEmails([...emails, ...roleTargets])
+  const pushTargets = uniqueEmails([...emails, ...roleTargets, ...calendarAudience])
     .filter((email) => !excluded.includes(email));
 
   const pushResult = await sendPushToEmails(pushTargets, {
@@ -234,6 +248,8 @@ export async function handleShootChange(previous, next, user = null) {
 
   const wasCancelled = String(previous?.status || '') === 'cancelled';
   const isCancelled = String(next.status || '') === 'cancelled';
+  const wasPostponed = String(previous?.status || '') === 'postponed';
+  const isPostponed = String(next.status || '') === 'postponed';
   if (!wasCancelled && isCancelled) {
     const targets = uniqueEmails([
       ...prevAssigned, ...nextAssigned, ...prevPending, ...nextPending,
@@ -243,6 +259,19 @@ export async function handleShootChange(previous, next, user = null) {
       type: 'cancelled',
       title: 'Shoot cancelled',
       message: `${title} on ${next.date || previous?.date || ''} was cancelled.`,
+      shoot: next,
+      targetEmails: targets,
+      url: '/Calendar',
+    });
+  } else if (!wasPostponed && isPostponed) {
+    const targets = uniqueEmails([
+      ...prevAssigned, ...nextAssigned, ...prevPending, ...nextPending,
+    ]).filter((e) => e !== actor);
+    await createNotifications({
+      notificationKey: `postponed:${next.id}:${stamp}`,
+      type: 'postponed',
+      title: 'Shoot postponed',
+      message: `${title} on ${next.date || previous?.date || ''} was postponed.`,
       shoot: next,
       targetEmails: targets,
       url: '/Calendar',

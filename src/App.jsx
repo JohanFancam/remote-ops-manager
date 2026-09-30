@@ -12,7 +12,7 @@ import AccountsDashboard from './pages/AccountsDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChangePassword from './pages/ChangePassword';
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { TimezoneProvider } from '@/components/TimezoneContext';
@@ -33,7 +33,6 @@ function mustChangePassword(user) {
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, user } = useAuth();
-  const location = useLocation();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return <AppSplash />;
@@ -44,8 +43,7 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated || authError?.type === 'auth_required') {
-    const next = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?next=${next}`} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (mustChangePassword(user)) {

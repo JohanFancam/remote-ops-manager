@@ -185,7 +185,7 @@ function ChangePasswordCard() {
 }
 
 export default function Settings() {
-  const { user, isAdmin, isAnalytics, isViewer } = useApp();
+  const { user, isAdmin, isAnalytics } = useApp();
   const { refreshPublicSettings } = useAuth();
   const { storedTimezone, setTimezone, timeZone, abbr } = useTimezone();
   const [timezoneSaved, setTimezoneSaved] = useState(false);
@@ -445,8 +445,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Push / install — all roles except view-only */}
-        {!isViewer && <Card className="bg-slate-900 border-slate-800 mb-6">
+        <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <Bell className="h-5 w-5 text-blue-400" /> Device Notifications
@@ -455,7 +454,7 @@ export default function Settings() {
           <CardContent className="pt-4">
             <EnablePushCard />
           </CardContent>
-        </Card>}
+        </Card>
 
         {isAdmin && (
           <div className="mb-3 mt-2">

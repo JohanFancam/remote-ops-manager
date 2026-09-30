@@ -37,6 +37,7 @@ const analyticsNavItems = [
 const viewerNavItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
@@ -94,6 +95,7 @@ const allAnalyticsMenuItems = [
 const allViewerMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
+  { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
