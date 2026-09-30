@@ -25,6 +25,7 @@ import {
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 import { useTimezone } from '@/components/TimezoneContext';
 import { TIMEZONE_OPTIONS, deviceTimeZone, formatTimezoneAbbr } from '@/utils/timezone';
+import { DEFAULT_INVOICE_EXPORT_NAME, INVOICE_EXPORT_NAME_KEY, invoiceExportName } from '@/utils/invoiceExport';
 
 function MessageTemplatesSection({ appSettings, queryClient }) {
   const defaultRigs = 'Rigs ready for today: {list}';
@@ -184,8 +185,59 @@ function ChangePasswordCard() {
   );
 }
 
+function InvoiceExportNameCard({ appSettings, queryClient }) {
+  const [name, setName] = React.useState(DEFAULT_INVOICE_EXPORT_NAME);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    setName(invoiceExportName(appSettings));
+  }, [appSettings]);
+
+  const handleSave = async () => {
+    const value = name.trim() || DEFAULT_INVOICE_EXPORT_NAME;
+    const existing = appSettings.find((item) => item.key === INVOICE_EXPORT_NAME_KEY);
+    if (existing) {
+      await base44.entities.AppSettings.update(existing.id, { value });
+    } else {
+      await base44.entities.AppSettings.create({
+        key: INVOICE_EXPORT_NAME_KEY,
+        value,
+        description: 'Accounts invoice CSV export name',
+      });
+    }
+    setName(value);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+  };
+
+  return (
+    <Card className="bg-slate-900 border-slate-800 mb-6">
+      <CardHeader className="border-b border-slate-800 pb-4">
+        <CardTitle className="text-slate-100 flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-emerald-400" /> Invoice export
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-3">
+        <p className="text-xs text-slate-500">
+          This name is used for the Accounts CSV download. Default is Remote Photography Invoice.
+        </p>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={DEFAULT_INVOICE_EXPORT_NAME}
+          className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm max-w-md"
+        />
+        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 gap-2">
+          <Save className="h-4 w-4" /> {saved ? 'Saved' : 'Save invoice name'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
-  const { user, isAdmin, isAnalytics } = useApp();
+  const { user, isAdmin, isAnalytics, isAccounts } = useApp();
   const { refreshPublicSettings } = useAuth();
   const { storedTimezone, setTimezone, timeZone, abbr } = useTimezone();
   const [timezoneSaved, setTimezoneSaved] = useState(false);
@@ -444,6 +496,10 @@ export default function Settings() {
             {timezoneSaved && <p className="text-xs text-emerald-400">Time zone saved. Times across the app now use this zone.</p>}
           </CardContent>
         </Card>
+
+        {(isAccounts || isAdmin) && (
+          <InvoiceExportNameCard appSettings={appSettings} queryClient={queryClient} />
+        )}
 
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
