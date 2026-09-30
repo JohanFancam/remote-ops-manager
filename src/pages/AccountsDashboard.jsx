@@ -483,15 +483,24 @@ export default function AccountsDashboard() {
           <Card className={`border-slate-800 ${pendingCount ? 'bg-amber-950/20 border-amber-800/40' : 'bg-slate-900'}`}>
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
-                <Clock className="h-4 w-4 text-amber-400" />
-                <p className="text-slate-400 text-sm">After pending</p>
-              </div>
-              <p className="text-2xl font-bold text-slate-100">{money(projectedGrand)}</p>
-              <p className="text-xs text-amber-300/80 mt-1">
                 {pendingCount
-                  ? `+${money(pendingAddTotal)} from ${pendingCount} pending`
-                  : 'No pending shoots'}
-              </p>
+                  ? <Clock className="h-4 w-4 text-amber-400" />
+                  : <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                <p className="text-slate-400 text-sm">{pendingCount ? 'After pending' : 'Approved'}</p>
+              </div>
+              {pendingCount ? (
+                <>
+                  <p className="text-2xl font-bold text-slate-100">{money(projectedGrand)}</p>
+                  <p className="text-xs text-amber-300/80 mt-1">
+                    +{money(pendingAddTotal)} from {pendingCount} pending
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-slate-100">Approved</p>
+                  <p className="text-xs text-slate-500 mt-1">No pending shoots</p>
+                </>
+              )}
             </CardContent>
           </Card>
           <Card className="bg-slate-900 border-slate-800">
