@@ -26,6 +26,7 @@ import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
 import ShootEditPanel from '../components/calendar/ShootEditPanel';
 import DayEventsPopup from '../components/calendar/DayEventsPopup';
 import ShootQuickView from '../components/calendar/ShootQuickView';
+import UnavailableOperatorsPopup from '../components/calendar/UnavailableOperatorsPopup';
 import { submitCalendarChangeRequest } from '../utils/calendarChangeRequests';
 import { canPerformCalendarRigCheck, copyButtonLabel, openSlackHref, parseRigCheckUsers } from '../utils/slackRigCheck';
 import {
@@ -573,6 +574,7 @@ export default function Calendar() {
   const [editingShootForm, setEditingShootForm] = useState(null); // shoot being edited
   const [dayPopup, setDayPopup] = useState(null); // Date | null
   const [quickViewShoot, setQuickViewShoot] = useState(null); // shoot | null
+  const [unavailablePopup, setUnavailablePopup] = useState(null); // Date | null
   const [googleSyncing, setGoogleSyncing] = useState(false);
   const [slackSyncing, setSlackSyncing] = useState(false);
   const canSyncCalendar = isAdmin || isAnalytics;
@@ -1540,7 +1542,16 @@ export default function Calendar() {
   const openDayPopup = (day, e) => {
     e?.stopPropagation?.();
     setSelectedDate(day);
+    setUnavailablePopup(null);
     setDayPopup(day);
+  };
+
+  const openUnavailablePopup = (day, e) => {
+    e?.stopPropagation?.();
+    setSelectedDate(day);
+    setDayPopup(null);
+    setQuickViewShoot(null);
+    setUnavailablePopup(day);
   };
 
   const renderMonthView = () => {
@@ -1664,13 +1675,34 @@ export default function Calendar() {
                   <div className="mb-0.5 flex flex-wrap gap-0.5 px-0.5 shrink-0">
                     {dayUnavailable.slice(0, 1).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
+                      const canOpenList = dayUnavailable.length > 1;
                       return (
-                        <span key={item.id} className="text-[9px] rounded bg-red-950/45 text-red-200 px-1 py-px truncate max-w-full">
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canOpenList) openUnavailablePopup(day, e);
+                          }}
+                          className={`text-[9px] rounded bg-red-950/45 text-red-200 px-1 py-px truncate max-w-full text-left ${
+                            canOpenList ? 'hover:bg-red-900/55 cursor-pointer' : 'cursor-default'
+                          }`}
+                          title={canOpenList ? `View all ${dayUnavailable.length} unavailable` : undefined}
+                        >
                           Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
-                        </span>
+                        </button>
                       );
                     })}
-                    {dayUnavailable.length > 1 && <span className="text-[9px] text-red-400">+{dayUnavailable.length - 1}</span>}
+                    {dayUnavailable.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => openUnavailablePopup(day, e)}
+                        className="text-[9px] text-red-400 hover:text-red-200"
+                        title={`View all ${dayUnavailable.length} unavailable`}
+                      >
+                        +{dayUnavailable.length - 1}
+                      </button>
+                    )}
                   </div>
                 )}
                 <div className="space-y-px flex-1 min-h-0">
@@ -1739,13 +1771,33 @@ export default function Calendar() {
                      ))}
                     {isAdmin && dayUnavailable.slice(0, 4).map(item => {
                       const unavailableUser = allUsers.find(u => u.email === item.operator_email);
+                      const canOpenList = dayUnavailable.length > 1;
                       return (
-                        <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-2 py-1 text-xs">
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={(e) => {
+                            if (canOpenList) openUnavailablePopup(day, e);
+                          }}
+                          className={`inline-flex items-center gap-1 rounded-full bg-red-950/45 border border-red-700/45 text-red-200 px-2 py-1 text-xs ${
+                            canOpenList ? 'hover:bg-red-900/50 cursor-pointer' : 'cursor-default'
+                          }`}
+                          title={canOpenList ? `View all ${dayUnavailable.length} unavailable` : undefined}
+                        >
                           <UserX className="h-3 w-3" /> {getDisplayName(unavailableUser, item.operator_email, item.operator_name)}
-                        </span>
+                        </button>
                       );
                     })}
-                    {isAdmin && dayUnavailable.length > 4 && <span className="text-xs text-red-400">+{dayUnavailable.length - 4} unavailable</span>}
+                    {isAdmin && dayUnavailable.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={(e) => openUnavailablePopup(day, e)}
+                        className="text-xs text-red-400 hover:text-red-200"
+                        title={`View all ${dayUnavailable.length} unavailable`}
+                      >
+                        +{dayUnavailable.length - 4} unavailable
+                      </button>
+                    )}
                     {(isAdmin || isStandby) && !isPast && (
                        <Button
                          size="sm"
@@ -2041,6 +2093,14 @@ export default function Calendar() {
       </Sheet>
 
       <CSVImportModal open={showCSV} onClose={() => setShowCSV(false)} onImported={refresh} />
+
+      <UnavailableOperatorsPopup
+        open={!!unavailablePopup}
+        day={unavailablePopup}
+        people={unavailablePopup ? getUnavailableForDay(unavailablePopup) : []}
+        allUsers={allUsers}
+        onClose={() => setUnavailablePopup(null)}
+      />
 
       <DayEventsPopup
         open={!!dayPopup}
