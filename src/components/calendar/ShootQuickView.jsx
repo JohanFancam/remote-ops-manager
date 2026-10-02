@@ -8,6 +8,7 @@ import { normalizeShootStatus, formatStatusLabel, formatDateZA, formatTimeZA } f
 import { useTimezone } from '@/components/TimezoneContext';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
+import { isRemoteAssignBlocked } from '@/utils/restrictedAssign';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
 import CalendarRigTestActions from '@/components/calendar/CalendarRigTestActions';
 
@@ -71,6 +72,7 @@ export default function ShootQuickView({
   isViewer = false,
   allUsers = [],
   rigSettings = [],
+  appSettings = [],
   standbyCoverage = null,
   onClose,
   onUpdate,
@@ -114,6 +116,7 @@ export default function ShootQuickView({
     .filter(Boolean);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
   const assignmentLocked = isAssignmentLocked(shoot);
+  const remoteBlocked = isRemoteAssignBlocked(shoot, user, appSettings);
   const canToggleRig = (isAdmin || isStandby) && !!onUpdate && !isCancelled;
   const phaseFlags = schedulePhaseFlags(matchedRig);
 
@@ -126,7 +129,7 @@ export default function ShootQuickView({
     { label: 'Game', time: schedule.game },
   ].filter(Boolean) : [];
 
-  const canSelfAssign = isOperator && !isAnalytics && !isViewer && !assignmentLocked && !isPast
+  const canSelfAssign = (isAdmin || isOperator) && !isAnalytics && !isViewer && !assignmentLocked && !remoteBlocked && !isPast
     && !isCancelled && !isCompleted && !!user?.email && !!onAssignSelf
     && (isAssigned || isPending || isAdmin || !claimedByOther);
 
@@ -249,6 +252,8 @@ export default function ShootQuickView({
             <p className="text-sm text-slate-200">
               {assignmentLocked
                 ? 'Manual — not assignable'
+                : remoteBlocked
+                ? 'Admin / Standby only'
                 : assignedNames.length
                 ? assignedNames.join(', ')
                 : pendingEmails.length
@@ -257,10 +262,10 @@ export default function ShootQuickView({
                     ? 'Taken'
                     : 'Unassigned'}
             </p>
-            {isOperator && !assignmentLocked && !isPast && !isCancelled && !isCompleted && onAssignSelf && (
+            {(isAdmin || isOperator) && !assignmentLocked && !isPast && !isCancelled && !isCompleted && onAssignSelf && !remoteBlocked && (
               <button
                 type="button"
-                disabled={!canSelfAssign || busyAssign || (claimedByOther && !isAssigned && !isPending)}
+                disabled={!canSelfAssign || busyAssign || (claimedByOther && !isAssigned && !isPending && !isAdmin)}
                 onClick={handleSelfAssign}
                 className={`mt-2 inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                   isAssigned || isPending

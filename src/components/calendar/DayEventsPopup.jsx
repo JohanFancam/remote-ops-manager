@@ -7,6 +7,7 @@ import { getDisplayName } from '@/components/utils/nameUtils';
 import { normalizeShootStatus, formatStatusLabel } from '@/utils/shootStatus';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
+import { isRemoteAssignBlocked } from '@/utils/restrictedAssign';
 import { standbyColorForEmail } from '@/components/utils/standbyColors';
 
 /**
@@ -22,6 +23,7 @@ export default function DayEventsPopup({
   isViewer = false,
   allUsers = [],
   rigSettings = [],
+  appSettings = [],
   onClose,
   onToggleAssign,
   onSelectShoot,
@@ -86,7 +88,8 @@ export default function DayEventsPopup({
                 const claimedByOther = !isAnalytics && !isViewer && !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
                 const showMinus = isAssigned || isPending;
                 const assignmentLocked = isAssignmentLocked(shoot);
-                const canToggle = !assignmentLocked && !isAnalytics && !isViewer && !isPast && !isCancelled && !isCompleted && !!user?.email
+                const remoteBlocked = isRemoteAssignBlocked(shoot, user, appSettings);
+                const canToggle = !assignmentLocked && !remoteBlocked && !isAnalytics && !isViewer && !isPast && !isCancelled && !isCompleted && !!user?.email
                   && (showMinus || isAdmin || !claimedByOther);
                 const dot = shootDotClass(shoot, rigSettings, { past: isPast });
                 const assignedNames = (shoot.assigned_operators || [])
@@ -189,7 +192,7 @@ export default function DayEventsPopup({
                         </button>
                         </>
                       )}
-                      {!isAnalytics && !isViewer && !assignmentLocked && (
+                      {!isAnalytics && !isViewer && !assignmentLocked && !(remoteBlocked && !showMinus) && (
                       <button
                         type="button"
                         disabled={!canToggle}

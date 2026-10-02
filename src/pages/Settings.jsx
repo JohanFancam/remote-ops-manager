@@ -5,6 +5,7 @@ import { useApp } from '../components/AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
+import RestrictedAssignSettings from '../components/settings/RestrictedAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import SlackGamesSettings from '../components/settings/SlackGamesSettings';
 import RigCheckUsersSettings from '../components/settings/RigCheckUsersSettings';
@@ -677,10 +678,11 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Team"
-            description="Users, roles, password reset on each person, welcome login messages, and auto-assignment"
+            description="Users, roles, password reset, who can assign to which games, and auto-assignment"
             icon={Users}
           >
             <ManageUsersSection queryClient={queryClient} />
+            <RestrictedAssignSettings appSettings={appSettings} />
             <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
           </SettingsCategory>
         )}

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { X, UserMinus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isRemoteAssignRestricted } from '@/utils/restrictedAssign';
 
 const EXCLUDED_EMAILS = ['hano@fancam.com', 'matthew.swart@fancam.com', 'mattswartuk@gmail.com'];
 
 export default function AssignOperatorModal({
   shoot,
   allUsers,
+  appSettings = [],
   pendingUsers = [],
   onConfirm,
   onUnassign,
@@ -17,7 +19,8 @@ export default function AssignOperatorModal({
   const userMap = new Map((allUsers || []).map(u => [u.email?.toLowerCase(), u]));
   const [busyKey, setBusyKey] = useState(null);
 
-  const isAssignableRole = (role) => role === 'user' || role === 'standby';
+  const restricted = isRemoteAssignRestricted(shoot, appSettings);
+  const isAssignableRole = (role) => (role === 'standby' || (!restricted && role === 'user'));
 
   // Remote operators and Operator / Standby — not admins or accounts
   const assignableUsers = (pendingUsers.length > 0 ? pendingUsers : allUsers)
@@ -78,6 +81,9 @@ export default function AssignOperatorModal({
           <div>
             <h2 className="text-base font-semibold text-slate-100">Manage Operators</h2>
             <p className="text-xs text-slate-500 mt-0.5">{shoot?.title}</p>
+            {restricted && (
+              <p className="text-xs text-amber-400 mt-1">Remotes cannot take this game — Operator / Standby only.</p>
+            )}
           </div>
           <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-slate-100" onClick={onClose}>
             <X className="h-4 w-4" />

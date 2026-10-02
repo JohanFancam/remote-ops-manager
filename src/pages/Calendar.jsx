@@ -20,6 +20,7 @@ import ShootSidePanel from '../components/calendar/ShootSidePanel';
 import { shortenTitle } from '../components/utils/scheduleUtils';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, approvePendingFields, declinePendingFields, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields, getShootClaimEmail, normalizeEmail } from '../utils/assignmentApproval';
 import { isAssignmentLocked } from '../utils/assignmentLock';
+import { isRemoteAssignBlocked, isRemoteOperatorRole, isRemoteAssignRestricted } from '../utils/restrictedAssign';
 import { standbyColorForEmail, EMPTY_STANDBY_COLOR } from '../components/utils/standbyColors';
 import CalendarContextMenu from '../components/calendar/CalendarContextMenu';
 import AssignOperatorModal from '../components/calendar/AssignOperatorModal';
@@ -234,8 +235,11 @@ function ShootCalendarEntry({
     .join(', ');
 
   const assignmentLocked = isAssignmentLocked(shoot);
+  const remoteBlocked = isRemoteAssignBlocked(shoot, user, appSettings);
   const assignmentLabel = assignmentLocked
     ? 'Manual — not assignable'
+    : remoteBlocked
+      ? 'Admin / Standby only'
     : assignedNames || (hasPending ? 'Pending Approval' : 'Unassigned');
 
   // Count pre-approved slots using shared helper (reads live cache to avoid stale counts)
@@ -264,6 +268,7 @@ function ShootCalendarEntry({
   const handleSelfAssign = async (e) => {
     e.stopPropagation();
     if (!user?.email || isPast || assignmentLocked) return;
+    if (remoteBlocked && !isAssigned && !isPending) return;
     const email = user.email;
 
     if (isPending) {
@@ -321,7 +326,7 @@ function ShootCalendarEntry({
 
       if (userEligibleForAutoAssign) {
         const partner = findPairedShoot(shoot, allShoots, autoAssignTeams, autoAssignWindowMinutes, email);
-        if (partner) {
+        if (partner && !isRemoteAssignBlocked(partner, user, appSettings)) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {
@@ -342,7 +347,8 @@ function ShootCalendarEntry({
 
   const titleText = shortenTitle(shoot.title) || 'Untitled shoot';
   const showMinus = isAssigned || isPending;
-  const canQuickAssign = !assignmentLocked && !isAnalytics && !isViewer && !isPast && !!user?.email && (showMinus || isAdmin || !claimedByOther);
+  const canQuickAssign = !assignmentLocked && !isAnalytics && !isViewer && !isPast && !!user?.email
+    && (showMinus || (!remoteBlocked && (isAdmin || !claimedByOther)));
 
   const quickAssignButton = (
     <button
@@ -367,6 +373,8 @@ function ShootCalendarEntry({
       title={
         assignmentLocked
           ? 'Manual shoot — not assignable'
+          : remoteBlocked
+          ? 'Admin / Standby only'
           : isPast
           ? 'Past shoot'
           : showMinus
@@ -441,7 +449,7 @@ function ShootCalendarEntry({
                 <Wrench className="h-3 w-3" />
               </button>
             )}
-            {!isAnalytics && !isViewer && !assignmentLocked && (
+            {!isAnalytics && !isViewer && !assignmentLocked && !(remoteBlocked && !showMinus) && (
               <>
                 {isAdmin && hasPending && (
                   <button
@@ -518,7 +526,7 @@ function ShootCalendarEntry({
               {shoot.rig_check_completed ? 'Checked' : 'Rig check'}
             </button>
           )}
-          {!isAnalytics && !isViewer && !assignmentLocked && quickAssignButton}
+          {!isAnalytics && !isViewer && !assignmentLocked && !(remoteBlocked && !showMinus) && quickAssignButton}
         </div>
       </div>
       {isAdmin && hasPending && !assignmentLocked && (
@@ -1239,6 +1247,11 @@ export default function Calendar() {
     if (isAssignmentLocked(assignOperatorsModal)) return;
     const shoot = shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal;
     if (hasEmail(shoot.assigned_operators, email)) return;
+    const assignee = allUsers.find((u) => normalizeEmail(u.email) === normalizeEmail(email));
+    if (isRemoteOperatorRole(assignee?.role) && isRemoteAssignRestricted(shoot, appSettings)) {
+      toast.error('Remote operators cannot be assigned to this game.');
+      return;
+    }
     const current = getShootClaimEmail(shoot);
     if (current && current !== normalizeEmail(email)) {
       const currentName = getDisplayName(allUsers.find((u) => normalizeEmail(u.email) === current), current);
@@ -1258,7 +1271,7 @@ export default function Calendar() {
     })();
 
     const partner = findPairedShoot(shoot, shoots, autoAssignTeamsCfg, autoAssignWindowCfg, email);
-    if (partner) {
+    if (partner && !(isRemoteOperatorRole(assignee?.role) && isRemoteAssignRestricted(partner, appSettings))) {
       await handleShootUpdate(partner.id, exclusiveAssignFields(email, {
         auto_assigned_for: addEmail(partner.auto_assigned_for, email),
       }));
@@ -1357,6 +1370,9 @@ export default function Calendar() {
   // Context menu self-assign — same business rules as card self-assign
   const handleContextMenuAssignSelf = async (shoot) => {
     if (!user?.email || isAssignmentLocked(shoot)) return;
+    if (isRemoteAssignBlocked(shoot, user, appSettings)
+      && !hasEmail(shoot.assigned_operators, user.email)
+      && !hasEmail(shoot.pending_operators, user.email)) return;
     const email = user.email;
     const todayStrLocal = format(new Date(), 'yyyy-MM-dd');
     const isAssigned = hasEmail(shoot.assigned_operators, email);
@@ -1423,7 +1439,7 @@ export default function Calendar() {
       const userEligibleCM = autoAssignUsersCM.length === 0 || autoAssignUsersCM.includes(email);
       if (userEligibleCM && autoAssignTeamsCM.length > 0) {
         const partner = findPairedShoot(shoot, shoots, autoAssignTeamsCM, cmWindowMins, email);
-        if (partner) {
+        if (partner && !isRemoteAssignBlocked(partner, user, appSettings)) {
           const countAfterMain = withinLimit ? preCount + 1 : preCount;
           const partnerWithinLimit = countAfterMain < AUTO_APPROVE_LIMIT;
           if (partnerWithinLimit) {
@@ -2112,6 +2128,7 @@ export default function Calendar() {
         isViewer={isViewer}
         allUsers={allUsers}
         rigSettings={rigSettings}
+        appSettings={appSettings}
         getStandbyCoverageForShoot={getStandbyCoverageForShoot}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
@@ -2140,6 +2157,7 @@ export default function Calendar() {
             isViewer={isViewer}
             allUsers={allUsers}
             rigSettings={rigSettings}
+            appSettings={appSettings}
             standbyCoverage={coverage}
             canCheckRig={!readOnly && canCheckRig}
             onClose={() => setQuickViewShoot(null)}
@@ -2165,6 +2183,8 @@ export default function Calendar() {
           isAnalytics={isAnalytics}
           isStandby={isStandby}
           userEmail={user?.email}
+          user={user}
+          appSettings={appSettings}
           allUsers={allUsers}
           onEdit={(shoot) => { startEdit(shoot); setContextMenu(null); }}
           onDuplicate={duplicateShoot}
@@ -2224,6 +2244,7 @@ export default function Calendar() {
         <AssignOperatorModal
           shoot={shoots.find((s) => s.id === assignOperatorsModal.id) || assignOperatorsModal}
           allUsers={allUsers}
+          appSettings={appSettings}
           pendingUsers={pendingUsers}
           onConfirm={handleConfirmAssignOperator}
           onUnassign={handleUnassignOperator}

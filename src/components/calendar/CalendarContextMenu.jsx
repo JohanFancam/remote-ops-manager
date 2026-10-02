@@ -4,9 +4,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { isClaimedByOtherOperator } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
+import { isRemoteAssignBlocked } from '@/utils/restrictedAssign';
 
 export default function CalendarContextMenu({
-  shoot, isAdmin, isAnalytics = false, userEmail,
+  shoot, isAdmin, isAnalytics = false, user, userEmail, appSettings = [],
   onEdit, onDuplicate, onDelete, onAssignOperators,
   onAssignSelf, onUnassignSelf, onViewDetails,
   onRigCheckToggle, canCheckRig = false,
@@ -25,10 +26,19 @@ export default function CalendarContextMenu({
   const isPending = shoot?.pending_operators?.includes(userEmail);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, userEmail);
   const assignmentLocked = isAssignmentLocked(shoot);
+  const remoteBlocked = isRemoteAssignBlocked(shoot, user || { email: userEmail }, appSettings);
 
   const selfAssignItem = assignmentLocked
     ? {
         label: 'Manual — not assignable',
+        icon: UserCheck,
+        action: () => {},
+        color: 'text-slate-500',
+        disabled: true,
+      }
+    : remoteBlocked && !isAssigned && !isPending
+    ? {
+        label: 'Admin / Standby only',
         icon: UserCheck,
         action: () => {},
         color: 'text-slate-500',

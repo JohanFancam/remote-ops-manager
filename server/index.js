@@ -38,6 +38,7 @@ import {
   maybeRunScheduledGoogleSync,
 } from './googleCalendar.js';
 import { isAssignmentLocked } from './shootTitleMatch.js';
+import { restrictedRemoteAssignError } from './restrictedAssign.js';
 import { syncRigChecksForShoot } from './rigChecks.js';
 import { validateRigCheckAssignment } from './rigCheckUtils.js';
 import {
@@ -459,6 +460,13 @@ app.post('/api/entities/:type', authMiddleware, async (req, res) => {
       payload.status = payload.status || 'open';
       payload.created_at = payload.created_at || nowIso();
     }
+    if (type === 'Shoot') {
+      const remoteError = restrictedRemoteAssignError(payload, [
+        ...(payload.assigned_operators || []),
+        ...(payload.pending_operators || []),
+      ]);
+      if (remoteError) return res.status(403).json({ error: remoteError });
+    }
     const created = createEntity(type, payload, req.user);
     if (type === 'RigCheckAssignment') {
       const shoot = created.shoot_id ? getEntity('Shoot', created.shoot_id) : null;
@@ -550,6 +558,19 @@ app.patch('/api/entities/:type/:id', authMiddleware, async (req, res) => {
       delete patch.pending_operators;
       delete patch.pre_approved_operators;
       delete patch.auto_assigned_for;
+    }
+    if (type === 'Shoot' && previous) {
+      const merged = { ...previous, ...patch };
+      const already = new Set([
+        ...(previous.assigned_operators || []),
+        ...(previous.pending_operators || []),
+      ].map((email) => String(email || '').toLowerCase()));
+      const added = [
+        ...(patch.assigned_operators || []),
+        ...(patch.pending_operators || []),
+      ].filter((email) => email && !already.has(String(email).toLowerCase()));
+      const remoteError = restrictedRemoteAssignError(merged, added);
+      if (remoteError) return res.status(403).json({ error: remoteError });
     }
     const updated = updateEntity(type, id, patch);
     if (!updated) return res.status(404).json({ error: 'Not found' });
