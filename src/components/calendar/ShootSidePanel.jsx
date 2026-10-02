@@ -5,6 +5,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '@/utils/assignmentApproval';
 import { isAssignmentLocked } from '@/utils/assignmentLock';
+import { isRemoteAssignBlocked } from '@/utils/restrictedAssign';
 import { getSchedule, shortenTitle } from '@/components/utils/scheduleUtils';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 import { matchRig } from '@/components/utils/rigUtils';
@@ -75,6 +76,7 @@ export default function ShootSidePanel({
   const isPending = shoot.pending_operators?.includes(user?.email);
   const claimedByOther = !isAdmin && isClaimedByOtherOperator(shoot, user?.email);
   const assignmentLocked = isAssignmentLocked(shoot);
+  const remoteBlocked = isRemoteAssignBlocked(shoot, user, appSettings);
 
   // Auto-assign config
   const autoAssignTeams = (() => {
@@ -102,6 +104,7 @@ export default function ShootSidePanel({
 
   const handleSelfAssign = async () => {
     if (!user?.email || isPast || assignmentLocked) return;
+    if (remoteBlocked && !isAssigned && !isPending) return;
     const email = user.email;
 
     if (isPending) {
@@ -340,7 +343,10 @@ export default function ShootSidePanel({
           {assignmentLocked && (
             <p className="w-full text-xs text-slate-500">Manual — not assignable</p>
           )}
-          {isOperator && !isPast && !assignmentLocked && (
+          {remoteBlocked && (
+            <p className="w-full text-xs text-amber-400">Admin / Standby only — remotes cannot assign themselves.</p>
+          )}
+          {(isAdmin || isOperator) && !isPast && !assignmentLocked && !remoteBlocked && (
             <div className="flex flex-col gap-1.5 w-full">
               <Button
                 size="sm"
