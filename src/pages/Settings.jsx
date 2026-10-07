@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -123,7 +123,51 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
   );
 }
 
+const APP_LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif';
+const APP_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
+function isAllowedLogoFile(file) {
+  if (file?.type && APP_LOGO_TYPES.has(file.type)) return true;
+  return /\.(png|jpe?g|webp|gif)$/i.test(file?.name || '');
+}
+
+function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
+  return (
+    <div className="flex items-center gap-4 flex-wrap">
+      <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
+        <img src={resolveAppLogoUrl(logoUrl)} alt="App Logo" className="w-full h-full object-contain" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-slate-200">App logo</p>
+        <p className="text-sm text-slate-400 mb-2">
+          Shown on sign-in, in the sidebar, and when someone installs the app. Leave empty to use the default ROM mark.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <label
+            className={`inline-flex h-8 items-center gap-2 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+          >
+            <input
+              type="file"
+              accept={APP_LOGO_ACCEPT}
+              className="sr-only"
+              disabled={uploading}
+              onChange={onUpload}
+            />
+            <Image className="h-4 w-4" />
+            {uploading ? 'Uploading...' : logoUrl ? 'Replace logo' : 'Upload logo'}
+          </label>
+          {logoUrl && (
+            <Button type="button" size="sm" variant="outline" onClick={onClear}
+              className="border-slate-700 text-slate-300 hover:bg-slate-800">
+              Use default
+            </Button>
+          )}
+        </div>
+        {error ? <p className="text-xs text-red-400 mt-2">{error}</p> : null}
+      </div>
+    </div>
+  );
+}
 
 // App Version bump — triggers RefreshReminder for all users
 function AppVersionBump({ appSettings, queryClient }) {
@@ -256,9 +300,9 @@ export default function Settings() {
 
   // Logo
   const [logoUploading, setLogoUploading] = useState(false);
-  const logoInputRef = useRef();
+  const [logoError, setLogoError] = useState('');
   const [bgUploading, setBgUploading] = useState(false);
-  const bgInputRef = useRef();
+  const [bgError, setBgError] = useState('');
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -370,48 +414,83 @@ export default function Settings() {
     queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
-  const upsertSetting = async (existing, key, value, description) => {
+  const upsertSetting = async (key, value, description) => {
+    const latest = await base44.entities.AppSettings.list();
+    const existing = latest.find((s) => s.key === key);
     if (existing) {
       await base44.entities.AppSettings.update(existing.id, { value });
     } else {
       await base44.entities.AppSettings.create({ key, value, description });
     }
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    await queryClient.invalidateQueries({ queryKey: ['appSettings'] });
   };
 
   const handleLogoUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
+    if (!isAllowedLogoFile(file)) {
+      setLogoError('Please upload a PNG, JPEG, WebP, or GIF image.');
+      input.value = '';
+      return;
+    }
+    setLogoError('');
     setLogoUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await upsertSetting(logoSetting, 'app_logo_url', file_url, 'Custom app logo');
-    await refreshPublicSettings();
-    setLogoUploading(false);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file_url) throw new Error('Upload did not return a file URL');
+      await upsertSetting('app_logo_url', file_url, 'Custom app logo');
+      await refreshPublicSettings();
+    } catch (err) {
+      setLogoError(err.message || 'Logo upload failed');
+    } finally {
+      setLogoUploading(false);
+      input.value = '';
+    }
   };
 
   const handleLoginBackgroundUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
+    if (!isAllowedLogoFile(file)) {
+      setBgError('Please upload a PNG, JPEG, WebP, or GIF image.');
+      input.value = '';
+      return;
+    }
+    setBgError('');
     setBgUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await upsertSetting(loginBgSetting, 'login_background_url', file_url, 'Sign-in page background image');
-    await refreshPublicSettings();
-    setBgUploading(false);
-    if (e.target) e.target.value = '';
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file_url) throw new Error('Upload did not return a file URL');
+      await upsertSetting('login_background_url', file_url, 'Sign-in page background image');
+      await refreshPublicSettings();
+    } catch (err) {
+      setBgError(err.message || 'Background upload failed');
+    } finally {
+      setBgUploading(false);
+      input.value = '';
+    }
   };
 
   const handleClearLoginBackground = async () => {
-    if (!loginBgSetting) return;
-    await base44.entities.AppSettings.update(loginBgSetting.id, { value: '' });
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-    await refreshPublicSettings();
+    setBgError('');
+    try {
+      await upsertSetting('login_background_url', '', 'Sign-in page background image');
+      await refreshPublicSettings();
+    } catch (err) {
+      setBgError(err.message || 'Could not remove the background image');
+    }
   };
 
   const handleClearLogo = async () => {
-    if (!logoSetting) return;
-    await base44.entities.AppSettings.update(logoSetting.id, { value: '' });
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] });
-    await refreshPublicSettings();
+    setLogoError('');
+    try {
+      await upsertSetting('app_logo_url', '', 'Custom app logo');
+      await refreshPublicSettings();
+    } catch (err) {
+      setLogoError(err.message || 'Could not restore the default logo');
+    }
   };
 
   return (
@@ -444,6 +523,17 @@ export default function Settings() {
                 </Badge>
               </div>
             </div>
+            {isAdmin && (
+              <div className="mt-5 pt-4 border-t border-slate-800">
+                <AppLogoControls
+                  logoUrl={logoUrl}
+                  uploading={logoUploading}
+                  error={logoError}
+                  onUpload={handleLogoUpload}
+                  onClear={handleClearLogo}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -692,6 +782,7 @@ export default function Settings() {
             title="Appearance"
             description="App logo and sign-in background"
             icon={Image}
+            defaultOpen
           >
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader className="border-b border-slate-800 pb-4">
@@ -700,30 +791,13 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-                    <img src={resolveAppLogoUrl(logoUrl)} alt="App Logo" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-400 mb-2">
-                      Shown on sign-in, in the sidebar, and when someone installs the app. Leave empty to use the default ROM mark.
-                    </p>
-                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}
-                        className="bg-blue-600 hover:bg-blue-600 gap-2">
-                        <Image className="h-4 w-4" />
-                        {logoUploading ? 'Uploading...' : logoUrl ? 'Replace logo' : 'Upload logo'}
-                      </Button>
-                      {logoUrl && (
-                        <Button size="sm" variant="outline" onClick={handleClearLogo}
-                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
-                          Use default
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <AppLogoControls
+                  logoUrl={logoUrl}
+                  uploading={logoUploading}
+                  error={logoError}
+                  onUpload={handleLogoUpload}
+                  onClear={handleClearLogo}
+                />
               </CardContent>
             </Card>
             <Card className="bg-slate-900 border-slate-800 mt-4">
@@ -742,20 +816,28 @@ export default function Settings() {
                     <p className="text-sm text-slate-400 mb-2">
                       Shown behind the sign-in and create-account screens. A dark overlay keeps the form readable. Wide photos work best.
                     </p>
-                    <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleLoginBackgroundUpload} />
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => bgInputRef.current?.click()} disabled={bgUploading}
-                        className="bg-blue-600 hover:bg-blue-600 gap-2">
+                      <label
+                        className={`inline-flex h-8 items-center gap-2 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+                      >
+                        <input
+                          type="file"
+                          accept={APP_LOGO_ACCEPT}
+                          className="sr-only"
+                          disabled={bgUploading}
+                          onChange={handleLoginBackgroundUpload}
+                        />
                         <Image className="h-4 w-4" />
                         {bgUploading ? 'Uploading...' : loginBgUrl ? 'Replace image' : 'Upload image'}
-                      </Button>
+                      </label>
                       {loginBgUrl && (
-                        <Button size="sm" variant="outline" onClick={handleClearLoginBackground}
+                        <Button type="button" size="sm" variant="outline" onClick={handleClearLoginBackground}
                           className="border-slate-700 text-slate-300 hover:bg-slate-800">
                           Remove
                         </Button>
                       )}
                     </div>
+                    {bgError ? <p className="text-xs text-red-400 mt-2">{bgError}</p> : null}
                   </div>
                 </div>
               </CardContent>
