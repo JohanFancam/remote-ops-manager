@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import SlackSyncToggle from '../components/calendar/SlackSyncToggle';
@@ -400,22 +400,7 @@ function ShootCalendarEntry({
   if (compact) {
     return (
       <div
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            if (onQuickView) onQuickView(shoot);
-            else onSelect?.(shoot, day);
-          }
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (onQuickView) onQuickView(shoot);
-          else onContextMenu?.(e, shoot);
-        }}
-        className={`group w-full text-left rounded px-0.5 py-px transition-colors hover:bg-slate-800/90 ${
+        className={`pointer-events-none w-full text-left rounded px-0.5 py-px ${
           shouldGrey ? 'opacity-50' : !isAnalytics && takenByOther ? 'opacity-40' : ''
         } ${isAssigned ? 'bg-slate-800/50' : ''} ${isPending && !isAssigned ? 'bg-amber-950/20' : ''} ${
           isCancelled ? 'ring-1 ring-red-600/50 bg-red-950/20' : ''
@@ -435,37 +420,6 @@ function ShootCalendarEntry({
               <span className="ml-1 text-[9px] uppercase text-amber-300">Updated</span>
             )}
           </p>
-          <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {canCheckRig && (
-              <button
-                type="button"
-                onClick={() => onRigCheckToggle?.(shoot)}
-                className={`inline-flex h-4 w-4 items-center justify-center rounded ${
-                  shoot.rig_check_completed ? 'text-emerald-300 opacity-100' : 'text-amber-300 opacity-0 group-hover:opacity-100 focus:opacity-100'
-                }`}
-                title={shoot.rig_check_completed ? 'Rig checked — open message' : 'Quick rig check'}
-                aria-label={shoot.rig_check_completed ? 'Rig checked' : 'Quick rig check'}
-              >
-                <Wrench className="h-3 w-3" />
-              </button>
-            )}
-            {!isAnalytics && !isViewer && !assignmentLocked && !(remoteBlocked && !showMinus) && (
-              <>
-                {isAdmin && hasPending && (
-                  <button
-                    type="button"
-                    onClick={() => onApprovePending?.(shoot, shoot.pending_operators[0])}
-                    className="inline-flex h-4 w-4 items-center justify-center rounded text-emerald-300 hover:bg-emerald-950/40"
-                    title="Approve pending operator"
-                    aria-label="Approve pending operator"
-                  >
-                    <Check className="h-3 w-3" />
-                  </button>
-                )}
-                {quickAssignButton}
-              </>
-            )}
-          </div>
         </div>
       </div>
     );
@@ -1544,7 +1498,6 @@ export default function Calendar() {
       onContextMenu={handleContextMenu}
       onQuickView={(s) => {
         setQuickViewShoot(s);
-        setDayPopup(null);
       }}
       onApprovePending={handleApprovePending}
       onDeclinePending={handleDeclinePending}
@@ -1559,6 +1512,7 @@ export default function Calendar() {
     e?.stopPropagation?.();
     setSelectedDate(day);
     setUnavailablePopup(null);
+    setQuickViewShoot(null);
     setDayPopup(day);
   };
 
@@ -1595,13 +1549,9 @@ export default function Calendar() {
             const hiddenCount = Math.max(0, dayShoots.length - MONTH_VISIBLE_SHOOTS);
             const dayStandbyPeople = getStandbyForDay(day);
             const primaryStandby = dayStandbyPeople[0] || null;
-            const visibleStandbyPeople = canSeeAllStandbyCoverage
-              ? dayStandbyPeople
-              : (primaryStandby ? [primaryStandby] : []);
             const myStandby = userStandbyForDay(day);
             const otherStandby = primaryStandby && primaryStandby.admin_email !== user?.email;
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
-            const dayUnavailable = getUnavailableForDay(day);
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
             const isSelected = isSameDay(day, selectedDate);
@@ -1609,27 +1559,18 @@ export default function Calendar() {
             return (
               <div
                 key={day.toISOString()}
-                onClick={() => { setSelectedDate(day); setCurrentDate(day); }}
+                onClick={(e) => openDayPopup(day, e)}
                 className={`min-h-[72px] md:min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 ${
                   isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'
                 } ${greyOutDay ? 'opacity-55' : ''}`}
+                title="View this day"
               >
                 <div className="flex items-center justify-between gap-0.5 mb-0.5 shrink-0 px-0.5">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (dayShoots.length > MONTH_VISIBLE_SHOOTS) openDayPopup(day, e);
-                      else if (dayShoots.length > 0) {
-                        setQuickViewShoot(dayShoots[0]);
-                        setSelectedDate(day);
-                      } else {
-                        setSelectedDate(day);
-                        setCurrentDate(day);
-                      }
-                    }}
+                    onClick={(e) => openDayPopup(day, e)}
                     className={`text-[11px] font-medium tabular-nums rounded-full min-w-[1.35rem] h-[1.35rem] flex items-center justify-center ${today ? 'bg-blue-600 text-white' : greyOutDay ? 'text-slate-600' : 'text-slate-300 hover:bg-slate-800'}`}
-                    title={dayShoots.length > MONTH_VISIBLE_SHOOTS ? 'View all games for this day' : undefined}
+                    title="View this day"
                   >
                     {format(day, 'd')}
                   </button>
@@ -1667,70 +1608,12 @@ export default function Calendar() {
                     </button>
                   )}
                 </div>
-                {visibleStandbyPeople.length > 0 && (
-                   <div className="mb-0.5 flex flex-wrap gap-0.5 px-0.5 shrink-0">
-                     {visibleStandbyPeople.slice(0, 3).map((person) => {
-                       const color = standbyColorForEmail(person.admin_email);
-                       const label = (person.admin_name || person.admin_email || '').split(' ')[0];
-                       return (
-                         <span
-                           key={person.id || person.admin_email}
-                           className={`text-[9px] rounded border px-1 py-px truncate max-w-full inline-block ${color.chip}`}
-                           title={`Standby: ${person.admin_name || person.admin_email}. Covered shoots use this colour.`}
-                         >
-                           {canSeeAllStandbyCoverage ? label : `Standby: ${person.admin_name || person.admin_email}`}
-                         </span>
-                       );
-                     })}
-                     {visibleStandbyPeople.length > 3 && (
-                       <span className="text-[9px] text-slate-400">+{visibleStandbyPeople.length - 3}</span>
-                     )}
-                   </div>
-                 )}
-                {isAdmin && dayUnavailable.length > 0 && (
-                  <div className="mb-0.5 flex flex-wrap gap-0.5 px-0.5 shrink-0">
-                    {dayUnavailable.slice(0, 1).map(item => {
-                      const unavailableUser = allUsers.find(u => u.email === item.operator_email);
-                      const canOpenList = dayUnavailable.length > 1;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (canOpenList) openUnavailablePopup(day, e);
-                          }}
-                          className={`text-[9px] rounded bg-red-950/45 text-red-200 px-1 py-px truncate max-w-full text-left ${
-                            canOpenList ? 'hover:bg-red-900/55 cursor-pointer' : 'cursor-default'
-                          }`}
-                          title={canOpenList ? `View all ${dayUnavailable.length} unavailable` : undefined}
-                        >
-                          Out: {getDisplayName(unavailableUser, item.operator_email, item.operator_name).split(' ')[0]}
-                        </button>
-                      );
-                    })}
-                    {dayUnavailable.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={(e) => openUnavailablePopup(day, e)}
-                        className="text-[9px] text-red-400 hover:text-red-200"
-                        title={`View all ${dayUnavailable.length} unavailable`}
-                      >
-                        +{dayUnavailable.length - 1}
-                      </button>
-                    )}
-                  </div>
-                )}
                 <div className="space-y-px flex-1 min-h-0">
                   {visibleShoots.map(s => renderEntry(s, day, true))}
                   {hiddenCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => openDayPopup(day, e)}
-                      className="w-full text-left rounded px-0.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors shrink-0"
-                    >
+                    <p className="px-0.5 py-0.5 text-[11px] font-medium text-slate-400 shrink-0">
                       {hiddenCount} more
-                    </button>
+                    </p>
                   )}
                 </div>
               </div>
@@ -2119,7 +2002,7 @@ export default function Calendar() {
       />
 
       <DayEventsPopup
-        open={!!dayPopup}
+        open={!!dayPopup && !quickViewShoot}
         day={dayPopup}
         shoots={dayPopup ? getShootsForDay(dayPopup) : []}
         user={user}
@@ -2129,6 +2012,8 @@ export default function Calendar() {
         allUsers={allUsers}
         rigSettings={rigSettings}
         appSettings={appSettings}
+        unavailablePeople={dayPopup ? getUnavailableForDay(dayPopup) : []}
+        standbyPeople={dayPopup ? (canSeeAllStandbyCoverage ? getStandbyForDay(dayPopup) : (getPrimaryStandbyForDay(dayPopup) ? [getPrimaryStandbyForDay(dayPopup)] : [])) : []}
         getStandbyCoverageForShoot={getStandbyCoverageForShoot}
         onClose={() => setDayPopup(null)}
         onToggleAssign={handleContextMenuAssignSelf}
@@ -2138,7 +2023,6 @@ export default function Calendar() {
         onRigCheckToggle={(shoot) => handleRigCheckToggle(shoot, getStandbyCoverageForShoot(shoot))}
         onSelectShoot={(shoot) => {
           setQuickViewShoot(shoot);
-          setDayPopup(null);
         }}
       />
 
@@ -2146,6 +2030,8 @@ export default function Calendar() {
         const liveQuick = shoots.find((s) => s.id === quickViewShoot.id) || quickViewShoot;
         const coverage = getStandbyCoverageForShoot(liveQuick);
         const canCheckRig = canCheckShoot(liveQuick);
+        const dayPopupCount = dayPopup ? getShootsForDay(dayPopup).length : 0;
+        const canReturnToDay = dayPopupCount > 2;
         return (
           <ShootQuickView
             shoot={liveQuick}
@@ -2160,7 +2046,11 @@ export default function Calendar() {
             appSettings={appSettings}
             standbyCoverage={coverage}
             canCheckRig={!readOnly && canCheckRig}
-            onClose={() => setQuickViewShoot(null)}
+            onBack={canReturnToDay ? () => setQuickViewShoot(null) : undefined}
+            onClose={() => {
+              setQuickViewShoot(null);
+              setDayPopup(null);
+            }}
             onUpdate={readOnly ? undefined : handleShootUpdate}
             onApprovePending={handleApprovePending}
             onDeclinePending={handleDeclinePending}

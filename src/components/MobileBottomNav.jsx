@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, BarChart2, DollarSign, TrendingUp, X,
-  Wrench, Settings, LogOut, Bell, AlertTriangle, BookOpen, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, Calendar, BarChart2, DollarSign, X,
+  Wrench, Settings, LogOut, Bell, AlertTriangle, CheckSquare } from 'lucide-react';
 import { useApp } from './AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,6 @@ const allAdminMenuItems = [
   { label: 'Rig Checks', icon: CheckSquare, path: '/RigChecks' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
   { label: 'Reports', icon: BarChart2, path: '/Reports' },
-  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
   { label: 'Pending/Approve', icon: DollarSign, path: '/Accounts' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
@@ -57,9 +56,6 @@ const allRemoteMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
-  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
-  { label: 'Guide', icon: BookOpen, path: '/OperatorGuide' },
-  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 
@@ -67,9 +63,6 @@ const allStandbyMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Calendar', icon: Calendar, path: '/Calendar' },
   { label: 'Notifications', icon: Bell, path: '/Notifications' },
-  { label: 'App Faults', icon: AlertTriangle, path: '/AppFaults' },
-  { label: 'Guide', icon: BookOpen, path: '/OperatorGuide' },
-  { label: 'Earnings', icon: TrendingUp, path: '/Earnings' },
   { label: 'Settings', icon: Settings, path: '/Settings' },
 ];
 

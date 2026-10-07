@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Copy, Trash2, Users, Pencil, Wrench, Plus, Minus } from 'lucide-react';
+import { X, Copy, Trash2, Users, Pencil, Wrench, Plus, Minus, ChevronLeft } from 'lucide-react';
 import { getDisplayName } from '@/components/utils/nameUtils';
 import { getSchedule } from '@/components/utils/scheduleUtils';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
@@ -85,6 +85,7 @@ export default function ShootQuickView({
   onAssignSelf,
   onRigCheckToggle,
   canCheckRig = false,
+  onBack,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busyRig, setBusyRig] = useState(false);
@@ -156,7 +157,7 @@ export default function ShootQuickView({
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={onClose}
+      onClick={onBack || onClose}
       role="presentation"
     >
       <div className="absolute inset-0 bg-black/55" />
@@ -173,7 +174,19 @@ export default function ShootQuickView({
               : 'border-slate-700/80 bg-[#1e2433]'
         }`}
       >
-        <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
+        {onBack && (
+          <div className="px-4 pt-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 hover:text-blue-200"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              All games this day
+            </button>
+          </div>
+        )}
+        <div className={`flex items-start justify-between gap-3 px-4 pb-2 ${onBack ? 'pt-2' : 'pt-4'}`}>
           <div className="flex min-w-0 items-start gap-3">
             <span
               className={`mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full ${shootDotClass(shoot, rigSettings, { past: isPast })}`}

@@ -25,7 +25,7 @@ const ADMIN_STEPS = [
   },
   {
     title: "Calendar",
-    body: "The Calendar shows all scheduled shoots. Admins can sync Data and Fancam Google calendars here without changing Google. Operators mark Not available on a day. Standby colours highlight the covered games, not the whole day."
+    body: "The Calendar shows all scheduled shoots. Click a day to open every game plus who is out and who is on standby. Admins can sync Data and Fancam Google calendars here without changing Google. Operators mark Not available on a day. Standby colours highlight the covered games, not the whole day."
   },
   {
     title: "Rigs Page",
@@ -48,11 +48,11 @@ const ADMIN_STEPS = [
 const REMOTE_STEPS = [
   {
     title: "Welcome to Remote Ops Manager",
-    body: "Sign in with the email and password you were sent. This app is your shoot schedule, calendar, and the place to mark work complete. Open Guide in the menu any time for the written steps."
+    body: "Sign in with the email and password you were sent. This app is your shoot schedule, calendar, and the place to mark work complete."
   },
   {
     title: "Calendar — find a shoot and mark out",
-    body: "Open Calendar and tap a game to see details. If you cannot work a day, tap Out / Not available on that date so admins know. Tap it again to become available."
+    body: "Open Calendar and tap a day to see every game, who is out, and who is on standby. Tap a game for details or to assign yourself. If you cannot work a day, tap Out / Not available so admins know."
   },
   {
     title: "Dashboard — your game and rig settings",
@@ -67,12 +67,8 @@ const REMOTE_STEPS = [
     body: "The Notifications tab is the history of alerts. To get phone or desktop pop-ups, go to Settings → Device Notifications → Enable notifications and allow the browser prompt."
   },
   {
-    title: "App faults",
-    body: "If the app itself is broken, open App Faults, describe what happened, and send it. Only admins see the list and get notified."
-  },
-  {
     title: "Earnings and settings",
-    body: "Earnings shows this month's shoots and rates. Settings is where you change your password and turn device notifications on or off."
+    body: "Your earnings for this month are on the Dashboard. Settings is where you change your password and turn device notifications on or off."
   },
 ];
 
