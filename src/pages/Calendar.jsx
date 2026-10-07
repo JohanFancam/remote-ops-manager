@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, Check, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Plus, Minus, CalendarDays, CalendarRange, UserX, XCircle, Copy, ShieldCheck, Wrench, RefreshCw, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import SlackSyncToggle from '../components/calendar/SlackSyncToggle';
