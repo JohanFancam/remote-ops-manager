@@ -168,10 +168,10 @@ export default function ShootQuickView({
         onClick={(e) => e.stopPropagation()}
         className={`relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl shadow-black/50 ${
           isCancelled
-            ? 'border-red-600/50 bg-[#1e2433] opacity-90'
+            ? 'border-red-600/50 bg-[#292a2a] opacity-90'
             : shouldGrey
-              ? 'border-slate-700/80 bg-[#1e2433] opacity-90'
-              : 'border-slate-700/80 bg-[#1e2433]'
+              ? 'border-slate-700/80 bg-[#292a2a] opacity-90'
+              : 'border-slate-700/80 bg-[#292a2a]'
         }`}
       >
         {onBack && (

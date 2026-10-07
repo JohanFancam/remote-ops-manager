@@ -39,7 +39,7 @@ export default function UnavailableOperatorsPopup({
         aria-modal="true"
         aria-label={`Unavailable ${format(day, 'EEEE, d MMMM')}`}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 w-full max-w-sm max-h-[min(80vh,520px)] overflow-hidden rounded-t-2xl sm:rounded-2xl border border-red-800/50 bg-[#1e2433] shadow-2xl shadow-black/50"
+        className="relative z-10 w-full max-w-sm max-h-[min(80vh,520px)] overflow-hidden rounded-t-2xl sm:rounded-2xl border border-red-800/50 bg-[#292a2a] shadow-2xl shadow-black/50"
       >
         <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-slate-800">
           <div className="min-w-0">

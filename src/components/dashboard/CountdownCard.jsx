@@ -488,7 +488,7 @@ export default function CountdownCard({
                       ? 'text-red-400'
                       : targetDiff !== null && targetDiff < 30 * 60000
                         ? 'text-amber-400'
-                        : 'text-blue-400'
+                        : 'text-slate-100'
                 }`}
               >
                 {countdown}
