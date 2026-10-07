@@ -57,10 +57,16 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
   const hasIssues = reports.filter(r => r.had_issues);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="relative w-full max-w-md h-full bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto flex flex-col"
-        onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose} role="presentation">
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        className="relative z-10 w-full max-w-md max-h-[min(85vh,640px)] bg-[#252b3b] border border-slate-700/70 rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#252b3b] z-10">
           <div>
             <p className="text-slate-100 font-bold text-base">{label}</p>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -100,7 +106,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
           </div>
         )}
 
-        <div className="flex-1 divide-y divide-gray-800">
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-800">
           {reports.map(r => (
             <div key={r.id} className="px-5 py-4">
               {editingId === r.id ? (
@@ -402,27 +408,55 @@ export default function Reports() {
           <span className="text-xs text-gray-600">· Click a day to view details</span>
         </div>
 
-        {/* Monthly report list */}
+        {/* Monthly report list grouped by day */}
         {monthReports.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-slate-400 mb-3">All Reports — {monthLabel}</p>
-            <div className="space-y-2">
-              {[...monthReports].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')).map(r => (
-                <div key={r.id} className={`rounded-lg p-3 border flex items-start justify-between gap-3
-                  ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-slate-800 bg-slate-900'}`}>
-                  <div className="flex items-start gap-2 flex-1 min-w-0">
-                    {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-100 truncate">{r.shoot_title}</p>
-                      <p className="text-xs text-slate-500">{r.shoot_date} · {r.operator_name || r.operator_email || 'Unknown'}</p>
-                      {r.notes && <p className="text-xs text-slate-400 mt-1 italic truncate">{r.notes}</p>}
+            <div className="space-y-5">
+              {Object.keys(byDay).sort((a, b) => b.localeCompare(a)).map((dayStr) => {
+                const dayRep = byDay[dayStr] || [];
+                const issueCount = dayRep.filter((r) => r.had_issues).length;
+                const dayDate = new Date(`${dayStr}T12:00:00`);
+                const heading = Number.isNaN(dayDate.getTime()) ? dayStr : format(dayDate, 'EEEE, d MMMM');
+                return (
+                  <div key={dayStr}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDay(dayDate)}
+                      className="w-full flex items-baseline justify-between gap-2 mb-2 text-left rounded-lg px-1 py-0.5 hover:bg-slate-800/60"
+                    >
+                      <p className="text-sm font-semibold text-slate-100">{heading}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {dayRep.length} report{dayRep.length !== 1 ? 's' : ''}
+                        {issueCount > 0 && <span className="text-red-400"> · {issueCount} with issues</span>}
+                      </p>
+                    </button>
+                    <div className="space-y-2">
+                      {dayRep.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setSelectedDay(dayDate)}
+                          className={`w-full text-left rounded-lg p-3 border flex items-start justify-between gap-3
+                            ${r.had_issues ? 'border-red-800/40 bg-red-950/10' : 'border-slate-800 bg-slate-900'} hover:border-slate-600`}
+                        >
+                          <div className="flex items-start gap-2 flex-1 min-w-0">
+                            {r.had_issues ? <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-100 truncate">{r.shoot_title}</p>
+                              <p className="text-xs text-slate-500">{r.operator_name || r.operator_email || 'Unknown'}</p>
+                              {r.notes && <p className="text-xs text-slate-400 mt-1 italic truncate">{r.notes}</p>}
+                            </div>
+                          </div>
+                          <Badge className={r.had_issues ? 'bg-red-950/400/20 text-red-400 border-red-800 text-xs flex-shrink-0' : 'bg-green-500/20 text-emerald-400 border-green-500/30 text-xs flex-shrink-0'}>
+                            {r.had_issues ? 'Issues' : 'Clean'}
+                          </Badge>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <Badge className={r.had_issues ? 'bg-red-950/400/20 text-red-400 border-red-800 text-xs flex-shrink-0' : 'bg-green-500/20 text-emerald-400 border-green-500/30 text-xs flex-shrink-0'}>
-                    {r.had_issues ? 'Issues' : 'Clean'}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

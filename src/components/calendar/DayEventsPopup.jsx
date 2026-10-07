@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Minus, X, Check, Wrench } from 'lucide-react';
+import { Plus, Minus, X, Check, Wrench, UserX } from 'lucide-react';
 import { shootDotClass } from './ShootQuickView';
 import { shortenTitle } from '@/components/utils/scheduleUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
@@ -11,7 +11,7 @@ import { isRemoteAssignBlocked } from '@/utils/restrictedAssign';
 import { standbyColorForEmail } from '@/components/utils/standbyColors';
 
 /**
- * Google Calendar–style “N more” day list popup.
+ * Day list popup: every game, who is out, who is on standby, and quick assign.
  */
 export default function DayEventsPopup({
   open,
@@ -24,6 +24,8 @@ export default function DayEventsPopup({
   allUsers = [],
   rigSettings = [],
   appSettings = [],
+  unavailablePeople = [],
+  standbyPeople = [],
   onClose,
   onToggleAssign,
   onSelectShoot,
@@ -37,6 +39,19 @@ export default function DayEventsPopup({
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dateStr = format(day, 'yyyy-MM-dd');
+  const sortedUnavailable = [...unavailablePeople].sort((a, b) => {
+    const nameA = getDisplayName(
+      allUsers.find((u) => String(u.email || '').toLowerCase() === String(a.operator_email || '').toLowerCase()),
+      a.operator_email,
+      a.operator_name
+    );
+    const nameB = getDisplayName(
+      allUsers.find((u) => String(u.email || '').toLowerCase() === String(b.operator_email || '').toLowerCase()),
+      b.operator_email,
+      b.operator_name
+    );
+    return nameA.localeCompare(nameB);
+  });
 
   return (
     <div
@@ -50,16 +65,17 @@ export default function DayEventsPopup({
         aria-modal="true"
         aria-label={format(day, 'EEEE, MMMM d')}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 flex max-h-[min(80vh,560px)] w-full max-w-xs flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-[#252b3b] shadow-2xl shadow-black/40"
+        className="relative z-10 flex max-h-[min(85vh,620px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-[#252b3b] shadow-2xl shadow-black/40"
       >
         <div className="flex items-start justify-between px-4 pb-2 pt-4">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-              {format(day, 'EEE')}
+              {format(day, 'EEEE')}
             </p>
             <p className="text-3xl font-semibold tabular-nums text-slate-50 leading-none mt-1">
               {format(day, 'd')}
             </p>
+            <p className="mt-1 text-[11px] text-slate-500">{format(day, 'MMMM yyyy')}</p>
           </div>
           <button
             type="button"
@@ -70,6 +86,50 @@ export default function DayEventsPopup({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {(unavailablePeople.length > 0 || standbyPeople.length > 0) && (
+          <div className="mx-3 mb-2 space-y-2 rounded-xl border border-slate-700/60 bg-slate-900/50 px-3 py-2.5">
+            {standbyPeople.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Standby</p>
+                <div className="flex flex-wrap gap-1">
+                  {standbyPeople.map((person) => {
+                    const color = standbyColorForEmail(person.admin_email);
+                    const label = person.admin_name || getDisplayName(allUsers.find((u) => u.email === person.admin_email), person.admin_email);
+                    return (
+                      <span
+                        key={person.id || person.admin_email}
+                        className={`text-[11px] rounded-full border px-2 py-0.5 ${color.chip}`}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {sortedUnavailable.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-red-300/80 mb-1">Out</p>
+                <ul className="space-y-0.5">
+                  {sortedUnavailable.map((item) => {
+                    const name = getDisplayName(
+                      allUsers.find((u) => String(u.email || '').toLowerCase() === String(item.operator_email || '').toLowerCase()),
+                      item.operator_email,
+                      item.operator_name
+                    );
+                    return (
+                      <li key={item.id || item.operator_email} className="flex items-center gap-1.5 text-[12px] text-red-200">
+                        <UserX className="h-3 w-3 shrink-0 text-red-400" />
+                        <span className="truncate">{name}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-2 pb-3">
           {shoots.length === 0 ? (

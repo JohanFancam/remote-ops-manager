@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './components/AppContext';
 import { useAuth } from './lib/AuthContext';
 import {
   LayoutDashboard, Calendar, BarChart2, Settings,
-  Wrench, LogOut, RefreshCw, DollarSign, TrendingUp, Bell, AlertTriangle, BookOpen, CheckSquare,
+  Wrench, LogOut, RefreshCw, DollarSign, Bell, AlertTriangle, CheckSquare,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import AppSplash from './components/brand/AppSplash';
@@ -124,7 +124,6 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Rig Checks', icon: CheckSquare, page: 'RigChecks' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
     { name: 'Reports', icon: BarChart2, page: 'Reports' },
-    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
     { name: 'Pending / Approve', icon: DollarSign, page: 'Accounts' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
@@ -133,9 +132,6 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
-    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
-    { name: 'Guide', icon: BookOpen, page: 'OperatorGuide' },
-    { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
@@ -144,9 +140,6 @@ function LayoutContent({ children, currentPageName }) {
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'Calendar', icon: Calendar, page: 'Calendar' },
     { name: 'Notifications', icon: Bell, page: 'Notifications' },
-    { name: 'App Faults', icon: AlertTriangle, page: 'AppFaults' },
-    { name: 'Guide', icon: BookOpen, page: 'OperatorGuide' },
-    { name: 'Earnings', icon: TrendingUp, page: 'Earnings' },
     { name: 'Settings', icon: Settings, page: 'Settings' },
   ];
 
