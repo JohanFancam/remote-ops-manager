@@ -88,15 +88,34 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(uploadsDir));
+app.use('/api/uploads', express.static(uploadsDir));
+
+const ALLOWED_UPLOAD_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+function isAllowedUploadImage(file) {
+  const type = String(file?.mimetype || '').toLowerCase();
+  if (ALLOWED_UPLOAD_TYPES.has(type)) return true;
+  const name = String(file?.originalname || '').toLowerCase();
+  return /\.(png|jpe?g|webp|gif)$/.test(name);
+}
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safe = String(file.originalname || 'image').replace(/[^a-zA-Z0-9._-]/g, '_');
     cb(null, `${Date.now()}_${safe}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedUploadImage(file)) return cb(null, true);
+    const err = new Error('Please upload a PNG, JPEG, WebP, or GIF image');
+    err.status = 400;
+    cb(err);
+  },
+});
 
 // Import files are parsed in memory rather than written to the uploads folder
 const importUpload = multer({
@@ -375,10 +394,19 @@ app.post('/api/app-logs', authMiddleware, (req, res) => {
   res.json({ ok: true, page: req.body?.pageName || null });
 });
 
-app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const file_url = `/uploads/${req.file.filename}`;
-  res.json({ file_url });
+app.post('/api/upload', authMiddleware, (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      const tooLarge = err.code === 'LIMIT_FILE_SIZE';
+      const message = tooLarge
+        ? 'Image is too large (max 25MB)'
+        : err.message || 'Upload failed';
+      return res.status(err.status || (tooLarge ? 413 : 400)).json({ error: message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const file_url = `/api/uploads/${req.file.filename}`;
+    res.json({ file_url });
+  });
 });
 
 function isReadOnlyUser(user) {
@@ -940,8 +968,8 @@ const distDir = path.resolve(__dirname, '../dist');
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));
   app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/uploads') || req.path.startsWith('/uploads')) return next();
     if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
-    if (req.path.startsWith('/uploads')) return next();
     res.sendFile(path.join(distDir, 'index.html'));
   });
 }

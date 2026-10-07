@@ -110,6 +110,14 @@ export function createEntity(entityType, data = {}, user = null) {
     throw err;
   }
 
+  if (entityType === 'AppSettings') {
+    const key = String(data.key || '').trim();
+    if (key) {
+      const existing = listEntities('AppSettings').find((row) => row.key === key);
+      if (existing) return updateEntity('AppSettings', existing.id, data);
+    }
+  }
+
   return insertEntity(entityType, newId(), data, user);
 }
 
