@@ -8,8 +8,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
-  "background_color": "#01184D",
-  "theme_color": "#01184D",
+  "background_color": "#1f2021",
+  "theme_color": "#1f2021",
   "icons": [
     {
       "src": "/rom-logo.png",

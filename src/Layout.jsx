@@ -190,7 +190,7 @@ function LayoutContent({ children, currentPageName }) {
       <TooltipProvider delayDuration={200}>
         <aside
           className={cn(
-            "hidden md:flex flex-col fixed h-[calc(100%-1.25rem)] top-2.5 left-2.5 z-30 overflow-hidden rounded-2xl border border-[color:var(--rom-line)] bg-[#080e1d]/92 backdrop-blur-xl transition-all duration-300 ease-out",
+            "hidden md:flex flex-col fixed h-[calc(100%-1.25rem)] top-2.5 left-2.5 z-30 overflow-hidden rounded-2xl border border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/94 backdrop-blur-xl transition-all duration-300 ease-out",
             collapsed ? "w-[72px]" : "w-[15.5rem]"
           )}
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
@@ -233,9 +233,9 @@ function LayoutContent({ children, currentPageName }) {
                   )}
                 >
                   {active && !collapsed && (
-                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-400" />
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-orange-400" />
                   )}
-                  <item.icon className={cn("h-4 w-4 flex-shrink-0", active ? "text-blue-300" : "")} />
+                  <item.icon className={cn("h-4 w-4 flex-shrink-0", active ? "text-orange-300" : "")} />
                   {!collapsed && <span className="whitespace-nowrap">{item.name}</span>}
                 </Link>
               );
@@ -251,7 +251,7 @@ function LayoutContent({ children, currentPageName }) {
 
           <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-blue-400/20">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500/30 to-orange-700/40 text-orange-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-orange-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               {!collapsed && (
@@ -297,7 +297,7 @@ function LayoutContent({ children, currentPageName }) {
       </TooltipProvider>
 
       <div
-        className="md:hidden fixed top-0 left-0 right-0 z-[80] border-b border-[color:var(--rom-line)] bg-[#080e1d]/92 backdrop-blur-xl flex items-center px-4"
+        className="md:hidden fixed top-0 left-0 right-0 z-[80] border-b border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/94 backdrop-blur-xl flex items-center px-4"
         style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-2.5">

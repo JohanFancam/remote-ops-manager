@@ -147,7 +147,7 @@ function ViewToggle({ viewMode, setViewMode }) {
         <button
           key={key}
           onClick={() => setViewMode(key)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${viewMode === key ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${viewMode === key ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
         >
           <Icon className="h-4 w-4" />
           <span className="hidden sm:inline">{label}</span>
@@ -1569,7 +1569,7 @@ export default function Calendar() {
                   <button
                     type="button"
                     onClick={(e) => openDayPopup(day, e)}
-                    className={`text-[11px] font-medium tabular-nums rounded-full min-w-[1.35rem] h-[1.35rem] flex items-center justify-center ${today ? 'bg-blue-600 text-white' : greyOutDay ? 'text-slate-600' : 'text-slate-300 hover:bg-slate-800'}`}
+                    className={`text-[11px] font-medium tabular-nums rounded-full min-w-[1.35rem] h-[1.35rem] flex items-center justify-center ${today ? 'bg-orange-500 text-white' : greyOutDay ? 'text-slate-600' : 'text-slate-300 hover:bg-slate-800'}`}
                     title="View this day"
                   >
                     {format(day, 'd')}
@@ -1856,7 +1856,7 @@ export default function Calendar() {
             )}
             {isAdmin && (
               <>
-                <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
+                <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-orange-500 hover:bg-orange-400 text-white" size="sm">
                   <Plus className="h-4 w-4 mr-1" /> Add Shoot
                 </Button>
                 <Button onClick={() => setShowCSV(true)} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800" size="sm">
@@ -1865,7 +1865,7 @@ export default function Calendar() {
               </>
             )}
             {isAnalytics && (
-              <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-blue-600 hover:bg-blue-500 text-white" size="sm">
+              <Button onClick={() => { setEditingShoot(null); setForm({ ...emptyForm, date: format(selectedDate, 'yyyy-MM-dd') }); setEditingShootForm({}); }} className="bg-orange-500 hover:bg-orange-400 text-white" size="sm">
                 <Plus className="h-4 w-4 mr-1" /> Request shoot
               </Button>
             )}
@@ -1940,7 +1940,7 @@ export default function Calendar() {
               size="sm"
               onClick={handleCopyRigCheckMessage}
               disabled={!rigCheckSlackMessage || rigCheckSending}
-              className={`flex-1 text-xs h-8 ${rigCheckCopied || rigCheckPosted ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-500'}`}
+              className={`flex-1 text-xs h-8 ${rigCheckCopied || rigCheckPosted ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-500 hover:bg-orange-400'}`}
             >
               {rigCheckSending
                 ? 'Sending…'

@@ -63,10 +63,10 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className="relative z-10 w-full max-w-md max-h-[min(85vh,640px)] bg-[#252b3b] border border-slate-700/70 rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col"
+        className="relative z-10 w-full max-w-md max-h-[min(85vh,640px)] bg-[#292a2a] border border-slate-700/70 rounded-t-2xl sm:rounded-2xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#252b3b] z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 sticky top-0 bg-[#292a2a] z-10">
           <div>
             <p className="text-slate-100 font-bold text-base">{label}</p>
             <p className="text-xs text-slate-400 mt-0.5">

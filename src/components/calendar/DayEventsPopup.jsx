@@ -65,7 +65,7 @@ export default function DayEventsPopup({
         aria-modal="true"
         aria-label={format(day, 'EEEE, MMMM d')}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 flex max-h-[min(85vh,620px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-[#252b3b] shadow-2xl shadow-black/40"
+        className="relative z-10 flex max-h-[min(85vh,620px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-[#292a2a] shadow-2xl shadow-black/40"
       >
         <div className="flex items-start justify-between px-4 pb-2 pt-4">
           <div>

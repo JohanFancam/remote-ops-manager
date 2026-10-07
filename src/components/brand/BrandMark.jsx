@@ -3,6 +3,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 export const DEFAULT_APP_LOGO = '/rom-logo.png';
 export const ROM_BRAND_BLUE = '#01184D';
+export const ROM_CANVAS = '#1f2021';
+export const ROM_SURFACE = '#292a2a';
 
 export function resolveAppLogoUrl(customUrl) {
   const url = String(customUrl || '').trim();
