@@ -125,8 +125,8 @@ function buildWebManifest() {
     scope: '/',
     display: 'standalone',
     orientation: 'any',
-    background_color: '#01184D',
-    theme_color: '#01184D',
+    background_color: '#1f2021',
+    theme_color: '#1f2021',
     icons: [
       { src: icon, sizes: 'any', type: 'image/png', purpose: 'any' },
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

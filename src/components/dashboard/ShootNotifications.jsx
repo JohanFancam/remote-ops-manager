@@ -62,10 +62,10 @@ function playNotificationSound() {
 }
 
 const urgencyStyles = {
-  urgent: 'border-blue-500/40 bg-[#080e1d]/95',
-  today: 'border-[color:var(--rom-line)] bg-[#080e1d]/95',
-  tomorrow: 'border-[color:var(--rom-line)] bg-[#080e1d]/95',
-  change: 'border-blue-500/30 bg-[#080e1d]/95',
+  urgent: 'border-orange-500/40 bg-[color:var(--rom-canvas)]/95',
+  today: 'border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/95',
+  tomorrow: 'border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/95',
+  change: 'border-orange-500/30 bg-[color:var(--rom-canvas)]/95',
 };
 
 const urgencyLabel = {

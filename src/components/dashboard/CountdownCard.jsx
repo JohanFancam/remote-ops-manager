@@ -545,7 +545,7 @@ export default function CountdownCard({
                 disabled={!canOpenShootComplete}
                 className={`inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border px-2.5 text-xs font-medium transition-colors ${
                   canOpenShootComplete
-                    ? 'border-blue-500 bg-blue-600/80 text-white hover:bg-blue-600'
+                    ? 'border-orange-500 bg-orange-500/90 text-white hover:bg-orange-500'
                     : 'border-slate-800 bg-slate-800 text-slate-500 cursor-not-allowed'
                 }`}
               >

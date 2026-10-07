@@ -122,7 +122,7 @@ export default function MobileBottomNav() {
     <>
       {/* Full Menu Drawer */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[90] bg-[#080e1d] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="md:hidden fixed inset-0 z-[90] bg-[color:var(--rom-canvas)] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center justify-end px-4 py-3 border-b border-[color:var(--rom-line)]">
             <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-slate-100 p-2">
               <X className="h-6 w-6" />
@@ -141,7 +141,7 @@ export default function MobileBottomNav() {
                     isActive ? 'rom-nav-item-active' : 'rom-nav-item-idle'
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5', isActive && 'text-blue-300')} />
+                  <item.icon className={cn('h-5 w-5', isActive && 'text-orange-300')} />
                   {item.label}
                 </Link>
               );
@@ -149,7 +149,7 @@ export default function MobileBottomNav() {
           </nav>
           <div className="p-4 border-t border-[color:var(--rom-line)]">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-700/40 text-blue-100 flex items-center justify-center text-sm font-semibold ring-1 ring-blue-400/20">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500/30 to-orange-700/40 text-orange-100 flex items-center justify-center text-sm font-semibold ring-1 ring-orange-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
@@ -168,7 +168,7 @@ export default function MobileBottomNav() {
       )}
 
       {/* Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] border-t border-[color:var(--rom-line)] bg-[#080e1d]/95 backdrop-blur-xl flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[80] border-t border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/95 backdrop-blur-xl flex items-stretch" style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {leftItems.map(item => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
@@ -177,7 +177,7 @@ export default function MobileBottomNav() {
               to={item.path}
               className={cn(
                 'flex-1 flex flex-col items-center justify-center transition-colors select-none',
-                isActive ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
+                isActive ? 'text-orange-400' : 'text-slate-500 hover:text-slate-300'
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -190,12 +190,12 @@ export default function MobileBottomNav() {
           onClick={() => setMenuOpen(true)}
           className={cn(
             'flex-1 flex flex-col items-center justify-center transition-colors select-none',
-            menuOpen ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
+            menuOpen ? 'text-orange-400' : 'text-slate-500 hover:text-slate-300'
           )}
         >
           <div className="grid grid-cols-3 gap-[3px]">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className={cn('w-[5px] h-[5px] rounded-[1px]', menuOpen ? 'bg-blue-600' : 'bg-slate-400')} />
+              <div key={i} className={cn('w-[5px] h-[5px] rounded-[1px]', menuOpen ? 'bg-orange-500' : 'bg-slate-400')} />
             ))}
           </div>
         </button>
@@ -208,7 +208,7 @@ export default function MobileBottomNav() {
               to={item.path}
               className={cn(
                 'flex-1 flex flex-col items-center justify-center transition-colors select-none',
-                isActive ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
+                isActive ? 'text-orange-400' : 'text-slate-500 hover:text-slate-300'
               )}
             >
               <item.icon className="h-5 w-5" />

@@ -110,7 +110,7 @@ export default function Login() {
 
           <p className="text-center text-sm text-slate-500 mt-6">
             New remote operator?{' '}
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
+            <Link to="/register" className="text-orange-400 hover:text-orange-300 font-medium">
               Create an account
             </Link>
           </p>
