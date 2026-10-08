@@ -116,7 +116,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="rom-page">
+    <div className="rom-page bg-slate-800">
       <div className="rom-page-inner">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

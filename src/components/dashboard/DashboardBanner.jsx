@@ -109,7 +109,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
   const nextShootCountdown = nextShootTarget ? formatCountdown(nextShootTarget - now) : '-';
 
   return (
-    <div className="rom-panel relative overflow-hidden">
+    <div className="relative overflow-hidden rounded-2xl border-0 bg-slate-900 px-5 py-4">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-orange-500/[0.07] via-transparent to-orange-400/[0.04]" />
       <div className={`relative grid gap-5 sm:grid-cols-2 ${showNextShoot ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Section label="Now" accent="text-orange-400/80">
