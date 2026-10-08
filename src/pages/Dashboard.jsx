@@ -79,13 +79,15 @@ export default function Dashboard() {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const handleShootUpdate = async (id, data) => {
-    queryClient.setQueryData(['shoots'], (old = []) =>
-      old.map((s) => (s.id === id ? { ...s, ...data } : s))
-    );
+    const patchList = (old = []) => old.map((s) => (s.id === id ? { ...s, ...data } : s));
+    queryClient.setQueryData(['shoots'], patchList);
+    queryClient.setQueryData(['shoots-earnings'], (old) => (Array.isArray(old) ? patchList(old) : old));
     try {
       await base44.entities.Shoot.update(id, data);
+      queryClient.invalidateQueries({ queryKey: ['shoots-earnings'] });
     } catch {
       queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      queryClient.invalidateQueries({ queryKey: ['shoots-earnings'] });
     }
   };
 

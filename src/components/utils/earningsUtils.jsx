@@ -23,6 +23,8 @@ import {
   operatorStandbySessions,
   pairingPoolForDay,
   timeToMinutes,
+  isShootReportedComplete,
+  isPendingCompletePay,
 } from './earningsCost.js';
 
 export {
@@ -42,6 +44,8 @@ export {
   operatorStandbyCost,
   operatorStandbySessions,
   pairingPoolForDay,
+  isShootReportedComplete,
+  isPendingCompletePay,
 };
 
 function shootAmount(shoot, { baseRate, additionalRate, postponedRate, isAdditional }) {
@@ -115,6 +119,7 @@ export function calculateOperatorEarnings(
         isAdditional: resolved.isAdditional,
         isCancelled: resolved.isCancelled,
         isPostponed: resolved.isPostponed,
+        isPendingComplete: isPendingCompletePay(shoot),
         status: resolved.status,
       });
     });

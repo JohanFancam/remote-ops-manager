@@ -9,6 +9,17 @@ export const DEFAULT_STANDBY_RATE = 500;
 export const ADDITIONAL_WINDOW_HOURS = 2;
 export { DEFAULT_POSTPONED_RATE };
 
+export function isShootReportedComplete(shoot) {
+  if (shoot?.phase_status?.shoot_complete) return true;
+  return normalizeShootStatus(shoot?.status) === 'completed';
+}
+
+export function isPendingCompletePay(shoot) {
+  const status = normalizeShootStatus(shoot?.status);
+  if (status === 'cancelled' || status === 'postponed') return false;
+  return !isShootReportedComplete(shoot);
+}
+
 function timeToMinutes(timeStr) {
   if (!timeStr) return null;
   const [h, m] = timeStr.split(':').map(Number);
