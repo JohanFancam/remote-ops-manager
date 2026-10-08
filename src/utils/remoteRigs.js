@@ -4,7 +4,6 @@ const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 const CRD_HOST = /(?:^https?:\/\/)?(?:www\.)?remotedesktop\.google\.com\//i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CRD_ANDROID_PACKAGE = 'com.google.chromeremotedesktop';
-export const CRD_WINDOW_NAME = 'chrome-remote-desktop';
 export const CRD_GOOGLE_ACCOUNT_KEY = 'crd_google_account';
 
 function stripWrap(value) {
@@ -136,30 +135,26 @@ export function isStandaloneDisplay() {
   return window.navigator?.standalone === true;
 }
 
+/**
+ * Chrome 139+ only captures a click into the installed Chrome Remote Desktop
+ * app when it is a normal new-tab navigation — not a named popup / window.open
+ * auxiliary window.
+ */
 export function openRemoteRig(item, accountOrOptions) {
-  if (typeof window === 'undefined') return false;
+  if (typeof document === 'undefined') return false;
   const options = asOptions(accountOrOptions);
   const href = remoteRigLaunchHref(item, options);
   if (!href) return false;
-
-  // Named target reuses the Chrome Remote Desktop window instead of stacking
-  // tabs in whichever browser last happened to be focused.
-  let popup = null;
-  try {
-    popup = window.open(href, CRD_WINDOW_NAME);
-  } catch {
-    popup = null;
-  }
-  if (popup) {
-    try { popup.opener = null; } catch { /* ignore */ }
-    return true;
-  }
-
-  const account = normalizeCrdAccount(options.account);
   const android = options.android ?? isAndroidUserAgent(options.userAgent);
-  const fallback = !android && account
-    ? crdAccountChooserHref(remoteRigHref(item, options), account)
-    : href;
-  window.location.assign(fallback);
+  const link = document.createElement('a');
+  link.href = href;
+  if (!android) {
+    link.target = '_blank';
+    link.rel = 'noopener';
+  }
+  link.referrerPolicy = 'no-referrer';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
   return true;
 }
