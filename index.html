@@ -23,7 +23,7 @@
         justify-content: center;
         background: #1f2021;
       }
-      #rom-boot img { width: 10rem; height: 10rem; object-fit: contain; }
+      #rom-boot img { width: 6rem; height: 6rem; object-fit: contain; }
     </style>
     <title>Remote Ops Manager</title>
   </head>
@@ -33,6 +33,22 @@
         <img src="/rom-logo.png" alt="Remote Ops Manager" />
       </div>
     </div>
+    <script>
+      (function () {
+        try {
+          var t = JSON.parse(localStorage.getItem('rom_theme') || '{}');
+          var canvas = typeof t.canvas === 'string' && /^#[0-9a-fA-F]{6}$/.test(t.canvas) ? t.canvas : '#1f2021';
+          document.documentElement.style.setProperty('--rom-canvas', canvas);
+          document.documentElement.style.backgroundColor = canvas;
+          document.body.style.backgroundColor = canvas;
+          var boot = document.getElementById('rom-boot');
+          if (boot) boot.style.background = canvas;
+          var img = boot && boot.querySelector('img');
+          var logo = typeof t.logo === 'string' ? t.logo.trim() : '';
+          if (img && logo) img.src = logo;
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

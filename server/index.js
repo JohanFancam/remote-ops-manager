@@ -153,10 +153,17 @@ function iconMimeFromUrl(url) {
   return 'image/png';
 }
 
+function themeHex(key, fallback) {
+  const raw = settingValue(key);
+  const match = String(raw || '').trim().match(/^#?([0-9a-fA-F]{6})$/);
+  return match ? `#${match[1].toLowerCase()}` : fallback;
+}
+
 function buildWebManifest() {
   const customLogo = settingValue('app_logo_url');
   const icon = customLogo || '/rom-logo.png';
   const type = iconMimeFromUrl(icon);
+  const canvas = themeHex('theme_canvas', '#1f2021');
   return {
     name: 'Remote Ops Manager',
     short_name: 'Remote Ops',
@@ -165,8 +172,8 @@ function buildWebManifest() {
     scope: '/',
     display: 'standalone',
     orientation: 'any',
-    background_color: '#1f2021',
-    theme_color: '#1f2021',
+    background_color: canvas,
+    theme_color: canvas,
     icons: customLogo
       ? [
           { src: icon, sizes: '192x192', type, purpose: 'any' },
@@ -187,6 +194,10 @@ app.get('/api/public-settings', (_req, res) => {
       auth_required: true,
       login_background_url: settingValue('login_background_url'),
       app_logo_url: settingValue('app_logo_url'),
+      theme_canvas: settingValue('theme_canvas'),
+      theme_surface: settingValue('theme_surface'),
+      theme_accent: settingValue('theme_accent'),
+      theme_line: settingValue('theme_line'),
     },
   });
 });

@@ -15,14 +15,15 @@ import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
 import SettingsCategory from '../components/settings/SettingsCategory';
 import { resolveAppLogoUrl } from '../components/brand/BrandMark';
-import { pickSetting } from '../utils/appSettings';
+import { pickSetting, pickSettingValue } from '../utils/appSettings';
+import { THEME_DEFAULTS, applyTheme, isHexColor, normalizeHexColor, parseTheme } from '../utils/theme';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound,
-  CalendarDays, Database, Users, Globe
+  CalendarDays, Database, Users, Globe, Palette
 } from 'lucide-react';
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 import { useTimezone } from '@/components/TimezoneContext';
@@ -142,6 +143,32 @@ function isAllowedLogoFile(file) {
   return /\.(png|jpe?g|webp|gif|svg|ico|bmp)$/i.test(file?.name || '');
 }
 
+function HiddenFileButton({ id, accept, disabled, onChange, children }) {
+  const inputRef = React.useRef(null);
+  return (
+    <>
+      <input
+        id={id}
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="sr-only"
+        disabled={disabled}
+        tabIndex={-1}
+        onChange={onChange}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+      >
+        {children}
+      </button>
+    </>
+  );
+}
+
 function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
   return (
     <div className="flex items-center gap-4 flex-wrap">
@@ -154,19 +181,15 @@ function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
           Used on sign-in, in the sidebar, the browser tab, and when someone installs the app. PNG, JPEG, WebP, GIF, SVG, or ICO.
         </p>
         <div className="flex flex-wrap gap-2">
-          <label
-            className={`relative inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 overflow-hidden ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+          <HiddenFileButton
+            id="app-logo-file"
+            accept={`image/*,${APP_LOGO_ACCEPT}`}
+            disabled={uploading}
+            onChange={onUpload}
           >
-            <input
-              type="file"
-              accept={APP_LOGO_ACCEPT}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              disabled={uploading}
-              onChange={onUpload}
-            />
             <Image className="h-4 w-4" />
             {uploading ? 'Uploading...' : logoUrl ? 'Replace icon' : 'Upload icon'}
-          </label>
+          </HiddenFileButton>
           {logoUrl && (
             <Button type="button" size="sm" variant="outline" onClick={onClear}
               className="border-slate-700 text-slate-300 hover:bg-slate-800">
@@ -177,6 +200,145 @@ function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
         {error ? <p className="text-xs text-red-400 mt-2">{error}</p> : null}
       </div>
     </div>
+  );
+}
+
+function ThemeColorField({ label, hint, value, fallback, onChange }) {
+  const pickerValue = isHexColor(value) ? normalizeHexColor(value) : fallback;
+  return (
+    <label className="block min-w-[11rem] flex-1">
+      <span className="text-xs text-slate-400 block mb-1">{label}</span>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={pickerValue}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded border border-slate-700 bg-slate-800 p-0.5"
+        />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-slate-800 border-slate-700 text-slate-100 text-sm font-mono uppercase"
+        />
+      </div>
+      {hint ? <p className="text-xs text-slate-500 mt-1">{hint}</p> : null}
+    </label>
+  );
+}
+
+function AppearanceThemeControls({ appSettings, logoUrl, onSave }) {
+  const savedTheme = parseTheme({
+    theme_canvas: pickSettingValue(appSettings, 'theme_canvas'),
+    theme_surface: pickSettingValue(appSettings, 'theme_surface'),
+    theme_accent: pickSettingValue(appSettings, 'theme_accent'),
+    theme_line: pickSettingValue(appSettings, 'theme_line'),
+    app_logo_url: logoUrl,
+  });
+  const [draft, setDraft] = React.useState(savedTheme);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    setDraft((prev) => ({
+      ...prev,
+      canvas: savedTheme.canvas,
+      surface: savedTheme.surface,
+      accent: savedTheme.accent,
+      line: savedTheme.line,
+      logo: savedTheme.logo,
+    }));
+  }, [savedTheme.canvas, savedTheme.surface, savedTheme.accent, savedTheme.line, savedTheme.logo]);
+
+  const updateField = (key, value) => {
+    const next = { ...draft, [key]: value, logo: logoUrl };
+    setDraft(next);
+    applyTheme(next);
+  };
+
+  const persist = async (theme) => {
+    setSaving(true);
+    try {
+      await onSave({
+        canvas: normalizeHexColor(theme.canvas, THEME_DEFAULTS.canvas),
+        surface: normalizeHexColor(theme.surface, THEME_DEFAULTS.surface),
+        accent: normalizeHexColor(theme.accent, THEME_DEFAULTS.accent),
+        line: normalizeHexColor(theme.line, THEME_DEFAULTS.line),
+      });
+      applyTheme({ ...theme, logo: logoUrl });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="bg-slate-900 border-slate-800 mt-4">
+      <CardHeader className="border-b border-slate-800 pb-4">
+        <CardTitle className="text-slate-100 flex items-center gap-2">
+          <Palette className="h-5 w-5 text-orange-400" /> Colours
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-4">
+        <p className="text-sm text-slate-400">
+          These colours apply to the load screen, page background, dashboard cards, and borders. Changes preview immediately; save to keep them for everyone.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <ThemeColorField
+            label="Page background"
+            hint="Load screen and app canvas"
+            value={draft.canvas}
+            fallback={THEME_DEFAULTS.canvas}
+            onChange={(value) => updateField('canvas', value)}
+          />
+          <ThemeColorField
+            label="Card colour"
+            hint="Dashboard cards and panels"
+            value={draft.surface}
+            fallback={THEME_DEFAULTS.surface}
+            onChange={(value) => updateField('surface', value)}
+          />
+          <ThemeColorField
+            label="Accent"
+            hint="Buttons and highlights"
+            value={draft.accent}
+            fallback={THEME_DEFAULTS.accent}
+            onChange={(value) => updateField('accent', value)}
+          />
+          <ThemeColorField
+            label="Card borders"
+            hint="Outline around dashboard cards"
+            value={draft.line}
+            fallback={THEME_DEFAULTS.line}
+            onChange={(value) => updateField('line', value)}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            disabled={saving}
+            onClick={() => persist(draft)}
+            className="bg-orange-500 hover:bg-orange-400 gap-2"
+          >
+            <Save className="h-4 w-4" /> {saved ? 'Saved' : saving ? 'Saving...' : 'Save colours'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={saving}
+            onClick={() => {
+              const next = { ...THEME_DEFAULTS, logo: logoUrl };
+              setDraft(next);
+              applyTheme(next);
+              persist(next);
+            }}
+            className="border-slate-700 text-slate-300 hover:bg-slate-800"
+          >
+            Reset defaults
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -516,6 +678,14 @@ export default function Settings() {
     }
   };
 
+  const handleSaveTheme = async (theme) => {
+    await upsertSetting('theme_canvas', theme.canvas, 'Page background colour');
+    await upsertSetting('theme_surface', theme.surface, 'Dashboard card colour');
+    await upsertSetting('theme_accent', theme.accent, 'Accent colour');
+    await upsertSetting('theme_line', theme.line, 'Card border colour');
+    await refreshPublicSettings();
+  };
+
   return (
     <div className="min-h-screen bg-slate-800 text-slate-100 p-3 md:p-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
@@ -792,7 +962,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App icon and sign-in background"
+            description="App icon, colours, and sign-in background"
             icon={Image}
             defaultOpen
           >
@@ -812,6 +982,11 @@ export default function Settings() {
                 />
               </CardContent>
             </Card>
+            <AppearanceThemeControls
+              appSettings={appSettings}
+              logoUrl={logoUrl}
+              onSave={handleSaveTheme}
+            />
             <Card className="bg-slate-900 border-slate-800 mt-4">
               <CardHeader className="border-b border-slate-800 pb-4">
                 <CardTitle className="text-slate-100 flex items-center gap-2">
@@ -829,19 +1004,15 @@ export default function Settings() {
                       Shown behind the sign-in and create-account screens. A dark overlay keeps the form readable. Wide photos work best.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <label
-                        className={`relative inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 overflow-hidden ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+                      <HiddenFileButton
+                        id="login-bg-file"
+                        accept={`image/*,${APP_LOGO_ACCEPT}`}
+                        disabled={bgUploading}
+                        onChange={handleLoginBackgroundUpload}
                       >
-                        <input
-                          type="file"
-                          accept={APP_LOGO_ACCEPT}
-                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          disabled={bgUploading}
-                          onChange={handleLoginBackgroundUpload}
-                        />
                         <Image className="h-4 w-4" />
                         {bgUploading ? 'Uploading...' : loginBgUrl ? 'Replace image' : 'Upload image'}
-                      </label>
+                      </HiddenFileButton>
                       {loginBgUrl && (
                         <Button type="button" size="sm" variant="outline" onClick={handleClearLoginBackground}
                           className="border-slate-700 text-slate-300 hover:bg-slate-800">

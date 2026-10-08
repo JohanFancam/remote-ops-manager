@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { TimezoneProvider } from '@/components/TimezoneContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppSplash from '@/components/brand/AppSplash';
+import { parseTheme } from '@/utils/theme';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -31,11 +32,17 @@ function mustChangePassword(user) {
   return user?.must_change_password === true || user?.must_change_password === 'true';
 }
 
+function SplashFromAuth() {
+  const { appPublicSettings } = useAuth();
+  const theme = parseTheme(appPublicSettings?.public_settings || {});
+  return <AppSplash logoUrl={theme.logo} canvas={theme.canvas} />;
+}
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, user } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return <AppSplash />;
+    return <SplashFromAuth />;
   }
 
   if (authError?.type === 'user_not_registered') {
@@ -82,7 +89,7 @@ const AuthenticatedApp = () => {
 function BootGate({ children }) {
   const { isLoadingPublicSettings, isLoadingAuth } = useAuth();
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return <AppSplash />;
+    return <SplashFromAuth />;
   }
   return children;
 }

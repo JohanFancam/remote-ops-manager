@@ -110,7 +110,7 @@ export default function DashboardBanner({ user, shoots = [], standbyDays = [], a
 
   return (
     <div className="rom-panel relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/[0.07] via-transparent to-sky-400/[0.04]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-orange-500/[0.07] via-transparent to-orange-400/[0.04]" />
       <div className={`relative grid gap-5 sm:grid-cols-2 ${showNextShoot ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Section label="Now" accent="text-orange-400/80">
           <div className="rom-mono text-2xl font-medium tracking-tight text-slate-50 sm:text-3xl tabular-nums">
