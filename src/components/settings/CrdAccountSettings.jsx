@@ -61,12 +61,20 @@ export default function CrdAccountSettings({ appSettings = [] }) {
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         <p className="text-xs text-slate-500">
-          Dashboard remote buttons open the Chrome Remote Desktop session — on a phone that is the
-          Remote Desktop app; on a computer Chrome should hand the link to the installed Chrome
-          Remote Desktop app. Install it from remotedesktop.google.com/access and choose
-          “Always open” when Chrome asks. Set the Google account those remotes are registered to
-          so the session opens under that profile instead of whichever account a random browser
-          tab is signed into.
+          On a phone the dashboard buttons open the Chrome Remote Desktop app. On a computer they
+          are a normal Chrome link to remotedesktop.google.com — Chrome 139+ then launches the
+          installed Chrome Remote Desktop <span className="text-slate-300">app window</span>, not a
+          browser tab. If it still opens as a webpage: in Chrome go to{' '}
+          <a
+            href="https://remotedesktop.google.com/access"
+            target="_blank"
+            rel="noopener"
+            className="text-orange-300 hover:text-orange-200 underline"
+          >
+            remotedesktop.google.com/access
+          </a>
+          , use the install / Open app icon, and choose Always. The Windows/Mac “Chrome Remote
+          Desktop” download is only the host for sharing a PC, not the viewer.
         </p>
         <label className="block">
           <span className="text-xs text-slate-400 block mb-1">Registered Google account</span>
