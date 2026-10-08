@@ -1,9 +1,12 @@
 import {
   crdAccountChooserHref,
   crdAndroidIntentHref,
+  formatRemoteDueLabel,
   isAndroidUserAgent,
+  isRemoteDisabled,
   isStandaloneDisplay,
   normalizeCrdAccount,
+  normalizeDueDate,
   normalizeRemoteRigs,
   remoteRigHref,
   remoteRigLaunchHref,
@@ -79,5 +82,18 @@ const chooserLaunch = remoteRigLaunchHref({ url: lightning }, {
   chooseAccount: true,
 });
 assert(chooserLaunch.startsWith('https://accounts.google.com/AccountChooser'), 'chooseAccount wraps AccountChooser');
+
+const down = normalizeRemoteRigs([
+  { name: 'Garden-01', url: lightning, disabled: true, due_date: '2026-10-12' },
+  { name: 'Garden-02', url: lightning, disabled: false, due_date: '2026-10-12' },
+  { name: 'Garden-03', unavailable: true, dueDate: '12 Oct 2026' },
+]);
+assert(isRemoteDisabled(down[0]) === true, 'disabled remotes are unavailable');
+assert(down[0].due_date === '2026-10-12', 'keeps a due date on a disabled remote');
+assert(isRemoteDisabled(down[1]) === false, 'working remotes stay available');
+assert(down[1].due_date === '', 'clears a due date when the remote is working');
+assert(isRemoteDisabled(down[2]) === true, 'unavailable alias still disables');
+assert(normalizeDueDate('2026-13-99') === '', 'rejects an invalid due date');
+assert(formatRemoteDueLabel('2026-10-12') === '12 Oct 2026', 'formats the due date for the chip');
 
 console.log('remoteRigs tests passed');
