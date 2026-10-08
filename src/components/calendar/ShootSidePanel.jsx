@@ -10,6 +10,7 @@ import { getSchedule, shortenTitle } from '@/components/utils/scheduleUtils';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 import { matchRig } from '@/components/utils/rigUtils';
 import { getDisplayName } from '@/components/utils/nameUtils';
+import RemoteRigButtons from '@/components/rigs/RemoteRigButtons';
 
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -262,12 +263,8 @@ export default function ShootSidePanel({
               )}
               {rig.remote_rigs && rig.remote_rigs.length > 0 && (
                 <div className="text-[11px] text-slate-400">
-                  <div className="font-semibold mb-1">Remote Rigs</div>
-                  <div className="flex flex-wrap gap-1">
-                    {rig.remote_rigs.map((r, idx) => (
-                      <span key={idx} className="bg-slate-700 px-2 py-1 rounded">{r}</span>
-                    ))}
-                  </div>
+                  <div className="font-semibold mb-1">Remote desktops</div>
+                  <RemoteRigButtons remotes={rig.remote_rigs} />
                 </div>
               )}
             </div>

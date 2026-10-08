@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, MapPin, Flag, Camera, Zap, Volume2, AlertTriangle } from 'lucide-react';
+import RemoteRigButtons from '@/components/rigs/RemoteRigButtons';
 import { format } from 'date-fns';
 import { getGameDateTime, getSchedule } from '../utils/scheduleUtils';
 import { matchRig, resolveShootLocation } from '../utils/rigUtils';
@@ -209,6 +210,13 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {matchedRig?.remote_rigs?.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1.5">Remote desktops</p>
+                <RemoteRigButtons remotes={matchedRig.remote_rigs} />
               </div>
             )}
 

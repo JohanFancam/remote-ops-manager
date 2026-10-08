@@ -3,29 +3,20 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CheckSquare } from 'lucide-react';
+import { CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { getDisplayName } from '@/components/utils/nameUtils';
 import RigCheckAssignPanel from '@/components/rigs/RigCheckAssignPanel';
-import RigCheckTile from '@/components/rigs/RigCheckTile';
-import { mergeChecklistFromRig } from '@/utils/rigChecks';
+import RigCheckDayPanel, { RigCheckDayListItem, formatRigCheckDay } from '@/components/rigs/RigCheckDayPanel';
+import { mergeChecklistFromRig, groupRigChecksByDay, RIG_CHECK_DAYS_PER_PAGE } from '@/utils/rigChecks';
 import { matchRig } from '@/components/utils/rigUtils';
-
-function assignmentDay(row) {
-  return String(row.due_date || row.shoot_date || row.created_date || '').slice(0, 10);
-}
-
-function formatAssignmentDay(dayStr) {
-  if (!dayStr) return 'No date';
-  const parsed = new Date(`${dayStr}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return dayStr;
-  return format(parsed, 'EEEE, d MMMM yyyy');
-}
+import { getDisplayName } from '@/components/utils/nameUtils';
 
 export default function RigChecks() {
   const { user, isAdmin, isAnalytics } = useApp();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [expandedId, setExpandedId] = useState('');
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [dayPage, setDayPage] = useState(0);
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['rigCheckAssignments'],
@@ -48,34 +39,29 @@ export default function RigChecks() {
     enabled: isAdmin || isAnalytics,
   });
 
-  const active = assignments.filter((row) => row.status !== 'cancelled');
+  const hydrate = (row) => mergeChecklistFromRig(
+    row,
+    rigSettings.find((rig) => rig.id === row.rig_setting_id)
+      || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
+  );
+
+  const active = assignments.filter((row) => row.status !== 'cancelled').map(hydrate);
   const completed = active.filter((row) => row.status === 'completed');
   const pending = active.filter((row) => row.status !== 'completed');
 
-  const assignmentsByDay = useMemo(() => {
-    const map = new Map();
-    active.forEach((row) => {
-      const day = assignmentDay(row);
-      if (!map.has(day)) map.set(day, []);
-      map.get(day).push(row);
-    });
-    return [...map.entries()]
-      .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
-      .map(([day, rows]) => {
-        const sorted = [...rows].sort((a, b) => {
-          const aDone = a.status === 'completed' ? 1 : 0;
-          const bDone = b.status === 'completed' ? 1 : 0;
-          if (aDone !== bDone) return aDone - bDone;
-          return String(a.team || a.shoot_title || '').localeCompare(String(b.team || b.shoot_title || ''));
-        });
-        return {
-          day,
-          rows: sorted,
-          openCount: sorted.filter((row) => row.status !== 'completed').length,
-          doneCount: sorted.filter((row) => row.status === 'completed').length,
-        };
-      });
-  }, [active]);
+  const assignmentsByDay = useMemo(
+    () => groupRigChecksByDay(active, todayStr),
+    [active, todayStr]
+  );
+
+  const totalDayPages = Math.max(1, Math.ceil(assignmentsByDay.length / RIG_CHECK_DAYS_PER_PAGE));
+  const safePage = Math.min(dayPage, totalDayPages - 1);
+  const visibleDays = assignmentsByDay.slice(
+    safePage * RIG_CHECK_DAYS_PER_PAGE,
+    safePage * RIG_CHECK_DAYS_PER_PAGE + RIG_CHECK_DAYS_PER_PAGE
+  );
+
+  const selectedGroup = assignmentsByDay.find((group) => group.day === selectedDay);
 
   const chartData = useMemo(() => {
     const map = new Map();
@@ -108,7 +94,7 @@ export default function RigChecks() {
         <header className="mb-8">
           <p className="rom-kicker mb-2">Rig Checks</p>
           <h1 className="rom-title">Checked rigs</h1>
-          <p className="rom-subtitle">Assign a shoot’s rig test, then track what was checked and any notes.</p>
+          <p className="rom-subtitle">Grouped by day, four days at a time. Open a day for the checklist and notes.</p>
         </header>
 
         {isAdmin && (
@@ -160,36 +146,60 @@ export default function RigChecks() {
           )}
         </section>
 
-        <section className="rom-panel p-4">
-          <h2 className="text-sm font-semibold text-slate-100 mb-3">Assignments</h2>
-          <p className="text-xs text-slate-500 mb-3">Grouped by the day each check was assigned. Open checks sit first on that day — expand one for the items and notes.</p>
+        <section>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="text-sm font-semibold text-slate-400">Checks by day</p>
+            {assignmentsByDay.length > RIG_CHECK_DAYS_PER_PAGE && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setDayPage((p) => Math.max(0, p - 1)); setSelectedDay(null); }}
+                  disabled={safePage === 0}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-800 text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                  aria-label="Previous days"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-[11px] text-slate-500 tabular-nums">
+                  {safePage + 1} / {totalDayPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setDayPage((p) => Math.min(totalDayPages - 1, p + 1)); setSelectedDay(null); }}
+                  disabled={safePage >= totalDayPages - 1}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-700/60 bg-orange-950/40 text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
+                  aria-label="Next days"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
           {active.length === 0 ? (
             <p className="text-sm text-slate-500">Nothing assigned yet.</p>
           ) : (
-            <div className="space-y-6">
-              {assignmentsByDay.map(({ day, rows, openCount, doneCount }) => (
+            <div className="space-y-5">
+              {visibleDays.map(({ day, rows, openCount, doneCount }) => (
                 <div key={day || 'unscheduled'}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-                    <p className="text-sm font-semibold text-slate-100">{formatAssignmentDay(day)}</p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(day)}
+                    className="w-full flex items-baseline justify-between gap-2 mb-2 text-left rounded-lg px-1 py-0.5 hover:bg-slate-800/60"
+                  >
+                    <p className="text-sm font-semibold text-slate-100">{formatRigCheckDay(day)}</p>
                     <p className="text-[11px] text-slate-500">
                       {openCount > 0 && <span className="text-orange-300">{openCount} open</span>}
                       {openCount > 0 && doneCount > 0 && <span className="text-slate-600"> · </span>}
                       {doneCount > 0 && <span className="text-emerald-400">{doneCount} done</span>}
                     </p>
-                  </div>
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  </button>
+                  <div className="space-y-2">
                     {rows.map((row) => (
-                      <RigCheckTile
+                      <RigCheckDayListItem
                         key={row.id}
-                        row={mergeChecklistFromRig(
-                          row,
-                          rigSettings.find((rig) => rig.id === row.rig_setting_id)
-                            || matchRig({ title: row.shoot_title, client: row.team }, rigSettings)
-                        )}
+                        row={row}
                         assigneeName={getDisplayName(users.find((u) => u.email === row.assignee_email), row.assignee_email)}
-                        todayStr={todayStr}
-                        expanded={expandedId === row.id}
-                        onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
+                        onClick={() => setSelectedDay(day)}
                       />
                     ))}
                   </div>
@@ -199,6 +209,18 @@ export default function RigChecks() {
           )}
         </section>
       </div>
+
+      {selectedGroup && (
+        <RigCheckDayPanel
+          day={selectedGroup.day}
+          rows={selectedGroup.rows}
+          users={users}
+          todayStr={todayStr}
+          onClose={() => setSelectedDay(null)}
+          expandedId={expandedId}
+          onToggleExpand={(id) => setExpandedId((current) => (current === id ? '' : id))}
+        />
+      )}
     </div>
   );
 }

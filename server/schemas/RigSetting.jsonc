@@ -36,9 +36,19 @@
     "remote_rigs": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Label shown on dashboard remote buttons"
+          },
+          "url": {
+            "type": "string",
+            "description": "Chrome Remote Desktop link for that PC"
+          }
+        }
       },
-      "description": "Google Remote names"
+      "description": "Chrome Remote Desktop machines. Paste each PC’s link once; dashboard remotes open that desktop."
     },
     "data_enabled": {
       "type": "boolean",

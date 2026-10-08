@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Volume2, Timer, X } from 'lucide-react';
+import { Volume2, Timer, X, Monitor } from 'lucide-react';
+import { normalizeRemoteRigs } from '@/utils/remoteRigs';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -115,6 +116,7 @@ function CameraSection({ title, note, enabled, onToggle, camKeyHd, camKeyWide, c
 export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onClose, readOnly = false }) {
   const [form, setForm] = useState(emptyForm);
   const [rigInput, setRigInput] = useState('');
+  const [rigUrlInput, setRigUrlInput] = useState('');
   const isNew = !rig;
 
   React.useEffect(() => {
@@ -124,7 +126,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
         // Copy all known keys from rig, with defaults for missing ones
         for (const key of Object.keys(emptyForm)) {
           if (key in rig && rig[key] !== undefined && rig[key] !== null) {
-            merged[key] = rig[key];
+            merged[key] = key === 'remote_rigs' ? normalizeRemoteRigs(rig[key]) : rig[key];
           }
         }
         return merged;
@@ -138,18 +140,31 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
     if (!form.team) return;
     onSave({
       ...form,
+      remote_rigs: normalizeRemoteRigs(form.remote_rigs),
       default_checks: (form.default_checks || []).map((item) => String(item || '').trim()).filter(Boolean),
     });
     setForm(emptyForm);
+    setRigInput('');
+    setRigUrlInput('');
     onClose();
   };
 
   const addRig = () => {
-    if (!rigInput.trim()) return;
-    setForm({ ...form, remote_rigs: [...(form.remote_rigs || []), rigInput.trim()] });
+    const name = rigInput.trim();
+    const url = rigUrlInput.trim();
+    if (!name && !url) return;
+    setForm({
+      ...form,
+      remote_rigs: normalizeRemoteRigs([...(form.remote_rigs || []), { name: name || 'Remote', url }]),
+    });
     setRigInput('');
+    setRigUrlInput('');
   };
-  const removeRig = (i) => setForm({ ...form, remote_rigs: form.remote_rigs.filter((_, idx) => idx !== i) });
+  const updateRemote = (index, patch) => {
+    const next = normalizeRemoteRigs(form.remote_rigs).map((item, i) => (i === index ? { ...item, ...patch } : item));
+    setForm({ ...form, remote_rigs: next });
+  };
+  const removeRig = (i) => setForm({ ...form, remote_rigs: normalizeRemoteRigs(form.remote_rigs).filter((_, idx) => idx !== i) });
 
   const updateCam = (key, val) => setForm({ ...form, [key]: val });
 
@@ -228,23 +243,49 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
 
             {/* Remote Rigs */}
             <div>
-              <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Remote Rigs</label>
-              <div className="flex gap-2 mb-2">
-                {!readOnly && (
-                  <>
-                    <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addRig()}
-                      className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
-                    <Button type="button" onClick={addRig} size="sm" className="bg-orange-500 hover:bg-orange-400">Add</Button>
-                  </>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {form.remote_rigs?.map((r, i) => (
-                  <span key={i} className="flex items-center gap-1 bg-blue-950/40 text-blue-400 border border-blue-800 text-sm px-2 py-1 rounded-full">
-                    {r}
-                    <button type="button" onClick={() => removeRig(i)} className="hover:text-red-400 ml-1"><X className="h-3 w-3" /></button>
-                  </span>
+              <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Remote desktops</label>
+              <p className="text-[10px] text-slate-500 mb-2">
+                One-time setup: on remotedesktop.google.com/access, open that PC and copy the address bar link (it looks like remotedesktop.google.com/access/session/…). Paste it in the URL field. The dashboard button opens that session in a new browser tab; Chrome can then hand off to the Remote Desktop app.
+              </p>
+              {!readOnly && (
+                <div className="space-y-2 mb-2">
+                  <Input placeholder="Name, e.g. Garden-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addRig()}
+                    className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
+                  <Input placeholder="https://remotedesktop.google.com/access/session/…" value={rigUrlInput} onChange={e => setRigUrlInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addRig()}
+                    className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
+                  <Button type="button" onClick={addRig} size="sm" className="bg-orange-500 hover:bg-orange-400">Add remote</Button>
+                </div>
+              )}
+              <div className="space-y-2">
+                {normalizeRemoteRigs(form.remote_rigs).map((r, i) => (
+                  <div key={i} className="rounded-lg border border-slate-800 bg-slate-800/50 p-2.5">
+                    <div className="flex items-start gap-2">
+                      <Monitor className="h-4 w-4 text-orange-400 mt-2 shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        {readOnly ? (
+                          <>
+                            <p className="text-sm text-slate-100">{r.name}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{r.url || 'No Chrome Remote Desktop link yet'}</p>
+                          </>
+                        ) : (
+                          <>
+                            <Input value={r.name} onChange={e => updateRemote(i, { name: e.target.value })}
+                              className="bg-slate-900 border-slate-700 text-slate-100 h-8 text-sm" />
+                            <Input value={r.url} onChange={e => updateRemote(i, { url: e.target.value })}
+                              placeholder="Chrome Remote Desktop URL"
+                              className="bg-slate-900 border-slate-700 text-slate-100 h-8 text-xs" />
+                          </>
+                        )}
+                      </div>
+                      {!readOnly && (
+                        <button type="button" onClick={() => removeRig(i)} className="text-slate-500 hover:text-red-400 mt-1">
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

@@ -22,6 +22,7 @@ import { SHOOT_STATUS_COLORS, formatStatusLabel, normalizeShootStatus, shouldGre
 import TeamLogoBackdrop from './TeamLogoBackdrop';
 import { isLiveData, LiveDataBadge } from '@/components/shoots/LiveDataControls';
 import { readTileLogoSettings } from '@/utils/teamLogos';
+import RemoteRigButtons from '@/components/rigs/RemoteRigButtons';
 
 const statusColors = SHOOT_STATUS_COLORS;
 
@@ -571,6 +572,13 @@ export default function CountdownCard({
               </button>
             )}
           </div>
+
+          {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 && (
+            <div className="relative z-10 mt-3 flex flex-col items-center gap-1.5 pointer-events-auto">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500">Remote desktops</p>
+              <RemoteRigButtons remotes={matchedRig.remote_rigs} />
+            </div>
+          )}
         </div>
         </div>
 
@@ -618,8 +626,9 @@ export default function CountdownCard({
                 )}
 
                 {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 && (
-                  <div>
-                    Remotes: <span className="text-slate-100">{matchedRig.remote_rigs.join(', ')}</span>
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] uppercase tracking-wider text-slate-500">Remote desktops</p>
+                    <RemoteRigButtons remotes={matchedRig.remote_rigs} />
                   </div>
                 )}
               </div>
