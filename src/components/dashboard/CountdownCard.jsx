@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Phone, Check, X, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { getGameDateTime, getScheduleDateTimes, shortenTitle } from '../utils/scheduleUtils';
 import { matchRig } from '../utils/rigUtils';
@@ -436,7 +436,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`relative overflow-hidden rounded-xl border-0 transition-all ${
+        className={`relative flex h-full flex-col overflow-hidden rounded-xl border-0 transition-all ${
           isGreyCompleted
             ? 'bg-slate-950 opacity-70'
             : isStatusCancelled
@@ -447,9 +447,9 @@ export default function CountdownCard({
         }`}
         onContextMenu={onContextMenu}
       >
-        <div className="relative">
+        <div className="relative flex flex-1 flex-col">
           <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
-          <div className={`relative z-[1] px-3 py-4 sm:px-4 ${logoPadClass}`}>
+          <div className={`relative z-[1] flex flex-1 flex-col px-3 py-4 sm:px-4 ${logoPadClass}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -468,15 +468,15 @@ export default function CountdownCard({
                     setup {format(phaseDates.setup, 'EEE HH:mm')}
                   </span>
                 )}
-                {isAdmin && !isAssigned && shoot.assigned_operators?.length > 0 ? (
+                {shoot.assigned_operators?.length > 0 ? (
                   <span className="text-slate-400">
                     {shoot.assigned_operators
                       .map((e) => getDisplayName(allUsers.find((u) => u.email === e), e))
                       .join(', ')}
                   </span>
-                ) : !shoot.assigned_operators?.length ? (
+                ) : (
                   <span className="italic text-orange-400">Unassigned</span>
-                ) : null}
+                )}
               </div>
             </div>
 
@@ -573,17 +573,19 @@ export default function CountdownCard({
             )}
           </div>
 
-          {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 && (
-            <div className="relative z-10 mt-3 flex flex-col items-center gap-1.5 pointer-events-auto">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500">Remote desktops</p>
-              <RemoteRigButtons remotes={matchedRig.remote_rigs} />
-            </div>
-          )}
+          <div className="relative z-10 mt-auto flex min-h-[3.25rem] flex-col items-center justify-center gap-1.5 pt-3 pointer-events-auto">
+            {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 ? (
+              <>
+                <p className="text-[11px] uppercase tracking-wider text-slate-500">Remote desktops</p>
+                <RemoteRigButtons remotes={matchedRig.remote_rigs} />
+              </>
+            ) : null}
+          </div>
         </div>
         </div>
 
         {expanded && (
-          <div className="relative z-[2] space-y-4 border-t border-slate-800 bg-slate-900 px-4 py-4">
+          <div className="relative z-[2] space-y-4 border-t border-slate-800/80 bg-slate-950 px-4 py-4">
             {isAdmin && onUpdate && (
               <div>
                 <p className="mb-2 text-xs uppercase tracking-wider text-gray-600">Rig Type Override</p>
@@ -653,29 +655,6 @@ export default function CountdownCard({
               <div>
                 <p className="mb-1 text-xs uppercase tracking-wider text-gray-600">Notes</p>
                 <p className="text-xs text-slate-400">{shoot.description || shoot.notes}</p>
-              </div>
-            )}
-
-            {shoot.assigned_operators?.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs uppercase tracking-wider text-gray-600">Operators</p>
-                <div className="flex flex-wrap gap-1">
-                  {shoot.assigned_operators.map((e) => {
-                    const u = allUsers.find((x) => x.email === e);
-                    return (
-                      <span key={e} className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
-                        {getDisplayName(u, e)}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {shoot.standby_admin && (
-              <div className="flex items-center gap-1.5 text-xs text-amber-400">
-                <Phone className="h-3 w-3" />
-                Standby: {getDisplayName(allUsers.find((u) => u.email === shoot.standby_admin), shoot.standby_admin)}
               </div>
             )}
           </div>
