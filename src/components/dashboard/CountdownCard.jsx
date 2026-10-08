@@ -436,7 +436,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`relative overflow-hidden rounded-xl border-2 transition-all ${
+        className={`relative overflow-hidden rounded-xl border transition-all ${
           isGreyCompleted
             ? 'border-[color:var(--rom-line)] bg-[color:var(--rom-surface)] opacity-70'
             : isStatusCancelled

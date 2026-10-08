@@ -136,7 +136,7 @@
 
   .rom-panel {
     border-radius: 1rem;
-    border: 2px solid var(--rom-line);
+    border: 1px solid var(--rom-line);
     background: color-mix(in srgb, var(--rom-surface) 92%, transparent);
     padding: 1rem 1.25rem;
     backdrop-filter: blur(8px);
