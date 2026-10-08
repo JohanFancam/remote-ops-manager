@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useApp } from '../components/AppContext';
@@ -14,6 +14,7 @@ import {
   addMonths, subMonths, getDay, startOfYear, endOfYear, eachMonthOfInterval
 } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { pageReportDays, REPORT_DAYS_PER_PAGE } from '@/utils/reportDays';
 
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
@@ -192,6 +193,7 @@ export default function Reports() {
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [dayPage, setDayPage] = useState(0);
 
   const { data: reports = [] } = useQuery({
     queryKey: ['shootReports'],
@@ -244,13 +246,31 @@ export default function Reports() {
 
   const yearTotal = yearChartData.reduce((s, d) => s + d.count, 0);
 
-  // Calendar grid
-  const byDay = {};
-  monthReports.forEach(r => {
-    const d = r.shoot_date || r.created_date?.slice(0, 10) || '';
-    if (!byDay[d]) byDay[d] = [];
-    byDay[d].push(r);
-  });
+  const byDay = useMemo(() => {
+    const grouped = {};
+    monthReports.forEach((r) => {
+      const d = r.shoot_date || r.created_date?.slice(0, 10) || '';
+      if (!d) return;
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(r);
+    });
+    return grouped;
+  }, [monthReports]);
+
+  const dayKeys = useMemo(
+    () => Object.keys(byDay).sort((a, b) => b.localeCompare(a)),
+    [byDay]
+  );
+
+  useEffect(() => {
+    setDayPage(0);
+  }, [monthStr]);
+
+  const { totalPages: totalDayPages, safePage, visible: visibleDayKeys } = pageReportDays(
+    dayKeys,
+    dayPage,
+    REPORT_DAYS_PER_PAGE
+  );
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -408,12 +428,40 @@ export default function Reports() {
           <span className="text-xs text-gray-600">· Click a day to view details</span>
         </div>
 
-        {/* Monthly report list grouped by day */}
+        {/* Monthly report list grouped by day — four days at a time */}
         {monthReports.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-slate-400 mb-3">All Reports — {monthLabel}</p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-400">Reports by day — {monthLabel}</p>
+              <span className="text-xs text-slate-500">Showing max {REPORT_DAYS_PER_PAGE}</span>
+            </div>
+            {dayKeys.length > REPORT_DAYS_PER_PAGE && (
+              <div className="mb-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => { setDayPage((p) => Math.max(0, p - 1)); setSelectedDay(null); }}
+                  disabled={safePage === 0}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Previous
+                </button>
+                <span className="text-[10px] font-bold text-gray-600">
+                  SHOWING {safePage * REPORT_DAYS_PER_PAGE + 1}-{Math.min((safePage + 1) * REPORT_DAYS_PER_PAGE, dayKeys.length)} OF {dayKeys.length} DAYS
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setDayPage((p) => Math.min(totalDayPages - 1, p + 1)); setSelectedDay(null); }}
+                  disabled={safePage >= totalDayPages - 1}
+                  className="inline-flex items-center gap-1 rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
             <div className="space-y-5">
-              {Object.keys(byDay).sort((a, b) => b.localeCompare(a)).map((dayStr) => {
+              {visibleDayKeys.map((dayStr) => {
                 const dayRep = byDay[dayStr] || [];
                 const issueCount = dayRep.filter((r) => r.had_issues).length;
                 const dayDate = new Date(`${dayStr}T12:00:00`);
