@@ -85,13 +85,16 @@ export default function ShootCompleteReminder({ user }) {
     setCompleting(null);
     if (!completed || !shoot) return;
     const phase = { ...(shoot.phase_status || {}), shoot_complete: new Date().toISOString() };
-    queryClient.setQueryData(['shoots'], (old = []) =>
-      old.map((s) => (s.id === shoot.id ? { ...s, status: 'completed', phase_status: phase } : s))
-    );
+    const patch = (old = []) =>
+      old.map((s) => (s.id === shoot.id ? { ...s, status: 'completed', phase_status: phase } : s));
+    queryClient.setQueryData(['shoots'], patch);
+    queryClient.setQueryData(['shoots-earnings'], (old) => (Array.isArray(old) ? patch(old) : old));
     try {
       await base44.entities.Shoot.update(shoot.id, { status: 'completed', phase_status: phase });
+      queryClient.invalidateQueries({ queryKey: ['shoots-earnings'] });
     } catch {
       queryClient.invalidateQueries({ queryKey: ['shoots'] });
+      queryClient.invalidateQueries({ queryKey: ['shoots-earnings'] });
     }
   };
 

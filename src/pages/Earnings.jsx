@@ -80,10 +80,13 @@ export default function Earnings() {
       }
     }
     const paid = rec?.paid || false;
-    return { ...item, amount, isAdditional, paid };
+    return { ...item, amount, isAdditional, paid, isPendingComplete: !!item.isPendingComplete };
   }).sort((a, b) => a.date.localeCompare(b.date));
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0) + standbyPay.total;
+  const pendingBreakdown = adjustedBreakdown.filter((b) => b.isPendingComplete && !b.isCancelled);
+  const pendingTotal = pendingBreakdown.reduce((s, b) => s + b.amount, 0);
+  const earnedTotal = adjustedTotal - pendingTotal;
   const paidTotal = adjustedBreakdown.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional && !b.isCancelled && !b.isPostponed);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
@@ -128,7 +131,7 @@ export default function Earnings() {
           </Button>
         </div>
 
-        <div className={`grid gap-3 mb-5 ${user?.role === 'standby' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
+        <div className={`grid gap-3 mb-5 ${user?.role === 'standby' || pendingTotal > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
           {user?.role === 'standby' && (
             <Card className="bg-slate-900 border-slate-800">
               <CardContent className="p-4 text-center">
@@ -148,10 +151,26 @@ export default function Earnings() {
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
-              <p className="text-xs text-slate-400 mt-1">{user?.role === 'standby' ? 'Total shoots + standby' : 'Total Earned'}</p>
+              <p className="text-xs text-slate-400 mt-1">{user?.role === 'standby' ? 'Total shoots + standby' : 'This month'}</p>
             </CardContent>
           </Card>
-          {user?.role !== 'standby' && (
+          {pendingTotal > 0 && (
+            <Card className="bg-slate-900 border-amber-700/50">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-amber-300">{formatZAR(pendingTotal, { withSpace: false })}</p>
+                <p className="text-xs text-amber-200/80 mt-1">Pending · use Shoot complete</p>
+              </CardContent>
+            </Card>
+          )}
+          {pendingTotal > 0 && user?.role !== 'standby' && (
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-slate-100">{formatZAR(earnedTotal, { withSpace: false })}</p>
+                <p className="text-xs text-slate-400 mt-1">Earned after Shoot complete</p>
+              </CardContent>
+            </Card>
+          )}
+          {user?.role !== 'standby' && pendingTotal === 0 && (
             <Card className="bg-slate-900 border-slate-800">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-slate-100">{mainShoots.length + additionalShoots.length}</p>
@@ -160,6 +179,11 @@ export default function Earnings() {
             </Card>
           )}
         </div>
+        {pendingTotal > 0 && (
+          <p className="text-xs text-amber-200/80 mb-4">
+            Use Shoot complete on the dashboard to report whether anything went wrong. That moves the amount off pending and into earned.
+          </p>
+        )}
 
         {paidTotal > 0 && (
           <div className="bg-emerald-950/40 border border-green-800/40 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
@@ -217,8 +241,11 @@ export default function Earnings() {
                             <p className="text-xs text-amber-300">Postponed</p>
                           </>
                         ) : (
-                          <p className="text-sm font-bold text-emerald-400">{formatZAR(item.amount, { withSpace: false })}</p>
+                          <p className={`text-sm font-bold ${item.isPendingComplete ? 'text-amber-300' : 'text-emerald-400'}`}>
+                            {formatZAR(item.amount, { withSpace: false })}
+                          </p>
                         )}
+                        {item.isPendingComplete && <p className="text-xs text-amber-300">Pending</p>}
                         {item.paid && !item.isCancelled && <p className="text-xs text-green-600">Paid</p>}
                       </div>
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}

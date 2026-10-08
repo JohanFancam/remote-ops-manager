@@ -85,10 +85,13 @@ export default function RemoteEarnings({ user }) {
         amount = rec.override_fee != null ? Number(rec.override_fee) : (isAdditional ? additionalRate : baseRate);
       }
     }
-    return { ...item, amount, isAdditional };
+    return { ...item, amount, isAdditional, isPendingComplete: !!item.isPendingComplete };
   });
 
   const adjustedTotal = adjustedBreakdown.reduce((s, b) => s + b.amount, 0) + standbyPay.total;
+  const pendingBreakdown = adjustedBreakdown.filter((b) => b.isPendingComplete && !b.isCancelled);
+  const pendingTotal = pendingBreakdown.reduce((s, b) => s + b.amount, 0);
+  const earnedTotal = adjustedTotal - pendingTotal;
   const mainShoots = adjustedBreakdown.filter(b => !b.isAdditional && !b.isCancelled && !b.isPostponed);
   const additionalShoots = adjustedBreakdown.filter(b => b.isAdditional);
 
@@ -134,7 +137,7 @@ export default function RemoteEarnings({ user }) {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className={`grid gap-4 mb-4 ${user?.role === 'standby' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
+        <div className={`grid gap-4 mb-4 ${user?.role === 'standby' || pendingTotal > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
           {user?.role === 'standby' && (
             <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
               <p className="text-2xl font-bold text-slate-100">{formatZAR(adjustedBreakdown.reduce((s, b) => s + b.amount, 0), { withSpace: false })}</p>
@@ -149,9 +152,21 @@ export default function RemoteEarnings({ user }) {
           )}
           <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
             <p className="text-2xl font-bold text-emerald-400">{formatZAR(adjustedTotal, { withSpace: false })}</p>
-            <p className="text-xs text-slate-400">{user?.role === 'standby' ? 'Total shoots + standby' : 'Total Earned'}</p>
+            <p className="text-xs text-slate-400">{user?.role === 'standby' ? 'Total shoots + standby' : 'This month'}</p>
           </div>
-          {user?.role !== 'standby' && (
+          {pendingTotal > 0 && (
+            <div className="rounded-lg border border-amber-700/50 bg-amber-950/30 p-3 text-center">
+              <p className="text-2xl font-bold text-amber-300">{formatZAR(pendingTotal, { withSpace: false })}</p>
+              <p className="text-xs text-amber-200/80">Pending · {pendingBreakdown.length} shoot{pendingBreakdown.length === 1 ? '' : 's'}</p>
+            </div>
+          )}
+          {pendingTotal > 0 && user?.role !== 'standby' && (
+            <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
+              <p className="text-2xl font-bold text-slate-100">{formatZAR(earnedTotal, { withSpace: false })}</p>
+              <p className="text-xs text-slate-400">Earned after Shoot complete</p>
+            </div>
+          )}
+          {user?.role !== 'standby' && pendingTotal === 0 && (
             <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
               <Camera className="h-5 w-5 text-orange-400 mx-auto mb-1" />
               <p className="text-2xl font-bold text-slate-100">{mainShoots.length + additionalShoots.length}</p>
@@ -159,6 +174,11 @@ export default function RemoteEarnings({ user }) {
             </div>
           )}
         </div>
+        {pendingTotal > 0 && (
+          <p className="text-xs text-amber-200/80 mb-4">
+            Use Shoot complete on the dashboard to report whether anything went wrong. That moves the amount off pending and into earned.
+          </p>
+        )}
 
         {expanded && (
           <div className="space-y-3">
@@ -198,7 +218,12 @@ export default function RemoteEarnings({ user }) {
                         {item.isCancelled ? (
                           <p className="text-sm font-semibold text-red-400">Cancelled</p>
                         ) : (
-                          <p className="text-sm font-bold text-emerald-400">{formatZAR(item.amount, { withSpace: false })}</p>
+                          <p className={`text-sm font-bold ${item.isPendingComplete ? 'text-amber-300' : 'text-emerald-400'}`}>
+                            {formatZAR(item.amount, { withSpace: false })}
+                          </p>
+                        )}
+                        {item.isPendingComplete && (
+                          <Badge className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">Pending</Badge>
                         )}
                         {item.isPostponed && (
                           <Badge className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">Postponed</Badge>
