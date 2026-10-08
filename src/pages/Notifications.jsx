@@ -152,6 +152,7 @@ export default function Notifications() {
     queryKey: ['notificationHistory'],
     queryFn: () => base44.entities.ShootNotification.list('-created_at', 2000),
     enabled: !!user?.email,
+    staleTime: 0,
   });
 
   const { data: changeRequests = [] } = useQuery({

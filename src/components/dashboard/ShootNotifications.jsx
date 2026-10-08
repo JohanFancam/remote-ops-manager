@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Calendar, CheckCheck, AlertTriangle, Bell } from 'lucide-react';
@@ -221,7 +222,13 @@ function NotificationBody({ item }) {
 }
 
 function useNotificationState(shoots, user, notifyHours) {
-  const [storedNotifications, setStoredNotifications] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: records = [] } = useQuery({
+    queryKey: ['shootNotifications'],
+    queryFn: () => base44.entities.ShootNotification.list('-created_at', 500),
+    enabled: !!user?.email,
+    staleTime: 0,
+  });
   const [dismissedReminders, setDismissedReminders] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('dismissed_notifs') || '[]');
@@ -238,41 +245,31 @@ function useNotificationState(shoots, user, notifyHours) {
     return () => clearInterval(tick);
   }, []);
 
-  const refreshStoredNotifications = async () => {
-    if (!user?.email) return;
+  const storedNotifications = useMemo(() => {
+    if (!user?.email) return [];
+    const visible = (records || [])
+      .filter((notification) => !isExpired(notification))
+      .filter((notification) => userCanSeeNotification(notification, user));
 
-    try {
-      const records = await base44.entities.ShootNotification.list('-created_at', 500);
-      const visible = (records || [])
-        .filter((notification) => !isExpired(notification))
-        .filter((notification) => userCanSeeNotification(notification, user));
+    if (!isCalendarWatchRole(user)) return visible;
 
-      if (!isCalendarWatchRole(user)) {
-        setStoredNotifications(visible);
-        return;
-      }
-
-      const seen = new Set();
-      const activeRecords = visible.filter((notification) => {
-        const key = notificationDedupeKey(notification);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      setStoredNotifications(activeRecords);
-    } catch (error) {
-      console.warn('Could not load ShootNotification records:', error);
-      setStoredNotifications([]);
-    }
-  };
+    const seen = new Set();
+    return visible.filter((notification) => {
+      const key = notificationDedupeKey(notification);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [records, user]);
 
   useEffect(() => {
-    refreshStoredNotifications();
+    if (!user?.email) return undefined;
 
     let unsubscribe;
     try {
       unsubscribe = base44.entities.ShootNotification.subscribe(() => {
-        refreshStoredNotifications();
+        queryClient.invalidateQueries({ queryKey: ['shootNotifications'] });
+        queryClient.invalidateQueries({ queryKey: ['notificationHistory'] });
       });
     } catch {
       // subscribe is optional
@@ -281,7 +278,7 @@ function useNotificationState(shoots, user, notifyHours) {
     return () => {
       unsubscribe?.();
     };
-  }, [user?.email, user?.role, user?.standby]);
+  }, [queryClient, user?.email]);
 
   const myAssigned = useMemo(() => {
     return shoots.filter((shoot) =>
@@ -368,7 +365,8 @@ function useNotificationState(shoots, user, notifyHours) {
       dismissed_by: nextDismissedBy,
     });
 
-    setStoredNotifications((prev) => prev.filter((item) => item.id !== notification.id));
+    queryClient.invalidateQueries({ queryKey: ['shootNotifications'] });
+    queryClient.invalidateQueries({ queryKey: ['notificationHistory'] });
   };
 
   const dismiss = async (item) => {

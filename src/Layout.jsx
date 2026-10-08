@@ -21,6 +21,7 @@ import {
 } from './components/dashboard/ShootNotifications';
 import RefreshReminder from './components/RefreshReminder';
 import { ensurePushSubscription, registerServiceWorker } from './lib/pushNotifications';
+import useLiveRefresh from '@/hooks/useLiveRefresh';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,8 @@ function LayoutContent({ children, currentPageName }) {
     if (!user?.email) return;
     ensurePushSubscription();
   }, [user?.email]);
+
+  useLiveRefresh(!!user?.email && !isAccounts);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return undefined;
