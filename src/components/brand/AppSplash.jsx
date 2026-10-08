@@ -2,10 +2,12 @@ import React, { useEffect } from 'react';
 import { resolveAppLogoUrl } from '@/components/brand/BrandMark';
 import { readCachedTheme } from '@/utils/theme';
 
-export default function AppSplash({ logoUrl, canvas }) {
+export default function AppSplash({ logoUrl, splashUrl, canvas }) {
   const cached = readCachedTheme();
   const background = canvas || cached.canvas;
-  const src = resolveAppLogoUrl(logoUrl || cached.logo);
+  const splash = splashUrl || cached.splash;
+  const src = resolveAppLogoUrl(splash || logoUrl || cached.logo);
+  const isSplashArt = Boolean(splash);
 
   useEffect(() => {
     document.documentElement.classList.remove('rom-ready');
@@ -23,7 +25,9 @@ export default function AppSplash({ logoUrl, canvas }) {
       <img
         src={src}
         alt="Remote Ops Manager"
-        className="h-24 w-24 object-contain sm:h-28 sm:w-28"
+        className={isSplashArt
+          ? 'max-h-64 max-w-[min(20rem,80vw)] w-auto object-contain'
+          : 'h-24 w-24 object-contain sm:h-28 sm:w-28'}
       />
     </div>
   );

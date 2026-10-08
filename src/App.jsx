@@ -35,7 +35,7 @@ function mustChangePassword(user) {
 function SplashFromAuth() {
   const { appPublicSettings } = useAuth();
   const theme = parseTheme(appPublicSettings?.public_settings || {});
-  return <AppSplash logoUrl={theme.logo} canvas={theme.canvas} />;
+  return <AppSplash logoUrl={theme.logo} splashUrl={theme.splash} canvas={theme.canvas} />;
 }
 
 const AuthenticatedApp = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Monitor } from 'lucide-react';
-import { normalizeRemoteRigs, openRemoteRig, remoteRigHref } from '@/utils/remoteRigs';
+import { isStandaloneDisplay, normalizeRemoteRigs, openRemoteRig, remoteRigHref } from '@/utils/remoteRigs';
 
 export default function RemoteRigButtons({ remotes, className = '' }) {
   const items = normalizeRemoteRigs(remotes);
@@ -28,9 +28,13 @@ export default function RemoteRigButtons({ remotes, className = '' }) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              // Desktop Chrome: keep the native <a target=_blank> so the CRD
+              // site/app can open. Installed PWA still needs window.open.
+              if (!isStandaloneDisplay()) return;
               e.preventDefault();
               openRemoteRig(item);
             }}

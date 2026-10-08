@@ -1,4 +1,4 @@
-import { normalizeRemoteRigs, remoteRigHref } from './remoteRigs.js';
+import { isStandaloneDisplay, normalizeRemoteRigs, remoteRigHref } from './remoteRigs.js';
 
 function assert(cond, message) {
   if (!cond) throw new Error(message);
@@ -27,5 +27,7 @@ assert(
   remoteRigHref({ name: lightning, url: '' }) === lightning,
   'a url pasted into the name still opens'
 );
+
+assert(isStandaloneDisplay() === false, 'node is not a standalone display');
 
 console.log('remoteRigs tests passed');

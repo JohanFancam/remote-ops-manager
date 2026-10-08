@@ -47,6 +47,17 @@ export function remoteRigHref(item) {
   return `https://${url}`;
 }
 
+export function isStandaloneDisplay() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia?.('(display-mode: fullscreen)').matches) return true;
+  } catch {
+    // ignore
+  }
+  return window.navigator?.standalone === true;
+}
+
 export function openRemoteRig(item) {
   const href = remoteRigHref(item);
   if (!href || typeof window === 'undefined') return false;
@@ -62,12 +73,6 @@ export function openRemoteRig(item) {
     try { popup.opener = null; } catch { /* ignore */ }
     return true;
   }
-  const anchor = document.createElement('a');
-  anchor.href = href;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
+  window.location.assign(href);
   return true;
 }
