@@ -147,8 +147,8 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
   };
 
   return (
-    <Card className="bg-[color:var(--rom-surface)] border border-[color:var(--rom-line)] mb-8">
-      <CardHeader className="border-b border-[color:var(--rom-line)] pb-3">
+    <Card className="mb-8 border-0 bg-slate-900 shadow-none">
+      <CardHeader className="border-0 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-slate-100 text-base">My Monthly Summary</CardTitle>
           <div className="flex items-center gap-1">

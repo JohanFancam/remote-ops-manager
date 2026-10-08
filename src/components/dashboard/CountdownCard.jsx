@@ -436,15 +436,15 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`relative overflow-hidden rounded-xl border transition-all ${
+        className={`relative overflow-hidden rounded-xl border-0 transition-all ${
           isGreyCompleted
-            ? 'border-[color:var(--rom-line)] bg-[color:var(--rom-surface)] opacity-70'
+            ? 'bg-slate-950 opacity-70'
             : isStatusCancelled
-              ? 'border-[color:var(--rom-line)] bg-[color:var(--rom-surface)] opacity-70'
+              ? 'bg-slate-950 opacity-70'
               : isStatusPostponed
-                ? 'border-amber-700/70 bg-[color:var(--rom-surface)] opacity-85'
-                : 'border-[color:var(--rom-line)] bg-[color:var(--rom-surface)]'
-        } hover:border-slate-500`}
+                ? 'bg-amber-950/40 opacity-85'
+                : 'bg-slate-950'
+        }`}
         onContextMenu={onContextMenu}
       >
         <div className="relative">
