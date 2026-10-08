@@ -102,7 +102,7 @@ export default function AdminDayShootView({
   const renderCard = (shoot) => {
     const isGrey = shouldGreyCompletedShoot(shoot, todayStr);
     return (
-      <div key={shoot.id} className={`h-full ${isGrey ? 'opacity-50 grayscale-[0.3]' : ''}`}>
+      <div key={shoot.id} className={isGrey ? 'opacity-50 grayscale-[0.3]' : ''}>
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}
@@ -191,7 +191,7 @@ export default function AdminDayShootView({
           {sortedShoots.length === 0 ? (
             <div className="py-8 text-center text-sm italic text-slate-500">No upcoming assigned shoots.</div>
           ) : (
-            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2 xl:items-stretch' : 'space-y-2'}>
+            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2 items-start' : 'space-y-2'}>
               {visibleShoots.map(renderCard)}
             </div>
           )}

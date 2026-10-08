@@ -118,7 +118,7 @@ export default function AdminStandbyShootList({
 
   const renderCard = (shoot) => {
     return (
-      <div key={shoot.id} className="h-full">
+      <div key={shoot.id}>
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}
@@ -185,7 +185,7 @@ export default function AdminStandbyShootList({
           {allStandbyShoots.length === 0 ? (
             <div className="py-6 text-center text-sm italic text-slate-500">No upcoming shoots during standby coverage.</div>
           ) : (
-            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2 xl:items-stretch' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
+            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2 items-start' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
           )}
           {allStandbyShoots.length > pageSize && (
             <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">

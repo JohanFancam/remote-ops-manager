@@ -436,7 +436,7 @@ export default function CountdownCard({
       )}
 
       <div
-        className={`relative flex h-full flex-col overflow-hidden rounded-xl border-0 transition-all ${
+        className={`relative overflow-hidden rounded-xl border-0 transition-all ${
           isGreyCompleted
             ? 'bg-slate-950 opacity-70'
             : isStatusCancelled
@@ -447,7 +447,7 @@ export default function CountdownCard({
         }`}
         onContextMenu={onContextMenu}
       >
-        <div className="relative flex flex-1 flex-col">
+        <div className="relative flex min-h-[19rem] flex-col">
           <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
           <div className={`relative z-[1] flex flex-1 flex-col px-3 py-4 sm:px-4 ${logoPadClass}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
