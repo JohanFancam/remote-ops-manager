@@ -17,4 +17,15 @@ assert(remoteRigHref(mixed[1]).startsWith('https://'), 'adds https when the sche
 assert(remoteRigHref({ url: 'javascript:alert(1)' }) === '', 'blocks javascript urls');
 assert(remoteRigHref({ url: '' }) === '', 'empty url is not a button');
 
+const lightning = 'https://remotedesktop.google.com/access/session/e0078c73-1776-5ea2-fc7f-2d67f7b5c239';
+assert(remoteRigHref({ name: 'Lightning 1-1', url: lightning }) === lightning, 'keeps the pasted CRD session url');
+assert(
+  remoteRigHref({ url: 'e0078c73-1776-5ea2-fc7f-2d67f7b5c239' }).endsWith('e0078c73-1776-5ea2-fc7f-2d67f7b5c239'),
+  'session ids become CRD session urls'
+);
+assert(
+  remoteRigHref({ name: lightning, url: '' }) === lightning,
+  'a url pasted into the name still opens'
+);
+
 console.log('remoteRigs tests passed');

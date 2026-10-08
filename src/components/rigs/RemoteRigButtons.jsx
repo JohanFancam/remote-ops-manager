@@ -1,13 +1,13 @@
 import React from 'react';
 import { Monitor } from 'lucide-react';
-import { normalizeRemoteRigs, remoteRigHref } from '@/utils/remoteRigs';
+import { normalizeRemoteRigs, openRemoteRig, remoteRigHref } from '@/utils/remoteRigs';
 
 export default function RemoteRigButtons({ remotes, className = '' }) {
   const items = normalizeRemoteRigs(remotes);
   if (!items.length) return null;
 
   return (
-    <div className={`flex flex-wrap gap-1.5 ${className}`}>
+    <div className={`relative z-10 flex flex-wrap gap-1.5 pointer-events-auto ${className}`}>
       {items.map((item, index) => {
         const href = remoteRigHref(item);
         if (!href) {
@@ -28,8 +28,13 @@ export default function RemoteRigButtons({ remotes, className = '' }) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1.5 rounded-full border border-orange-700/60 bg-orange-950/40 px-2.5 py-1.5 text-xs font-semibold text-orange-200 hover:bg-orange-950/70 hover:text-orange-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              openRemoteRig(item);
+            }}
+            className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-orange-700/60 bg-orange-950/40 px-2.5 py-1.5 text-xs font-semibold text-orange-200 hover:bg-orange-950/70 hover:text-orange-50 cursor-pointer"
             title={`Open Chrome Remote Desktop — ${item.name}`}
           >
             <Monitor className="h-3 w-3" />
