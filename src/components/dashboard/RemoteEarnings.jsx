@@ -175,9 +175,28 @@ export default function RemoteEarnings({ user }) {
           )}
         </div>
         {pendingTotal > 0 && (
-          <p className="text-xs text-amber-200/80 mb-4">
-            Use Shoot complete on the dashboard to report whether anything went wrong. That moves the amount off pending and into earned.
-          </p>
+          <div className="mb-4 space-y-2">
+            <p className="text-xs text-amber-200/80">
+              Use Shoot complete on the dashboard to report whether anything went wrong. That moves the amount off pending and into earned.
+            </p>
+            <div className="space-y-1">
+              {pendingBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
+                <div key={item.shoot?.id || idx} className="flex items-center justify-between bg-amber-950/20 border border-amber-800/30 rounded px-3 py-2">
+                  <div>
+                    <p className="text-sm text-slate-100 font-medium">{shortenTitle(item.shoot?.title) || 'Game'}</p>
+                    <p className="text-xs text-slate-400">
+                      {formatDateZA(item.date, { weekday: 'short' })}
+                      {item.shoot?.game_time && ` · ${formatTimeZA(item.shoot.game_time)}`}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-amber-300">{formatZAR(item.amount, { withSpace: false })}</p>
+                    <Badge className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">Pending</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {expanded && (
@@ -205,7 +224,7 @@ export default function RemoteEarnings({ user }) {
                       <p className="text-sm font-bold text-blue-300">{formatZAR(standbyRate, { withSpace: false })}</p>
                     </div>
                   ))}
-                  {adjustedBreakdown.sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
+                  {adjustedBreakdown.filter((item) => !item.isPendingComplete).sort((a, b) => a.date.localeCompare(b.date)).map((item, idx) => (
                     <div key={idx} className={`flex items-center justify-between bg-slate-800/40 rounded px-3 py-2 ${item.isCancelled ? 'opacity-80' : ''}`}>
                       <div>
                         <p className="text-sm text-slate-100 font-medium">{shortenTitle(item.shoot?.title) || 'Game'}</p>
