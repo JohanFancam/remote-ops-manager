@@ -46,7 +46,7 @@
     --rom-accent: #f97316;
     --rom-accent-soft: rgba(249, 115, 22, 0.16);
     --rom-surface: #292a2a;
-    --rom-line: #3a3b3b;
+    --rom-line: #5a5c5c;
     --rom-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
     --rom-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
     --rom-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -65,7 +65,7 @@
 
   html:not(.rom-ready),
   html:not(.rom-ready) body {
-    background-color: #1f2021 !important;
+    background-color: var(--rom-canvas, #1f2021) !important;
     background-image: none !important;
   }
 
@@ -77,9 +77,9 @@
     @apply bg-background text-foreground;
     background-color: var(--rom-canvas);
     background-image:
-      radial-gradient(ellipse 90% 55% at 10% -15%, rgba(249, 115, 22, 0.08), transparent 55%),
+      radial-gradient(ellipse 90% 55% at 10% -15%, color-mix(in srgb, var(--rom-accent) 8%, transparent), transparent 55%),
       radial-gradient(ellipse 55% 40% at 100% 0%, rgba(255, 255, 255, 0.03), transparent 50%),
-      linear-gradient(180deg, #1f2021 0%, #1f2021 48%, #1c1d1d 100%);
+      linear-gradient(180deg, var(--rom-canvas) 0%, var(--rom-canvas) 48%, var(--rom-canvas) 100%);
     background-attachment: fixed;
     overscroll-behavior-y: none;
     overscroll-behavior-x: none;
@@ -136,7 +136,7 @@
 
   .rom-panel {
     border-radius: 1rem;
-    border: 1px solid var(--rom-line);
+    border: 2px solid var(--rom-line);
     background: color-mix(in srgb, var(--rom-surface) 92%, transparent);
     padding: 1rem 1.25rem;
     backdrop-filter: blur(8px);

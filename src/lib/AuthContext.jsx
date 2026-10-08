@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { api, getToken } from '@/api/client';
+import { applyTheme } from '@/utils/theme';
 
 const AuthContext = createContext();
 
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
           return res.json();
         });
         setAppPublicSettings(publicSettings);
+        applyTheme(publicSettings?.public_settings || {});
 
         const token = getToken();
         if (token) {
@@ -125,6 +127,7 @@ export const AuthProvider = ({ children }) => {
         return res.json();
       });
       setAppPublicSettings(publicSettings);
+      applyTheme(publicSettings?.public_settings || {});
     } catch (error) {
       console.error('Public settings refresh failed:', error);
     }
