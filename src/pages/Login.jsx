@@ -3,10 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import AuthBackdrop from '@/components/auth/AuthBackdrop';
 import BrandMark from '@/components/brand/BrandMark';
+import AppIconHead from '@/components/brand/AppIconHead';
 import { homePathForUser } from '@/utils/homePath';
 
 export default function Login() {
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, appPublicSettings } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -34,6 +35,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 sm:p-6">
+      <AppIconHead logoUrl={appPublicSettings?.public_settings?.app_logo_url} />
       <AuthBackdrop />
 
       <div className="relative w-full max-w-5xl grid lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center">

@@ -21,7 +21,7 @@ export default function BrandMark({
   const src = resolveAppLogoUrl(logoUrl ?? publicLogo);
   return (
     <div className={`relative flex-shrink-0 overflow-hidden rounded-xl ${className}`}>
-      <img src={src} alt={alt} className="h-full w-full object-cover" />
+      <img src={src} alt={alt} className="h-full w-full object-contain" />
     </div>
   );
 }

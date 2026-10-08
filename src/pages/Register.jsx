@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import AuthBackdrop from '@/components/auth/AuthBackdrop';
 import BrandMark from '@/components/brand/BrandMark';
+import AppIconHead from '@/components/brand/AppIconHead';
 
 export default function Register() {
-  const { register, isAuthenticated } = useAuth();
+  const { register, isAuthenticated, appPublicSettings } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -34,6 +35,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
+      <AppIconHead logoUrl={appPublicSettings?.public_settings?.app_logo_url} />
       <AuthBackdrop />
 
       <div className="rom-panel relative w-full max-w-[420px] rom-enter p-7 md:p-8">
