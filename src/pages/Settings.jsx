@@ -17,6 +17,7 @@ import SettingsCategory from '../components/settings/SettingsCategory';
 import { resolveAppLogoUrl } from '../components/brand/BrandMark';
 import { pickSetting, pickSettingValue } from '../utils/appSettings';
 import { THEME_DEFAULTS, applyTheme, isHexColor, normalizeHexColor, parseTheme } from '../utils/theme';
+import FilePickerButton from '../components/common/FilePickerButton';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,32 +144,6 @@ function isAllowedLogoFile(file) {
   return /\.(png|jpe?g|webp|gif|svg|ico|bmp)$/i.test(file?.name || '');
 }
 
-function HiddenFileButton({ id, accept, disabled, onChange, children }) {
-  const inputRef = React.useRef(null);
-  return (
-    <>
-      <input
-        id={id}
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="sr-only"
-        disabled={disabled}
-        tabIndex={-1}
-        onChange={onChange}
-      />
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${disabled ? 'pointer-events-none opacity-50' : ''}`}
-      >
-        {children}
-      </button>
-    </>
-  );
-}
-
 function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
   return (
     <div className="flex items-center gap-4 flex-wrap">
@@ -181,7 +156,7 @@ function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
           Used on sign-in, in the sidebar, the browser tab, and when someone installs the app. PNG, JPEG, WebP, GIF, SVG, or ICO.
         </p>
         <div className="flex flex-wrap gap-2">
-          <HiddenFileButton
+          <FilePickerButton
             id="app-logo-file"
             accept={`image/*,${APP_LOGO_ACCEPT}`}
             disabled={uploading}
@@ -189,7 +164,7 @@ function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
           >
             <Image className="h-4 w-4" />
             {uploading ? 'Uploading...' : logoUrl ? 'Replace icon' : 'Upload icon'}
-          </HiddenFileButton>
+          </FilePickerButton>
           {logoUrl && (
             <Button type="button" size="sm" variant="outline" onClick={onClear}
               className="border-slate-700 text-slate-300 hover:bg-slate-800">
@@ -226,13 +201,14 @@ function ThemeColorField({ label, hint, value, fallback, onChange }) {
   );
 }
 
-function AppearanceThemeControls({ appSettings, logoUrl, onSave }) {
+function AppearanceThemeControls({ appSettings, logoUrl, splashUrl, onSave }) {
   const savedTheme = parseTheme({
     theme_canvas: pickSettingValue(appSettings, 'theme_canvas'),
     theme_surface: pickSettingValue(appSettings, 'theme_surface'),
     theme_accent: pickSettingValue(appSettings, 'theme_accent'),
     theme_line: pickSettingValue(appSettings, 'theme_line'),
     app_logo_url: logoUrl,
+    splash_image_url: splashUrl,
   });
   const [draft, setDraft] = React.useState(savedTheme);
   const [saving, setSaving] = React.useState(false);
@@ -246,11 +222,12 @@ function AppearanceThemeControls({ appSettings, logoUrl, onSave }) {
       accent: savedTheme.accent,
       line: savedTheme.line,
       logo: savedTheme.logo,
+      splash: savedTheme.splash,
     }));
-  }, [savedTheme.canvas, savedTheme.surface, savedTheme.accent, savedTheme.line, savedTheme.logo]);
+  }, [savedTheme.canvas, savedTheme.surface, savedTheme.accent, savedTheme.line, savedTheme.logo, savedTheme.splash]);
 
   const updateField = (key, value) => {
-    const next = { ...draft, [key]: value, logo: logoUrl };
+    const next = { ...draft, [key]: value, logo: logoUrl, splash: splashUrl };
     setDraft(next);
     applyTheme(next);
   };
@@ -264,7 +241,7 @@ function AppearanceThemeControls({ appSettings, logoUrl, onSave }) {
         accent: normalizeHexColor(theme.accent, THEME_DEFAULTS.accent),
         line: normalizeHexColor(theme.line, THEME_DEFAULTS.line),
       });
-      applyTheme({ ...theme, logo: logoUrl });
+      applyTheme({ ...theme, logo: logoUrl, splash: splashUrl });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -327,7 +304,7 @@ function AppearanceThemeControls({ appSettings, logoUrl, onSave }) {
             variant="outline"
             disabled={saving}
             onClick={() => {
-              const next = { ...THEME_DEFAULTS, logo: logoUrl };
+              const next = { ...THEME_DEFAULTS, logo: logoUrl, splash: splashUrl };
               setDraft(next);
               applyTheme(next);
               persist(next);
@@ -476,6 +453,8 @@ export default function Settings() {
   const [logoError, setLogoError] = useState('');
   const [bgUploading, setBgUploading] = useState(false);
   const [bgError, setBgError] = useState('');
+  const [splashUploading, setSplashUploading] = useState(false);
+  const [splashError, setSplashError] = useState('');
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['appSettings'],
@@ -524,6 +503,8 @@ export default function Settings() {
   const logoUrl = logoSetting?.value;
   const loginBgSetting = pickSetting(appSettings, 'login_background_url');
   const loginBgUrl = loginBgSetting?.value;
+  const splashSetting = pickSetting(appSettings, 'splash_image_url');
+  const splashUrl = splashSetting?.value;
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000);
@@ -675,6 +656,45 @@ export default function Settings() {
       await refreshPublicSettings();
     } catch (err) {
       setLogoError(err.message || 'Could not restore the default logo');
+    }
+  };
+
+  const handleSplashUpload = async (e) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (isHeicFile(file)) {
+      setSplashError('iPhone HEIC photos are not supported. Export or screenshot as PNG or JPEG.');
+      input.value = '';
+      return;
+    }
+    if (!isAllowedLogoFile(file)) {
+      setSplashError('Please upload a PNG, JPEG, WebP, GIF, SVG, or ICO image.');
+      input.value = '';
+      return;
+    }
+    setSplashError('');
+    setSplashUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file_url) throw new Error('Upload did not return a file URL');
+      await upsertSetting('splash_image_url', file_url, 'Loading screen image');
+      await refreshPublicSettings();
+    } catch (err) {
+      setSplashError(err.message || 'Loading screen upload failed');
+    } finally {
+      setSplashUploading(false);
+      input.value = '';
+    }
+  };
+
+  const handleClearSplash = async () => {
+    setSplashError('');
+    try {
+      await upsertSetting('splash_image_url', '', 'Loading screen image');
+      await refreshPublicSettings();
+    } catch (err) {
+      setSplashError(err.message || 'Could not remove the loading screen image');
     }
   };
 
@@ -962,7 +982,7 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App icon, colours, and sign-in background"
+            description="App icon, loading screen, colours, and sign-in background"
             icon={Image}
             defaultOpen
           >
@@ -982,9 +1002,51 @@ export default function Settings() {
                 />
               </CardContent>
             </Card>
+            <Card className="bg-slate-900 border-slate-800 mt-4">
+              <CardHeader className="border-b border-slate-800 pb-4">
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-orange-400" /> Loading screen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-4 flex-wrap">
+                  <div className="w-28 h-28 bg-slate-800 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                    <img
+                      src={resolveAppLogoUrl(splashUrl || logoUrl)}
+                      alt="Loading screen"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-400 mb-2">
+                      Shown on the charcoal load screen. This can be a different image from the app icon. PNG, JPEG, WebP, GIF, SVG, or ICO.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <FilePickerButton
+                        id="splash-image-file"
+                        accept={`image/*,${APP_LOGO_ACCEPT}`}
+                        disabled={splashUploading}
+                        onChange={handleSplashUpload}
+                      >
+                        <Image className="h-4 w-4" />
+                        {splashUploading ? 'Uploading...' : splashUrl ? 'Replace image' : 'Upload image'}
+                      </FilePickerButton>
+                      {splashUrl && (
+                        <Button type="button" size="sm" variant="outline" onClick={handleClearSplash}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                          Use app icon
+                        </Button>
+                      )}
+                    </div>
+                    {splashError ? <p className="text-xs text-red-400 mt-2">{splashError}</p> : null}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <AppearanceThemeControls
               appSettings={appSettings}
               logoUrl={logoUrl}
+              splashUrl={splashUrl}
               onSave={handleSaveTheme}
             />
             <Card className="bg-slate-900 border-slate-800 mt-4">
@@ -1004,7 +1066,7 @@ export default function Settings() {
                       Shown behind the sign-in and create-account screens. A dark overlay keeps the form readable. Wide photos work best.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <HiddenFileButton
+                      <FilePickerButton
                         id="login-bg-file"
                         accept={`image/*,${APP_LOGO_ACCEPT}`}
                         disabled={bgUploading}
@@ -1012,7 +1074,7 @@ export default function Settings() {
                       >
                         <Image className="h-4 w-4" />
                         {bgUploading ? 'Uploading...' : loginBgUrl ? 'Replace image' : 'Upload image'}
-                      </HiddenFileButton>
+                      </FilePickerButton>
                       {loginBgUrl && (
                         <Button type="button" size="sm" variant="outline" onClick={handleClearLoginBackground}
                           className="border-slate-700 text-slate-300 hover:bg-slate-800">

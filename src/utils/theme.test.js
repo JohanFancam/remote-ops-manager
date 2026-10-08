@@ -16,6 +16,7 @@ assert(defaults.surface === THEME_DEFAULTS.surface, 'default surface');
 assert(defaults.accent === THEME_DEFAULTS.accent, 'default accent');
 assert(defaults.line === THEME_DEFAULTS.line, 'visible default card border');
 assert(defaults.logo === '', 'empty logo by default');
+assert(defaults.splash === '', 'empty splash by default');
 
 const nested = parseTheme({
   public_settings: {
@@ -24,6 +25,7 @@ const nested = parseTheme({
     theme_accent: 'ea580c',
     theme_line: '#6b6d6d',
     app_logo_url: '/api/uploads/icon.png',
+    splash_image_url: '/api/uploads/splash.png',
   },
 });
 assert(nested.canvas === '#101111', 'reads canvas from public settings');
@@ -31,5 +33,6 @@ assert(nested.surface === '#222324', 'reads surface from public settings');
 assert(nested.accent === '#ea580c', 'reads accent from public settings');
 assert(nested.line === '#6b6d6d', 'reads line from public settings');
 assert(nested.logo === '/api/uploads/icon.png', 'reads uploaded logo');
+assert(nested.splash === '/api/uploads/splash.png', 'reads uploaded splash');
 
 console.log('theme tests passed');

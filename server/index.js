@@ -194,6 +194,7 @@ app.get('/api/public-settings', (_req, res) => {
       auth_required: true,
       login_background_url: settingValue('login_background_url'),
       app_logo_url: settingValue('app_logo_url'),
+      splash_image_url: settingValue('splash_image_url'),
       theme_canvas: settingValue('theme_canvas'),
       theme_surface: settingValue('theme_surface'),
       theme_accent: settingValue('theme_accent'),

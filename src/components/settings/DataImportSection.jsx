@@ -101,6 +101,7 @@ export default function DataImportSection() {
 
         <div className="flex flex-wrap items-center gap-2">
           <input
+            id="data-import-files"
             ref={fileInputRef}
             type="file"
             accept=".csv,.json"
@@ -108,13 +109,12 @@ export default function DataImportSection() {
             onChange={handlePick}
             className="hidden"
           />
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            variant="outline"
-            className="border-slate-700 text-slate-200 hover:bg-slate-800 gap-2"
+          <label
+            htmlFor="data-import-files"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-transparent px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800 cursor-pointer"
           >
             <Upload className="h-4 w-4" /> Choose files
-          </Button>
+          </label>
           {files.length > 0 && (
             <>
               <span className="text-xs text-slate-400">

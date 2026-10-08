@@ -34,6 +34,7 @@ export function parseTheme(source = {}) {
     accent: normalizeHexColor(src.theme_accent || src.accent, THEME_DEFAULTS.accent),
     line: normalizeHexColor(src.theme_line || src.line, THEME_DEFAULTS.line),
     logo: String(src.app_logo_url || src.logo || '').trim(),
+    splash: String(src.splash_image_url || src.splash || '').trim(),
   };
 }
 

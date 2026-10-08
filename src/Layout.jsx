@@ -118,6 +118,7 @@ function LayoutContent({ children, currentPageName }) {
   const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
 
   const logoUrl = pickSettingValue(appSettings, 'app_logo_url');
+  const splashUrl = pickSettingValue(appSettings, 'splash_image_url');
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -336,7 +337,7 @@ function LayoutContent({ children, currentPageName }) {
         )}
       >
         {isLoading ? (
-          <AppSplash logoUrl={logoUrl} />
+          <AppSplash logoUrl={logoUrl} splashUrl={splashUrl} />
         ) : (
           <div className="rom-enter">{children}</div>
         )}

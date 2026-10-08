@@ -44,8 +44,15 @@
           var boot = document.getElementById('rom-boot');
           if (boot) boot.style.background = canvas;
           var img = boot && boot.querySelector('img');
+          var splash = typeof t.splash === 'string' ? t.splash.trim() : '';
           var logo = typeof t.logo === 'string' ? t.logo.trim() : '';
-          if (img && logo) img.src = logo;
+          if (img && (splash || logo)) img.src = splash || logo;
+          if (img && splash) {
+            img.style.width = 'auto';
+            img.style.height = 'auto';
+            img.style.maxWidth = '20rem';
+            img.style.maxHeight = '16rem';
+          }
         } catch (e) {}
       })();
     </script>
