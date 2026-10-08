@@ -1,4 +1,4 @@
-import { THEME_DEFAULTS, isHexColor, normalizeHexColor, parseTheme } from './theme.js';
+import { THEME_DEFAULTS, isHexColor, normalizeHexColor, parseTheme, setAppReady } from './theme.js';
 
 function assert(cond, message) {
   if (!cond) throw new Error(message);
@@ -34,5 +34,7 @@ assert(nested.accent === '#ea580c', 'reads accent from public settings');
 assert(nested.line === '#6b6d6d', 'reads line from public settings');
 assert(nested.logo === '/api/uploads/icon.png', 'reads uploaded logo');
 assert(nested.splash === '/api/uploads/splash.png', 'reads uploaded splash');
+
+assert(typeof setAppReady === 'function', 'setAppReady is exported');
 
 console.log('theme tests passed');

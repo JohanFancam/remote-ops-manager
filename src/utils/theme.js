@@ -82,3 +82,8 @@ export function applyTheme(source = {}) {
   }
   return theme;
 }
+
+export function setAppReady(ready) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('rom-ready', !!ready);
+}

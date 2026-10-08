@@ -45,6 +45,23 @@ function loadOrCreateVapidKeys() {
   return keys;
 }
 
+function normalizePushKeys(keys) {
+  if (!keys) return {};
+  let parsed = keys;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return {};
+    }
+  }
+  if (typeof parsed !== 'object') return {};
+  return {
+    p256dh: parsed.p256dh,
+    auth: parsed.auth,
+  };
+}
+
 const vapid = loadOrCreateVapidKeys();
 webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
@@ -69,7 +86,7 @@ export function savePushSubscription(user, subscription) {
     user_email: email,
     user_id: user.id || null,
     endpoint: subscription.endpoint,
-    keys: subscription.keys || {},
+    keys: normalizePushKeys(subscription.keys),
     expirationTime: subscription.expirationTime || null,
   }, user);
 }
@@ -98,7 +115,7 @@ export async function sendPushToEmails(emails, payload) {
   for (const sub of subs) {
     try {
       await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: sub.keys || {} },
+        { endpoint: sub.endpoint, keys: normalizePushKeys(sub.keys) },
         body,
         { TTL: 60 * 60 * 24, urgency: 'high' },
       );

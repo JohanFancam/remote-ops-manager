@@ -73,6 +73,10 @@
     display: none !important;
   }
 
+  html.rom-ready #rom-boot {
+    display: none !important;
+  }
+
   body {
     @apply bg-background text-foreground;
     background-color: var(--rom-canvas);

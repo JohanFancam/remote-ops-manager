@@ -61,6 +61,27 @@ function playNotificationSound() {
   }
 }
 
+function showBackgroundOsNotification(item) {
+  if (typeof document === 'undefined' || !document.hidden) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const title = item?.kind === 'stored'
+    ? (item.notification?.title || 'Remote Ops')
+    : (item?.shoot?.title || 'Remote Ops');
+  const body = item?.kind === 'stored'
+    ? (item.notification?.message || '')
+    : 'Shoot update';
+  const url = item?.kind === 'stored' ? (item.notification?.url || '/Notifications') : '/Dashboard';
+  navigator.serviceWorker?.ready
+    ?.then((reg) => reg.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      tag: item?.key || title,
+      renotify: true,
+      data: { url },
+    }))
+    .catch(() => {});
+}
+
 const urgencyStyles = {
   urgent: 'border-orange-500/40 bg-[color:var(--rom-canvas)]/95',
   today: 'border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/95',
@@ -323,7 +344,11 @@ function useNotificationState(shoots, user, notifyHours) {
     const fresh = keys.filter((key) => !announcedRef.current.has(key));
     if (fresh.length > 0) {
       playNotificationSound();
-      fresh.forEach((key) => announcedRef.current.add(key));
+      fresh.forEach((key) => {
+        announcedRef.current.add(key);
+        const item = active.find((entry) => entry.key === key);
+        if (item) showBackgroundOsNotification(item);
+      });
     }
   }, [activeKey]);
 

@@ -1,11 +1,13 @@
 /* Remote Ops Manager service worker — offline shell + Web Push */
-const CACHE = 'rom-shell-v6';
+const CACHE = 'rom-shell-v7';
 const SHELL = ['/', '/index.html', '/rom-logo.png', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(SHELL.map((url) => cache.add(url).catch(() => null)));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
@@ -64,26 +66,25 @@ function absoluteUrl(path) {
 }
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Remote Ops', body: 'You have an update', url: '/' };
-  try {
-    if (event.data) data = { ...data, ...event.data.json() };
-  } catch {
+  event.waitUntil((async () => {
+    let data = { title: 'Remote Ops', body: 'You have an update', url: '/' };
     try {
-      data.body = event.data.text();
+      if (event.data) data = { ...data, ...event.data.json() };
     } catch {
-      // ignore
+      try {
+        data.body = event.data.text();
+      } catch {
+        // ignore
+      }
     }
-  }
 
-  const icon = absoluteUrl('/icon-192.png');
-  const tag = [data.type || 'rom-notification', data.shootId || data.url || Date.now()].join(':');
+    const icon = absoluteUrl(data.icon || '/icon-192.png');
+    const tag = [data.type || 'rom-notification', data.shootId || data.url || Date.now()].join(':');
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Remote Ops', {
+    await self.registration.showNotification(data.title || 'Remote Ops', {
       body: data.body || 'You have an update',
       icon,
       badge: icon,
-      image: undefined,
       data: { url: data.url || '/' },
       tag,
       renotify: true,
@@ -91,8 +92,8 @@ self.addEventListener('push', (event) => {
       silent: false,
       vibrate: [200, 100, 200],
       timestamp: Date.now(),
-    })
-  );
+    });
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {

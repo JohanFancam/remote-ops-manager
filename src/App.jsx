@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -17,8 +18,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { TimezoneProvider } from '@/components/TimezoneContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import AppSplash from '@/components/brand/AppSplash';
-import { parseTheme } from '@/utils/theme';
+import { setAppReady } from '@/utils/theme';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -32,17 +32,11 @@ function mustChangePassword(user) {
   return user?.must_change_password === true || user?.must_change_password === 'true';
 }
 
-function SplashFromAuth() {
-  const { appPublicSettings } = useAuth();
-  const theme = parseTheme(appPublicSettings?.public_settings || {});
-  return <AppSplash logoUrl={theme.logo} splashUrl={theme.splash} canvas={theme.canvas} />;
-}
-
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, user } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return <SplashFromAuth />;
+    return null;
   }
 
   if (authError?.type === 'user_not_registered') {
@@ -88,9 +82,13 @@ const AuthenticatedApp = () => {
 
 function BootGate({ children }) {
   const { isLoadingPublicSettings, isLoadingAuth } = useAuth();
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return <SplashFromAuth />;
-  }
+  const booting = isLoadingPublicSettings || isLoadingAuth;
+
+  useEffect(() => {
+    setAppReady(!booting);
+  }, [booting]);
+
+  if (booting) return null;
   return children;
 }
 

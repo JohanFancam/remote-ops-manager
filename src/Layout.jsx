@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
 import AppIconHead from './components/brand/AppIconHead';
-import AppSplash from './components/brand/AppSplash';
 import { pickSettingValue } from './utils/appSettings';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
@@ -118,7 +117,6 @@ function LayoutContent({ children, currentPageName }) {
   const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
 
   const logoUrl = pickSettingValue(appSettings, 'app_logo_url');
-  const splashUrl = pickSettingValue(appSettings, 'splash_image_url');
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -336,11 +334,7 @@ function LayoutContent({ children, currentPageName }) {
           collapsed ? "md:ml-[84px]" : "md:ml-[17rem]"
         )}
       >
-        {isLoading ? (
-          <AppSplash logoUrl={logoUrl} splashUrl={splashUrl} />
-        ) : (
-          <div className="rom-enter">{children}</div>
-        )}
+        <div className="rom-enter">{children}</div>
       </main>
     </div>
     </NotificationProvider>

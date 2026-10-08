@@ -198,12 +198,17 @@ export async function createNotifications({
   const pushTargets = uniqueEmails([...emails, ...roleTargets, ...calendarAudience])
     .filter((email) => !excluded.includes(email));
 
+  const pushIcon = String(
+    listEntities('AppSettings', null, 500).find((s) => s.key === 'app_logo_url')?.value || ''
+  ).trim() || '/icon-192.png';
+
   const pushResult = await sendPushToEmails(pushTargets, {
     title: title || 'Remote Ops',
     body: message || '',
     url,
     type: type || 'info',
     shootId: shoot?.id || null,
+    icon: pushIcon,
   });
 
   return { created, pushed: pushResult.sent };

@@ -447,7 +447,7 @@ export default function CountdownCard({
         }`}
         onContextMenu={onContextMenu}
       >
-        <div className="relative flex min-h-[19rem] flex-col">
+        <div className="relative flex min-h-[22rem] flex-col">
           <TeamLogoBackdrop title={shoot.title} sport={matchedRig?.sport} appSettings={appSettings} />
           <div className={`relative z-[1] flex flex-1 flex-col px-3 py-4 sm:px-4 ${logoPadClass}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_0.9fr_auto] md:items-start">
@@ -528,7 +528,7 @@ export default function CountdownCard({
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          <div className="mt-5 flex min-h-[5.75rem] flex-wrap content-center items-center justify-center gap-2 sm:gap-3">
             {quickPhases.map((phase) => (
               <PhaseQuickButton
                 key={phase.label}

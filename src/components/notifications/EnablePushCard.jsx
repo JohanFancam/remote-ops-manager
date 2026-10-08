@@ -7,6 +7,7 @@ import {
   disablePushNotifications,
   isPushEnabledLocally,
   registerServiceWorker,
+  sendTestPush,
 } from '@/lib/pushNotifications';
 
 export default function EnablePushCard() {
@@ -27,9 +28,32 @@ export default function EnablePushCard() {
     try {
       await enablePushNotifications();
       setEnabled(true);
-      setMessage('Notifications on. They still pop up if you close the app or the browser tab.');
+      try {
+        await sendTestPush();
+        setMessage('Notifications on. You should see a test popup now — it also pops if the app is closed.');
+      } catch {
+        setMessage('Notifications on. Use Send test alert if you do not see a popup.');
+      }
     } catch (err) {
       setError(err.message || 'Could not enable notifications');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onTest = async () => {
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await sendTestPush();
+      if (result?.sent > 0) {
+        setMessage('Test alert sent. Keep the app closed — it should still pop on this device.');
+      } else {
+        setError('Could not send a test alert to this device. Disable and enable notifications, then try again.');
+      }
+    } catch (err) {
+      setError(err.message || 'Could not send a test alert');
     } finally {
       setBusy(false);
     }
@@ -77,15 +101,25 @@ export default function EnablePushCard() {
               {busy ? 'Enabling…' : 'Enable notifications'}
             </Button>
           ) : (
-            <Button
-              onClick={onDisable}
-              disabled={busy}
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 gap-2"
-            >
-              <BellOff className="h-4 w-4" />
-              {busy ? 'Updating…' : 'Disable on this device'}
-            </Button>
+            <>
+              <Button
+                onClick={onTest}
+                disabled={busy}
+                className="bg-orange-500 hover:bg-orange-400 gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                {busy ? 'Sending…' : 'Send test alert'}
+              </Button>
+              <Button
+                onClick={onDisable}
+                disabled={busy}
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 gap-2"
+              >
+                <BellOff className="h-4 w-4" />
+                {busy ? 'Updating…' : 'Disable on this device'}
+              </Button>
+            </>
           )}
         </div>
       )}
