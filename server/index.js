@@ -90,13 +90,22 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(uploadsDir));
 app.use('/api/uploads', express.static(uploadsDir));
 
-const ALLOWED_UPLOAD_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+const ALLOWED_UPLOAD_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/svg+xml',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
+  'image/bmp',
+]);
 
 function isAllowedUploadImage(file) {
   const type = String(file?.mimetype || '').toLowerCase();
   if (ALLOWED_UPLOAD_TYPES.has(type)) return true;
   const name = String(file?.originalname || '').toLowerCase();
-  return /\.(png|jpe?g|webp|gif)$/.test(name);
+  return /\.(png|jpe?g|webp|gif|svg|ico|bmp)$/.test(name);
 }
 
 const storage = multer.diskStorage({
@@ -111,7 +120,7 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (isAllowedUploadImage(file)) return cb(null, true);
-    const err = new Error('Please upload a PNG, JPEG, WebP, or GIF image');
+    const err = new Error('Please upload a PNG, JPEG, WebP, GIF, SVG, or ICO image');
     err.status = 400;
     cb(err);
   },
@@ -129,13 +138,25 @@ app.get('/api/health', (_req, res) => {
 
 function settingValue(key) {
   const settings = listEntities('AppSettings', null, 500);
-  const row = settings.find((item) => item.key === key);
+  const matches = settings.filter((item) => item.key === key);
+  const row = [...matches].reverse().find((item) => String(item.value || '').trim()) || matches[0];
   return String(row?.value || '').trim();
+}
+
+function iconMimeFromUrl(url) {
+  const lower = String(url || '').toLowerCase();
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.ico')) return 'image/x-icon';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  return 'image/png';
 }
 
 function buildWebManifest() {
   const customLogo = settingValue('app_logo_url');
   const icon = customLogo || '/rom-logo.png';
+  const type = iconMimeFromUrl(icon);
   return {
     name: 'Remote Ops Manager',
     short_name: 'Remote Ops',
@@ -146,11 +167,15 @@ function buildWebManifest() {
     orientation: 'any',
     background_color: '#1f2021',
     theme_color: '#1f2021',
-    icons: [
-      { src: icon, sizes: 'any', type: 'image/png', purpose: 'any' },
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-    ],
+    icons: customLogo
+      ? [
+          { src: icon, sizes: '192x192', type, purpose: 'any' },
+          { src: icon, sizes: '512x512', type, purpose: 'any maskable' },
+        ]
+      : [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
   };
 }
 

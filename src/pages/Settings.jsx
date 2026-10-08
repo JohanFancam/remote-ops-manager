@@ -15,6 +15,7 @@ import EnablePushCard from '../components/notifications/EnablePushCard';
 import DataImportSection from '../components/settings/DataImportSection';
 import SettingsCategory from '../components/settings/SettingsCategory';
 import { resolveAppLogoUrl } from '../components/brand/BrandMark';
+import { pickSetting } from '../utils/appSettings';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,38 +124,48 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
   );
 }
 
-const APP_LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif';
-const APP_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+const APP_LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.png,.jpg,.jpeg,.webp,.gif,.svg,.ico';
+const APP_LOGO_TYPES = new Set([
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/bmp',
+]);
+
+function isHeicFile(file) {
+  const type = String(file?.type || '').toLowerCase();
+  const name = String(file?.name || '').toLowerCase();
+  return type.includes('heic') || type.includes('heif') || /\.hei[cf]$/i.test(name);
+}
 
 function isAllowedLogoFile(file) {
+  if (isHeicFile(file)) return false;
   if (file?.type && APP_LOGO_TYPES.has(file.type)) return true;
-  return /\.(png|jpe?g|webp|gif)$/i.test(file?.name || '');
+  return /\.(png|jpe?g|webp|gif|svg|ico|bmp)$/i.test(file?.name || '');
 }
 
 function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
   return (
     <div className="flex items-center gap-4 flex-wrap">
       <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-        <img src={resolveAppLogoUrl(logoUrl)} alt="App Logo" className="w-full h-full object-contain" />
+        <img src={resolveAppLogoUrl(logoUrl)} alt="App icon" className="w-full h-full object-contain" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-200">App logo</p>
+        <p className="text-sm font-medium text-slate-200">App icon</p>
         <p className="text-sm text-slate-400 mb-2">
-          Shown on sign-in, in the sidebar, and when someone installs the app. Leave empty to use the default ROM mark.
+          Used on sign-in, in the sidebar, the browser tab, and when someone installs the app. PNG, JPEG, WebP, GIF, SVG, or ICO.
         </p>
         <div className="flex flex-wrap gap-2">
           <label
-            className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+            className={`relative inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 overflow-hidden ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
           >
             <input
               type="file"
               accept={APP_LOGO_ACCEPT}
-              className="sr-only"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               disabled={uploading}
               onChange={onUpload}
             />
             <Image className="h-4 w-4" />
-            {uploading ? 'Uploading...' : logoUrl ? 'Replace logo' : 'Upload logo'}
+            {uploading ? 'Uploading...' : logoUrl ? 'Replace icon' : 'Upload icon'}
           </label>
           {logoUrl && (
             <Button type="button" size="sm" variant="outline" onClick={onClear}
@@ -347,9 +358,9 @@ export default function Settings() {
 
 
 
-  const logoSetting = appSettings.find(s => s.key === 'app_logo_url');
+  const logoSetting = pickSetting(appSettings, 'app_logo_url');
   const logoUrl = logoSetting?.value;
-  const loginBgSetting = appSettings.find(s => s.key === 'login_background_url');
+  const loginBgSetting = pickSetting(appSettings, 'login_background_url');
   const loginBgUrl = loginBgSetting?.value;
 
   useEffect(() => {
@@ -416,9 +427,11 @@ export default function Settings() {
 
   const upsertSetting = async (key, value, description) => {
     const latest = await base44.entities.AppSettings.list();
-    const existing = latest.find((s) => s.key === key);
-    if (existing) {
-      await base44.entities.AppSettings.update(existing.id, { value });
+    const matches = latest.filter((s) => s.key === key);
+    const [keep, ...extras] = matches;
+    if (keep) {
+      await base44.entities.AppSettings.update(keep.id, { value });
+      await Promise.all(extras.map((row) => base44.entities.AppSettings.delete(row.id)));
     } else {
       await base44.entities.AppSettings.create({ key, value, description });
     }
@@ -429,8 +442,13 @@ export default function Settings() {
     const input = e.target;
     const file = input.files?.[0];
     if (!file) return;
+    if (isHeicFile(file)) {
+      setLogoError('iPhone HEIC photos are not supported. Export or screenshot as PNG or JPEG.');
+      input.value = '';
+      return;
+    }
     if (!isAllowedLogoFile(file)) {
-      setLogoError('Please upload a PNG, JPEG, WebP, or GIF image.');
+      setLogoError('Please upload a PNG, JPEG, WebP, GIF, SVG, or ICO image.');
       input.value = '';
       return;
     }
@@ -453,8 +471,13 @@ export default function Settings() {
     const input = e.target;
     const file = input.files?.[0];
     if (!file) return;
+    if (isHeicFile(file)) {
+      setBgError('iPhone HEIC photos are not supported. Export or screenshot as PNG or JPEG.');
+      input.value = '';
+      return;
+    }
     if (!isAllowedLogoFile(file)) {
-      setBgError('Please upload a PNG, JPEG, WebP, or GIF image.');
+      setBgError('Please upload a PNG, JPEG, WebP, GIF, SVG, or ICO image.');
       input.value = '';
       return;
     }
@@ -523,17 +546,6 @@ export default function Settings() {
                 </Badge>
               </div>
             </div>
-            {isAdmin && (
-              <div className="mt-5 pt-4 border-t border-slate-800">
-                <AppLogoControls
-                  logoUrl={logoUrl}
-                  uploading={logoUploading}
-                  error={logoError}
-                  onUpload={handleLogoUpload}
-                  onClear={handleClearLogo}
-                />
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -780,14 +792,14 @@ export default function Settings() {
         {isAdmin && (
           <SettingsCategory
             title="Appearance"
-            description="App logo and sign-in background"
+            description="App icon and sign-in background"
             icon={Image}
             defaultOpen
           >
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader className="border-b border-slate-800 pb-4">
                 <CardTitle className="text-slate-100 flex items-center gap-2">
-                  <Image className="h-5 w-5 text-orange-400" /> App Logo
+                  <Image className="h-5 w-5 text-orange-400" /> App icon
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -818,12 +830,12 @@ export default function Settings() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <label
-                        className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+                        className={`relative inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 overflow-hidden ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
                       >
                         <input
                           type="file"
                           accept={APP_LOGO_ACCEPT}
-                          className="sr-only"
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                           disabled={bgUploading}
                           onChange={handleLoginBackgroundUpload}
                         />

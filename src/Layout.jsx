@@ -11,7 +11,9 @@ import {
   Wrench, LogOut, RefreshCw, DollarSign, Bell, AlertTriangle, CheckSquare,
 } from 'lucide-react';
 import BrandMark from './components/brand/BrandMark';
+import AppIconHead from './components/brand/AppIconHead';
 import AppSplash from './components/brand/AppSplash';
+import { pickSettingValue } from './utils/appSettings';
 import ShootChangePopup from './components/dashboard/ShootChangePopup';
 import ShootCompleteReminder from './components/dashboard/ShootCompleteReminder';
 import {
@@ -115,7 +117,7 @@ function LayoutContent({ children, currentPageName }) {
 
   const notifyHours = Number(appSettings.find((s) => s.key === 'notify_hours_before')?.value) || 5;
 
-  const logoUrl = appSettings.find(s => s.key === 'app_logo_url')?.value;
+  const logoUrl = pickSettingValue(appSettings, 'app_logo_url');
 
   const adminNav = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
@@ -187,6 +189,7 @@ function LayoutContent({ children, currentPageName }) {
       enabled={!!user && !isAccounts}
     >
     <div className="min-h-screen flex">
+    <AppIconHead logoUrl={logoUrl} />
       <TooltipProvider delayDuration={200}>
         <aside
           className={cn(
