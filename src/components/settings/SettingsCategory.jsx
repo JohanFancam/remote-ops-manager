@@ -20,7 +20,7 @@ export default function SettingsCategory({
         >
           <span className="flex items-start gap-3 min-w-0">
             {Icon && (
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-blue-400">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-orange-400">
                 <Icon className="h-4 w-4" />
               </span>
             )}

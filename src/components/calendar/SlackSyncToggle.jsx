@@ -30,7 +30,7 @@ export default function SlackSyncToggle({ enabled = false, compact = false }) {
         checked={!!enabled}
         disabled={saving}
         onCheckedChange={handleChange}
-        className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-700"
+        className="data-[state=checked]:bg-orange-500 data-[state=unchecked]:bg-slate-700"
       />
     </label>
   );

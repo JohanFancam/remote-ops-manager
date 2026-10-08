@@ -20,7 +20,7 @@ const ROLE_OPTIONS = [
 ];
 
 const roleBadgeClass = {
-  admin: 'bg-blue-600/20 text-blue-400 border-blue-800',
+  admin: 'bg-orange-500/20 text-orange-400 border-orange-800',
   standby: 'bg-yellow-500/20 text-amber-400 border-yellow-500/30',
   accounts: 'bg-green-500/20 text-emerald-400 border-green-500/30',
   analytics: 'bg-cyan-500/20 text-cyan-300 border-cyan-800',
@@ -176,7 +176,7 @@ function IssuedPasswords({ issued, skipped, onDismiss }) {
         </Button>
         <Button
           size="sm"
-          className="bg-blue-600 hover:bg-blue-500 h-8 gap-1.5 text-xs"
+          className="bg-orange-500 hover:bg-orange-400 h-8 gap-1.5 text-xs"
           onClick={handleCopyAllWelcomes}
         >
           {copied === 'welcomes' ? <Check className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
@@ -269,7 +269,7 @@ function AddUserForm({ onClose, onAdded, onIssued }) {
       {error && <p className="text-xs text-red-400">{error}</p>}
       <div className="flex gap-2">
         <Button size="sm" onClick={handleAdd} disabled={saving || done}
-          className="bg-blue-600 hover:bg-blue-600 gap-2 text-xs h-8">
+          className="bg-orange-500 hover:bg-orange-400 gap-2 text-xs h-8">
           <Send className="h-3.5 w-3.5" />
           {done ? '✓ Added — welcome copied' : saving ? 'Creating login…' : 'Add user & copy welcome'}
         </Button>
@@ -494,7 +494,7 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup, p
           </label>
           {resetError && <p className="text-xs text-red-400">{resetError}</p>}
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-500 h-8 gap-1" onClick={handleSave} disabled={saving}>
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-400 h-8 gap-1" onClick={handleSave} disabled={saving}>
               <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
             </Button>
             <Button size="sm" variant="ghost" className="h-8 text-slate-400 hover:text-slate-100" onClick={() => setEditing(false)}>
@@ -506,7 +506,7 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup, p
         <div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center font-bold text-blue-400 flex-shrink-0 text-sm">
+            <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center font-bold text-orange-400 flex-shrink-0 text-sm">
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -572,7 +572,7 @@ function PendingUserRow({ pu, onRefresh, onIssued, currentEmail, issuedLookup, p
                 )}
               </>
             )}
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-blue-400 hover:bg-slate-800" onClick={openEdit}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-orange-400 hover:bg-slate-800" onClick={openEdit}>
               <Edit2 className="h-3.5 w-3.5" />
             </Button>
             {deleteConfirm ? (
@@ -710,12 +710,12 @@ export default function ManageUsersSection() {
       <CardHeader className="border-b border-slate-800 pb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-400" /> Manage Users ({crew.length})
+            <Users className="h-5 w-5 text-orange-400" /> Manage Users ({crew.length})
           </CardTitle>
           <div className="flex items-center gap-2">
             {!showAddForm && (
               <Button size="sm" onClick={() => setShowAddForm(true)}
-                className="bg-blue-600 hover:bg-blue-600 gap-1.5 text-xs">
+                className="bg-orange-500 hover:bg-orange-400 gap-1.5 text-xs">
                 <UserPlus className="h-3.5 w-3.5" /> Add User
               </Button>
             )}

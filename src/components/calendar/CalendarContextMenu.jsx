@@ -59,7 +59,7 @@ export default function CalendarContextMenu({
       : { label: 'Assign Me to Shoot', icon: UserCheck, action: () => { onAssignSelf(shoot); onClose(); }, color: 'text-emerald-400' };
 
   const items = [
-    { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-blue-400' },
+    { label: 'More Details', icon: ExternalLink, action: () => { onViewDetails(shoot); onClose(); }, color: 'text-orange-400' },
     ...(canCheckRig ? [{
       label: shoot?.rig_check_completed ? 'Open rig check message' : 'Quick rig check',
       icon: Wrench,

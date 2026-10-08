@@ -144,7 +144,7 @@ export default function DataImportSection() {
           <Button
             onClick={() => run(false)}
             disabled={busy || !files.length}
-            className="bg-blue-600 hover:bg-blue-500 gap-2"
+            className="bg-orange-500 hover:bg-orange-400 gap-2"
           >
             {busy && !preview ? 'Checking…' : 'Preview'}
           </Button>

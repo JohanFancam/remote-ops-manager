@@ -195,8 +195,8 @@ export default function StandbyManager({ user, allUsers = [] }) {
           </Button>
           <Button size="sm" variant={selectMode ? 'default' : 'outline'}
             className={selectMode
-              ? 'h-7 text-xs gap-1 bg-blue-600 hover:bg-blue-600 border-blue-500'
-              : 'h-7 text-xs gap-1 border-blue-800 text-blue-400 hover:bg-blue-950/40'}
+              ? 'h-7 text-xs gap-1 bg-orange-500 hover:bg-orange-400 border-orange-500'
+              : 'h-7 text-xs gap-1 border-orange-700 text-orange-400 hover:bg-orange-950/40'}
             onClick={() => {
               setSelectMode(!selectMode);
               setShowForm(false);
@@ -206,7 +206,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
             {selectMode ? <><Check className="h-3 w-3" /> Selecting Range…</> : 'Select Range'}
           </Button>
           {selectMode && (
-            <span className="text-xs text-blue-400">
+            <span className="text-xs text-orange-400">
               {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end date` : `${rangeStart} → ${rangeEnd}`}
             </span>
           )}
@@ -296,7 +296,7 @@ export default function StandbyManager({ user, allUsers = [] }) {
                 style={{ background: bg }}
               >
                 <span className={`text-xs font-medium block ${
-                  isToday ? 'text-blue-400 font-bold' :
+                  isToday ? 'text-orange-400 font-bold' :
                   hasMe ? 'text-amber-400' :
                   hasOther ? 'text-blue-400' :
                   isPast ? 'text-gray-600' : 'text-slate-400'

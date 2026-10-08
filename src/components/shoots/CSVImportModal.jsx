@@ -103,7 +103,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
               <input type="file" accept=".csv" className="hidden" onChange={handleFile} />
               {file ? (
                 <>
-                  <FileText className="h-10 w-10 text-blue-400" />
+                  <FileText className="h-10 w-10 text-orange-400" />
                   <p className="text-slate-100 font-medium">{file.name}</p>
                   <p className="text-slate-400 text-sm">{preview.length} rows previewed</p>
                 </>
@@ -151,7 +151,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
             )}
 
             <div className="flex gap-3 mt-2">
-              <Button onClick={handleImport} disabled={!file || loading} className="bg-blue-600 hover:bg-blue-500 flex-1">
+              <Button onClick={handleImport} disabled={!file || loading} className="bg-orange-500 hover:bg-orange-400 flex-1">
                 {loading ? 'Importing...' : 'Import Shoots'}
               </Button>
               <Button variant="outline" onClick={() => { reset(); onClose(); }} className="border-slate-800 text-slate-400 hover:bg-slate-800">
@@ -164,7 +164,7 @@ export default function CSVImportModal({ open, onClose, onImported }) {
             <CheckCircle2 className="h-14 w-14 text-emerald-400 mx-auto mb-4" />
             <p className="text-xl font-bold text-slate-100 mb-1">{result.success} shoots imported</p>
             {result.failed > 0 && <p className="text-amber-400 text-sm">{result.failed} rows failed (missing title or date)</p>}
-            <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-blue-600 hover:bg-blue-500">Done</Button>
+            <Button onClick={() => { reset(); onClose(); }} className="mt-6 bg-orange-500 hover:bg-orange-400">Done</Button>
           </div>
         )}
       </DialogContent>

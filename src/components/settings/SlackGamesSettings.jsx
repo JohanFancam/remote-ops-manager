@@ -64,7 +64,7 @@ export default function SlackGamesSettings({ canEdit = true }) {
     <Card className="bg-slate-900 border-slate-800 mt-4">
       <CardHeader className="border-b border-slate-800 pb-4">
         <CardTitle className="text-slate-100 flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-400" /> Slack Gameday fail-safe
+          <MessageSquare className="h-5 w-5 text-orange-400" /> Slack Gameday fail-safe
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
@@ -107,14 +107,14 @@ export default function SlackGamesSettings({ canEdit = true }) {
                 <Save className="h-4 w-4" />
                 {saving ? 'Saving…' : 'Save Slack channel'}
               </Button>
-              <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-orange-500 hover:bg-orange-400 gap-2">
                 <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                 {syncing ? 'Syncing…' : 'Sync from Slack'}
               </Button>
             </div>
           </>
         ) : (
-          <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-blue-600 hover:bg-blue-500 gap-2">
+          <Button onClick={handleSync} disabled={syncing || !status?.configured || !status?.enabled} className="bg-orange-500 hover:bg-orange-400 gap-2">
             <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing…' : status?.enabled ? (status?.configured ? 'Sync from Slack' : 'Slack channel not connected') : 'Slack sync is off'}
           </Button>

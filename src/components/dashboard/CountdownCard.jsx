@@ -70,12 +70,12 @@ function PhaseQuickButton({ label, time, done, onClick, canClick }) {
       className={`inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
         done
           ? 'border-emerald-800 bg-emerald-950/40 text-green-300'
-          : 'border-slate-800 bg-slate-800/70 text-gray-200 hover:border-blue-500/70 hover:bg-blue-950/40 hover:text-slate-100'
+          : 'border-slate-800 bg-slate-800/70 text-gray-200 hover:border-orange-500/70 hover:bg-orange-950/40 hover:text-slate-100'
       } ${canClick ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
     >
       <span>{label}</span>
-      <span className={`font-mono font-semibold ${done ? 'text-green-300' : 'text-blue-400'}`}>
+      <span className={`font-mono font-semibold ${done ? 'text-green-300' : 'text-orange-300'}`}>
         {time || '—'}
       </span>
     </button>
@@ -455,7 +455,7 @@ export default function CountdownCard({
                 <span className="truncate text-sm font-semibold text-slate-100">
                   {shortenTitle(shoot.title)}
                 </span>
-                {rigLabel && <span className="text-xs font-medium text-blue-400">{rigLabel}</span>}
+                {rigLabel && <span className="text-xs font-medium text-orange-400">{rigLabel}</span>}
                 {isLiveData(shoot, matchedRig) ? <LiveDataBadge /> : null}
               </div>
 
@@ -563,7 +563,7 @@ export default function CountdownCard({
               <button
                 type="button"
                 onClick={handleCopyReadyMessage}
-                className="inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border border-blue-500 bg-blue-950/40 px-2.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-950/40 hover:text-blue-100"
+                className="inline-flex h-8 min-w-[5.5rem] flex-1 sm:flex-none sm:min-w-[118px] items-center justify-center rounded-md border border-orange-500 bg-orange-950/40 px-2.5 text-xs font-medium text-orange-300 transition-colors hover:bg-orange-950/55 hover:text-orange-100"
               >
                 {readyCopied
                   ? <><Check className="mr-1 h-3.5 w-3.5" />Copied — paste in Slack</>
@@ -640,9 +640,9 @@ export default function CountdownCard({
             </div>
 
             {matchedRig?.notes && (
-              <div className="rounded-lg border border-blue-800 bg-blue-950/40 p-2.5">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-400">Rig Notes</p>
-                <p className="text-xs italic leading-relaxed text-blue-200/90">{matchedRig.notes}</p>
+              <div className="rounded-lg border border-orange-800 bg-orange-950/40 p-2.5">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-orange-400">Rig Notes</p>
+                <p className="text-xs italic leading-relaxed text-orange-200/90">{matchedRig.notes}</p>
               </div>
             )}
 

@@ -207,7 +207,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
               return (
                 <button key={ds} onClick={() => jumpToWeek(ds)}
                   className={`rounded p-1 min-h-[36px] transition-all ${inMonth ? 'hover:bg-slate-700' : 'opacity-30'} ${isToday ? 'ring-1 ring-blue-500' : ''} ${inCurrentWeek ? 'bg-orange-900/30 ring-1 ring-orange-600/50' : ''}`}>
-                  <span className={`text-xs block ${isToday ? 'text-blue-400 font-bold' : inMonth ? 'text-slate-400' : 'text-gray-600'}`}>{format(day, 'd')}</span>
+                  <span className={`text-xs block ${isToday ? 'text-orange-400 font-bold' : inMonth ? 'text-slate-400' : 'text-gray-600'}`}>{format(day, 'd')}</span>
                   {dayOpsCount > 0 && <span className="text-xs text-orange-400 font-bold">{dayOpsCount}</span>}
                 </button>
               );
@@ -238,9 +238,9 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 isToday ? 'border-blue-800 bg-blue-950/40' : 'border-slate-800'
               }`}>
                 <div>
-                  <p className={`text-sm font-bold ${isToday ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-slate-100'}`}>
+                  <p className={`text-sm font-bold ${isToday ? 'text-orange-400' : isPast ? 'text-gray-600' : 'text-slate-100'}`}>
                     {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
-                    {isToday && <span className="ml-1.5 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded-full">Today</span>}
+                    {isToday && <span className="ml-1.5 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full">Today</span>}
                   </p>
                   {hasEarlyNext && (
                     <p className="text-xs text-orange-400/70 mt-0.5">incl. early AM {format(new Date(nextDateStr + 'T12:00:00'), 'MMM d')}</p>
@@ -383,19 +383,19 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
       <div className="border border-slate-800 rounded-xl overflow-hidden mb-4">
         <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40 border-b border-slate-800">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Copy className="h-4 w-4 text-blue-400 flex-shrink-0" />
+            <Copy className="h-4 w-4 text-orange-400 flex-shrink-0" />
             {editingHeading ? (
               <input autoFocus type="text" value={messageHeading} onChange={e => setMessageHeading(e.target.value)}
                 onBlur={() => setEditingHeading(false)} onKeyDown={e => e.key === 'Enter' && setEditingHeading(false)}
-                className="flex-1 bg-slate-700 border border-slate-700 rounded px-2 py-0.5 text-sm text-slate-100 outline-none focus:border-blue-500" />
+                className="flex-1 bg-slate-700 border border-slate-700 rounded px-2 py-0.5 text-sm text-slate-100 outline-none focus:border-orange-500" />
             ) : (
-              <button onClick={() => setEditingHeading(true)} className="text-sm font-semibold text-slate-100 hover:text-blue-400 text-left truncate">
+              <button onClick={() => setEditingHeading(true)} className="text-sm font-semibold text-slate-100 hover:text-orange-400 text-left truncate">
                 {messageHeading} <span className="text-gray-600 text-xs">(click to edit)</span>
               </button>
             )}
           </div>
           {checkedShoots.length > 0 && (
-            <Button size="sm" onClick={handleCopy} className="bg-blue-600 hover:bg-blue-600 gap-1.5 text-xs h-7 ml-2">
+            <Button size="sm" onClick={handleCopy} className="bg-orange-500 hover:bg-orange-400 gap-1.5 text-xs h-7 ml-2">
               {copied ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy</>}
             </Button>
           )}
@@ -410,7 +410,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
                 const label = getRigTypeLabel(s, rig);
                 return (
                   <div key={s.id} className="flex items-start gap-2 text-sm text-slate-400">
-                    <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
+                    <span className="text-orange-400 mt-0.5 flex-shrink-0">•</span>
                     <span>
                       <span className="font-medium text-slate-100">{shortenTitle(s.title)}</span>
                       {label && <span className="text-blue-400 ml-1">({label})</span>}
@@ -436,7 +436,7 @@ export default function RigsCheckPanel({ shoots = [], rigSettings = [], appSetti
               {archivedWeekShoots.map(s => (
                 <div key={s.id} className="flex items-center gap-3 opacity-50">
                   <span className="text-sm text-slate-500 line-through flex-1">{shortenTitle(s.title)}</span>
-                  <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-blue-400" title="Restore">
+                  <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-orange-400" title="Restore">
                     <RotateCcw className="h-3.5 w-3.5" />
                   </button>
                 </div>

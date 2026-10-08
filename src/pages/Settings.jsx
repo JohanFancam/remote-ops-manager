@@ -68,7 +68,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
     <Card className="bg-slate-900 border-slate-800 mb-6">
       <CardHeader className="border-b border-slate-800 pb-4">
         <CardTitle className="text-slate-100 flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-400" /> Message Templates
+          <MessageSquare className="h-5 w-5 text-orange-400" /> Message Templates
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
@@ -78,7 +78,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
 
         <div>
           <label className="text-xs text-slate-400 block mb-1">
-            Rigs Check message — use <code className="text-blue-400">{'{list}'}</code> for the shoot list
+            Rigs Check message — use <code className="text-orange-400">{'{list}'}</code> for the shoot list
           </label>
           <Input
             value={rigsTemplate}
@@ -93,7 +93,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
 
         <div>
           <label className="text-xs text-slate-400 block mb-1">
-            Shoot Summary — no issues — use <code className="text-blue-400">{'{name}'}</code> for shoot name
+            Shoot Summary — no issues — use <code className="text-orange-400">{'{name}'}</code> for shoot name
           </label>
           <Input
             value={summaryOk}
@@ -105,7 +105,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
 
         <div>
           <label className="text-xs text-slate-400 block mb-1">
-            Shoot Summary — issues reported — use <code className="text-blue-400">{'{name}'}</code> and <code className="text-blue-400">{'{notes}'}</code>
+            Shoot Summary — issues reported — use <code className="text-orange-400">{'{name}'}</code> and <code className="text-orange-400">{'{notes}'}</code>
           </label>
           <Input
             value={summaryIssues}
@@ -115,7 +115,7 @@ function MessageTemplatesSection({ appSettings, queryClient }) {
           />
         </div>
 
-        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-600 gap-2">
+        <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-400 gap-2">
           <Save className="h-4 w-4" /> {saved ? '✓ Saved!' : 'Save Templates'}
         </Button>
       </CardContent>
@@ -144,7 +144,7 @@ function AppLogoControls({ logoUrl, uploading, error, onUpload, onClear }) {
         </p>
         <div className="flex flex-wrap gap-2">
           <label
-            className={`inline-flex h-8 items-center gap-2 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+            className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${uploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
           >
             <input
               type="file"
@@ -218,7 +218,7 @@ function ChangePasswordCard() {
         requireCurrent
         submitLabel={saved ? 'Password updated' : 'Update password'}
         inputClassName="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm w-full rounded-md px-3 py-2 border"
-        buttonClassName="inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-medium px-4 py-2"
+        buttonClassName="inline-flex items-center justify-center rounded-md bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-white text-sm font-medium px-4 py-2"
         errorClassName="rounded-md border border-red-800/80 bg-red-950/40 text-red-400 text-sm px-3 py-2"
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['currentUser'] });
@@ -273,7 +273,7 @@ function InvoiceExportNameCard({ appSettings, queryClient }) {
           placeholder={DEFAULT_INVOICE_EXPORT_NAME}
           className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-gray-600 text-sm max-w-md"
         />
-        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 gap-2">
+        <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-400 gap-2">
           <Save className="h-4 w-4" /> {saved ? 'Saved' : 'Save invoice name'}
         </Button>
       </CardContent>
@@ -507,18 +507,18 @@ export default function Settings() {
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-400" /> My Profile
+              <User className="h-5 w-5 text-orange-400" /> My Profile
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex items-center gap-4 flex-wrap">
-              <div className="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-2xl font-bold text-blue-400">
+              <div className="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-2xl font-bold text-orange-400">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-lg font-semibold text-slate-100">{user?.full_name || 'Unnamed'}</p>
                 <p className="text-slate-400 text-sm">{user?.email}</p>
-                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : user?.role === 'viewer' ? 'bg-slate-600/30 text-slate-300 border-slate-600' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
+                <Badge className={`mt-1 text-xs ${user?.role === 'admin' ? 'bg-orange-500/20 text-orange-400 border-orange-800' : user?.role === 'standby' ? 'bg-yellow-500/20 text-amber-400 border-yellow-500/30' : user?.role === 'analytics' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-800' : user?.role === 'viewer' ? 'bg-slate-600/30 text-slate-300 border-slate-600' : 'bg-slate-700 text-slate-400 border-slate-700'}`}>
                 {user?.role === 'admin' ? 'Admin' : user?.role === 'standby' ? 'Operator / Standby' : user?.role === 'accounts' ? 'Accounts' : user?.role === 'analytics' ? 'Data Analytics' : user?.role === 'viewer' ? 'Viewer' : 'Remote Operator'}
                 </Badge>
               </div>
@@ -540,7 +540,7 @@ export default function Settings() {
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-blue-400" /> Change password
+              <KeyRound className="h-5 w-5 text-orange-400" /> Change password
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -554,7 +554,7 @@ export default function Settings() {
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
-              <Globe className="h-5 w-5 text-blue-400" /> Time zone
+              <Globe className="h-5 w-5 text-orange-400" /> Time zone
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
@@ -595,7 +595,7 @@ export default function Settings() {
         <Card className="bg-slate-900 border-slate-800 mb-6">
           <CardHeader className="border-b border-slate-800 pb-4">
             <CardTitle className="text-slate-100 flex items-center gap-2">
-              <Bell className="h-5 w-5 text-blue-400" /> Device Notifications
+              <Bell className="h-5 w-5 text-orange-400" /> Device Notifications
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -745,7 +745,7 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
-                <p className="text-xs text-slate-500">Use <code className="text-blue-400">{'{team}'}</code> to insert the team/client name dynamically.</p>
+                <p className="text-xs text-slate-500">Use <code className="text-orange-400">{'{team}'}</code> to insert the team/client name dynamically.</p>
                 {SLACK_PHASES.map(phase => (
                   <div key={phase.key}>
                     <label className="text-xs text-slate-400 block mb-1">{phase.label}</label>
@@ -787,7 +787,7 @@ export default function Settings() {
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader className="border-b border-slate-800 pb-4">
                 <CardTitle className="text-slate-100 flex items-center gap-2">
-                  <Image className="h-5 w-5 text-blue-400" /> App Logo
+                  <Image className="h-5 w-5 text-orange-400" /> App Logo
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -803,7 +803,7 @@ export default function Settings() {
             <Card className="bg-slate-900 border-slate-800 mt-4">
               <CardHeader className="border-b border-slate-800 pb-4">
                 <CardTitle className="text-slate-100 flex items-center gap-2">
-                  <Image className="h-5 w-5 text-blue-400" /> Sign-in background
+                  <Image className="h-5 w-5 text-orange-400" /> Sign-in background
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -818,7 +818,7 @@ export default function Settings() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <label
-                        className={`inline-flex h-8 items-center gap-2 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+                        className={`inline-flex h-8 items-center gap-2 rounded-md bg-orange-500 px-3 text-xs font-medium text-white hover:bg-orange-400 ${bgUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
                       >
                         <input
                           type="file"

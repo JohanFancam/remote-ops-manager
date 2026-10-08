@@ -77,7 +77,7 @@ export default function Rigs() {
             <p className="text-slate-400 text-sm mt-1">Team camera configs and the default checklist used when that team’s shoot is assigned for rig testing</p>
           </div>
           {isAdmin && (
-            <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-blue-600 hover:bg-blue-500">
+            <Button onClick={() => { setSidePanelRig({}); setViewOnly(false); }} className="bg-orange-500 hover:bg-orange-400">
               <Plus className="h-4 w-4 mr-2" /> New Rig Setting
             </Button>
           )}
@@ -88,7 +88,7 @@ export default function Rigs() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search by team, sport, rig type…"
-            className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-blue-500 outline-none" />
+            className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-4 py-2.5 text-sm placeholder:text-gray-600 focus:border-orange-500 outline-none" />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-100">
               <X className="h-4 w-4" />
@@ -102,7 +102,7 @@ export default function Rigs() {
             const isActive = sidePanelRig?.id === rig.id;
             return (
               <div key={rig.id} className={`rounded-xl border flex flex-col transition-all ${
-                isActive ? 'border-blue-500 ring-2 ring-blue-600/40 bg-slate-900' : 'border-slate-800 bg-slate-900 hover:border-slate-800'
+                isActive ? 'border-orange-500 ring-2 ring-orange-500/40 bg-slate-900' : 'border-slate-800 bg-slate-900 hover:border-slate-800'
               }`}>
                 {/* Tile header */}
                 <div className="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
@@ -171,7 +171,7 @@ export default function Rigs() {
                 {/* Notes preview */}
                 {rig.notes && (
                   <div className="px-4 pb-3">
-                    <div className="flex items-center gap-1.5 text-blue-400/80 mb-1">
+                    <div className="flex items-center gap-1.5 text-orange-400/80 mb-1">
                       <StickyNote className="h-3 w-3" />
                       <span className="text-[10px] font-semibold uppercase tracking-wider">Notes</span>
                     </div>
@@ -185,14 +185,14 @@ export default function Rigs() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => { setSidePanelRig(rig); setViewOnly(true); }}
-                        className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-orange-400 transition-colors"
                         title="Quick view">
                         <Eye className="h-3.5 w-3.5" /> View
                       </button>
                       <button
                         onClick={() => { setSidePanelRig(rig); setViewOnly(false); }}
                         className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-                          isActive && !viewOnly ? 'text-blue-400 hover:text-slate-100' : 'text-slate-400 hover:text-slate-100'
+                          isActive && !viewOnly ? 'text-orange-400 hover:text-slate-100' : 'text-slate-400 hover:text-slate-100'
                         }`}>
                         <Edit2 className="h-3.5 w-3.5" />
                         {isActive && !viewOnly ? 'Editing →' : 'Edit'}
@@ -200,7 +200,7 @@ export default function Rigs() {
                     </div>
                     <div className="flex gap-1 items-center">
                       <button onClick={() => handleDuplicate(rig)} title="Duplicate"
-                        className="p-1.5 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors">
+                        className="p-1.5 rounded text-slate-500 hover:text-orange-400 hover:bg-slate-800 transition-colors">
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                       {confirmDeleteId === rig.id ? (

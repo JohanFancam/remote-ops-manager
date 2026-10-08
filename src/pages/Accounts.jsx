@@ -147,7 +147,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
             <div className="rounded-lg p-3 border border-blue-800/40 bg-blue-950/20">
               <p className="text-sm font-medium text-slate-100">Standby sessions</p>
               <p className="text-xs text-slate-400">{standbyCount} × 18:00–06:00</p>
-              <p className="font-mono font-bold text-blue-300 mt-1">R{standbyTotal.toFixed(2)}</p>
+              <p className="font-mono font-bold text-orange-300 mt-1">R{standbyTotal.toFixed(2)}</p>
             </div>
           )}
           {opShoots.length === 0 && !hasPending && standbyCount === 0 && <p className="text-slate-500 text-sm text-center py-4">No shoots this month.</p>}
@@ -184,7 +184,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                       <>
                         <Input type="number" value={editFee} onChange={e => setEditFee(e.target.value)}
                           className="bg-slate-700 border-slate-700 text-slate-100 h-7 w-24 text-sm" placeholder="Fee (R)" />
-                        <Button size="sm" className="h-7 bg-blue-600 hover:bg-blue-500 text-xs px-2" onClick={() => handleSaveFee(shoot)}>
+                        <Button size="sm" className="h-7 bg-orange-500 hover:bg-orange-400 text-xs px-2" onClick={() => handleSaveFee(shoot)}>
                           <Save className="h-3 w-3" />
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-slate-400 text-xs px-2" onClick={() => setEditingId(null)}>
@@ -220,7 +220,7 @@ function OperatorRow({ op, shoots, pendingShoots, paymentRecords, month, onSaveF
                     <div className="flex gap-2 flex-1">
                       <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Add note..."
                         className="bg-slate-700 border-slate-700 text-slate-100 h-7 text-xs flex-1" />
-                      <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 px-2" onClick={() => handleSaveNote(shoot)}>Save</Button>
+                      <Button size="sm" className="h-7 text-xs bg-orange-500 hover:bg-orange-400 px-2" onClick={() => handleSaveNote(shoot)}>Save</Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-slate-400" onClick={() => setEditingNote(null)}>Cancel</Button>
                     </div>
                   ) : (

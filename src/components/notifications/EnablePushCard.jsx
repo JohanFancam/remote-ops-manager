@@ -72,7 +72,7 @@ export default function EnablePushCard() {
       ) : (
         <div className="flex flex-wrap gap-2">
           {!enabled ? (
-            <Button onClick={onEnable} disabled={busy} className="bg-blue-600 hover:bg-blue-500 gap-2">
+            <Button onClick={onEnable} disabled={busy} className="bg-orange-500 hover:bg-orange-400 gap-2">
               <Bell className="h-4 w-4" />
               {busy ? 'Enabling…' : 'Enable notifications'}
             </Button>

@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 const PHASES = [
   { key: 'setup_complete', label: 'Setup', icon: Zap, color: 'text-orange-400' },
-  { key: 'pre_shoot_started', label: 'Pre-Shoot', icon: Camera, color: 'text-blue-400' },
+  { key: 'pre_shoot_started', label: 'Pre-Shoot', icon: Camera, color: 'text-orange-400' },
   { key: 'attention_started', label: 'Attention', icon: AlertTriangle, color: 'text-amber-400' },
   { key: 'sound_started', label: 'Sound', icon: Volume2, color: 'text-emerald-400' },
   { key: 'shoot_complete', label: 'Complete', icon: CheckCircle, color: 'text-emerald-400' },

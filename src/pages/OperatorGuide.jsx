@@ -48,7 +48,7 @@ export default function OperatorGuide() {
         <header className="mb-8">
           <p className="rom-kicker mb-2">Operators</p>
           <h1 className="rom-title flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-blue-400" /> Operator guide
+            <BookOpen className="h-6 w-6 text-orange-400" /> Operator guide
           </h1>
           <p className="rom-subtitle">
             A short walkthrough of the screens you use every match day. Watch the video first, then use the steps below. Ask an admin if your login does not work.
@@ -73,7 +73,7 @@ export default function OperatorGuide() {
         <ol className="space-y-4">
           {STEPS.map((step, index) => (
             <li key={step.title} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">Step {index + 1}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-400">Step {index + 1}</p>
               <h2 className="mt-1 text-base font-semibold text-slate-100">{step.title}</h2>
               <p className="mt-1.5 text-sm text-slate-400 leading-relaxed">{step.body}</p>
             </li>
@@ -81,19 +81,19 @@ export default function OperatorGuide() {
         </ol>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Link to="/" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-blue-500/40">
-            <LayoutDashboard className="mb-1 h-4 w-4 text-blue-400" /> Dashboard
+          <Link to="/" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-orange-500/40">
+            <LayoutDashboard className="mb-1 h-4 w-4 text-orange-400" /> Dashboard
           </Link>
-          <Link to="/Calendar" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-blue-500/40">
-            <Calendar className="mb-1 h-4 w-4 text-blue-400" /> Calendar
+          <Link to="/Calendar" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-orange-500/40">
+            <Calendar className="mb-1 h-4 w-4 text-orange-400" /> Calendar
           </Link>
-          <Link to="/Notifications" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-blue-500/40">
-            <Bell className="mb-1 h-4 w-4 text-blue-400" /> Notifications
+          <Link to="/Notifications" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-orange-500/40">
+            <Bell className="mb-1 h-4 w-4 text-orange-400" /> Notifications
           </Link>
-          <Link to="/Settings" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-blue-500/40">
-            <Settings className="mb-1 h-4 w-4 text-blue-400" /> Settings
+          <Link to="/Settings" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-orange-500/40">
+            <Settings className="mb-1 h-4 w-4 text-orange-400" /> Settings
           </Link>
-          <Link to="/AppFaults" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-blue-500/40 sm:col-span-2">
+          <Link to="/AppFaults" className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 hover:border-orange-500/40 sm:col-span-2">
             <AlertTriangle className="mb-1 h-4 w-4 text-amber-400" /> App Faults
           </Link>
         </div>

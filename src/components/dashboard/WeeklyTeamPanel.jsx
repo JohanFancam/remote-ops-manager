@@ -150,11 +150,11 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
         <div className="flex items-center gap-2">
           <div className="flex bg-slate-800 rounded-lg p-0.5">
             <button onClick={() => setViewMode('7day')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === '7day' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === '7day' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
               <List className="h-3.5 w-3.5" /> 7-Day
             </button>
             <button onClick={() => setViewMode('month')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'month' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-100'}`}>
               <CalendarDays className="h-3.5 w-3.5" /> Month
             </button>
           </div>
@@ -164,7 +164,7 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
           {viewMode === 'month' && (
             <div className="flex items-center gap-2">
               <span className="text-slate-100 font-semibold">{format(calMonth, 'MMMM yyyy')}</span>
-              <span className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{monthShootCount} shoots</span>
+              <span className="text-xs bg-orange-950/40 text-orange-400 border border-orange-800 px-2 py-0.5 rounded-full">{monthShootCount} shoots</span>
             </div>
           )}
         </div>
@@ -211,9 +211,9 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                   isToday ? 'border-blue-800 bg-blue-950/40' : 'border-slate-800'
                 }`}>
                   <div>
-                    <p className={`text-sm font-bold ${isToday ? 'text-blue-400' : isPast ? 'text-gray-600' : 'text-slate-100'}`}>
+                    <p className={`text-sm font-bold ${isToday ? 'text-orange-400' : isPast ? 'text-gray-600' : 'text-slate-100'}`}>
                       {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
-                      {isToday && <span className="ml-1.5 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded-full">Today</span>}
+                      {isToday && <span className="ml-1.5 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full">Today</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -277,13 +277,13 @@ export default function WeeklyTeamPanel({ shoots = [], allUsers = [] }) {
                     ${isSelected ? 'ring-2 ring-blue-400' : ''}
                     ${isToday ? 'ring-1 ring-blue-500' : ''}`}
                   style={{ background: bg }}>
-                  <span className={`text-xs font-medium block ${isToday ? 'text-blue-400 font-bold' : dayShoots.length > 0 ? 'text-blue-400' : 'text-slate-500'}`}>
+                  <span className={`text-xs font-medium block ${isToday ? 'text-orange-400 font-bold' : dayShoots.length > 0 ? 'text-orange-400' : 'text-slate-500'}`}>
                     {format(day, 'd')}
                   </span>
                   {inMonth && dayShoots.length > 0 && (
                     <div className="mt-0.5 space-y-0.5">
                       {dayShoots.slice(0, 2).map(s => (
-                        <div key={s.id} className={`text-xs truncate leading-tight rounded px-0.5 ${(s.pending_operators?.length || 0) > 0 ? 'text-orange-300' : 'text-blue-400'}`}>
+                        <div key={s.id} className={`text-xs truncate leading-tight rounded px-0.5 ${(s.pending_operators?.length || 0) > 0 ? 'text-amber-300' : 'text-orange-400'}`}>
                           {s.title?.split(' vs ')[0] || s.client || '•'}
                         </div>
                       ))}

@@ -81,7 +81,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
           <div className="flex gap-2">
             <Button
               onClick={handleCopy}
-              className="flex-1 bg-blue-600 hover:bg-blue-600"
+              className="flex-1 bg-orange-500 hover:bg-orange-400"
             >
               {copied ? (
                 <>
@@ -201,7 +201,7 @@ export default function ShootCompleteModal({ shoot, user, onClose }) {
           <Button
             onClick={handleSubmit}
             disabled={saving || (hadIssues && !notes)}
-            className="flex-1 bg-blue-600 hover:bg-blue-500"
+            className="flex-1 bg-orange-500 hover:bg-orange-400"
           >
             {saving ? 'Saving...' : 'Submit & Complete'}
           </Button>

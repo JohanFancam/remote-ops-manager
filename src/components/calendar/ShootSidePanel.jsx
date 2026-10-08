@@ -329,7 +329,7 @@ export default function ShootSidePanel({
         <div className="px-4 py-3 border-b border-slate-800 flex-shrink-0 flex gap-2 flex-wrap">
           {isAdmin && (
             <>
-              <Button size="sm" onClick={() => onEdit(shoot)} className="bg-blue-600 hover:bg-blue-500 text-xs h-8">
+              <Button size="sm" onClick={() => onEdit(shoot)} className="bg-orange-500 hover:bg-orange-400 text-xs h-8">
                 <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
               <Button size="sm" onClick={() => onDuplicate(shoot)} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800 text-xs h-8">
@@ -356,7 +356,7 @@ export default function ShootSidePanel({
                   isAssigned ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
                   : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20'
                   : claimedByOther ? 'border border-slate-700 text-slate-500 bg-slate-800/50 cursor-not-allowed'
-                  : withinLimit ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                  : withinLimit ? 'bg-orange-500 hover:bg-orange-400 text-white'
                   : 'bg-amber-950/40 hover:bg-yellow-600/30 border border-yellow-600/50 text-amber-400'
                 }`}
               >

@@ -1554,14 +1554,16 @@ export default function Calendar() {
             const standbyColor = primaryStandby ? standbyColorForEmail(primaryStandby.admin_email) : EMPTY_STANDBY_COLOR;
             const myUnavailable = getMyUnavailableForDay(day);
             const exactCalendarUnavailable = getMyExactCalendarUnavailableForDay(day);
-            const isSelected = isSameDay(day, selectedDate);
+            const isPopupDay = dayPopup && isSameDay(day, dayPopup);
             const today = dateStr === todayStr;
             return (
               <div
                 key={day.toISOString()}
                 onClick={(e) => openDayPopup(day, e)}
-                className={`min-h-[72px] md:min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col bg-slate-950 ${
-                  isSelected ? 'bg-blue-950/35' : 'hover:bg-slate-900/90'
+                className={`min-h-[72px] md:min-h-[120px] h-full px-1 pt-1 pb-0.5 cursor-pointer transition-colors flex flex-col ${
+                  isPopupDay
+                    ? 'bg-orange-950/45 hover:bg-orange-900/50'
+                    : 'bg-slate-950 hover:bg-slate-800/90'
                 } ${greyOutDay ? 'opacity-55' : ''}`}
                 title="View this day"
               >
@@ -1645,7 +1647,7 @@ export default function Calendar() {
             const isPast = dateStr < todayStr;
 
             return (
-              <div key={day.toISOString()} className={`rounded-xl border ${dateStr === todayStr ? 'border-blue-500/60 bg-blue-950/40' : 'border-slate-800 bg-slate-800/40'}`}>
+              <div key={day.toISOString()} className={`rounded-xl border ${dateStr === todayStr ? 'border-orange-500/60 bg-orange-950/30' : 'border-slate-800 bg-slate-800/40'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{format(day, 'EEEE, MMMM d')}</p>
@@ -1773,7 +1775,7 @@ export default function Calendar() {
                 </p>
                 {(googleStatus.lastSyncChanges || []).length > 0 && (
                   <details className="mt-1">
-                    <summary className="text-xs text-blue-300 cursor-pointer">What changed</summary>
+                    <summary className="text-xs text-orange-300 cursor-pointer">What changed</summary>
                     <ul className="mt-1 space-y-0.5 max-h-28 overflow-y-auto">
                       {googleStatus.lastSyncChanges.slice(0, 12).map((item, index) => (
                         <li key={`${item.title}-${index}`} className="text-[11px] text-slate-400">
@@ -1883,7 +1885,7 @@ export default function Calendar() {
                 <button
                   type="button"
                   onClick={() => { const now = new Date(); setCurrentDate(now); setSelectedDate(now); }}
-                  className="text-xs text-blue-400 hover:text-blue-400 mt-1"
+                  className="text-xs text-orange-400 hover:text-orange-300 mt-1"
                 >
                   Jump to today
                 </button>

@@ -47,7 +47,7 @@ export default function ShootFormPanel({ form, setForm, editingShoot, onSave, on
 
         {/* Footer */}
         <div className="flex gap-2 p-4 border-t border-slate-800 flex-shrink-0">
-          <Button onClick={onSave} className="bg-blue-600 hover:bg-blue-500 flex-1">{editingShoot ? 'Save Changes' : 'Create Shoot'}</Button>
+          <Button onClick={onSave} className="bg-orange-500 hover:bg-orange-400 flex-1">{editingShoot ? 'Save Changes' : 'Create Shoot'}</Button>
           <Button variant="outline" onClick={onClose} className="border-slate-800 text-slate-400 hover:bg-slate-800">Cancel</Button>
         </div>
       </div>

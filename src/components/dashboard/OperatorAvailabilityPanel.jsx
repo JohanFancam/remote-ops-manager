@@ -115,7 +115,7 @@ export function AdminAvailabilityView({ allUsers = [] }) {
                 ${isSelected ? 'ring-2 ring-purple-400' : ''}`}
               style={{ background: bg }}
             >
-              <span className={`text-sm font-bold block mb-1.5 ${isToday ? 'text-blue-400' : unavail.length > 0 ? 'text-red-400' : avail.length > 0 ? 'text-green-300' : 'text-slate-400'}`}>
+              <span className={`text-sm font-bold block mb-1.5 ${isToday ? 'text-orange-400' : unavail.length > 0 ? 'text-red-400' : avail.length > 0 ? 'text-green-300' : 'text-slate-400'}`}>
                 {format(day, 'd')}
               </span>
               <div className="flex-1 space-y-0.5">
@@ -318,7 +318,7 @@ export function OperatorAvailabilityPanel({ user }) {
   return (
     <Card className="bg-slate-900 border-slate-800 mb-6">
       <CardHeader className="border-b border-slate-800 pb-3">
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-slate-100 font-semibold text-base hover:text-blue-400 transition-colors">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-slate-100 font-semibold text-base hover:text-orange-400 transition-colors">
           <CalendarDays className="h-4 w-4 text-purple-400" />
           My Availability
           {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
@@ -345,13 +345,13 @@ export function OperatorAvailabilityPanel({ user }) {
             </Button>
             <Button size="sm" variant={selectMode ? 'default' : 'outline'}
               className={selectMode
-                ? 'h-7 text-xs gap-1 bg-blue-600 hover:bg-blue-600 border-blue-500'
-                : 'h-7 text-xs gap-1 border-blue-800 text-blue-400 hover:bg-blue-950/40'}
+                ? 'h-7 text-xs gap-1 bg-orange-500 hover:bg-orange-400 border-orange-500'
+                : 'h-7 text-xs gap-1 border-orange-700 text-orange-400 hover:bg-orange-950/40'}
               onClick={() => { setSelectMode(!selectMode); setShowForm(false); setSelectedDay(null); setRangeStart(null); setRangeEnd(null); }}>
               {selectMode ? <><Check className="h-3 w-3" /> Selecting…</> : 'Select Range'}
             </Button>
             {selectMode && (
-              <span className="text-xs text-blue-400">
+              <span className="text-xs text-orange-400">
                 {!rangeStart ? 'Click start date' : !rangeEnd ? `Start: ${rangeStart} — click end` : `${rangeStart} → ${rangeEnd}`}
               </span>
             )}
@@ -438,7 +438,7 @@ export function OperatorAvailabilityPanel({ user }) {
                     ${isToday ? 'ring-1 ring-blue-500' : ''}`}
                   style={{ background: bg }}
                 >
-                  <span className={`text-xs font-medium ${isToday ? 'text-blue-400 font-bold' : myDay?.type === 'unavailable' ? 'text-red-400' : myDay?.type === 'available' ? 'text-green-300' : 'text-slate-500'}`}>
+                  <span className={`text-xs font-medium ${isToday ? 'text-orange-400 font-bold' : myDay?.type === 'unavailable' ? 'text-red-400' : myDay?.type === 'available' ? 'text-green-300' : 'text-slate-500'}`}>
                     {format(day, 'd')}
                   </span>
                   {inMonth && myDay && (
@@ -493,7 +493,7 @@ export function OperatorAvailabilityPanel({ user }) {
                         {entry.notes && <p className="text-xs text-slate-500 italic mt-0.5">{entry.notes}</p>}
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-blue-400"
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-orange-400"
                           onClick={() => openEdit(entry)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -528,7 +528,7 @@ export function OperatorAvailabilityPanel({ user }) {
                       {entry.notes && <span className="text-xs text-slate-500 italic">{entry.notes}</span>}
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-blue-400"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-orange-400"
                         onClick={() => openEdit(entry)}>
                         <Pencil className="h-3 w-3" />
                       </Button>

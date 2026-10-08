@@ -171,7 +171,7 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-4 mb-3">
           <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
-            <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+            <Camera className="h-5 w-5 text-orange-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-slate-100">{myMonthShoots.length}</p>
             <p className="text-xs text-slate-400">Shoots</p>
           </div>
@@ -198,7 +198,7 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Active Days ({activeDayEntries.length})</p>
-                <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-400 gap-1"
+                <Button size="sm" variant="ghost" className="h-6 text-xs text-orange-400 hover:text-orange-300 gap-1"
                   onClick={() => setAddingDay(!addingDay)}>
                   <Plus className="h-3 w-3" /> Add Day
                 </Button>
@@ -208,7 +208,7 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
                 <div className="flex gap-2 mb-2">
                   <Input type="date" value={newDayInput} onChange={e => setNewDayInput(e.target.value)}
                     className="bg-slate-800 border-slate-800 text-slate-100 h-7 text-xs flex-1" />
-                  <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 px-2" onClick={handleAddDay} disabled={saving}>Add</Button>
+                  <Button size="sm" className="h-7 text-xs bg-orange-500 hover:bg-orange-400 px-2" onClick={handleAddDay} disabled={saving}>Add</Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-400" onClick={() => setAddingDay(false)}>
                     <X className="h-3 w-3" />
                   </Button>
@@ -263,7 +263,7 @@ export default function AdminMonthlySummary({ shoots, user, appSettings = [] }) 
                       <span className="text-sm text-slate-400">
                         {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
                       </span>
-                      <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-400 px-2"
+                      <Button size="sm" variant="ghost" className="h-6 text-xs text-orange-400 hover:text-orange-300 px-2"
                         onClick={() => handleInclude(dateStr)} disabled={saving}>
                         Restore
                       </Button>

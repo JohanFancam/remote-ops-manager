@@ -140,7 +140,7 @@ export default function Earnings() {
           {user?.role === 'standby' && (
             <Card className="bg-slate-900 border-blue-800/40">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-blue-300">{formatZAR(standbyPay.total, { withSpace: false })}</p>
+                <p className="text-2xl font-bold text-orange-300">{formatZAR(standbyPay.total, { withSpace: false })}</p>
                 <p className="text-xs text-slate-400 mt-1">Standby · {standbyPay.count} session{standbyPay.count === 1 ? '' : 's'}</p>
               </CardContent>
             </Card>
@@ -186,7 +186,7 @@ export default function Earnings() {
                       {formatDateZA(sd.start_date || sd.date, { weekday: 'short' })} · 18:00–06:00
                     </p>
                   </div>
-                  <p className="text-sm font-bold text-blue-300">{formatZAR(standbyRate, { withSpace: false })}</p>
+                  <p className="text-sm font-bold text-orange-300">{formatZAR(standbyRate, { withSpace: false })}</p>
                 </div>
               </Card>
             ))}

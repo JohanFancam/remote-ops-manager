@@ -159,7 +159,7 @@ export default function GoogleCalendarSettings() {
     <Card className="bg-slate-900 border-slate-800 mb-6">
       <CardHeader className="border-b border-slate-800 pb-4">
         <CardTitle className="text-slate-100 flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-blue-400" /> Google Calendar
+          <CalendarDays className="h-5 w-5 text-orange-400" /> Google Calendar
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
@@ -245,7 +245,7 @@ export default function GoogleCalendarSettings() {
           <Button
             onClick={handleSaveOauth}
             disabled={savingOauth || !clientId}
-            className="bg-blue-600 hover:bg-blue-500 gap-2 w-fit"
+            className="bg-orange-500 hover:bg-orange-400 gap-2 w-fit"
           >
             <Save className="h-4 w-4" />
             {savingOauth ? 'Saving…' : 'Save Google credentials'}
@@ -279,7 +279,7 @@ export default function GoogleCalendarSettings() {
             </div>
 
             {status?.configured && !status.connected && (
-              <Button onClick={handleConnect} disabled={connecting} className="bg-blue-600 hover:bg-blue-500 gap-2">
+              <Button onClick={handleConnect} disabled={connecting} className="bg-orange-500 hover:bg-orange-400 gap-2">
                 <Link2 className="h-4 w-4" />
                 {connecting ? 'Opening Google…' : 'Connect Google Calendar'}
               </Button>
@@ -330,7 +330,7 @@ export default function GoogleCalendarSettings() {
                 </Button>
 
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={handleSync} disabled={syncing} className="bg-blue-600 hover:bg-blue-500 gap-2">
+                  <Button onClick={handleSync} disabled={syncing} className="bg-orange-500 hover:bg-orange-400 gap-2">
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                     {syncing ? 'Syncing…' : 'Sync Data + Fancam'}
                   </Button>
