@@ -194,7 +194,7 @@ function LayoutContent({ children, currentPageName }) {
       <TooltipProvider delayDuration={200}>
         <aside
           className={cn(
-            "hidden md:flex flex-col fixed h-[calc(100%-1.25rem)] top-2.5 left-2.5 z-30 overflow-hidden rounded-2xl border border-[color:var(--rom-line)] bg-[color:var(--rom-canvas)]/94 backdrop-blur-xl transition-all duration-300 ease-out",
+            "hidden md:flex flex-col fixed h-[calc(100%-1.25rem)] top-2.5 left-2.5 z-30 overflow-hidden rounded-2xl bg-[color:var(--rom-canvas)]/94 backdrop-blur-xl transition-all duration-300 ease-out",
             collapsed ? "w-[72px]" : "w-[15.5rem]"
           )}
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
@@ -215,7 +215,7 @@ function LayoutContent({ children, currentPageName }) {
 
           {!collapsed && (
             <div className="px-4 pb-3 space-y-2">
-              <div className="flex items-center gap-2 rounded-xl border border-[color:var(--rom-line)] bg-white/[0.03] px-2.5 py-2">
+              <div className="flex items-center gap-2 rounded-xl bg-white/[0.03] px-2.5 py-2">
                 <span className="rom-live-dot" />
                 <span className="text-[11px] font-medium text-slate-300">{roleLabel(isAdmin, isStandby, isAccounts, isAnalytics, isViewer)}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-600">live</span>
@@ -253,7 +253,7 @@ function LayoutContent({ children, currentPageName }) {
             })}
           </nav>
 
-          <div className={cn("border-t border-[color:var(--rom-line)]", collapsed ? "p-2" : "p-3")}>
+          <div className={cn(collapsed ? "p-2" : "p-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center mb-2" : "gap-3 mb-3")}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500/30 to-orange-700/40 text-orange-100 flex items-center justify-center text-sm font-semibold flex-shrink-0 ring-1 ring-orange-400/20">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
