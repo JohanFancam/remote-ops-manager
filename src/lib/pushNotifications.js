@@ -2,15 +2,11 @@
  * Register service worker + subscribe to Web Push.
  */
 import { api } from '@/api/client';
+import { urlBase64ToUint8Array, vapidKeysMatch } from './pushKeys';
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
-  return output;
-}
+export { urlBase64ToUint8Array, vapidKeysMatch } from './pushKeys';
+
+const VAPID_CACHE_KEY = 'rom_vapid_public';
 
 export function pushSupported() {
   return typeof window !== 'undefined'
@@ -22,11 +18,47 @@ export function pushSupported() {
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+    const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+    registration.update?.().catch(() => {});
+    return registration;
   } catch (err) {
     console.warn('Service worker registration failed:', err);
     return null;
   }
+}
+
+async function subscribeWithPublicKey(registration, publicKey) {
+  const applicationServerKey = urlBase64ToUint8Array(publicKey);
+  let subscription = await registration.pushManager.getSubscription();
+  const existingKey = subscription?.options?.applicationServerKey;
+  const cachedKey = (() => {
+    try { return localStorage.getItem(VAPID_CACHE_KEY) || ''; } catch { return ''; }
+  })();
+
+  if (subscription) {
+    const mismatch = cachedKey !== publicKey
+      || (existingKey && !vapidKeysMatch(existingKey, publicKey));
+    if (mismatch) {
+      try { await subscription.unsubscribe(); } catch { /* ignore */ }
+      subscription = null;
+    }
+  }
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  }
+
+  await api.push.subscribe(subscription.toJSON());
+  try {
+    localStorage.setItem('rom_push_enabled', '1');
+    localStorage.setItem(VAPID_CACHE_KEY, publicKey);
+  } catch {
+    // ignore
+  }
+  return subscription;
 }
 
 export async function ensurePushSubscription() {
@@ -38,22 +70,18 @@ export async function ensurePushSubscription() {
     await navigator.serviceWorker.ready;
     const { publicKey } = await api.push.vapidPublicKey();
     if (!publicKey) return null;
-    let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
-    }
-    await api.push.subscribe(subscription.toJSON());
+    return await subscribeWithPublicKey(registration, publicKey);
+  } catch (err) {
+    console.warn('Could not refresh push subscription:', err);
     try {
-      localStorage.setItem('rom_push_enabled', '1');
+      const registration = await navigator.serviceWorker.ready;
+      const stale = await registration.pushManager.getSubscription();
+      if (stale) await stale.unsubscribe();
+      const { publicKey } = await api.push.vapidPublicKey();
+      if (publicKey) return await subscribeWithPublicKey(registration, publicKey);
     } catch {
       // ignore
     }
-    return subscription;
-  } catch (err) {
-    console.warn('Could not refresh push subscription:', err);
     return null;
   }
 }
@@ -75,21 +103,7 @@ export async function enablePushNotifications() {
   const { publicKey } = await api.push.vapidPublicKey();
   if (!publicKey) throw new Error('Server is missing VAPID public key');
 
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
-  }
-
-  await api.push.subscribe(subscription.toJSON());
-  try {
-    localStorage.setItem('rom_push_enabled', '1');
-  } catch {
-    // ignore
-  }
-  return subscription;
+  return subscribeWithPublicKey(registration, publicKey);
 }
 
 export async function disablePushNotifications() {
@@ -106,6 +120,7 @@ export async function disablePushNotifications() {
   }
   try {
     localStorage.removeItem('rom_push_enabled');
+    localStorage.removeItem(VAPID_CACHE_KEY);
   } catch {
     // ignore
   }
@@ -117,4 +132,8 @@ export function isPushEnabledLocally() {
   } catch {
     return false;
   }
+}
+
+export async function sendTestPush() {
+  return api.push.test();
 }

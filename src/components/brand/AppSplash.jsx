@@ -1,20 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { resolveAppLogoUrl } from '@/components/brand/BrandMark';
 import { readCachedTheme } from '@/utils/theme';
 
+/** First-paint splash lives in index.html (#rom-boot). This is unused during boot. */
 export default function AppSplash({ logoUrl, splashUrl, canvas }) {
   const cached = readCachedTheme();
   const background = canvas || cached.canvas;
   const splash = splashUrl || cached.splash;
   const src = resolveAppLogoUrl(splash || logoUrl || cached.logo);
   const isSplashArt = Boolean(splash);
-
-  useEffect(() => {
-    document.documentElement.classList.remove('rom-ready');
-    return () => {
-      document.documentElement.classList.add('rom-ready');
-    };
-  }, []);
 
   return (
     <div

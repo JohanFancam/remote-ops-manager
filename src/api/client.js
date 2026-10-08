@@ -332,6 +332,9 @@ export const api = {
         body: JSON.stringify({ endpoint }),
       });
     },
+    test() {
+      return request('/api/push/test', { method: 'POST' });
+    },
   },
 };
 

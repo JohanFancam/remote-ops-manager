@@ -45,6 +45,7 @@ import {
   getVapidPublicKey,
   savePushSubscription,
   removePushSubscription,
+  sendPushToEmails,
 } from './push.js';
 import {
   handleShootChange,
@@ -713,6 +714,22 @@ app.post('/api/push/unsubscribe', authMiddleware, (req, res) => {
   }
 });
 
+app.post('/api/push/test', authMiddleware, async (req, res) => {
+  try {
+    const logo = String(settingValue('app_logo_url') || '').trim() || '/icon-192.png';
+    const result = await sendPushToEmails([req.user.email], {
+      title: 'Remote Ops',
+      body: 'Test alert — popups still work when this app is closed.',
+      url: '/Notifications',
+      type: 'test',
+      icon: logo,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Admin only' });
@@ -1004,6 +1021,13 @@ app.get('/api/entities/:type/subscribe', authMiddleware, (req, res) => {
 // Serve built frontend in production
 const distDir = path.resolve(__dirname, '../dist');
 if (fs.existsSync(distDir)) {
+  app.use((req, res, next) => {
+    if (req.path === '/sw.js') {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Service-Worker-Allowed', '/');
+    }
+    next();
+  });
   app.use(express.static(distDir));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/uploads') || req.path.startsWith('/uploads')) return next();
