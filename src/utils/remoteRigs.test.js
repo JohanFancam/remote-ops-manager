@@ -1,4 +1,14 @@
-import { isStandaloneDisplay, normalizeRemoteRigs, remoteRigHref } from './remoteRigs.js';
+import {
+  crdAccountChooserHref,
+  crdAndroidIntentHref,
+  isAndroidUserAgent,
+  isStandaloneDisplay,
+  normalizeCrdAccount,
+  normalizeRemoteRigs,
+  remoteRigHref,
+  remoteRigLaunchHref,
+  withCrdAccount,
+} from './remoteRigs.js';
 
 function assert(cond, message) {
   if (!cond) throw new Error(message);
@@ -29,5 +39,45 @@ assert(
 );
 
 assert(isStandaloneDisplay() === false, 'node is not a standalone display');
+
+assert(normalizeCrdAccount(' Ops@Fancam.com ') === 'ops@fancam.com', 'normalizes the registered Google account');
+assert(normalizeCrdAccount('not-an-email') === '', 'rejects a non-email account');
+assert(normalizeCrdAccount('') === '', 'blank account stays empty');
+
+const withUser = remoteRigHref({ url: lightning }, 'ops@fancam.com');
+assert(withUser.includes('authuser=ops%40fancam.com') || withUser.includes('authuser=ops@fancam.com'), 'adds authuser to the CRD session');
+assert(withUser.startsWith('https://remotedesktop.google.com/'), 'keeps the CRD origin so Chrome can open the app');
+assert(remoteRigHref({ url: lightning }, 'nope') === lightning, 'ignores an invalid account');
+
+const hinted = withCrdAccount(lightning, 'ops@fancam.com');
+assert(hinted.includes('authuser='), 'withCrdAccount sets authuser');
+
+const chooser = crdAccountChooserHref(hinted, 'ops@fancam.com');
+assert(chooser.startsWith('https://accounts.google.com/AccountChooser'), 'AccountChooser is the signed-in landing');
+assert(chooser.includes('Email=ops%40fancam.com'), 'AccountChooser pins the registered email');
+assert(decodeURIComponent(chooser).includes('remotedesktop.google.com/access/session/'), 'AccountChooser continues into the CRD session');
+
+const intent = crdAndroidIntentHref(hinted);
+assert(intent.startsWith('intent://remotedesktop.google.com/'), 'Android intent targets CRD');
+assert(intent.includes('package=com.google.chromeremotedesktop'), 'Android intent forces the CRD app');
+assert(intent.includes('S.browser_fallback_url='), 'Android intent has an https fallback');
+
+assert(isAndroidUserAgent('Mozilla/5.0 (Linux; Android 14) Chrome/120') === true, 'detects Android');
+assert(isAndroidUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)') === false, 'desktop is not Android');
+
+const androidLaunch = remoteRigLaunchHref({ url: lightning }, { account: 'ops@fancam.com', android: true });
+assert(androidLaunch.startsWith('intent://'), 'Android launch uses the CRD app intent');
+assert(androidLaunch.includes('authuser='), 'Android intent still carries the registered account');
+
+const desktopLaunch = remoteRigLaunchHref({ url: lightning }, { account: 'ops@fancam.com', android: false });
+assert(desktopLaunch.startsWith('https://remotedesktop.google.com/'), 'desktop launch stays on the CRD origin');
+assert(desktopLaunch.includes('authuser='), 'desktop launch asks Chrome for the registered account');
+
+const chooserLaunch = remoteRigLaunchHref({ url: lightning }, {
+  account: 'ops@fancam.com',
+  android: false,
+  chooseAccount: true,
+});
+assert(chooserLaunch.startsWith('https://accounts.google.com/AccountChooser'), 'chooseAccount wraps AccountChooser');
 
 console.log('remoteRigs tests passed');

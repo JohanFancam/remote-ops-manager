@@ -2,6 +2,10 @@
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CRD_HOST = /(?:^https?:\/\/)?(?:www\.)?remotedesktop\.google\.com\//i;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CRD_ANDROID_PACKAGE = 'com.google.chromeremotedesktop';
+export const CRD_WINDOW_NAME = 'chrome-remote-desktop';
+export const CRD_GOOGLE_ACCOUNT_KEY = 'crd_google_account';
 
 function stripWrap(value) {
   return String(value || '').trim().replace(/^['"]+|['"]+$/g, '').trim();
@@ -36,7 +40,19 @@ export function normalizeRemoteRigs(raw) {
   }).filter(Boolean);
 }
 
-export function remoteRigHref(item) {
+export function normalizeCrdAccount(value) {
+  const email = String(value || '').trim().toLowerCase();
+  return EMAIL.test(email) ? email : '';
+}
+
+function asOptions(accountOrOptions) {
+  if (accountOrOptions == null || typeof accountOrOptions === 'string') {
+    return { account: accountOrOptions };
+  }
+  return accountOrOptions;
+}
+
+export function remoteSessionHref(item) {
   let url = stripWrap(item?.url);
   if (!url && looksLikeRemoteUrl(item?.name)) url = stripWrap(item.name);
   if (!url || /^javascript:/i.test(url)) return '';
@@ -45,6 +61,68 @@ export function remoteRigHref(item) {
   }
   if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
   return `https://${url}`;
+}
+
+export function withCrdAccount(href, account) {
+  const email = normalizeCrdAccount(account);
+  if (!href || !email) return href || '';
+  try {
+    const parsed = new URL(href);
+    if (/remotedesktop\.google\.com$/i.test(parsed.hostname)) {
+      parsed.searchParams.set('authuser', email);
+      return parsed.toString();
+    }
+  } catch {
+    // ignore invalid urls
+  }
+  return href;
+}
+
+export function crdAccountChooserHref(sessionHref, account) {
+  const email = normalizeCrdAccount(account);
+  if (!sessionHref || !email) return sessionHref || '';
+  const chooser = new URL('https://accounts.google.com/AccountChooser');
+  chooser.searchParams.set('Email', email);
+  chooser.searchParams.set('continue', sessionHref);
+  chooser.searchParams.set('hl', 'en');
+  return chooser.toString();
+}
+
+export function crdAndroidIntentHref(httpsHref) {
+  const href = String(httpsHref || '').trim();
+  if (!href) return '';
+  const path = href.replace(/^https?:\/\//i, '');
+  return `intent://${path}#Intent;scheme=https;package=${CRD_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(href)};end`;
+}
+
+export function isAndroidUserAgent(ua) {
+  const agent = ua ?? (typeof navigator !== 'undefined' ? navigator.userAgent : '');
+  return /Android/i.test(String(agent || ''));
+}
+
+/** Session URL, with authuser when a registered Google account is set. */
+export function remoteRigHref(item, accountOrOptions) {
+  const { account } = asOptions(accountOrOptions);
+  return withCrdAccount(remoteSessionHref(item), account);
+}
+
+/**
+ * URL the OS / Chrome should actually open.
+ * Android: Chrome Remote Desktop app intent. Elsewhere: the session URL so
+ * Chrome can hand off to the installed Remote Desktop app. A registered
+ * Google account is passed as authuser (and via AccountChooser when the
+ * caller asks for a signed-in landing).
+ */
+export function remoteRigLaunchHref(item, accountOrOptions) {
+  const options = asOptions(accountOrOptions);
+  const session = remoteRigHref(item, options);
+  if (!session) return '';
+  const android = options.android ?? isAndroidUserAgent(options.userAgent);
+  if (android) return crdAndroidIntentHref(session);
+  if (options.chooseAccount && normalizeCrdAccount(options.account)) {
+    return crdAccountChooserHref(session, options.account);
+  }
+  return session;
 }
 
 export function isStandaloneDisplay() {
@@ -58,14 +136,17 @@ export function isStandaloneDisplay() {
   return window.navigator?.standalone === true;
 }
 
-export function openRemoteRig(item) {
-  const href = remoteRigHref(item);
-  if (!href || typeof window === 'undefined') return false;
-  // Do not pass noopener as a windowFeatures flag — Chrome/PWA can ignore the
-  // open entirely. Clear opener after a successful open instead.
+export function openRemoteRig(item, accountOrOptions) {
+  if (typeof window === 'undefined') return false;
+  const options = asOptions(accountOrOptions);
+  const href = remoteRigLaunchHref(item, options);
+  if (!href) return false;
+
+  // Named target reuses the Chrome Remote Desktop window instead of stacking
+  // tabs in whichever browser last happened to be focused.
   let popup = null;
   try {
-    popup = window.open(href, '_blank');
+    popup = window.open(href, CRD_WINDOW_NAME);
   } catch {
     popup = null;
   }
@@ -73,6 +154,12 @@ export function openRemoteRig(item) {
     try { popup.opener = null; } catch { /* ignore */ }
     return true;
   }
-  window.location.assign(href);
+
+  const account = normalizeCrdAccount(options.account);
+  const android = options.android ?? isAndroidUserAgent(options.userAgent);
+  const fallback = !android && account
+    ? crdAccountChooserHref(remoteRigHref(item, options), account)
+    : href;
+  window.location.assign(fallback);
   return true;
 }

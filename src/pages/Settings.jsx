@@ -5,6 +5,7 @@ import { useApp } from '../components/AppContext';
 import { useAuth } from '@/lib/AuthContext';
 import ManageUsersSection from '../components/settings/ManageUsersSection';
 import AutoAssignSettings from '../components/settings/AutoAssignSettings';
+import CrdAccountSettings from '../components/settings/CrdAccountSettings';
 import RestrictedAssignSettings from '../components/settings/RestrictedAssignSettings';
 import GoogleCalendarSettings from '../components/settings/GoogleCalendarSettings';
 import SlackGamesSettings from '../components/settings/SlackGamesSettings';
@@ -24,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   User, RefreshCw, MessageSquare, Save, Image, DollarSign, Bell, KeyRound,
-  CalendarDays, Database, Users, Globe, Palette
+  CalendarDays, Database, Users, Globe, Palette, Monitor
 } from 'lucide-react';
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 import { useTimezone } from '@/components/TimezoneContext';
@@ -976,6 +977,16 @@ export default function Settings() {
             <ManageUsersSection queryClient={queryClient} />
             <RestrictedAssignSettings appSettings={appSettings} />
             <AutoAssignSettings appSettings={appSettings} allUsers={allUsers} />
+          </SettingsCategory>
+        )}
+
+        {isAdmin && (
+          <SettingsCategory
+            title="Remote desktops"
+            description="Google account used when dashboard remotes open Chrome Remote Desktop"
+            icon={Monitor}
+          >
+            <CrdAccountSettings appSettings={appSettings} />
           </SettingsCategory>
         )}
 

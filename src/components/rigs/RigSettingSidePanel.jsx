@@ -245,7 +245,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             <div>
               <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Remote desktops</label>
               <p className="text-[10px] text-slate-500 mb-2">
-                One-time setup: on remotedesktop.google.com/access, open that PC and copy the address bar link (it looks like remotedesktop.google.com/access/session/…). Paste it in the URL field. The dashboard button opens that session in a new browser tab; Chrome can then hand off to the Remote Desktop app.
+                One-time setup: on remotedesktop.google.com/access (signed into the Google account the remotes are registered to), open that PC and copy the address bar link (it looks like remotedesktop.google.com/access/session/…). Paste it in the URL field. Dashboard buttons open that Chrome Remote Desktop session — on a phone the Remote Desktop app, on a computer Chrome should hand it to the installed Chrome Remote Desktop app. Set the registered Google account under Settings → Remote desktops.
               </p>
               {!readOnly && (
                 <div className="space-y-2 mb-2">

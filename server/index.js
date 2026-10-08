@@ -199,6 +199,7 @@ app.get('/api/public-settings', (_req, res) => {
       theme_surface: settingValue('theme_surface'),
       theme_accent: settingValue('theme_accent'),
       theme_line: settingValue('theme_line'),
+      crd_google_account: settingValue('crd_google_account'),
     },
   });
 });
