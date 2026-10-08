@@ -14,6 +14,7 @@ import { getDisplayName } from '../utils/nameUtils';
 import ShootPhaseButtons from '../shoots/ShootPhaseButtons';
 import { AUTO_APPROVE_LIMIT, getPreApprovedCount, addEmail, removeEmail, hasEmail, findPairedShoot, findPairedShootForUnassign, isClaimedByOtherOperator, exclusiveAssignFields, exclusivePendingFields } from '../../utils/assignmentApproval';
 import { isAssignmentLocked } from '../../utils/assignmentLock';
+import RemoteRigButtons from '@/components/rigs/RemoteRigButtons';
 
 function ReadySlackMessage({ shoot, schedule, showSetup = true, showPreShoot = true, showAttention, showSound, rigType }) {
   const [copied, setCopied] = useState(false);
@@ -292,12 +293,8 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               <div className="space-y-1 text-sm">
                 {matchedRig.remote_rigs?.length > 0 && (
                   <div>
-                    <p className="text-xs text-slate-500 mb-1">Remote Rigs</p>
-                    <div className="flex flex-wrap gap-1">
-                      {matchedRig.remote_rigs.map((r, i) => (
-                        <span key={i} className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{r}</span>
-                      ))}
-                    </div>
+                    <p className="text-xs text-slate-500 mb-1">Remote desktops</p>
+                    <RemoteRigButtons remotes={matchedRig.remote_rigs} />
                   </div>
                 )}
                 {matchedRig.shoot_plan && (

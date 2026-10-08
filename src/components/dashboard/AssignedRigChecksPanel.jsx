@@ -2,18 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { CheckSquare } from 'lucide-react';
+import { CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { matchRig } from '@/components/utils/rigUtils';
 import {
   assignmentProgress,
+  groupRigChecksByDay,
   isRigCheckAssignee,
   itemsFromDefaultChecks,
   mergeChecklistFromRig,
+  RIG_CHECK_DAYS_PER_PAGE,
 } from '@/utils/rigChecks';
-import RigCheckTile from '@/components/rigs/RigCheckTile';
+import RigCheckDayPanel, { RigCheckDayListItem, formatRigCheckDay } from '@/components/rigs/RigCheckDayPanel';
 import DashboardSection from '@/components/dashboard/DashboardSection';
-
-const PAGE_SIZE = 4;
 
 function resolveRig(row, { shoots = [], rigSettings = [] } = {}) {
   if (row?.rig_setting_id) {
@@ -33,6 +33,7 @@ export default function AssignedRigChecksPanel({
   const [savingId, setSavingId] = useState('');
   const [expandedId, setExpandedId] = useState('');
   const [page, setPage] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(null);
   const hydratedRef = useRef(new Set());
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -76,15 +77,10 @@ export default function AssignedRigChecksPanel({
   );
 
   const rows = useMemo(() => (
-    mine
-      .map((row) => mergeChecklistFromRig(row, resolveRig(row, { shoots, rigSettings })))
-      .sort((a, b) => {
-        const aOpen = a.status === 'completed' ? 1 : 0;
-        const bOpen = b.status === 'completed' ? 1 : 0;
-        if (aOpen !== bOpen) return aOpen - bOpen;
-        return String(a.due_date || a.shoot_date || a.team || '').localeCompare(String(b.due_date || b.shoot_date || b.team || ''));
-      })
+    mine.map((row) => mergeChecklistFromRig(row, resolveRig(row, { shoots, rigSettings })))
   ), [mine, shoots, rigSettings]);
+
+  const days = useMemo(() => groupRigChecksByDay(rows, todayStr), [rows, todayStr]);
 
   useEffect(() => {
     mine.forEach((row) => {
@@ -134,15 +130,19 @@ export default function AssignedRigChecksPanel({
 
   if (!userEmail || (!alwaysShow && rows.length === 0)) return null;
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(days.length / RIG_CHECK_DAYS_PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
-  const visible = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const visibleDays = days.slice(
+    safePage * RIG_CHECK_DAYS_PER_PAGE,
+    safePage * RIG_CHECK_DAYS_PER_PAGE + RIG_CHECK_DAYS_PER_PAGE
+  );
+  const selectedGroup = days.find((group) => group.day === selectedDay);
 
   return (
     <DashboardSection
       title="Rig Check Coverage"
       icon={CheckSquare}
-      extra={rows.length > 0 ? <span className="text-xs text-slate-500">Assigned to you · max 4</span> : null}
+      extra={days.length > 0 ? <span className="text-xs text-slate-500">Assigned to you · 4 days at a time</span> : null}
     >
       {rows.length === 0 ? (
         <p className="text-sm text-slate-500 py-6 text-center">
@@ -150,46 +150,77 @@ export default function AssignedRigChecksPanel({
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            {visible.map((row) => (
-              <RigCheckTile
-                key={row.id}
-                row={row}
-                todayStr={todayStr}
-                expanded={expandedId === row.id}
-                onToggleExpand={() => setExpandedId((id) => (id === row.id ? '' : row.id))}
-                editable={isRigCheckAssignee(row, userEmail)}
-                saving={savingId === row.id}
-                onToggleItem={toggleItem}
-                onConfirmChecked={confirmChecked}
-                onNotesBlur={(item, notes) => persist(item, { notes })}
-              />
-            ))}
-          </div>
-          {rows.length > PAGE_SIZE && (
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
+          {days.length > RIG_CHECK_DAYS_PER_PAGE && (
+            <div className="mb-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                onClick={() => { setPage((p) => Math.max(0, p - 1)); setSelectedDay(null); }}
                 disabled={safePage === 0}
-                className="rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30"
               >
+                <ChevronLeft className="h-3.5 w-3.5" />
                 Previous
               </button>
               <span className="text-[10px] font-bold text-gray-600">
-                SHOWING {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, rows.length)} OF {rows.length}
+                {safePage + 1} / {totalPages}
               </span>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                onClick={() => { setPage((p) => Math.min(totalPages - 1, p + 1)); setSelectedDay(null); }}
                 disabled={safePage >= totalPages - 1}
-                className="rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
+                className="inline-flex items-center gap-1 rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
               >
                 Next
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
+          <div className="space-y-5">
+            {visibleDays.map(({ day, rows: dayRows, openCount, doneCount }) => (
+              <div key={day || 'unscheduled'}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDay(day)}
+                  className="w-full flex items-baseline justify-between gap-2 mb-2 text-left rounded-lg px-1 py-0.5 hover:bg-slate-800/60"
+                >
+                  <p className="text-sm font-semibold text-slate-100">{formatRigCheckDay(day)}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {openCount > 0 && <span className="text-orange-300">{openCount} open</span>}
+                    {openCount > 0 && doneCount > 0 && <span className="text-slate-600"> · </span>}
+                    {doneCount > 0 && <span className="text-emerald-400">{doneCount} done</span>}
+                  </p>
+                </button>
+                <div className="space-y-2">
+                  {dayRows.map((row) => (
+                    <RigCheckDayListItem
+                      key={row.id}
+                      row={row}
+                      onClick={() => setSelectedDay(day)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </>
+      )}
+
+      {selectedGroup && (
+        <RigCheckDayPanel
+          day={selectedGroup.day}
+          rows={selectedGroup.rows}
+          todayStr={todayStr}
+          onClose={() => setSelectedDay(null)}
+          expandedId={expandedId}
+          onToggleExpand={(id) => setExpandedId((current) => (current === id ? '' : id))}
+          tileProps={(row) => ({
+            editable: isRigCheckAssignee(row, userEmail),
+            saving: savingId === row.id,
+            onToggleItem: toggleItem,
+            onConfirmChecked: confirmChecked,
+            onNotesBlur: (item, notes) => persist(item, { notes }),
+          })}
+        />
       )}
     </DashboardSection>
   );

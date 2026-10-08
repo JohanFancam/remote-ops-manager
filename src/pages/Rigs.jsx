@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2, Trash2, X, Settings2, StickyNote, Copy, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import RigSettingSidePanel from '../components/rigs/RigSettingSidePanel';
+import RemoteRigButtons from '../components/rigs/RemoteRigButtons';
 import { LiveDataBadge } from '@/components/shoots/LiveDataControls';
 import { schedulePhaseFlags } from '@/components/utils/schedulePhases';
 
@@ -159,12 +160,8 @@ export default function Rigs() {
                 {/* Remote rigs */}
                 {rig.remote_rigs?.length > 0 && (
                   <div className="px-4 pb-3">
-                    <p className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-tighter">Remote Rigs</p>
-                    <div className="flex flex-wrap gap-1">
-                      {rig.remote_rigs.map((r, i) => (
-                        <span key={i} className="text-xs bg-blue-950/40 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">{r}</span>
-                      ))}
-                    </div>
+                    <p className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-tighter">Remote desktops</p>
+                    <RemoteRigButtons remotes={rig.remote_rigs} />
                   </div>
                 )}
 

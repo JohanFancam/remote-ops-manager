@@ -48,6 +48,45 @@ export function itemsFromDefaultChecks(rig) {
   return normalizeDefaultChecks(rig).map((label) => ({ label, checked: false }));
 }
 
+export function assignmentDay(row) {
+  return String(row?.due_date || row?.shoot_date || row?.created_date || '').slice(0, 10);
+}
+
+export const RIG_CHECK_DAYS_PER_PAGE = 4;
+
+export function groupRigChecksByDay(rows = [], todayStr = '') {
+  const map = new Map();
+  (rows || []).forEach((row) => {
+    const day = assignmentDay(row);
+    if (!map.has(day)) map.set(day, []);
+    map.get(day).push(row);
+  });
+
+  const today = String(todayStr || '');
+  return [...map.entries()]
+    .map(([day, dayRows]) => {
+      const sorted = [...dayRows].sort((a, b) => {
+        const aDone = a.status === 'completed' ? 1 : 0;
+        const bDone = b.status === 'completed' ? 1 : 0;
+        if (aDone !== bDone) return aDone - bDone;
+        return String(a.team || a.shoot_title || '').localeCompare(String(b.team || b.shoot_title || ''));
+      });
+      return {
+        day,
+        rows: sorted,
+        openCount: sorted.filter((row) => row.status !== 'completed').length,
+        doneCount: sorted.filter((row) => row.status === 'completed').length,
+      };
+    })
+    .sort((a, b) => {
+      const aFuture = !today || a.day >= today ? 0 : 1;
+      const bFuture = !today || b.day >= today ? 0 : 1;
+      if (aFuture !== bFuture) return aFuture - bFuture;
+      if (aFuture === 0) return String(a.day).localeCompare(String(b.day));
+      return String(b.day).localeCompare(String(a.day));
+    });
+}
+
 export function assignmentProgress(assignment) {
   const items = Array.isArray(assignment?.items) ? assignment.items : [];
   const total = items.length;
