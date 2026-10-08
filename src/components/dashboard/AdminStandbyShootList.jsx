@@ -116,23 +116,9 @@ export default function AdminStandbyShootList({
   const monthDayShootsList = monthSelectedDate ? (shootsByDate[monthSelectedDate] || []) : [];
   const monthVisibleShoots = monthDayShootsList.slice(0, 3);
 
-  const coveringStandby = (shoot) => {
-    const shootDt = getShootDateTime(shoot, rigSettings);
-    return myStandbyWindows.find((w) => shootDt >= w.startDt && shootDt <= w.endDt) || null;
-  };
-
   const renderCard = (shoot) => {
-    const cover = coveringStandby(shoot);
-    const coverName = cover
-      ? (allUsers.find((u) => u.email === cover.admin_email)?.full_name || cover.admin_name || cover.admin_email)
-      : '';
     return (
       <div key={shoot.id}>
-        {coverName ? (
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            Standby: {coverName}
-          </p>
-        ) : null}
         <CountdownCard
           shoot={shoot}
           isAdmin={isAdmin}
@@ -199,7 +185,7 @@ export default function AdminStandbyShootList({
           {allStandbyShoots.length === 0 ? (
             <div className="py-6 text-center text-sm italic text-slate-500">No upcoming shoots during standby coverage.</div>
           ) : (
-            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
+            <div className={viewMode === 'tile' ? 'grid grid-cols-1 gap-3 xl:grid-cols-2 items-start' : 'space-y-2'}>{visibleShoots.map(renderCard)}</div>
           )}
           {allStandbyShoots.length > pageSize && (
             <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
