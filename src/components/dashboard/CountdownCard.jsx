@@ -572,6 +572,13 @@ export default function CountdownCard({
               </button>
             )}
           </div>
+
+          {Array.isArray(matchedRig?.remote_rigs) && matchedRig.remote_rigs.length > 0 && (
+            <div className="mt-3 flex flex-col items-center gap-1.5">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500">Remote desktops</p>
+              <RemoteRigButtons remotes={matchedRig.remote_rigs} />
+            </div>
+          )}
         </div>
         </div>
 
