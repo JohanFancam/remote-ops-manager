@@ -1,53 +1,41 @@
 import React from 'react';
 import { Monitor } from 'lucide-react';
-import { useAuth } from '@/lib/AuthContext';
 import {
-  CRD_GOOGLE_ACCOUNT_KEY,
-  isAndroidUserAgent,
+  formatRemoteDueLabel,
+  isRemoteDisabled,
   normalizeRemoteRigs,
-  remoteRigLaunchHref,
 } from '@/utils/remoteRigs';
 
 export default function RemoteRigButtons({ remotes, className = '' }) {
-  const { appPublicSettings } = useAuth();
-  const account = appPublicSettings?.public_settings?.[CRD_GOOGLE_ACCOUNT_KEY] || '';
-  const android = isAndroidUserAgent();
   const items = normalizeRemoteRigs(remotes);
   if (!items.length) return null;
 
   return (
     <div className={`relative z-10 flex flex-wrap gap-1.5 pointer-events-auto ${className}`}>
       {items.map((item, index) => {
-        const href = remoteRigLaunchHref(item, { account, android });
-        if (!href) {
-          return (
-            <span
-              key={`${item.name}-${index}`}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300"
-              title="Add a Chrome Remote Desktop link in this team’s rig settings"
-            >
-              <Monitor className="h-3 w-3 text-slate-500" />
-              {item.name}
-            </span>
-          );
-        }
+        const disabled = isRemoteDisabled(item);
+        const dueLabel = formatRemoteDueLabel(item.due_date);
+        const title = disabled
+          ? `${item.name} is unavailable${dueLabel ? ` — due ${dueLabel}` : ''}. Do not log into this rig.`
+          : item.name;
         return (
-          <a
+          <span
             key={`${item.name}-${index}`}
-            href={href}
-            {...(android
-              ? {}
-              : { target: '_blank', rel: 'noopener' })}
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-orange-700/60 bg-orange-950/40 px-2.5 py-1.5 text-xs font-semibold text-orange-200 hover:bg-orange-950/70 hover:text-orange-50 cursor-pointer"
-            title={`Open Chrome Remote Desktop app — ${item.name}`}
+            onClick={(e) => e.stopPropagation()}
+            className={
+              disabled
+                ? 'relative z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-500 cursor-default'
+                : 'relative z-10 inline-flex items-center gap-1.5 rounded-full border border-orange-700/60 bg-orange-950/40 px-2.5 py-1.5 text-xs font-semibold text-orange-200 cursor-default'
+            }
+            title={title}
           >
-            <Monitor className="h-3 w-3" />
+            <Monitor className={`h-3 w-3 ${disabled ? 'text-slate-500' : ''}`} />
             {item.name}
-          </a>
+            {disabled && dueLabel ? (
+              <span className="font-normal text-[10px] text-slate-500">due {dueLabel}</span>
+            ) : null}
+          </span>
         );
       })}
     </div>

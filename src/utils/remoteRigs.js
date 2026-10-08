@@ -18,14 +18,36 @@ export function looksLikeRemoteUrl(value) {
   return /^https?:\/\//i.test(text);
 }
 
+export function normalizeDueDate(value) {
+  const match = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return '';
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+export function isRemoteDisabled(item) {
+  return Boolean(item?.disabled);
+}
+
+export function formatRemoteDueLabel(dueDate) {
+  const ymd = normalizeDueDate(dueDate);
+  if (!ymd) return '';
+  const [, year, month, day] = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${Number(day)} ${months[Number(month) - 1]} ${year}`;
+}
+
 export function normalizeRemoteRigs(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => {
     if (typeof item === 'string') {
       const text = item.trim();
       if (!text) return null;
-      if (looksLikeRemoteUrl(text)) return { name: 'Remote', url: text };
-      return { name: text, url: '' };
+      if (looksLikeRemoteUrl(text)) return { name: 'Remote', url: text, disabled: false, due_date: '' };
+      return { name: text, url: '', disabled: false, due_date: '' };
     }
     if (!item || typeof item !== 'object') return null;
     let name = String(item.name || item.label || '').trim();
@@ -35,7 +57,13 @@ export function normalizeRemoteRigs(raw) {
       name = 'Remote';
     }
     if (!name && !url) return null;
-    return { name: name || 'Remote', url };
+    const disabled = Boolean(item.disabled || item.unavailable || item.offline);
+    return {
+      name: name || 'Remote',
+      url,
+      disabled,
+      due_date: disabled ? normalizeDueDate(item.due_date || item.dueDate || item.available_date) : '',
+    };
   }).filter(Boolean);
 }
 

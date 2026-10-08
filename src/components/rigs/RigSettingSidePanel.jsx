@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Volume2, Timer, X, Monitor } from 'lucide-react';
-import { normalizeRemoteRigs } from '@/utils/remoteRigs';
+import { formatRemoteDueLabel, normalizeRemoteRigs } from '@/utils/remoteRigs';
 
 const SPORTS = ['NBA', 'NHL', 'NFL', 'Soccer', 'MLB', 'MLS', 'Rugby', 'Cricket', 'Tennis', 'Other'];
 const RIG_TYPES = ['Data', 'Fancam', 'Data/Fancam'];
@@ -245,7 +245,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
             <div>
               <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Remote desktops</label>
               <p className="text-[10px] text-slate-500 mb-2">
-                One-time setup: in Chrome, open remotedesktop.google.com/access (signed into the Google account the remotes are registered to), install Chrome Remote Desktop as an app, then open that PC and copy the address bar link (remotedesktop.google.com/access/session/…). Paste it in the URL field. Dashboard buttons use that link so Chrome can launch the app instead of a browser window. Set the registered Google account under Settings → Remote desktops.
+                Names show on the dashboard shoot cards so operators know which remotes belong to this team. They are labels only — they do not open Chrome Remote Desktop. If a PC is down, switch it off and set a due date; that remote greys out so nobody tries to log into it.
               </p>
               {!readOnly && (
                 <div className="space-y-2 mb-2">
@@ -260,23 +260,53 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
               )}
               <div className="space-y-2">
                 {normalizeRemoteRigs(form.remote_rigs).map((r, i) => (
-                  <div key={i} className="rounded-lg border border-slate-800 bg-slate-800/50 p-2.5">
+                  <div key={i} className={`rounded-lg border p-2.5 ${r.disabled ? 'border-slate-800 bg-slate-900/50' : 'border-slate-800 bg-slate-800/50'}`}>
                     <div className="flex items-start gap-2">
-                      <Monitor className="h-4 w-4 text-orange-400 mt-2 shrink-0" />
+                      <Monitor className={`h-4 w-4 mt-2 shrink-0 ${r.disabled ? 'text-slate-500' : 'text-orange-400'}`} />
                       <div className="min-w-0 flex-1 space-y-1.5">
                         {readOnly ? (
                           <>
-                            <p className="text-sm text-slate-100">{r.name}</p>
-                            <p className="text-[11px] text-slate-500 truncate">{r.url || 'No Chrome Remote Desktop link yet'}</p>
+                            <p className={`text-sm ${r.disabled ? 'text-slate-500' : 'text-slate-100'}`}>{r.name}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{r.url || 'No session link stored'}</p>
+                            {r.disabled ? (
+                              <p className="text-[11px] text-slate-500">
+                                Unavailable{r.due_date ? ` — due ${formatRemoteDueLabel(r.due_date)}` : ''}
+                              </p>
+                            ) : null}
                           </>
                         ) : (
                           <>
                             <Input value={r.name} onChange={e => updateRemote(i, { name: e.target.value })}
                               className="bg-slate-900 border-slate-700 text-slate-100 h-8 text-sm" />
                             <Input value={r.url} onChange={e => updateRemote(i, { url: e.target.value })}
-                              placeholder="Chrome Remote Desktop URL"
+                              placeholder="Optional session URL for reference"
                               className="bg-slate-900 border-slate-700 text-slate-100 h-8 text-xs" />
                           </>
+                        )}
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          <span className="text-[11px] text-slate-400">Not working</span>
+                          <Toggle
+                            enabled={r.disabled}
+                            onChange={() => updateRemote(i, r.disabled
+                              ? { disabled: false, due_date: '' }
+                              : { disabled: true })}
+                            readOnly={readOnly}
+                          />
+                        </div>
+                        {r.disabled && (
+                          <label className="block">
+                            <span className="text-[11px] text-slate-500 block mb-1">Due date</span>
+                            {readOnly ? (
+                              <p className="text-[11px] text-slate-400">{formatRemoteDueLabel(r.due_date) || 'No due date'}</p>
+                            ) : (
+                              <Input
+                                type="date"
+                                value={r.due_date || ''}
+                                onChange={(e) => updateRemote(i, { due_date: e.target.value })}
+                                className="bg-slate-900 border-slate-700 text-slate-100 h-8 text-xs"
+                              />
+                            )}
+                          </label>
                         )}
                       </div>
                       {!readOnly && (
