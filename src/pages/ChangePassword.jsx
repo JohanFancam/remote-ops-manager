@@ -9,7 +9,7 @@ export default function ChangePassword() {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6">
       <div className="pointer-events-none absolute inset-0">
-        <div className="rom-ambient absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="rom-ambient absolute -top-24 -left-16 h-[28rem] w-[28rem] rounded-full bg-orange-500/20 blur-3xl" />
         <div className="rom-ambient absolute bottom-0 right-0 h-[22rem] w-[22rem] rounded-full bg-sky-400/10 blur-3xl" style={{ animationDelay: '2s' }} />
       </div>
 

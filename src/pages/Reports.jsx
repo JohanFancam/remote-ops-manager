@@ -79,7 +79,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
               onClick={() => downloadCSV(buildCSV(reports), `Reports_${format(date, 'yyyy-MM-dd')}.csv`)}>
               <Download className="h-3.5 w-3.5" /> Export
             </Button>
-            <Button size="sm" variant="ghost" className="text-xs text-blue-400 hover:text-blue-400 gap-1 h-8"
+            <Button size="sm" variant="ghost" className="text-xs text-orange-400 hover:text-orange-300 gap-1 h-8"
               onClick={() => setShowAdd(!showAdd)}>
               <Plus className="h-3.5 w-3.5" /> Add
             </Button>
@@ -98,7 +98,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
                 <input type="checkbox" checked={addForm.had_issues} onChange={e => setAddForm({...addForm, had_issues: e.target.checked})} className="rounded" />
                 Had Issues
               </label>
-              <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 gap-1 ml-auto" disabled={!addForm.shoot_title || saving}
+              <Button size="sm" className="h-7 text-xs bg-orange-500 hover:bg-orange-400 gap-1 ml-auto" disabled={!addForm.shoot_title || saving}
                 onClick={async () => { setSaving(true); await onAdd({ ...addForm, shoot_date: format(date, 'yyyy-MM-dd') }); setAddForm({ shoot_title: '', operator_name: '', had_issues: false, notes: '' }); setShowAdd(false); setSaving(false); }}>
                 <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
               </Button>
@@ -111,7 +111,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
             <div key={r.id} className="px-5 py-4">
               {editingId === r.id ? (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Editing Report</p>
+                  <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Editing Report</p>
                   <input className="w-full bg-slate-700 border border-slate-700 rounded-md px-2 py-1.5 text-sm text-slate-100" placeholder="Shoot Title" value={editForm.shoot_title || ''} onChange={e => setEditForm({...editForm, shoot_title: e.target.value})} />
                   <input className="w-full bg-slate-700 border border-slate-700 rounded-md px-2 py-1.5 text-sm text-slate-100" placeholder="Operator Name" value={editForm.operator_name || ''} onChange={e => setEditForm({...editForm, operator_name: e.target.value})} />
                   <textarea className="w-full bg-slate-700 border border-slate-700 rounded-md px-2 py-1.5 text-sm text-slate-100 resize-none" placeholder="Notes" rows={3} value={editForm.notes || ''} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
@@ -121,7 +121,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
                     Had Issues
                   </label>
                   <div className="flex gap-2">
-                    <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-500 gap-1" disabled={saving}
+                    <Button size="sm" className="h-7 text-xs bg-orange-500 hover:bg-orange-400 gap-1" disabled={saving}
                       onClick={async () => { setSaving(true); await onEdit(r.id, editForm); setEditingId(null); setSaving(false); }}>
                       <Save className="h-3 w-3" /> {saving ? 'Saving...' : 'Save'}
                     </Button>
@@ -142,7 +142,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
                       <Badge className={r.had_issues ? 'bg-red-950/400/20 text-red-400 border-red-800 text-xs' : 'bg-green-500/20 text-emerald-400 border-green-500/30 text-xs'}>
                         {r.had_issues ? 'Issues' : 'Clean'}
                       </Badge>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-blue-400"
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-500 hover:text-orange-400"
                         onClick={() => { setEditingId(r.id); setEditForm({ shoot_title: r.shoot_title, operator_name: r.operator_name || '', notes: r.notes || '', slack_message: r.slack_message || '', had_issues: !!r.had_issues }); setExpanded(null); }}>
                         <span className="text-xs">✏️</span>
                       </Button>
@@ -153,7 +153,7 @@ function DayPanel({ date, reports, onClose, onDelete, onAdd, onEdit }) {
                   </div>
                   {(r.notes || r.slack_message) && (
                     <button onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      className="mt-2 ml-6 text-xs text-blue-400 hover:text-blue-400 transition-colors">
+                      className="mt-2 ml-6 text-xs text-orange-400 hover:text-orange-300 transition-colors">
                       {expanded === r.id ? 'Hide details' : 'View details'}
                     </button>
                   )}
@@ -377,10 +377,10 @@ export default function Reports() {
                   className={`min-h-[80px] border-b border-slate-800/50 p-2 flex flex-col transition-colors
                     ${!isLastCol ? 'border-r border-slate-800/50' : ''}
                     ${hasAny ? 'cursor-pointer' : ''}
-                    ${isSelected ? 'bg-blue-950/40 border-blue-800/40' : hasAny ? 'hover:bg-slate-800/40' : ''}
+                    ${isSelected ? 'bg-orange-950/40 border-orange-800/40 hover:bg-orange-900/40' : hasAny ? 'hover:bg-slate-800/40' : ''}
                   `}>
                   <span className={`text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                    ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
+                    ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'bg-orange-500 text-white' : 'text-slate-400'}`}>
                     {format(day, 'd')}
                   </span>
                   {hasAny && (

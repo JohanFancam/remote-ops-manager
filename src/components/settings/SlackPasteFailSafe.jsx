@@ -60,7 +60,7 @@ export default function SlackPasteFailSafe() {
         </Button>
         <Button
           size="sm"
-          className="bg-blue-600 hover:bg-blue-500 h-8 text-xs"
+          className="bg-orange-500 hover:bg-orange-400 h-8 text-xs"
           disabled={busy || !text.trim()}
           onClick={() => run(true)}
         >

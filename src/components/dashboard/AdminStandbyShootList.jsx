@@ -178,9 +178,9 @@ export default function AdminStandbyShootList({
               const isToday = ds === todayStr;
               const isSelected = ds === monthSelectedDate;
               return (
-                <button key={ds} onClick={() => setMonthSelectedDate(isSelected ? null : ds)} className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-blue-600' : isToday ? 'bg-slate-700' : dayShoots.length > 0 ? 'bg-slate-800 hover:bg-slate-700' : 'hover:bg-slate-800/60'}`}>
-                  <span className={`text-xs font-medium ${isSelected ? 'text-slate-100' : isToday ? 'text-blue-400' : dayShoots.length > 0 ? 'text-slate-100' : 'text-gray-600'}`}>{format(day, 'd')}</span>
-                  {dayShoots.length > 0 && <span className={`mt-0.5 text-xs font-bold ${isSelected ? 'text-blue-200' : 'text-blue-400'}`}>{dayShoots.length}</span>}
+                <button key={ds} onClick={() => setMonthSelectedDate(isSelected ? null : ds)} className={`relative flex flex-col items-center rounded-lg py-1.5 transition-colors ${isSelected ? 'bg-orange-500' : isToday ? 'bg-slate-700' : dayShoots.length > 0 ? 'bg-slate-800 hover:bg-slate-700' : 'hover:bg-slate-800/60'}`}>
+                  <span className={`text-xs font-medium ${isSelected ? 'text-slate-100' : isToday ? 'text-orange-400' : dayShoots.length > 0 ? 'text-slate-100' : 'text-gray-600'}`}>{format(day, 'd')}</span>
+                  {dayShoots.length > 0 && <span className={`mt-0.5 text-xs font-bold ${isSelected ? 'text-orange-100' : 'text-orange-400'}`}>{dayShoots.length}</span>}
                 </button>
               );
             })}
@@ -205,7 +205,7 @@ export default function AdminStandbyShootList({
             <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 py-2">
               <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="rounded-md border border-slate-800 px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-30">Previous</button>
               <span className="text-[10px] font-bold text-gray-600">SHOWING {page * pageSize + 1}-{Math.min((page + 1) * pageSize, allStandbyShoots.length)} OF {allStandbyShoots.length}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30">Next</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30">Next</button>
             </div>
           )}
         </>

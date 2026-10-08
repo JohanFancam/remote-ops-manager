@@ -112,7 +112,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
           <p className="text-xs text-slate-400">This Month</p>
         </div>
         <div className="bg-slate-800/40 rounded-lg p-3 text-center">
-          <p className="text-xl font-bold text-blue-400">{formatDuration(monthAvg)}</p>
+          <p className="text-xl font-bold text-orange-400">{formatDuration(monthAvg)}</p>
           <p className="text-xs text-slate-400">Avg Duration</p>
         </div>
         <div className="bg-slate-800/40 rounded-lg p-3 text-center">
@@ -153,9 +153,9 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                 isSelected ? 'border-purple-500 bg-purple-950/40' :
                 hasShoots ? 'border-slate-800 hover:border-gray-500 cursor-pointer hover:bg-slate-800/40' :
                 'border-slate-800/40'
-              } ${today ? 'ring-1 ring-blue-500' : ''}`}
+              } ${today ? 'ring-1 ring-orange-500' : ''}`}
             >
-              <div className={`text-xs mb-1.5 font-medium ${today ? 'text-blue-400' : 'text-slate-500'}`}>
+              <div className={`text-xs mb-1.5 font-medium ${today ? 'text-orange-400' : 'text-slate-500'}`}>
                 {format(day, 'd')}
               </div>
               <div className="space-y-0.5">
@@ -294,7 +294,7 @@ export default function ShootTimingPanel({ shoots = [], allUsers = [], onUpdate 
                           <div className="flex items-center gap-3 pt-1">
                             <button
                               onClick={() => startEdit(s)}
-                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-400"
+                              className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300"
                             >
                               <Edit2 className="h-3 w-3" /> Edit timing
                             </button>

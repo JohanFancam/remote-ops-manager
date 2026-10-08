@@ -153,7 +153,7 @@ export default function RemoteEarnings({ user }) {
           </div>
           {user?.role !== 'standby' && (
             <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-center">
-              <Camera className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+              <Camera className="h-5 w-5 text-orange-400 mx-auto mb-1" />
               <p className="text-2xl font-bold text-slate-100">{mainShoots.length + additionalShoots.length}</p>
               <p className="text-xs text-slate-400">Shoots</p>
             </div>
@@ -168,7 +168,7 @@ export default function RemoteEarnings({ user }) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-slate-500 uppercase tracking-wider">Shoots This Month</p>
-                  <Button size="sm" variant="ghost" className="h-6 text-xs text-blue-400 hover:text-blue-400 gap-1 px-2"
+                  <Button size="sm" variant="ghost" className="h-6 text-xs text-orange-400 hover:text-orange-300 gap-1 px-2"
                     onClick={() => exportOperatorPDF({ name: user?.full_name || user?.email, email: user?.email, total: adjustedTotal, breakdown: adjustedBreakdown })}>
                     <Download className="h-3 w-3" /> PDF
                   </Button>

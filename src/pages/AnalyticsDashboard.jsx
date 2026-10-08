@@ -149,7 +149,7 @@ export default function AnalyticsDashboard() {
 
         <section className="mb-8">
           <h2 className="rom-section-title mb-3 flex items-center gap-2">
-            <Camera className="h-4 w-4 text-blue-400" /> Photography overview
+            <Camera className="h-4 w-4 text-orange-400" /> Photography overview
           </h2>
           <DayWindow
             startDate={shootWindow}
@@ -183,7 +183,7 @@ export default function AnalyticsDashboard() {
 
         <section className="mb-8">
           <h2 className="rom-section-title mb-3 flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-blue-400" /> Rig issues
+            <Wrench className="h-4 w-4 text-orange-400" /> Rig issues
           </h2>
           <DayWindow
             startDate={reportWindow}
@@ -224,7 +224,7 @@ export default function AnalyticsDashboard() {
 
         <section className="mb-8">
           <h2 className="rom-section-title mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-400" /> Standby overview
+            <Clock className="h-4 w-4 text-orange-400" /> Standby overview
           </h2>
           <DayWindow
             startDate={standbyWindow}

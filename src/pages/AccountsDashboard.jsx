@@ -473,7 +473,7 @@ export default function AccountsDashboard() {
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="h-4 w-4 text-blue-400" />
+                <DollarSign className="h-4 w-4 text-orange-400" />
                 <p className="text-slate-400 text-sm">This month</p>
               </div>
               <p className="text-2xl font-bold text-slate-100">{money(grandTotal)}</p>
@@ -670,7 +670,7 @@ export default function AccountsDashboard() {
                           setExportMode('range');
                           setRangeFrom(e.target.value);
                         }}
-                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-orange-500"
                       >
                         {rangeMonthOptions.map((m) => (
                           <option key={m} value={m}>{format(new Date(`${m}-01`), 'MMMM yyyy')}</option>
@@ -685,7 +685,7 @@ export default function AccountsDashboard() {
                           setExportMode('range');
                           setRangeTo(e.target.value);
                         }}
-                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-lg px-2 py-2 focus:outline-none focus:border-orange-500"
                       >
                         {rangeMonthOptions.map((m) => (
                           <option key={m} value={m}>{format(new Date(`${m}-01`), 'MMMM yyyy')}</option>
@@ -727,7 +727,7 @@ export default function AccountsDashboard() {
             <div className="space-y-2">
               <button
                 onClick={() => confirmTogglePaid(datePickerFor, format(new Date(), 'yyyy-MM-dd'))}
-                className="w-full text-left px-4 py-3 rounded-lg bg-blue-950/40 border border-blue-800 text-blue-400 hover:bg-blue-600/30 transition-colors text-sm font-medium"
+                className="w-full text-left px-4 py-3 rounded-lg bg-orange-950/40 border border-orange-800 text-orange-400 hover:bg-orange-600/30 transition-colors text-sm font-medium"
               >
                 Use today — {format(new Date(), 'd MMMM yyyy')}
               </button>
@@ -736,7 +736,7 @@ export default function AccountsDashboard() {
                   type="date"
                   value={customDate}
                   onChange={(e) => setCustomDate(e.target.value)}
-                  className="flex-1 bg-slate-800 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-slate-800 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-orange-500"
                 />
                 <Button
                   onClick={() => customDate && confirmTogglePaid(datePickerFor, customDate)}

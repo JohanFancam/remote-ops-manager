@@ -44,7 +44,7 @@ export default function DayWindow({
           type="button"
           onClick={onNext}
           disabled={!canNext}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-800/60 bg-blue-950/40 text-blue-300 hover:bg-blue-950/60 disabled:opacity-30"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-orange-700/60 bg-orange-950/40 text-orange-300 hover:bg-orange-950/60 disabled:opacity-30"
           aria-label="Next 4 days"
         >
           <ChevronRight className="h-4 w-4" />

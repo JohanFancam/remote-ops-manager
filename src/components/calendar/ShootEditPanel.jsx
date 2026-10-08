@@ -104,7 +104,7 @@ export default function ShootEditPanel({
 
         {/* Footer */}
         <div className="border-t border-slate-800 p-4 flex-shrink-0 flex gap-2 sticky bottom-0 bg-slate-900 z-10">
-          <Button onClick={onSave} className="flex-1 bg-blue-600 hover:bg-blue-500">
+          <Button onClick={onSave} className="flex-1 bg-orange-500 hover:bg-orange-400">
             {shoot ? 'Save Changes' : 'Create Shoot'}
           </Button>
           <Button onClick={onCancel} variant="outline" className="border-slate-800 text-slate-400 hover:bg-slate-800">

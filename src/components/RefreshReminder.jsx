@@ -42,7 +42,7 @@ export default function RefreshReminder() {
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => window.location.reload()}
-          className="bg-blue-600 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+          className="bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
         >
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>

@@ -138,7 +138,7 @@ export default function TeamActivityList({ shoots = [], allUsers = [] }) {
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="border-b border-slate-800 pb-3">
             <CardTitle className="text-slate-100 text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-400" />
+              <Calendar className="h-4 w-4 text-orange-400" />
               Upcoming Assignments
             </CardTitle>
           </CardHeader>

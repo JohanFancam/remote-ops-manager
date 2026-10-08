@@ -104,7 +104,7 @@ export default function RemotePendingShoots({ shoots = [], user, onUpdate }) {
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30"
+            className="rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
           >
             Next
           </button>

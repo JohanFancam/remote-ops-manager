@@ -48,7 +48,7 @@ function ViewerGameTile({ shoot, users, standbyDays }) {
       </p>
       <div className="mt-auto pt-3 space-y-1.5">
         <p className="flex items-center gap-1.5 text-xs text-slate-300 min-w-0">
-          <Camera className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+          <Camera className="h-3.5 w-3.5 text-orange-400 shrink-0" />
           <span className="truncate">{operators.length ? operators.join(', ') : 'Unassigned'}</span>
         </p>
         <p className="flex items-center gap-1.5 text-xs text-slate-300 min-w-0">
@@ -192,7 +192,7 @@ export default function ViewerSchedule() {
                     onClick={() => persistPageSize(size)}
                     className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                       pageSize === size
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-orange-500 text-white'
                         : 'text-slate-400 hover:text-slate-100'
                     }`}
                   >
@@ -242,7 +242,7 @@ export default function ViewerSchedule() {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={safePage >= totalPages - 1}
-                    className="rounded-md border border-blue-800/60 bg-blue-950/40 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-950/40 disabled:opacity-30"
+                    className="rounded-md border border-orange-700/60 bg-orange-950/40 px-2.5 py-1 text-xs font-semibold text-orange-400 hover:bg-orange-950/50 disabled:opacity-30"
                   >
                     Next
                   </button>

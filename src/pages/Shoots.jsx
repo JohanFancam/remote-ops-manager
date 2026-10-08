@@ -119,7 +119,7 @@ export default function Shoots() {
               </SelectContent>
             </Select>
             {isAdmin && (
-              <Button onClick={() => setIsAdding(true)} className="bg-blue-600 hover:bg-blue-500">
+              <Button onClick={() => setIsAdding(true)} className="bg-orange-500 hover:bg-orange-400">
                 <Plus className="h-4 w-4 mr-2" /> New Shoot
               </Button>
             )}
@@ -135,7 +135,7 @@ export default function Shoots() {
             <CardContent className="pt-4">
               <ShootForm form={form} setForm={setForm} rigs={rigs} />
               <div className="flex gap-2 mt-4">
-                <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-500">Create Shoot</Button>
+                <Button onClick={handleAdd} className="bg-orange-500 hover:bg-orange-400">Create Shoot</Button>
                 <Button variant="outline" onClick={() => { setIsAdding(false); setForm(emptyForm); }} className="border-slate-800 text-slate-400 hover:bg-slate-800">Cancel</Button>
               </div>
             </CardContent>
@@ -231,7 +231,7 @@ export default function Shoots() {
                                 onClick={() => toggleAssign(shoot)}
                                 className={shoot.assigned_operators?.includes(user?.email)
                                   ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30'
-                                  : 'bg-blue-600 hover:bg-blue-500 text-white'
+                                  : 'bg-orange-500 hover:bg-orange-400 text-white'
                                 }
                               >
                                 {shoot.assigned_operators?.includes(user?.email) ? 'Unassign Myself' : 'Assign Myself'}

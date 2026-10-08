@@ -52,9 +52,9 @@ const ISO_OPTIONS = ['Auto', '800', '1600', '3200', '6400'];
 
 function ScheduleRow({ Icon, label, time, highlight }) {
   return (
-    <div className={`flex justify-between items-center py-1.5 text-sm ${highlight ? 'text-blue-400 font-bold' : 'text-slate-400'}`}>
+    <div className={`flex justify-between items-center py-1.5 text-sm ${highlight ? 'text-orange-400 font-bold' : 'text-slate-400'}`}>
       <span className="flex items-center gap-2">
-        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-blue-400' : 'text-slate-500'}`} />
+        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${highlight ? 'text-orange-400' : 'text-slate-500'}`} />
         {label}
       </span>
       <span className="font-mono">{time}</span>
@@ -417,7 +417,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               {/* Rig Notes */}
               {matchedRig.notes && (
                 <div className="bg-blue-950/40 border border-blue-800 rounded-lg p-3">
-                  <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                  <p className="text-xs text-orange-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
                   <p className="text-sm text-blue-200/90 leading-relaxed italic">{matchedRig.notes}</p>
                 </div>
               )}
@@ -439,7 +439,7 @@ export default function ShootDetailPanel({ shoot, user, isAdmin, rigSettings, al
               isApproved ? 'border border-red-700 text-red-400 bg-transparent hover:bg-red-900/30 w-full'
               : isPending ? 'border border-yellow-700 text-amber-400 bg-transparent hover:bg-yellow-900/20 w-full'
               : shootFull ? 'border border-slate-700 text-slate-500 bg-slate-800/50 w-full cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-500 text-white w-full'
+              : 'bg-orange-500 hover:bg-orange-400 text-white w-full'
             }
           >
             {isApproved ? 'Unassign Myself' : isPending ? 'Pending — Cancel' : shootFull ? 'Unavailable' : '+ Assign Myself'}

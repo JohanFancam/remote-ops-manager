@@ -43,7 +43,7 @@ const emptyForm = {
 function Toggle({ enabled, onChange, readOnly }) {
   return (
     <button type="button" onClick={onChange} disabled={readOnly}
-      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-blue-600' : 'bg-slate-700'} ${readOnly ? 'cursor-default opacity-60' : ''}`}>
+      className={`relative inline-flex w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-orange-500' : 'bg-slate-700'} ${readOnly ? 'cursor-default opacity-60' : ''}`}>
       <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-slate-900 shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
   );
@@ -235,7 +235,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
                     <Input placeholder="e.g. RemotePC-01" value={rigInput} onChange={e => setRigInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addRig()}
                       className="bg-slate-800 border-slate-800 text-slate-100 placeholder:text-slate-500" />
-                    <Button type="button" onClick={addRig} size="sm" className="bg-blue-600 hover:bg-blue-500">Add</Button>
+                    <Button type="button" onClick={addRig} size="sm" className="bg-orange-500 hover:bg-orange-400">Add</Button>
                   </>
                 )}
               </div>
@@ -446,7 +446,7 @@ export default function RigSettingSidePanel({ isOpen, rig, onSave, onDelete, onC
               </Button>
             ) : (
               <>
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 flex-1">
+                <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-400 flex-1">
                   {isNew ? 'Create Rig Setting' : 'Save Changes'}
                 </Button>
                 {!isNew && (

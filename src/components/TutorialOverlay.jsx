@@ -104,7 +104,7 @@ export default function TutorialOverlay({ isAdmin, tutorialEnabled }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-blue-400" />
+            <BookOpen className="h-4 w-4 text-orange-400" />
             <span className="text-xs font-medium text-slate-400">Tutorial · Step {step + 1} of {steps.length}</span>
           </div>
           <button onClick={dismiss} className="text-gray-600 hover:text-slate-100">
@@ -141,11 +141,11 @@ export default function TutorialOverlay({ isAdmin, tutorialEnabled }) {
               </Button>
             )}
             {isLast ? (
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500 gap-1" onClick={dismiss}>
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-400 gap-1" onClick={dismiss}>
                 Done <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500 gap-1" onClick={() => setStep(s => s + 1)}>
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-400 gap-1" onClick={() => setStep(s => s + 1)}>
                 Next <ChevronRight className="h-4 w-4" />
               </Button>
             )}

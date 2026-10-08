@@ -51,7 +51,7 @@ export default function EarningsSummary({
                 <p className="text-xs text-slate-500">Total Earnings (ZAR)</p>
                 <p className="text-lg font-bold text-emerald-400">{formatZAR(grandTotal)}</p>
               </div>
-              <Button onClick={handleExport} size="sm" className="bg-blue-600 hover:bg-blue-600">
+              <Button onClick={handleExport} size="sm" className="bg-orange-500 hover:bg-orange-400">
                 <Download className="h-4 w-4 mr-1" /> PDF
               </Button>
             </div>

@@ -43,7 +43,7 @@ export default function StandbyUserQuota({ user, shoots = [] }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 md:p-5 mb-8">
       <div className="flex items-center gap-2 mb-4">
-        <Target className="h-4 w-4 text-blue-400 flex-shrink-0" />
+        <Target className="h-4 w-4 text-orange-400 flex-shrink-0" />
         <h2 className="text-base font-semibold text-slate-100">Shoot Quota</h2>
         {graceReached && (
           <span className="ml-auto text-xs bg-red-950/400/20 text-red-400 border border-red-800 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -85,7 +85,7 @@ export default function StandbyUserQuota({ user, shoots = [] }) {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 mt-4">
         <div className="rounded-lg bg-slate-800/60 border border-slate-800/40 p-3 text-center">
-          <p className="text-xl font-bold text-blue-400">{assignedCount}</p>
+          <p className="text-xl font-bold text-orange-400">{assignedCount}</p>
           <p className="text-xs text-slate-400 mt-0.5">Total Assigned</p>
         </div>
         <div className="rounded-lg bg-slate-800/60 border border-slate-800/40 p-3 text-center">
@@ -93,7 +93,7 @@ export default function StandbyUserQuota({ user, shoots = [] }) {
           <p className="text-xs text-slate-400 mt-0.5">Completed</p>
         </div>
         <div className={`rounded-lg border p-3 text-center ${remaining > 0 ? 'bg-blue-950/40 border-blue-800' : 'bg-emerald-950/40 border-emerald-800'}`}>
-          <p className={`text-xl font-bold ${remaining > 0 ? 'text-blue-400' : 'text-green-300'}`}>
+          <p className={`text-xl font-bold ${remaining > 0 ? 'text-orange-400' : 'text-green-300'}`}>
             {remaining > 0 ? remaining : '✓'}
           </p>
           <p className="text-xs text-slate-400 mt-0.5">{remaining > 0 ? 'Still Needed' : 'Quota Met'}</p>

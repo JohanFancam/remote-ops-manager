@@ -240,7 +240,7 @@ export default function Notifications() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search title, shoot, or message…"
-            className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-10 py-2.5 text-sm placeholder:text-gray-600 focus:border-blue-500 outline-none"
+            className="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg pl-9 pr-10 py-2.5 text-sm placeholder:text-gray-600 focus:border-orange-500 outline-none"
           />
           {search && (
             <button
@@ -266,7 +266,7 @@ export default function Notifications() {
                       type="button"
                       disabled={busyRequest === request.id}
                       onClick={() => handleRequest(request, true)}
-                      className="inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-500 px-2.5 py-1 text-xs text-white"
+                      className="inline-flex items-center gap-1 rounded-md bg-orange-500 hover:bg-orange-400 px-2.5 py-1 text-xs text-white"
                     >
                       <Check className="h-3 w-3" /> Approve
                     </button>
@@ -294,7 +294,7 @@ export default function Notifications() {
               className={cn(
                 'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                 filter === item.id
-                  ? 'border-blue-500 bg-blue-600/20 text-blue-200'
+                  ? 'border-orange-500 bg-orange-500/20 text-orange-200'
                   : 'border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-100'
               )}
             >
@@ -334,13 +334,13 @@ export default function Notifications() {
                           'block rounded-xl border bg-slate-900 px-4 py-3 transition-colors',
                           dismissed
                             ? 'border-slate-800 opacity-70 hover:opacity-100'
-                            : 'border-slate-700 hover:border-blue-700'
+                            : 'border-slate-700 hover:border-orange-700'
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-blue-300">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-orange-300">
                                 {notificationTypeLabel(notification.type)}
                               </span>
                               {dismissed && (

@@ -139,11 +139,11 @@ function NotificationBody({ item }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1">
           {notification.type === 'standby' ? (
-            <Bell className="h-3.5 w-3.5 text-blue-300" />
+            <Bell className="h-3.5 w-3.5 text-orange-300" />
           ) : (
-            <AlertTriangle className="h-3.5 w-3.5 text-blue-300" />
+            <AlertTriangle className="h-3.5 w-3.5 text-orange-300" />
           )}
-          <span className="text-[11px] font-medium uppercase tracking-wide text-blue-300">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-orange-300">
             {storedTypeLabel(notification.type)}
           </span>
         </div>
@@ -526,7 +526,7 @@ export function NotificationInbox({ collapsed = false, className = '', drop = 'u
           <Link
             to="/Notifications"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-center text-[11px] text-blue-300 hover:text-blue-100 border-t border-slate-800"
+            className="block px-3 py-2 text-center text-[11px] text-orange-300 hover:text-orange-100 border-t border-slate-800"
           >
             Open notification log
           </Link>

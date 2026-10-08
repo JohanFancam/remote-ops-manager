@@ -241,7 +241,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                               autoFocus
                             />
                             <div className="flex gap-2">
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-600 h-6 text-xs gap-1" onClick={() => handleSave(s.id)}>
+                              <Button size="sm" className="bg-orange-500 hover:bg-orange-400 h-6 text-xs gap-1" onClick={() => handleSave(s.id)}>
                                 <Save className="h-3 w-3" /> Save
                               </Button>
                               <Button size="sm" variant="ghost" className="h-6 text-xs text-slate-400" onClick={() => setEditingId(null)}>
@@ -272,7 +272,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                                 {s.game_time && ` · ${s.game_time}`}
                               </p>
                             </div>
-                            <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-blue-400 flex-shrink-0 mt-0.5" title="Edit">
+                            <button onClick={() => handleEdit(s)} className="text-gray-600 hover:text-orange-400 flex-shrink-0 mt-0.5" title="Edit">
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -329,7 +329,7 @@ export default function ShootSummaryPanel({ shoots = [], appSettings = [] }) {
                     <div key={s.id} className="flex items-center gap-3 opacity-50">
                       <span className="text-sm text-slate-500 line-through flex-1">{s.title || s.client}</span>
                       <span className="text-xs text-gray-600">{format(new Date(s.date + 'T12:00:00'), 'MMM d')}</span>
-                      <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-blue-400" title="Restore">
+                      <button onClick={() => handleUnarchive(s.id)} className="text-gray-600 hover:text-orange-400" title="Restore">
                         <RotateCcw className="h-3.5 w-3.5" />
                       </button>
                     </div>

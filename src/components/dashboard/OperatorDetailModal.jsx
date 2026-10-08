@@ -39,7 +39,7 @@ export default function OperatorDetailModal({ operator, onClose }) {
             <p className="text-xs text-slate-400 mt-0.5">Total Earnings</p>
           </div>
           <div className="bg-slate-800 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-blue-400">
+            <p className="text-2xl font-bold text-orange-400">
               {operator.breakdown.filter(b => b.isAdditional).length}
             </p>
             <p className="text-xs text-slate-400 mt-0.5">Additional Shoots</p>
@@ -62,7 +62,7 @@ export default function OperatorDetailModal({ operator, onClose }) {
                   {items.map((item, idx) => (
                     <div key={idx} className={`px-3 py-2.5 flex items-center justify-between ${item.isCancelled ? 'opacity-80' : ''}`}>
                       <div className="flex items-center gap-2">
-                        <Camera className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                        <Camera className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
                         <div>
                           <p className="text-sm text-slate-100">{shortenTitle(item.shoot?.title) || item.shoot?.title || 'Unnamed Shoot'}</p>
                           <p className="text-xs text-slate-500">{formatDateZA(item.date)}</p>
@@ -98,7 +98,7 @@ export default function OperatorDetailModal({ operator, onClose }) {
           <div>
             <p className="text-xs text-slate-500">Rates in ZAR · Postponed = R250 · Cancelled = no pay</p>
           </div>
-          <Button onClick={handleExport} className="bg-blue-600 hover:bg-blue-600">
+          <Button onClick={handleExport} className="bg-orange-500 hover:bg-orange-400">
             <Download className="h-4 w-4 mr-2" /> Export PDF
           </Button>
         </div>

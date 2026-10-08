@@ -181,7 +181,7 @@ export default function AssignOperatorModal({
           <Button
             onClick={() => { if (selectedEmail) { onConfirm(selectedEmail); setSelectedEmail(''); } }}
             disabled={!selectedEmail}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
+            className="flex-1 bg-orange-500 hover:bg-orange-400 text-white"
           >
             {hasAssignee ? 'Replace' : 'Assign'}
           </Button>

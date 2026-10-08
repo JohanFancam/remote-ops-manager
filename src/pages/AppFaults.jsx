@@ -79,7 +79,7 @@ function LogFaultForm({ onSaved }) {
         rows={4}
         className="w-full bg-slate-800 border border-slate-800 text-slate-100 rounded-md px-3 py-2 text-sm placeholder:text-slate-500 resize-none"
       />
-      <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-500">
+      <Button type="submit" disabled={saving} className="bg-orange-500 hover:bg-orange-400">
         {saving ? 'Sending…' : 'Send to admins'}
       </Button>
     </form>

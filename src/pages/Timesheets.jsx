@@ -91,7 +91,7 @@ function AddEntryForm({ onAdd, onClose }) {
       <CardHeader className="pb-3 border-b border-slate-800">
         <div className="flex items-center justify-between">
           <CardTitle className="text-slate-100 text-sm flex items-center gap-2">
-            <Plus className="h-4 w-4 text-blue-400" /> Add Work Day Entry
+            <Plus className="h-4 w-4 text-orange-400" /> Add Work Day Entry
           </CardTitle>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-100"><X className="h-4 w-4" /></button>
         </div>
@@ -147,7 +147,7 @@ function AddEntryForm({ onAdd, onClose }) {
           <div className="text-xs text-slate-500">
             💡 Each day has one entry with a total duration. Multiple shoots/standby on the same day don't multiply hours.
           </div>
-          <Button type="submit" disabled={!effectiveHours} className="bg-blue-600 hover:bg-blue-500 h-9 text-sm">
+          <Button type="submit" disabled={!effectiveHours} className="bg-orange-500 hover:bg-orange-400 h-9 text-sm">
             Add Entry
           </Button>
         </form>
@@ -180,7 +180,7 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
   return (
     <div className={`rounded-xl border transition-colors ${isToday ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 bg-slate-900'}`}>
       <button className="w-full flex items-center gap-4 p-4 text-left" onClick={() => setOpen(!open)}>
-        <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-blue-600' : 'bg-slate-800'}`}>
+        <div className={`flex-shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center ${isToday ? 'bg-orange-500' : 'bg-slate-800'}`}>
           <span className="text-xs text-slate-400 leading-none">{dayLabel}</span>
           <span className="text-xl font-bold text-slate-100 leading-tight">{dayNum}</span>
           <span className="text-xs text-slate-400 leading-none">{monthLabel}</span>
@@ -228,7 +228,7 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-500 h-7 gap-1 text-xs" onClick={handleSave}>
+                <Button size="sm" className="bg-orange-500 hover:bg-orange-400 h-7 gap-1 text-xs" onClick={handleSave}>
                   <Save className="h-3 w-3" /> Save
                 </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-400" onClick={() => setEditing(false)}>Cancel</Button>
@@ -246,7 +246,7 @@ function DayBlock({ entry, isAdmin, userEmail, onDelete, onEdit }) {
               </div>
               {canModify && (
                 <div className="flex gap-1 flex-shrink-0">
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-blue-400 hover:bg-slate-800" onClick={() => setEditing(true)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-500 hover:text-orange-400 hover:bg-slate-800" onClick={() => setEditing(true)}>
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 hover:text-red-400 hover:bg-slate-800" onClick={() => onDelete(entry.id)}>
@@ -330,7 +330,7 @@ export default function Timesheets() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Timesheets</h1>
           <div className="flex gap-2">
-            <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-blue-600 hover:bg-blue-500 gap-2 h-9">
+            <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-orange-500 hover:bg-orange-400 gap-2 h-9">
               <Plus className="h-4 w-4" /> Add Entry
             </Button>
             <Button onClick={() => exportTimesheetPDF(dedupedEntries, `Timesheet ${filterMonth}`)}
@@ -370,7 +370,7 @@ export default function Timesheets() {
           <Card className="bg-slate-900 border-slate-800">
             <CardContent className="p-5">
               <p className="text-slate-400 text-sm">Shoot Days</p>
-              <p className="text-2xl font-bold text-blue-400 mt-1">
+              <p className="text-2xl font-bold text-orange-400 mt-1">
                 {dedupedEntries.filter(e => e.day_type === 'shoot' || e.day_type === 'shoot_standby').length}
               </p>
             </CardContent>

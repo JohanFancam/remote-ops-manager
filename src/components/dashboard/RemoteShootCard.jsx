@@ -18,7 +18,7 @@ function getLivePhaseLabel(shoot, now) {
   if (p.sound_started) return { label: 'Sound Check', color: 'text-purple-400' };
   if (p.attention_started) return { label: 'Attention', color: 'text-orange-400' };
   if (p.pre_shoot_started) return { label: 'Pre-Shoot', color: 'text-amber-400' };
-  if (p.setup_complete) return { label: 'Setup', color: 'text-blue-400' };
+  if (p.setup_complete) return { label: 'Setup', color: 'text-orange-400' };
   return null;
 }
 
@@ -143,7 +143,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
         >
           {/* Countdown pill */}
           <div className={`flex-shrink-0 font-mono text-sm font-bold px-2.5 py-1 rounded-lg ${
-            diff !== null && diff <= 0 ? 'bg-red-950/50 text-red-400 border border-red-800' : 'bg-blue-950/40 text-blue-400 border border-blue-800'
+            diff !== null && diff <= 0 ? 'bg-red-950/50 text-red-400 border border-red-800' : 'bg-orange-950/40 text-orange-400 border border-orange-800'
           }`}>
             {diff === null ? '—' : formatCountdown(diff)}
           </div>
@@ -152,7 +152,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-slate-100 text-sm truncate">{shoot.title}</span>
-              {rigLabel && <span className="text-xs text-blue-400 bg-blue-950/40 px-1.5 py-0.5 rounded border border-blue-800/40">{rigLabel}</span>}
+              {rigLabel && <span className="text-xs text-orange-400 bg-orange-950/40 px-1.5 py-0.5 rounded border border-orange-800/40">{rigLabel}</span>}
             </div>
             <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
               <span>{format(new Date(shoot.date + 'T12:00:00'), 'EEE, MMM d')}</span>
@@ -180,7 +180,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
           <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
             {/* Countdown */}
             <div className={`text-center py-2 px-2 rounded-xl ${diff !== null && diff <= 0 ? 'bg-red-950/40 border border-red-800' : 'bg-blue-950/40 border border-blue-800'}`}>
-              <div className={`font-mono font-bold text-xl tracking-wider ${diff !== null && diff <= 0 ? 'text-red-400' : 'text-blue-400'}`}>
+              <div className={`font-mono font-bold text-xl tracking-wider ${diff !== null && diff <= 0 ? 'text-red-400' : 'text-orange-400'}`}>
                 {diff === null ? '—' : formatCountdown(diff)}
               </div>
               <div className="text-xs text-slate-500">until game time</div>
@@ -247,7 +247,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
                 </div>
                 {matchedRig.notes && (
                   <div className="bg-blue-950/40 border border-blue-800 rounded-lg p-2.5">
-                    <p className="text-xs text-blue-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
+                    <p className="text-xs text-orange-400 uppercase tracking-wider mb-1 font-semibold">📝 Rig Notes</p>
                     <p className="text-xs text-blue-200/90 italic leading-relaxed">{matchedRig.notes}</p>
                   </div>
                 )}
@@ -279,7 +279,7 @@ export default function RemoteShootCard({ shoot, rigSettings = [], onUpdate, use
               </div>
             )}
 
-            <a href={`/Calendar?shootId=${shoot.id}`} className="block text-center text-xs text-blue-500 hover:text-blue-400 pt-1">
+            <a href={`/Calendar?shootId=${shoot.id}`} className="block text-center text-xs text-blue-500 hover:text-orange-400 pt-1">
               Open full detail in Calendar →
             </a>
           </div>
